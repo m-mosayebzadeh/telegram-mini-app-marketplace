@@ -1,0 +1,17 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Secret config file — never commit this
+.env
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Local database (once it's added later)
+*.db
+*.sqlite3
+
+# Test cache
+.pytest_cache/
