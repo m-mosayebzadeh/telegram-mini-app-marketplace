@@ -1,0 +1,25 @@
+meta {
+  name: 2. Setup User B - Get Me
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/me
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+script:post-response {
+  bru.setEnvVar("userIdB", res.getBody().id);
+}
+
+docs {
+  Creates/logs in User B and captures their internal id as "userIdB" —
+  needed because follow endpoints take our internal user id, not a
+  telegram_id.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: 1. Setup User B - Generate InitData
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/dev/test-init-data?telegram_id=222222&first_name=Bob&username=bob_dev
+  body: none
+  auth: none
+}
+
+script:post-response {
+  bru.setEnvVar("initDataB", res.getBody().init_data);
+}
+
+docs {
+  Second test identity ("User B" / Bob), separate from the default
+  "initData" (User A / Sara) used elsewhere in the collection — follow
+  requires two distinct users to test the full accept/reject flow.
+}

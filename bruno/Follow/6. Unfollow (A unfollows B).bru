@@ -1,0 +1,20 @@
+meta {
+  name: 6. Unfollow (A unfollows B)
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/follow/{{userIdB}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  User A (Sara) removes the relationship with User B (Bob) — works
+  whether it's still pending or already accepted.
+}

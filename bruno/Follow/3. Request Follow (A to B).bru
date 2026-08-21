@@ -1,0 +1,21 @@
+meta {
+  name: 3. Request Follow (A to B)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/follow/{{userIdB}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  User A (Sara) requests to follow User B (Bob). Run the two setup
+  requests above first, and "Generate Test InitData" + "Get Me" from the
+  Auth folder for User A.
+}

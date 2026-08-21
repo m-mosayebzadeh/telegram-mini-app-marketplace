@@ -1,0 +1,20 @@
+meta {
+  name: 4. Accept Follow (B accepts A)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/follow/{{userIdA}}/accept
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  User B (Bob) accepts the pending request from User A (Sara). Run
+  "3. Request Follow" first.
+}

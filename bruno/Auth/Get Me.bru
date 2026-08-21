@@ -14,6 +14,10 @@ headers {
   X-Telegram-Init-Data: {{initData}}
 }
 
+script:post-response {
+  bru.setEnvVar("userIdA", res.getBody().id);
+}
+
 docs {
   Requires a valid, freshly-signed Telegram initData string in the
   "initData" environment variable.

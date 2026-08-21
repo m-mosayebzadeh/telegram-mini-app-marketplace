@@ -1,0 +1,21 @@
+meta {
+  name: 5. Reject Follow (B rejects A)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/follow/{{userIdA}}/reject
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  Alternative to "4. Accept Follow" — run "3. Request Follow" again
+  first if you already accepted (accept/reject both require a PENDING
+  request; once accepted, rejecting will 404).
+}
