@@ -1,0 +1,27 @@
+meta {
+  name: Update My Profile
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/profile/me
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:json {
+  {
+    "avatar_url": "https://example.com/avatar.jpg",
+    "bio": "Hello from Bruno"
+  }
+}
+
+docs {
+  Create-or-update — safe to call repeatedly. Run "Generate Test
+  InitData" (Auth folder) first if "initData" is stale.
+}
