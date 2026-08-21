@@ -11,7 +11,7 @@ import enum
 from datetime import datetime, timezone
 
 from sqlalchemy import BigInteger, DateTime, Enum, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -53,8 +53,20 @@ class User(Base):
     )
 
     status: Mapped[UserStatus] = mapped_column(
-        Enum(UserStatus),
+        # values_callable: store "active"/"blocked" (the enum's values)
+        # instead of SQLAlchemy's default of "ACTIVE"/"BLOCKED" (the
+        # member names) — keeps the raw database consistent with what
+        # the API actually returns (see main.py's current_user.status.value).
+        Enum(UserStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
         default=UserStatus.ACTIVE,
+    )
+
+    # uselist=False is what tells SQLAlchemy "this side of the
+    # relationship is a single object, not a list" — i.e. `user.profile`
+    # instead of `user.profiles`. The actual one-to-one *constraint*
+    # still lives on the Profile side (its user_id column is unique).
+    profile: Mapped["Profile | None"] = relationship(
+        back_populates="user", uselist=False
     )
 
     def __repr__(self) -> str:
