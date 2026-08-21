@@ -1,0 +1,40 @@
+meta {
+  name: 1. Upload Photo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/photos
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:multipart-form {
+  file: @file()
+  is_paid: false
+  is_blurred: true
+  audience_type: public
+}
+
+script:post-response {
+  bru.setEnvVar("photoId", res.getBody().id);
+}
+
+docs {
+  Before sending: click the "file" field's value and pick any image
+  from your computer (Bruno needs a real local file for multipart
+  uploads — it can't be checked into the collection).
+
+  Requires User A to already have a profile — run "Update My Profile"
+  (Profile folder) first if you get a 400.
+
+  Try different combinations by editing the body fields:
+  - is_paid: true (also add "price_stars: 50") — forces is_blurred too
+  - audience_type: user (also add "audience_user_id: {{userIdB}}")
+  - audience_type: group (also add "audience_group_id: {{groupId}}")
+}

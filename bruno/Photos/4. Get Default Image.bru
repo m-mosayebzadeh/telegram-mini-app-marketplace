@@ -1,0 +1,21 @@
+meta {
+  name: 4. Get Default Image
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/photos/{{photoId}}/image
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  The default view — blurred whenever the photo is blurred, every time,
+  regardless of purchase history. Click "Preview" on the response (not
+  just "Raw") to actually see the image in Bruno.
+}

@@ -1,0 +1,20 @@
+meta {
+  name: 3. Get Photo Metadata
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/photos/{{photoId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  Includes "can_see_original" — whether *this* viewer can currently see
+  the unblurred version.
+}

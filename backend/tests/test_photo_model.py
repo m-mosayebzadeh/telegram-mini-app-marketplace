@@ -26,7 +26,7 @@ def _photo(**overrides) -> Photo:
     fields = dict(
         profile_id=1,
         original_file_path="original.jpg",
-        blurred_file_path="blurred.jpg",
+        blurred_file_path=None,
         is_paid=False,
         is_blurred=False,
         audience_type=PhotoAudience.PUBLIC,
@@ -50,10 +50,38 @@ def test_paid_photo_must_be_blurred(db):
 
 
 def test_paid_photo_requires_a_price(db):
-    db.add(_photo(is_paid=True, price_stars=None, is_blurred=True))
+    db.add(
+        _photo(
+            is_paid=True,
+            price_stars=None,
+            is_blurred=True,
+            blurred_file_path="blurred.jpg",
+        )
+    )
 
     with pytest.raises(IntegrityError):
         db.commit()
+
+
+def test_blurred_photo_requires_a_blurred_file(db):
+    db.add(_photo(is_blurred=True, blurred_file_path=None))
+
+    with pytest.raises(IntegrityError):
+        db.commit()
+
+
+def test_unblurred_photo_cannot_have_a_blurred_file(db):
+    db.add(_photo(is_blurred=False, blurred_file_path="blurred.jpg"))
+
+    with pytest.raises(IntegrityError):
+        db.commit()
+
+
+def test_blurred_free_photo_with_a_blurred_file_is_allowed(db):
+    db.add(_photo(is_blurred=True, blurred_file_path="blurred.jpg"))
+    db.commit()
+
+    assert db.query(Photo).count() == 1
 
 
 def test_free_photo_cannot_have_a_price(db):

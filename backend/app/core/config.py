@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     # the only real guard.
     enable_dev_tools: bool = False
 
+    # Where uploaded photo files are stored (see app/core/storage.py).
+    # Defaults to backend/uploads/, but tests override it directly
+    # (settings.uploads_dir = tmp_path) so uploads made during a test run
+    # never touch this real local folder.
+    uploads_dir: Path = BACKEND_DIR / "uploads"
+
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 
 

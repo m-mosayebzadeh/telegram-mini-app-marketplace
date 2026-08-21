@@ -24,7 +24,7 @@ from sqlalchemy import (
     Integer,
     String,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.time import UTCDateTime, utcnow
@@ -46,9 +46,14 @@ class Photo(Base):
     # Where the two versions of the image are stored. A plain string for
     # now (a local file path); once we pick real file/object storage,
     # this becomes a key/URL instead — the rest of the model doesn't
-    # change either way.
+    # change either way. Never exposed through the API — clients only
+    # ever get an `id` and fetch bytes through an access-checked route.
     original_file_path: Mapped[str] = mapped_column(String(500))
-    blurred_file_path: Mapped[str] = mapped_column(String(500))
+    # Only generated (and only non-NULL) when is_blurred is True — most
+    # photos are expected to be public and unblurred, so there's no
+    # reason to spend the processing time or disk space making a second
+    # copy of every single one.
+    blurred_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     is_paid: Mapped[bool] = mapped_column(Boolean, default=False)
     # Only meaningful when is_paid is True. Stars amount; actual payment
@@ -80,6 +85,10 @@ class Photo(Base):
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
+    # Lets code write `photo.profile.user_id` (e.g. "who owns this
+    # photo?") instead of a separate query every time it's needed.
+    profile: Mapped["Profile"] = relationship()
+
     __table_args__ = (
         # A paid photo must be blurred. Written as "NOT is_paid OR
         # is_blurred" — i.e. "if is_paid then is_blurred" — rather than
@@ -90,6 +99,13 @@ class Photo(Base):
             "(is_paid AND price_stars IS NOT NULL) OR "
             "(NOT is_paid AND price_stars IS NULL)",
             name="ck_price_matches_is_paid",
+        ),
+        # A blurred file only exists (and must exist) when is_blurred is
+        # True — same "flag <-> matching column" pattern as price_stars.
+        CheckConstraint(
+            "(is_blurred AND blurred_file_path IS NOT NULL) OR "
+            "(NOT is_blurred AND blurred_file_path IS NULL)",
+            name="ck_blurred_path_matches_is_blurred",
         ),
         # The audience_type must agree with which target column (if any)
         # is filled in — a "user" audience needs audience_user_id and

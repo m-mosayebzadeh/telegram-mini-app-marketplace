@@ -1,0 +1,15 @@
+meta {
+  name: 7. Delete Photo
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/photos/{{photoId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}

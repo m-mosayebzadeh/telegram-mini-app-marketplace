@@ -24,8 +24,26 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import settings
 from app.core.database import Base, get_db
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def isolated_uploads_dir(tmp_path):
+    """
+    Redirects settings.uploads_dir to a fresh, throwaway temp folder for
+    every single test (autouse=True means every test gets this without
+    asking for it by name) — otherwise a test that uploads a photo would
+    write real files into this developer's actual backend/uploads/.
+
+    pytest's built-in `tmp_path` fixture already creates and cleans up a
+    unique directory per test on its own.
+    """
+    original = settings.uploads_dir
+    settings.uploads_dir = tmp_path
+    yield
+    settings.uploads_dir = original
 
 
 @pytest.fixture()
