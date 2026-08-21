@@ -1,0 +1,31 @@
+meta {
+  name: Generate Test InitData
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/dev/test-init-data
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+script:post-response {
+  const response = res.getBody();
+  const initData = response.init_data;
+  bru.setEnvVar("initData", initData);
+}
+
+docs {
+  Requires a valid, freshly-signed Telegram initData string in the
+  "initData" environment variable.
+  
+  Run "Generate Test InitData" (in this same folder) first — its script
+  fills "initData" for you automatically. auth_date expires after
+  TELEGRAM_AUTH_MAX_AGE_SECONDS (24h by default), so just re-run it if
+  this request starts returning 401.
+}

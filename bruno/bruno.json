@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "Telegram Mini App Marketplace API",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

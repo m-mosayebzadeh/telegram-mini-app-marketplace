@@ -8,7 +8,15 @@ automatically: we define a class where each field maps to an environment
 variable.
 """
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The backend/ folder (three levels up from this file: core -> app -> backend).
+# Anchoring the .env lookup here means it's always found regardless of
+# which directory the process was launched from (VSCode debugger, a
+# plain terminal, a script under scripts/, pytest, ...).
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -26,7 +34,16 @@ class Settings(BaseSettings):
     # changing any code that uses the ORM.
     database_url: str = "sqlite:///./app.db"
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Enables developer-only routes (e.g. /dev/test-init-data) that must
+    # never be reachable in production. Defaults to OFF on purpose: an
+    # unset or missing value should always be the safe choice. Turn this
+    # on locally only, and never while a tunnel (cloudflared/ngrok) is
+    # forwarding external traffic to this server — the tunnel makes
+    # requests look like they came from localhost too, so this flag is
+    # the only real guard.
+    enable_dev_tools: bool = False
+
+    model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 
 
 # A single shared settings instance used throughout the app.

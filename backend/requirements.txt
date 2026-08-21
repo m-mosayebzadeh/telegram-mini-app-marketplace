@@ -6,7 +6,7 @@ uvicorn[standard]==0.30.6
 pydantic-settings==2.5.2
 
 # --- ORM / database access ---
-sqlalchemy==2.0.35
+sqlalchemy==2.0.52
 
 # --- testing ---
 pytest==8.3.3
