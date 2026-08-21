@@ -1,0 +1,31 @@
+meta {
+  name: 1. Create Group
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/audience-groups
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:json {
+  {
+    "name": "Friends"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("groupId", res.getBody().id);
+}
+
+docs {
+  Creates a group owned by User A. Run "Get Me" (Auth folder) and "2.
+  Setup User B - Get Me" (Follow folder) first so both userIdA/userIdB
+  exist for the member requests below.
+}

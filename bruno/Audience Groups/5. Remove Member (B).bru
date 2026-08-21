@@ -1,0 +1,15 @@
+meta {
+  name: 5. Remove Member (B)
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/audience-groups/{{groupId}}/members/{{userIdB}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}

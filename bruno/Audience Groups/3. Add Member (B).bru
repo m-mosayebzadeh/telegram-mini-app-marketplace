@@ -1,0 +1,20 @@
+meta {
+  name: 3. Add Member (B)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/audience-groups/{{groupId}}/members/{{userIdB}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  Adds User B to User A's group. Needs "userIdB" set — run the Follow
+  folder's "2. Setup User B - Get Me" first.
+}

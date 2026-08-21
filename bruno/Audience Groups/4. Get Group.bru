@@ -1,0 +1,15 @@
+meta {
+  name: 4. Get Group
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/audience-groups/{{groupId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}

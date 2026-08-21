@@ -10,6 +10,7 @@ from fastapi import Depends, FastAPI
 from app.auth.dependencies import get_current_user
 from app.core.config import settings
 from app.core.database import Base, engine
+from app.audience_group.router import router as audience_group_router
 from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
 from app.profile.router import router as profile_router
@@ -36,6 +37,7 @@ app = FastAPI(title="Telegram Mini App Marketplace API", lifespan=lifespan)
 
 app.include_router(profile_router)
 app.include_router(follow_router)
+app.include_router(audience_group_router)
 
 # Only wire up developer-only routes (see app/dev/router.py) when the
 # flag is explicitly turned on. Since it defaults to False, forgetting to
