@@ -14,12 +14,11 @@ entity:
 """
 
 import enum
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
-    DateTime,
     Enum,
     ForeignKey,
     Integer,
@@ -28,6 +27,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.time import UTCDateTime, utcnow
 
 
 class PhotoAudience(str, enum.Enum):
@@ -78,9 +78,7 @@ class Photo(Base):
         ForeignKey("audience_groups.id"), nullable=True
     )
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     __table_args__ = (
         # A paid photo must be blurred. Written as "NOT is_paid OR

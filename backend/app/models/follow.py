@@ -8,12 +8,13 @@ private accounts, just applied to everyone).
 """
 
 import enum
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.time import UTCDateTime, utcnow
 
 
 class FollowStatus(str, enum.Enum):
@@ -34,14 +35,10 @@ class Follow(Base):
         default=FollowStatus.PENDING,
     )
 
-    requested_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    requested_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     # None until the followee accepts (or, if we later add rejection,
     # until they respond at all).
-    responded_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    responded_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     __table_args__ = (
         # Same pair can't have two rows — re-requesting after a pending

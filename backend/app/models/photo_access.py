@@ -13,12 +13,13 @@ Two records that track how users interact with a (blurred) Photo:
   TECHNICAL_REQUIREMENTS.md, section 9) will be built on top of.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
+from app.core.time import UTCDateTime, utcnow
 
 
 class PhotoPurchase(Base):
@@ -27,9 +28,7 @@ class PhotoPurchase(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     photo_id: Mapped[int] = mapped_column(ForeignKey("photos.id"))
-    purchased_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    purchased_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     __table_args__ = (
         UniqueConstraint("user_id", "photo_id", name="uq_photo_purchase"),
@@ -42,6 +41,4 @@ class PhotoOpenLog(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     photo_id: Mapped[int] = mapped_column(ForeignKey("photos.id"))
-    opened_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    opened_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

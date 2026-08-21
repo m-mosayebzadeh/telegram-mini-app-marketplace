@@ -10,10 +10,6 @@ get {
   auth: none
 }
 
-headers {
-  X-Telegram-Init-Data: {{initData}}
-}
-
 script:post-response {
   const response = res.getBody();
   const initData = response.init_data;

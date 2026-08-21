@@ -41,6 +41,9 @@ def test_me_creates_user_on_first_login(client):
     assert body["display_name"] == "Reza"
     assert body["username"] == "reza_dev"
     assert body["status"] == "active"
+    # Regression guard: joined_at must be an unambiguous UTC timestamp,
+    # not a naive one that looks like (but isn't) local time.
+    assert body["joined_at"].endswith("+00:00")
 
 
 def test_me_reuses_existing_user_on_second_login(client):

@@ -6,12 +6,13 @@ list column, so members can be added/removed one at a time and the
 database can enforce "no duplicate membership" itself.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.time import UTCDateTime, utcnow
 
 
 class AudienceGroup(Base):
@@ -20,9 +21,7 @@ class AudienceGroup(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     name: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     # cascade="all, delete-orphan": if a group itself is deleted, delete
     # its membership rows along with it instead of leaving them behind
@@ -40,9 +39,7 @@ class AudienceGroupMember(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     group_id: Mapped[int] = mapped_column(ForeignKey("audience_groups.id"))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    added_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
+    added_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     group: Mapped["AudienceGroup"] = relationship(back_populates="members")
 

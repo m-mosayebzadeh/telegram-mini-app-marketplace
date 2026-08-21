@@ -8,12 +8,13 @@ everything else in the app (offers, requests, chat sessions, ...).
 """
 
 import enum
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Enum, String
+from sqlalchemy import BigInteger, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.time import UTCDateTime, utcnow
 
 
 class UserStatus(str, enum.Enum):
@@ -47,10 +48,7 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String(128))
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
-    joined_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-    )
+    joined_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     status: Mapped[UserStatus] = mapped_column(
         # values_callable: store "active"/"blocked" (the enum's values)
