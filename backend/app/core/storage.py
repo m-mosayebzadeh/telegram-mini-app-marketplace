@@ -26,13 +26,20 @@ import uuid
 from pathlib import Path
 
 from fastapi import UploadFile
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 
 from app.core.config import settings
 
-# How strong the blur is — high enough that the underlying image is
-# genuinely unrecognizable, not just slightly softened.
-BLUR_RADIUS = 30
+# The blurred copy is built by shrinking the photo down to a tiny
+# thumbnail and stretching it back up — the same trick Telegram (and
+# most chat apps) use for blurred previews. It produces soft, large
+# blocks of averaged color ("frosted glass") instead of the harsher,
+# more detailed haze a plain Gaussian blur leaves when applied directly
+# to a full-resolution image.
+BLUR_THUMBNAIL_SIZE = 32  # longest side, in pixels, for the shrink step
+# A light blur pass after stretching back up, just to soften the harder
+# edges the upscale step leaves between those color blocks.
+BLUR_FINAL_RADIUS = 2
 
 
 def _user_dir(user_id: int) -> Path:
@@ -42,6 +49,51 @@ def _user_dir(user_id: int) -> Path:
     directory = settings.uploads_dir / str(user_id)
     directory.mkdir(parents=True, exist_ok=True)
     return directory
+
+
+def _make_blurred_copy(image: Image.Image) -> Image.Image:
+    """
+    Builds the blurred version of an uploaded photo. Two things happen
+    here, in this order, and the order matters:
+
+      1. Bake the photo's EXIF orientation into the actual pixels.
+         Phones commonly save a photo "sideways" in raw pixels, plus an
+         EXIF tag saying "rotate me on display". A normal viewer opening
+         the *original* file reads that tag and shows it correctly. But
+         when Pillow re-saves an image — as we do here, for the blurred
+         copy — that EXIF tag is dropped, so a viewer opening the
+         blurred file has nothing telling it to rotate and shows the
+         raw, sideways pixels instead. ImageOps.exif_transpose() reads
+         the tag first and physically rotates/flips the pixels to
+         match, so the file we save afterwards looks right on its own,
+         without depending on any tag surviving the save.
+      2. Shrink the now-correctly-oriented image down to a tiny
+         thumbnail, then stretch it back up to that same size. This is
+         the "frosted glass" trick described next to BLUR_THUMBNAIL_SIZE
+         above — it must run on already-oriented pixels, otherwise the
+         blurred result would still end up sideways even though the
+         rotation was "fixed" a moment ago.
+    """
+    # exif_transpose() returns a new image, or the same image unchanged
+    # if there was no orientation tag to apply — the `or image` guards
+    # the (documented, if rare) case where it returns None.
+    oriented = ImageOps.exif_transpose(image) or image
+    original_size = oriented.size
+
+    # thumbnail() resizes in place, preserves aspect ratio, and never
+    # enlarges — exactly the shrink step we want (we do the upscale
+    # ourselves next, back to the exact original size).
+    thumbnail = oriented.copy()
+    thumbnail.thumbnail((BLUR_THUMBNAIL_SIZE, BLUR_THUMBNAIL_SIZE), Image.BILINEAR)
+
+    # Stretch back up. BILINEAR is deliberately soft — BICUBIC/LANCZOS
+    # would sharpen detail back in, undoing the point of blurring.
+    blurred = thumbnail.resize(original_size, Image.BILINEAR)
+    blurred = blurred.filter(ImageFilter.GaussianBlur(BLUR_FINAL_RADIUS))
+
+    # Flatten to RGB before saving as JPEG-compatible formats can't hold
+    # e.g. a PNG's alpha channel; safe for any input format.
+    return blurred.convert("RGB")
 
 
 def save_photo_files(
@@ -67,10 +119,7 @@ def save_photo_files(
 
     blurred_path = directory / f"{photo_uuid}_blurred{extension}"
     with Image.open(original_path) as image:
-        blurred = image.filter(ImageFilter.GaussianBlur(BLUR_RADIUS))
-        # Flatten to RGB before saving as JPEG-compatible formats can't
-        # hold e.g. a PNG's alpha channel; safe for any input format.
-        blurred.convert("RGB").save(blurred_path)
+        _make_blurred_copy(image).save(blurred_path)
 
     return str(original_path), str(blurred_path)
 

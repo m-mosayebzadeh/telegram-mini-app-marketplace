@@ -55,3 +55,25 @@ def make_test_image_bytes() -> bytes:
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
     return buffer.getvalue()
+
+
+def make_test_image_bytes_with_orientation(*, orientation: int, size: tuple[int, int]) -> bytes:
+    """
+    A plain JPEG of the given raw pixel `size`, tagged with an EXIF
+    Orientation value telling viewers to rotate/flip it on display —
+    the same way a phone camera saves a photo taken sideways (raw
+    pixels one way, a tag saying "rotate me" on top).
+
+    Used to test that blurring a photo corrects its orientation first
+    (see test_storage.py) instead of silently dropping the tag the way
+    a naive re-save would.
+    """
+    from PIL import Image
+
+    image = Image.new("RGB", size, color=(255, 255, 255))
+    exif = Image.Exif()
+    exif[0x0112] = orientation  # 0x0112 is the standard EXIF "Orientation" tag id
+
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", exif=exif.tobytes())
+    return buffer.getvalue()
