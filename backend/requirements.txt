@@ -8,12 +8,12 @@ pydantic-settings==2.5.2
 # --- ORM / database access ---
 sqlalchemy==2.0.52
 
-# --- image processing (generating blurred photo previews) ---
-pillow==12.3.0
-
 # --- required by FastAPI to parse multipart/form-data (file uploads) ---
 python-multipart==0.0.12
 
 # --- testing ---
 pytest==8.3.3
 httpx==0.27.2
+# Not used by the app itself — only by tests/helpers.py, to generate a
+# throwaway JPEG in memory to upload in photo endpoint tests.
+pillow==12.3.0

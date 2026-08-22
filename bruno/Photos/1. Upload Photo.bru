@@ -17,7 +17,7 @@ headers {
 body:multipart-form {
   file: @file()
   is_paid: false
-  is_blurred: true
+  has_spoiler: true
   audience_type: public
 }
 
@@ -34,7 +34,7 @@ docs {
   (Profile folder) first if you get a 400.
 
   Try different combinations by editing the body fields:
-  - is_paid: true (also add "price_stars: 50") — forces is_blurred too
+  - is_paid: true (also add "price_stars: 50") — forces has_spoiler too
   - audience_type: user (also add "audience_user_id: {{userIdB}}")
   - audience_type: group (also add "audience_group_id: {{groupId}}")
 }

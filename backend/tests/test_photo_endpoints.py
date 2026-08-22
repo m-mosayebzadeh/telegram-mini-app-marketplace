@@ -1,6 +1,7 @@
 """
 Integration tests for the photo endpoints: upload, list (audience
-filtering), default view vs. reveal, purchase (stub), delete.
+filtering), file access (plain vs. spoiler reveal), purchase (stub),
+delete.
 """
 
 from tests.helpers import make_test_image_bytes, sign_init_data
@@ -24,14 +25,14 @@ def _upload(
     *,
     is_paid: bool = False,
     price_stars: int | None = None,
-    is_blurred: bool = False,
+    has_spoiler: bool = False,
     audience_type: str = "public",
     audience_user_id: int | None = None,
     audience_group_id: int | None = None,
 ):
     data = {
         "is_paid": "true" if is_paid else "false",
-        "is_blurred": "true" if is_blurred else "false",
+        "has_spoiler": "true" if has_spoiler else "false",
         "audience_type": audience_type,
     }
     if price_stars is not None:
@@ -61,7 +62,7 @@ def test_upload_requires_a_profile_first(client):
     assert response.status_code == 400
 
 
-def test_upload_free_unblurred_photo(client):
+def test_upload_free_photo_without_spoiler(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
     _create_profile(client, auth)
@@ -70,20 +71,20 @@ def test_upload_free_unblurred_photo(client):
 
     assert response.status_code == 201
     body = response.json()
-    assert body["is_blurred"] is False
+    assert body["has_spoiler"] is False
     assert body["is_paid"] is False
     assert body["can_see_original"] is True
 
 
-def test_paid_upload_forces_blurred_even_if_client_says_false(client):
+def test_paid_upload_forces_spoiler_even_if_client_says_false(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
     _create_profile(client, auth)
 
-    response = _upload(client, auth, is_paid=True, price_stars=50, is_blurred=False)
+    response = _upload(client, auth, is_paid=True, price_stars=50, has_spoiler=False)
 
     assert response.status_code == 201
-    assert response.json()["is_blurred"] is True
+    assert response.json()["has_spoiler"] is True
 
 
 def test_paid_upload_without_price_fails(client):
@@ -119,33 +120,30 @@ def test_group_audience_not_owned_by_uploader_fails(client):
     assert response.status_code == 404
 
 
-# --- default view vs. reveal -------------------------------------------
+# --- file access: plain vs. spoiler reveal -------------------------------
 
 
-def test_unblurred_photo_image_and_original_are_identical(client):
+def test_photo_without_spoiler_is_directly_accessible(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
     _create_profile(client, auth)
-    photo = _upload(client, auth, is_blurred=False).json()
+    photo = _upload(client, auth, has_spoiler=False).json()
 
-    image = client.get(f"/photos/{photo['id']}/image", headers=auth)
-    original = client.get(f"/photos/{photo['id']}/original", headers=auth)
+    response = client.get(f"/photos/{photo['id']}/file", headers=auth)
 
-    assert image.status_code == original.status_code == 200
-    assert image.content == original.content
+    assert response.status_code == 200
+    assert len(response.content) > 0
 
 
-def test_free_blurred_photo_default_view_differs_from_original(client):
+def test_free_spoiler_photo_reveals_via_file_endpoint(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
     _create_profile(client, auth)
-    photo = _upload(client, auth, is_blurred=True).json()
+    photo = _upload(client, auth, has_spoiler=True).json()
 
-    image = client.get(f"/photos/{photo['id']}/image", headers=auth)
-    original = client.get(f"/photos/{photo['id']}/original", headers=auth)
+    response = client.get(f"/photos/{photo['id']}/file", headers=auth)
 
-    assert image.status_code == original.status_code == 200
-    assert image.content != original.content  # one is actually blurred
+    assert response.status_code == 200  # free spoiler always reveals, no purchase needed
 
 
 def test_paid_photo_without_purchase_returns_402(client):
@@ -156,13 +154,13 @@ def test_paid_photo_without_purchase_returns_402(client):
     _create_profile(client, auth_a)
     photo = _upload(client, auth_a, is_paid=True, price_stars=50).json()
 
-    response = client.get(f"/photos/{photo['id']}/original", headers=auth_b)
+    response = client.get(f"/photos/{photo['id']}/file", headers=auth_b)
 
     assert response.status_code == 402
     assert response.json()["detail"]["price_stars"] == 50
 
 
-def test_paid_photo_after_purchase_reveals_original(client):
+def test_paid_photo_after_purchase_reveals_file(client):
     auth_a = _auth_header(1, "Alice")
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
@@ -174,7 +172,7 @@ def test_paid_photo_after_purchase_reveals_original(client):
     assert purchase.status_code == 201
     assert purchase.json()["unlocked"] is True
 
-    response = client.get(f"/photos/{photo['id']}/original", headers=auth_b)
+    response = client.get(f"/photos/{photo['id']}/file", headers=auth_b)
     assert response.status_code == 200
 
     # And GET /photos/{id} now reports can_see_original for Bob.

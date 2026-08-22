@@ -1,15 +1,15 @@
 """
-Two records that track how users interact with a (blurred) Photo:
+Two records that track how users interact with a spoiler-gated Photo:
 
 - PhotoPurchase: a PERMANENT grant, only for paid photos. Its mere
   existence means "this user already paid, don't ask again." One row per
   (user, photo) — enforced with a unique constraint.
 
-- PhotoOpenLog: an APPEND-ONLY history of every single time a blurred
-  photo got revealed (free or already-purchased). No unique constraint on
-  purpose: the same user can open the same photo many times, on
-  different dates, and each one is its own row. This is what a future
-  "who viewed my photo, how many times" feature (see
+- PhotoOpenLog: an APPEND-ONLY history of every single time a photo with
+  a spoiler got revealed (free or already-purchased). No unique
+  constraint on purpose: the same user can open the same photo many
+  times, on different dates, and each one is its own row. This is what a
+  future "who viewed my photo, how many times" feature (see
   TECHNICAL_REQUIREMENTS.md, section 9) will be built on top of.
 """
 

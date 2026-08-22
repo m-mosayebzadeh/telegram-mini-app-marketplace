@@ -1,12 +1,18 @@
 """
-Photo endpoints: upload, list, view (default + "reveal"), purchase
-(stub), delete.
+Photo endpoints: upload, list, metadata, reveal, purchase (stub), delete.
 
 Every route that takes a photo_id first loads the photo and calls
 can_view_photo() (see app/photo/access.py) — if that's False, the route
 raises a plain 404, exactly as if the photo didn't exist. This is what
 makes a group/user-only photo genuinely invisible to anyone outside its
-audience, not just blurred (TECHNICAL_REQUIREMENTS.md section 4).
+audience, not just spoilered (TECHNICAL_REQUIREMENTS.md section 4).
+
+There's only one image-serving route (/photos/{id}/file) — no separate
+"default blurred view." A spoiler is a generic overlay the frontend
+draws over the locked state (using the `has_spoiler` / `can_see_original`
+fields from the metadata routes below) without ever requesting an image;
+this route is only hit once eligibility is worth checking for real,
+whether that's a free tap-to-reveal or a paid unlock.
 """
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -15,7 +21,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
-from app.core.storage import delete_photo_files, save_photo_files
+from app.core.storage import delete_photo_file, save_photo_file
 from app.models.audience_group import AudienceGroup
 from app.models.photo import Photo, PhotoAudience
 from app.models.photo_access import PhotoOpenLog, PhotoPurchase
@@ -32,7 +38,7 @@ def _to_photo_out(db: Session, viewer: User, photo: Photo) -> PhotoOut:
         id=photo.id,
         is_paid=photo.is_paid,
         price_stars=photo.price_stars,
-        is_blurred=photo.is_blurred,
+        has_spoiler=photo.has_spoiler,
         audience_type=photo.audience_type.value,
         created_at=photo.created_at,
         can_see_original=can_see_original(db, viewer, photo),
@@ -94,7 +100,7 @@ def upload_photo(
     file: UploadFile = File(...),
     is_paid: bool = Form(False),
     price_stars: int | None = Form(None),
-    is_blurred: bool = Form(False),
+    has_spoiler: bool = Form(False),
     audience_type: PhotoAudience = Form(PhotoAudience.PUBLIC),
     audience_user_id: int | None = Form(None),
     audience_group_id: int | None = Form(None),
@@ -107,11 +113,11 @@ def upload_photo(
             status.HTTP_400_BAD_REQUEST, "Create a profile before uploading photos."
         )
 
-    # Business rule: paid implies blurred — force it rather than reject,
+    # Business rule: paid implies spoiler — force it rather than reject,
     # since "I want to sell this" already implies "and keep it hidden
     # until paid," so there's nothing wrong to reject here.
     if is_paid:
-        is_blurred = True
+        has_spoiler = True
         if price_stars is None or price_stars <= 0:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST, "price_stars is required for a paid photo."
@@ -127,17 +133,14 @@ def upload_photo(
         owner_id=current_user.id,
     )
 
-    original_path, blurred_path = save_photo_files(
-        current_user.id, file, should_blur=is_blurred
-    )
+    original_path = save_photo_file(current_user.id, file)
 
     photo = Photo(
         profile_id=profile.id,
         original_file_path=original_path,
-        blurred_file_path=blurred_path,
         is_paid=is_paid,
         price_stars=price_stars,
-        is_blurred=is_blurred,
+        has_spoiler=has_spoiler,
         audience_type=audience_type,
         audience_user_id=target_user_id,
         audience_group_id=target_group_id,
@@ -170,38 +173,27 @@ def get_photo(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> PhotoOut:
+    """
+    Metadata only — `has_spoiler` and `can_see_original` are all a
+    frontend needs to render the locked/unlocked state; it never has to
+    request /file just to find out whether a photo is worth tapping.
+    """
     photo = _get_visible_photo(db, photo_id, current_user)
     return _to_photo_out(db, current_user, photo)
 
 
-@router.get("/{photo_id}/image")
-def get_default_image(
+@router.get("/{photo_id}/file")
+def get_photo_file(
     photo_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> FileResponse:
     """
-    The default view: the blurred version whenever the photo has one —
-    always, regardless of purchase history or past reveals. Getting the
-    original requires the separate /original route below.
-    """
-    photo = _get_visible_photo(db, photo_id, current_user)
-    path = photo.blurred_file_path or photo.original_file_path
-    return FileResponse(path)
-
-
-@router.get("/{photo_id}/original")
-def get_original_image(
-    photo_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> FileResponse:
-    """
-    The "tap to reveal" action. Every call re-checks access — there's no
-    "already revealed, stays unblurred from now on" state (see the
-    conversation in TECHNICAL_REQUIREMENTS.md's history for why: even an
-    already-purchased photo goes back to showing blurred by default next
-    time, and needs another tap).
+    The actual image bytes — requested either directly (no spoiler, just
+    show it) or as the "tap to reveal" action (spoiler on). Every call
+    re-checks access; there's no "already revealed, stays visible from
+    now on" state — even an already-purchased photo keeps its spoiler by
+    default and needs another tap each time.
     """
     photo = _get_visible_photo(db, photo_id, current_user)
 
@@ -212,8 +204,12 @@ def get_original_image(
             detail={"reason": "payment_required", "price_stars": photo.price_stars},
         )
 
-    db.add(PhotoOpenLog(user_id=current_user.id, photo_id=photo.id))
-    db.commit()
+    if photo.has_spoiler:
+        # Only a real "reveal" is worth logging (see PhotoOpenLog) — a
+        # plain, always-visible photo has nothing to "open."
+        db.add(PhotoOpenLog(user_id=current_user.id, photo_id=photo.id))
+        db.commit()
+
     return FileResponse(photo.original_file_path)
 
 
@@ -230,9 +226,9 @@ def purchase_photo(
     TECHNICAL_REQUIREMENTS.md section 7, still an open decision), this
     must charge/verify the payment FIRST and only create the
     PhotoPurchase row after that succeeds. Everything else here —
-    can_see_original() checking for a PhotoPurchase row, the /original
-    route logging an open — already works correctly once that's added;
-    only this endpoint's body needs to change.
+    can_see_original() checking for a PhotoPurchase row, /file logging an
+    open — already works correctly once that's added; only this
+    endpoint's body needs to change.
     """
     photo = _get_visible_photo(db, photo_id, current_user)
     if not photo.is_paid:
@@ -260,6 +256,6 @@ def delete_photo(
     if photo is None or photo.profile.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found.")
 
-    delete_photo_files(photo.original_file_path, photo.blurred_file_path)
+    delete_photo_file(photo.original_file_path)
     db.delete(photo)
     db.commit()

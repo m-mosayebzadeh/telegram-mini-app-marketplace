@@ -6,7 +6,7 @@ section 4 — audience and paid-status are independent axes):
   1. can_view_photo(): is this viewer even allowed to know the photo
      exists at all? (the audience check — public/followers/user/group)
   2. can_see_original(): assuming (1) is already true, is this viewer
-     allowed to see the UNBLURRED version right now?
+     allowed to see the real photo right now (spoiler lifted)?
 
 Both take a `db` session because answering them may require querying
 Follow or AudienceGroupMember — they're not decidable from the Photo row
@@ -73,16 +73,16 @@ def can_view_photo(db: Session, viewer: User, photo: Photo) -> bool:
 
 def can_see_original(db: Session, viewer: User, photo: Photo) -> bool:
     """
-    Assuming can_view_photo() is already True: can `viewer` see the
-    UNBLURRED image right now?
+    Assuming can_view_photo() is already True: can `viewer` see the real
+    photo right now (i.e. would tapping its spoiler actually reveal it)?
 
-    Not blurred at all -> always yes. Blurred and free -> always yes
-    (the "tap to reveal" gesture never actually needs to be checked
-    against anything but eligibility, which the caller already
-    confirmed). Blurred and paid -> only the owner, or someone with a
-    PhotoPurchase record for this exact photo.
+    No spoiler at all -> always yes. Spoiler and free -> always yes (the
+    "tap to reveal" gesture never actually needs to be checked against
+    anything but eligibility, which the caller already confirmed).
+    Spoiler and paid -> only the owner, or someone with a PhotoPurchase
+    record for this exact photo.
     """
-    if not photo.is_blurred:
+    if not photo.has_spoiler:
         return True
     if viewer.id == photo.profile.user_id:
         return True
