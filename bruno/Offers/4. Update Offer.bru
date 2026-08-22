@@ -1,0 +1,26 @@
+meta {
+  name: 4. Update Offer
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/offers/{{offerId}}
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:json {
+  {
+    "price_stars": 15
+  }
+}
+
+docs {
+  Partial update — only fields you include get changed. Returns 400 once
+  the offer has a pending or accepted request (see the Requests folder).
+}

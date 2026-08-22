@@ -1,0 +1,21 @@
+meta {
+  name: Get Public Profile (B)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/profiles/{{userIdB}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  Viewing ANY user's basic profile (not just your own) — works even if
+  they never created a Profile row (just their display_name/username
+  show up, avatar_url/bio are null).
+}

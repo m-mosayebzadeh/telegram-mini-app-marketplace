@@ -1,0 +1,20 @@
+meta {
+  name: 7. Delete Offer
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/offers/{{offerId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  400 if the offer has an accepted request. Any PENDING requests on it
+  get auto-cancelled instead of left dangling.
+}

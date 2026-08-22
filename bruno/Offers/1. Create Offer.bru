@@ -1,0 +1,28 @@
+meta {
+  name: 1. Create Offer
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/offers
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:json {
+  {
+    "price_stars": 10,
+    "display_duration_minutes": 30,
+    "description": "A friendly chat",
+    "terms": "Be respectful"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("offerId", res.getBody().id);
+}

@@ -28,3 +28,18 @@ class ProfileOut(BaseModel):
     # dict — without this, returning an ORM instance from a route would
     # raise a validation error.
     model_config = {"from_attributes": True}
+
+
+class PublicProfileOut(BaseModel):
+    """
+    What GET /profiles/{user_id} sends back — for viewing ANYONE's
+    profile, not just your own. Combines the display-only fields from
+    User with the (possibly absent) Profile fields; never includes
+    telegram_id (TECHNICAL_REQUIREMENTS.md, section 5).
+    """
+
+    user_id: int
+    display_name: str
+    username: str | None
+    avatar_url: str | None
+    bio: str | None

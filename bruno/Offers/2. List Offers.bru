@@ -1,0 +1,25 @@
+meta {
+  name: 2. List Offers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/offers?provider_id={{userIdA}}
+  body: none
+  auth: none
+}
+
+params:query {
+  provider_id: {{userIdA}}
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  Sent as User A viewing their own offers -> sees active AND inactive.
+  Switch the header to {{initDataB}} to see only active ones (a
+  stranger's view).
+}

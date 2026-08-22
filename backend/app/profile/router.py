@@ -1,10 +1,10 @@
 """
-Endpoints for the current user's own profile.
-
-Only "my profile" endpoints live here for now (GET/PUT /profile/me).
-Viewing *someone else's* profile is a separate concern — it needs the
-audience/follow access checks from TECHNICAL_REQUIREMENTS.md section 4 —
-and will get its own route once Follow and Photo endpoints exist.
+Profile endpoints — two routers on purpose:
+  - `router` (prefix /profile, singular): "my own profile" — GET/PUT /profile/me.
+  - `public_router` (prefix /profiles, plural): viewing ANY user's basic
+    profile info, e.g. for a provider reviewing who's requesting their
+    offer. No audience/privacy restriction — this is intentionally
+    public, unlike Photo's audience rules.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,9 +14,10 @@ from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.profile import Profile
 from app.models.user import User
-from app.profile.schemas import ProfileOut, ProfileUpdate
+from app.profile.schemas import ProfileOut, ProfileUpdate, PublicProfileOut
 
 router = APIRouter(prefix="/profile", tags=["profile"])
+public_router = APIRouter(prefix="/profiles", tags=["profile"])
 
 
 @router.get("/me", response_model=ProfileOut)
@@ -55,3 +56,29 @@ def upsert_my_profile(
     db.commit()
     db.refresh(profile)
     return profile
+
+
+@public_router.get("/{user_id}", response_model=PublicProfileOut)
+def read_public_profile(
+    user_id: int,
+    current_user: User = Depends(get_current_user),  # still requires auth, just not "self"
+    db: Session = Depends(get_db),
+) -> PublicProfileOut:
+    """
+    Works even if `user_id` has never created a Profile row — a bare
+    User (display_name/username only, no avatar/bio) is still a valid
+    thing to look at, e.g. right after their first login.
+    """
+    target = db.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    profile = db.query(Profile).filter(Profile.user_id == user_id).first()
+
+    return PublicProfileOut(
+        user_id=target.id,
+        display_name=target.display_name,
+        username=target.username,
+        avatar_url=profile.avatar_url if profile else None,
+        bio=profile.bio if profile else None,
+    )

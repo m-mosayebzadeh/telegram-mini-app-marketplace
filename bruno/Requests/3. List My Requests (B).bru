@@ -1,0 +1,15 @@
+meta {
+  name: 3. List My Requests (B)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/requests/mine
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}

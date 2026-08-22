@@ -11,7 +11,9 @@ guarantee every model module gets imported at least once.
 
 from app.models.audience_group import AudienceGroup, AudienceGroupMember  # noqa: F401
 from app.models.follow import Follow  # noqa: F401
+from app.models.offer import Offer  # noqa: F401
 from app.models.photo import Photo  # noqa: F401
 from app.models.photo_access import PhotoOpenLog, PhotoPurchase  # noqa: F401
 from app.models.profile import Profile  # noqa: F401
+from app.models.request import Request  # noqa: F401
 from app.models.user import User  # noqa: F401
