@@ -17,7 +17,11 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.user import User
 from app.wallet.schemas import BalanceOut
-from app.wallet.service import get_balance_toman, get_pending_provider_toman
+from app.wallet.service import (
+    get_balance_toman,
+    get_pending_provider_toman,
+    release_due_chat_transactions,
+)
 
 router = APIRouter(prefix="/wallet", tags=["wallet"])
 
@@ -27,6 +31,12 @@ def get_my_balance(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> BalanceOut:
+    # Sweep first, so a balance check is what actually turns "earned but
+    # held" into "spendable" once the grace period has passed — see
+    # release_due_chat_transactions()'s docstring for why this replaces a
+    # background job.
+    release_due_chat_transactions(db, current_user.id)
+
     balance_toman = get_balance_toman(db, current_user.id)
     return BalanceOut(
         balance_toman=balance_toman,

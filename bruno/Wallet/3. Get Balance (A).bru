@@ -22,8 +22,12 @@ docs {
 
   pending_toman is money User A has earned as a provider from chat
   requests that got paid, but hasn't received yet — it only moves into
-  balance_toman once the paid-for chat session closes cleanly (not
-  built yet, see TECHNICAL_REQUIREMENTS.md section 10 — "pool idle").
-  Run Requests > "6. Pay For Request (B)" as User A's provider role and
-  check here to see it change.
+  balance_toman once the paid-for chat session CLOSES and the
+  chat_release_grace_hours window passes with nobody disputing it (see
+  TECHNICAL_REQUIREMENTS.md section 10 — "pool idle"). Run Requests >
+  "6. Pay For Request (B)", then Chat Sessions > close it, then come
+  back here — this endpoint is also what actually triggers the
+  grace-period release check (it's lazy, not a background job), so the
+  pending amount won't move into balance_toman until you hit this
+  endpoint again after the grace window has passed.
 }

@@ -6,8 +6,9 @@ section 4:
   - at most MAX_ACTIVE_OFFERS_PER_USER offers with status ACTIVE per user
   - fully locked from editing once it has any live (pending/accepted)
     request — not just its price/duration
-  - can't be deleted while it has an ACCEPTED request; deleting cancels
-    any PENDING ones instead of leaving them dangling
+  - can't be deleted while it has an ACCEPTED request that's still
+    unfinished (unpaid, or paid with its chat session still OPEN);
+    deleting cancels any PENDING ones instead of leaving them dangling
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.core.time import utcnow
+from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.request import OFFER_DELETED_REASON, Request, RequestStatus
 from app.models.user import User
@@ -45,6 +47,27 @@ def _has_live_request(db: Session, offer_id: int) -> bool:
         .first()
         is not None
     )
+
+
+def _has_unfinished_accepted_request(db: Session, offer_id: int) -> bool:
+    """
+    The refined delete-lock TECHNICAL_REQUIREMENTS.md section 4 already
+    previewed once chat sessions existed: an ACCEPTED request only
+    blocks deletion while it's still "in flight" — either not yet paid
+    (no ChatSession exists for it yet) or paid and its session is still
+    OPEN. Once that session is CLOSED, the request stays ACCEPTED forever
+    as a historical record, but no longer blocks anything.
+    """
+    accepted_requests = (
+        db.query(Request)
+        .filter(Request.offer_id == offer_id, Request.status == RequestStatus.ACCEPTED)
+        .all()
+    )
+    for request in accepted_requests:
+        session = db.query(ChatSession).filter(ChatSession.request_id == request.id).first()
+        if session is None or session.status == ChatSessionStatus.OPEN:
+            return True
+    return False
 
 
 def _get_owned_offer(db: Session, offer_id: int, owner_id: int) -> Offer:
@@ -196,16 +219,11 @@ def delete_offer(
 ) -> None:
     offer = _get_owned_offer(db, offer_id, current_user.id)
 
-    has_accepted = (
-        db.query(Request)
-        .filter(Request.offer_id == offer.id, Request.status == RequestStatus.ACCEPTED)
-        .first()
-        is not None
-    )
-    if has_accepted:
+    if _has_unfinished_accepted_request(db, offer.id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This offer has an accepted request and can't be deleted yet.",
+            detail="This offer has an accepted request whose chat session is still open "
+            "(or not yet paid for) and can't be deleted yet.",
         )
 
     pending_requests = (

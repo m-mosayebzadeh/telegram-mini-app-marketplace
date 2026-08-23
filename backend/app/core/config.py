@@ -70,6 +70,15 @@ class Settings(BaseSettings):
     chat_commission_percent: int = 10
     photo_commission_percent: int = 5
 
+    # How long after a chat session closes before its transaction
+    # auto-releases to the provider, if nobody disputes it (see
+    # app/wallet/service.py's release_due_chat_transactions() and
+    # TECHNICAL_REQUIREMENTS.md's "مدل مالی و اعتبار" — this mirrors the
+    # grace-period pattern real escrow platforms like Upwork and
+    # Clarity.fm use, just shorter given how small a single chat payment
+    # is here).
+    chat_release_grace_hours: int = 24
+
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 
 

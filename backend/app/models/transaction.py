@@ -101,6 +101,16 @@ class Transaction(Base):
     )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
+    # Freezes a PENDING CHAT_REQUEST transaction so the grace-period
+    # auto-release (see release_due_chat_transactions() in
+    # app/wallet/service.py) skips it. Only ever set by the party who did
+    # NOT close the chat session, only while it's still within the grace
+    # window — see app/chat_session/router.py's dispute endpoint. Nothing
+    # in this phase resolves a disputed transaction automatically; that's
+    # deferred the same way report/complaint handling is (see
+    # TECHNICAL_REQUIREMENTS.md section 7).
+    disputed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     __table_args__ = (
         CheckConstraint(
             "(kind = 'chat_request' AND request_id IS NOT NULL AND photo_id IS NULL) OR "

@@ -6,10 +6,14 @@ a commission" is implemented exactly once, not copy-pasted into every
 router that needs it — see TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار".
 """
 
+from datetime import timedelta
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.time import utcnow
+from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
 from app.models.transaction import Transaction, TransactionKind, TransactionStatus
 
@@ -192,22 +196,61 @@ def release_transaction(db: Session, transaction: Transaction) -> None:
     platform collects its commission — via the exact same
     _credit_provider_and_commission() a PHOTO_PURCHASE gets immediately.
 
-    Meant to be called once the chat session this transaction paid for
-    closes cleanly. NOTHING CALLS THIS YET, because chat sessions don't
-    exist yet — every CHAT_REQUEST transaction is currently permanently
-    PENDING. That's expected for this phase, not a bug: this function
-    exists now so wiring it in, once chat sessions land, is a one-line
-    call instead of a redesign of pay_for_item().
-
     Does NOT commit (same convention as pay_for_item — caller commits).
     Callers must check transaction.status == PENDING themselves before
     calling this; calling it twice on an already-released transaction
     would double-pay the provider, since there's no guard here against
-    that (deliberately — this is an internal building block, not itself
-    a route handler with its own validation).
+    that (deliberately — this is an internal building block, not a route
+    handler with its own validation). See release_due_chat_transactions()
+    below for the actual policy of WHEN a transaction becomes releasable.
     """
     transaction.status = TransactionStatus.SUCCEEDED
     _credit_provider_and_commission(db, transaction)
+
+
+def release_due_chat_transactions(db: Session, provider_id: int) -> None:
+    """
+    The grace-period auto-release: a PENDING CHAT_REQUEST transaction
+    becomes releasable once its chat session has been CLOSED for at
+    least settings.chat_release_grace_hours, as long as nobody flagged
+    it (Transaction.disputed_at) in the meantime — mirroring how
+    real-world platforms handle this exact situation (e.g. Upwork
+    auto-releases if the buyer takes no action; Clarity.fm holds an
+    expert's call payment for a fixed window before payout).
+
+    Deliberately NOT a scheduled/background job — there's no cron here,
+    and TECHNICAL_REQUIREMENTS.md is explicit that sessions themselves
+    never auto-close on a timer. Instead this runs lazily, called from
+    GET /wallet/balance (see app/wallet/router.py) every time a provider
+    checks their balance, since that's exactly the moment "is this
+    actually spendable yet" needs to be accurate. A provider who never
+    checks their balance just sees the release happen the next time they
+    do — nothing breaks by not calling this promptly.
+
+    Commits its own changes (unlike pay_for_item/release_transaction) —
+    this is a self-contained sweep, not a step inside a larger unit of
+    work the caller is assembling.
+    """
+    cutoff = utcnow() - timedelta(hours=settings.chat_release_grace_hours)
+
+    due_transactions = (
+        db.query(Transaction)
+        .join(ChatSession, ChatSession.transaction_id == Transaction.id)
+        .filter(
+            Transaction.provider_id == provider_id,
+            Transaction.kind == TransactionKind.CHAT_REQUEST,
+            Transaction.status == TransactionStatus.PENDING,
+            Transaction.disputed_at.is_(None),
+            ChatSession.status == ChatSessionStatus.CLOSED,
+            ChatSession.closed_at <= cutoff,
+        )
+        .all()
+    )
+    for transaction in due_transactions:
+        release_transaction(db, transaction)
+
+    if due_transactions:
+        db.commit()
 
 
 def get_pending_provider_toman(db: Session, provider_id: int) -> int:

@@ -21,6 +21,7 @@ from app.auth.dependencies import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.time import utcnow
+from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionKind
@@ -32,16 +33,34 @@ from app.wallet.service import InsufficientBalanceError, pay_for_item
 router = APIRouter(prefix="/requests", tags=["requests"])
 
 
+def _is_request_still_live(db: Session, request: Request) -> bool:
+    """
+    PENDING is always live. ACCEPTED is only live until its chat session
+    closes — Request.status stays "accepted" forever afterwards, as a
+    historical record (see app/models/chat_session.py's docstring), so
+    without checking the session too, a provider's very first accepted
+    request would block every future accept forever, and a buyer could
+    never request that same provider again either. Same refinement as
+    app/offer/router.py's _has_unfinished_accepted_request.
+    """
+    if request.status == RequestStatus.PENDING:
+        return True
+    if request.status != RequestStatus.ACCEPTED:
+        return False
+    session = db.query(ChatSession).filter(ChatSession.request_id == request.id).first()
+    return session is None or session.status == ChatSessionStatus.OPEN
+
+
 def _live_request_with_provider(db: Session, buyer_id: int, provider_id: int) -> Request | None:
     """
-    The buyer's current pending/accepted request against ANY of
-    provider_id's offers, if any — a buyer can only have one live
-    request per provider at a time (see module docstring). Joins
-    through Offer because Request only stores offer_id, not
+    The buyer's current pending/accepted-and-not-yet-finished request
+    against ANY of provider_id's offers, if any — a buyer can only have
+    one live request per provider at a time (see module docstring).
+    Joins through Offer because Request only stores offer_id, not
     provider_id directly (the provider is always reached via
     request.offer.provider_id).
     """
-    return (
+    candidates = (
         db.query(Request)
         .join(Offer, Request.offer_id == Offer.id)
         .filter(
@@ -49,20 +68,22 @@ def _live_request_with_provider(db: Session, buyer_id: int, provider_id: int) ->
             Offer.provider_id == provider_id,
             Request.status.in_([RequestStatus.PENDING, RequestStatus.ACCEPTED]),
         )
-        .first()
+        .all()
     )
+    return next((r for r in candidates if _is_request_still_live(db, r)), None)
 
 
 def _has_open_accepted_request(db: Session, provider_id: int) -> bool:
-    """Whether `provider_id` already has ANY accepted request, on ANY of
-    their offers — the global one-open-chat-at-a-time rule."""
-    return (
+    """Whether `provider_id` already has an accepted-and-not-yet-finished
+    request, on ANY of their offers — the global one-open-chat-at-a-time
+    rule."""
+    accepted_requests = (
         db.query(Request)
         .join(Offer, Request.offer_id == Offer.id)
         .filter(Offer.provider_id == provider_id, Request.status == RequestStatus.ACCEPTED)
-        .first()
-        is not None
+        .all()
     )
+    return any(_is_request_still_live(db, r) for r in accepted_requests)
 
 
 def _get_incoming_request(db: Session, request_id: int, provider_id: int) -> Request:
@@ -198,6 +219,10 @@ def pay_for_request(
     a PENDING request). Charges the buyer's wallet and pays the provider
     their net share via app/wallet/service.py — see
     TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار" for the full design.
+
+    Also opens the ChatSession this payment is for, right here — never a
+    separate action, so a paid request can never end up without one (see
+    app/models/chat_session.py).
     """
     req = _get_buyers_request(db, request_id, current_user.id)
     if req.status != RequestStatus.ACCEPTED:
@@ -239,6 +264,9 @@ def pay_for_request(
                 "available_toman": exc.available_toman,
             },
         ) from exc
+
+    # pay_for_item() already flushed, so transaction.id is set here.
+    db.add(ChatSession(request_id=req.id, transaction_id=transaction.id))
 
     db.commit()
     db.refresh(transaction)

@@ -1,0 +1,28 @@
+meta {
+  name: 1. Get My Sessions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/chat-sessions/mine
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+script:post-response {
+  const sessions = res.getBody();
+  const open = sessions.find(s => s.status === "open");
+  if (open) bru.setEnvVar("sessionId", open.id);
+}
+
+docs {
+  Every session User A is part of, as buyer or provider. Run Requests >
+  "6. Pay For Request (B)" first — that's what creates one. The script
+  above grabs the first still-open session into {{sessionId}} for the
+  other requests in this folder.
+}
