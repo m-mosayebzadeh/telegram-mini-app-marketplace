@@ -1,0 +1,26 @@
+meta {
+  name: 2b. Discover All Offers
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/offers
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  No provider_id at all -> the marketplace-wide browse view: every
+  ACTIVE offer from every provider. This is what a buyer who doesn't
+  already know a specific provider's id would use (previously there was
+  no way to do this at all — see TECHNICAL_REQUIREMENTS.md's "Customer
+  Discovery").
+
+  Never includes anyone's INACTIVE offers, even your own — use "2. List
+  Offers" with your own provider_id for that.
+}

@@ -1,10 +1,10 @@
 """
 Integration tests for the photo endpoints: upload, list (audience
-filtering), file access (plain vs. spoiler reveal), purchase (stub),
-delete.
+filtering), file access (plain vs. spoiler reveal), purchase, delete.
 """
 
-from tests.helpers import make_test_image_bytes, sign_init_data
+from app.core.config import settings
+from tests.helpers import give_wallet_balance, make_test_image_bytes, sign_init_data
 
 
 def _auth_header(telegram_id: int, first_name: str = "Test") -> dict:
@@ -160,13 +160,29 @@ def test_paid_photo_without_purchase_returns_402(client):
     assert response.json()["detail"]["price_stars"] == 50
 
 
-def test_paid_photo_after_purchase_reveals_file(client):
+def test_paid_photo_purchase_without_enough_balance_returns_402(client):
     auth_a = _auth_header(1, "Alice")
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     _login(client, 2, "Bob")
     _create_profile(client, auth_a)
     photo = _upload(client, auth_a, is_paid=True, price_stars=50).json()
+
+    # Bob has no wallet balance at all yet.
+    response = client.post(f"/photos/{photo['id']}/purchase", headers=auth_b)
+
+    assert response.status_code == 402
+    assert response.json()["detail"]["reason"] == "insufficient_balance"
+
+
+def test_paid_photo_after_purchase_reveals_file(client, db_session):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    _create_profile(client, auth_a)
+    photo = _upload(client, auth_a, is_paid=True, price_stars=50).json()
+    give_wallet_balance(db_session, bob["id"], amount_toman=50 * settings.star_to_toman_rate)
 
     purchase = client.post(f"/photos/{photo['id']}/purchase", headers=auth_b)
     assert purchase.status_code == 201
@@ -178,6 +194,24 @@ def test_paid_photo_after_purchase_reveals_file(client):
     # And GET /photos/{id} now reports can_see_original for Bob.
     meta = client.get(f"/photos/{photo['id']}", headers=auth_b).json()
     assert meta["can_see_original"] is True
+
+    # Buying the same photo again doesn't charge Bob a second time —
+    # his balance should be exactly what's left after the ONE purchase.
+    second_purchase = client.post(f"/photos/{photo['id']}/purchase", headers=auth_b)
+    assert second_purchase.status_code == 201
+    remaining = client.get("/wallet/balance", headers=auth_b).json()["balance_toman"]
+    assert remaining == 0  # paid exactly 50 stars' worth, once
+
+
+def test_owner_cannot_purchase_own_paid_photo(client):
+    auth = _auth_header(1, "Alice")
+    _login(client, 1, "Alice")
+    _create_profile(client, auth)
+    photo = _upload(client, auth, is_paid=True, price_stars=50).json()
+
+    response = client.post(f"/photos/{photo['id']}/purchase", headers=auth)
+
+    assert response.status_code == 400
 
 
 def test_cannot_purchase_a_free_photo(client):

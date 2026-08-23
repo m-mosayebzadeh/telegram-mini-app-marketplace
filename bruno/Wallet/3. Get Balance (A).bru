@@ -1,0 +1,29 @@
+meta {
+  name: 3. Get Balance (A)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/wallet/balance
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  balance_stars_equivalent is a display-only estimate (floor division by
+  the current star_to_toman_rate) — it's never used to decide whether a
+  charge succeeds; every real charge is computed from the priced item's
+  own price_stars instead.
+
+  pending_toman is money User A has earned as a provider from chat
+  requests that got paid, but hasn't received yet — it only moves into
+  balance_toman once the paid-for chat session closes cleanly (not
+  built yet, see TECHNICAL_REQUIREMENTS.md section 10 — "pool idle").
+  Run Requests > "6. Pay For Request (B)" as User A's provider role and
+  check here to see it change.
+}

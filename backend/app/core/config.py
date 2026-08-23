@@ -49,6 +49,27 @@ class Settings(BaseSettings):
     # never touch this real local folder.
     uploads_dir: Path = BACKEND_DIR / "uploads"
 
+    # --- financial settings (see TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار") ---
+    #
+    # Phase 1 only: these are plain constants here, not a database table,
+    # because the admin panel that would let someone change them at
+    # runtime is itself phase 2. Every other part of the app already
+    # reads these from `settings` instead of hardcoding them, so phase 2
+    # only has to move the VALUES into the database and add an endpoint
+    # to edit them — no other code needs to change.
+
+    # Toman per Star. Used to convert a Star-denominated offer/photo
+    # price into the Toman amount actually charged against the wallet
+    # ledger (which is Toman-denominated — see the ledger entity docs).
+    star_to_toman_rate: int = 4000
+
+    # Platform commission, as a whole-number percentage, per kind of
+    # purchase. Applied to the STAR price (not the Toman amount) — see
+    # split_commission() in app/wallet/service.py for why, and for the
+    # rounding rule (always rounds in the provider's favor).
+    chat_commission_percent: int = 10
+    photo_commission_percent: int = 5
+
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 
 

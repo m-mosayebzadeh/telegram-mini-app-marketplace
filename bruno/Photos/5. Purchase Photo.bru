@@ -11,12 +11,19 @@ post {
 }
 
 headers {
-  X-Telegram-Init-Data: {{initData}}
+  X-Telegram-Init-Data: {{initDataB}}
 }
 
 docs {
-  STUB — no real Stars payment yet (see TECHNICAL_REQUIREMENTS.md
-  section 7). Grants access unconditionally; only works on a photo with
-  is_paid: true (upload one with the paid combo first, see "1. Upload
-  Photo" docs).
+  Charges User B's wallet and pays User A (the photo's owner) their net
+  share, via the real credit ledger — see TECHNICAL_REQUIREMENTS.md
+  section 10. Only works on a photo with is_paid: true (upload one with
+  the paid combo first, see "1. Upload Photo" docs).
+
+  Run "2. Dev Top Up (B)" (Wallet folder) first, or this returns 402.
+  Note this now needs {{initDataB}}, not {{initData}} — User A is the
+  photo's owner and can't purchase their own paid photo (400).
+
+  Calling this again after already owning the photo is safe (still
+  201, no second charge).
 }

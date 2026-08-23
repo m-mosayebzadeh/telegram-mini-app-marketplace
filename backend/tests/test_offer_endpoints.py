@@ -89,6 +89,43 @@ def test_listing_only_shows_active_offers_to_strangers(client):
     assert {o["id"] for o in owner_view} == {active["id"], inactive["id"]}
 
 
+# --- discovery (no provider_id) --------------------------------------------
+
+
+def test_discovery_lists_active_offers_from_every_provider(client):
+    """
+    GET /offers with no provider_id at all is the marketplace-wide
+    browse view (TECHNICAL_REQUIREMENTS.md's "Customer Discovery") — a
+    buyer who doesn't already know a specific provider's id.
+    """
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    auth_c = _auth_header(3, "Carol")
+    _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _login(client, 3, "Carol")
+    alice_offer = _create_offer(client, auth_a).json()
+    carol_offer = _create_offer(client, auth_c).json()
+
+    response = client.get("/offers", headers=auth_b)
+
+    assert response.status_code == 200
+    ids = {o["id"] for o in response.json()}
+    assert ids == {alice_offer["id"], carol_offer["id"]}
+
+
+def test_discovery_never_includes_inactive_offers_even_your_own(client):
+    auth_a = _auth_header(1, "Alice")
+    _login(client, 1, "Alice")
+    active = _create_offer(client, auth_a).json()
+    inactive = _create_offer(client, auth_a).json()
+    client.post(f"/offers/{inactive['id']}/deactivate", headers=auth_a)
+
+    response = client.get("/offers", headers=auth_a).json()
+
+    assert [o["id"] for o in response] == [active["id"]]
+
+
 # --- editing lock ----------------------------------------------------------
 
 

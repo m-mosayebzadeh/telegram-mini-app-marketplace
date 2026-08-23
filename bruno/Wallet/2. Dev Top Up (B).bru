@@ -1,0 +1,28 @@
+meta {
+  name: 2. Dev Top Up (B)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/dev/wallet-topup
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+body:json {
+  {
+    "amount_toman": 1000000
+  }
+}
+
+docs {
+  Same as "1. Dev Top Up (A)", but for User B — run this before "6. Pay
+  For Request (B)" (Requests folder) or "5. Purchase Photo" (Photos
+  folder), since Bob is the buyer in both of those flows and starts
+  with a zero balance.
+}

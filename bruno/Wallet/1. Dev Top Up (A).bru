@@ -1,0 +1,35 @@
+meta {
+  name: 1. Dev Top Up (A)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/dev/wallet-topup
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:json {
+  {
+    "amount_toman": 1000000
+  }
+}
+
+docs {
+  Credits User A's own wallet with a made-up amount — no real payment
+  involved. Only reachable when the server is running with
+  ENABLE_DEV_TOOLS=true AND the request comes from localhost (see
+  app/dev/router.py) — you'll get a 404 otherwise, on purpose.
+
+  This is currently the ONLY way to get wallet balance for manual
+  testing: real Telegram Stars payment and manual card-to-card top-up
+  are both phase 2 (see TECHNICAL_REQUIREMENTS.md section 10).
+
+  1,000,000 Toman covers a 10-star offer (the "1. Create Offer" default)
+  many times over, at the default rate of 4,000 Toman/Star.
+}

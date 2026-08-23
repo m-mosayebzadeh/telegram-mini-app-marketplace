@@ -1,5 +1,5 @@
 """
-Photo endpoints: upload, list, metadata, reveal, purchase (stub), delete.
+Photo endpoints: upload, list, metadata, reveal, purchase, delete.
 
 Every route that takes a photo_id first loads the photo and calls
 can_view_photo() (see app/photo/access.py) — if that's False, the route
@@ -20,15 +20,18 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.storage import delete_photo_file, save_photo_file
 from app.models.audience_group import AudienceGroup
 from app.models.photo import Photo, PhotoAudience
 from app.models.photo_access import PhotoOpenLog, PhotoPurchase
 from app.models.profile import Profile
+from app.models.transaction import TransactionKind
 from app.models.user import User
 from app.photo.access import can_see_original, can_view_photo
 from app.photo.schemas import PhotoOut, PurchaseResult
+from app.wallet.service import InsufficientBalanceError, pay_for_item
 
 router = APIRouter(prefix="/photos", tags=["photos"])
 
@@ -220,28 +223,49 @@ def purchase_photo(
     db: Session = Depends(get_db),
 ) -> PurchaseResult:
     """
-    STUB — grants access unconditionally, no real payment involved yet.
-
-    TODO(payment): once Telegram Stars is wired up (see
-    TECHNICAL_REQUIREMENTS.md section 7, still an open decision), this
-    must charge/verify the payment FIRST and only create the
-    PhotoPurchase row after that succeeds. Everything else here —
-    can_see_original() checking for a PhotoPurchase row, /file logging an
-    open — already works correctly once that's added; only this
-    endpoint's body needs to change.
+    Charges the buyer's wallet for a paid photo and grants permanent
+    access, via app/wallet/service.py — see TECHNICAL_REQUIREMENTS.md,
+    "مدل مالی و اعتبار". Calling this again for a photo already
+    purchased is idempotent: it just confirms access, no second charge.
     """
     photo = _get_visible_photo(db, photo_id, current_user)
     if not photo.is_paid:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "This photo isn't for sale.")
+
+    provider_id = photo.profile.user_id
+    if provider_id == current_user.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "You already own this photo.")
 
     existing = (
         db.query(PhotoPurchase)
         .filter(PhotoPurchase.user_id == current_user.id, PhotoPurchase.photo_id == photo.id)
         .first()
     )
-    if existing is None:
-        db.add(PhotoPurchase(user_id=current_user.id, photo_id=photo.id))
-        db.commit()
+    if existing is not None:
+        return PurchaseResult(unlocked=True)
+
+    try:
+        pay_for_item(
+            db,
+            kind=TransactionKind.PHOTO_PURCHASE,
+            buyer_id=current_user.id,
+            provider_id=provider_id,
+            gross_price_stars=photo.price_stars,
+            commission_rate_percent=settings.photo_commission_percent,
+            photo_id=photo.id,
+        )
+    except InsufficientBalanceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "reason": "insufficient_balance",
+                "needed_toman": exc.needed_toman,
+                "available_toman": exc.available_toman,
+            },
+        ) from exc
+
+    db.add(PhotoPurchase(user_id=current_user.id, photo_id=photo.id))
+    db.commit()
 
     return PurchaseResult(unlocked=True)
 

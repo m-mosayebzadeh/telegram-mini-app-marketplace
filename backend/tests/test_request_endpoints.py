@@ -76,6 +76,60 @@ def test_requesting_the_same_offer_twice_does_not_duplicate(client):
     assert first["id"] == second["id"]
 
 
+def test_cannot_request_a_second_offer_from_a_provider_while_one_is_already_live(client):
+    """
+    A buyer only gets one live (pending/accepted) request per PROVIDER
+    at a time — across every offer that provider has, not just the one
+    they already requested. Different from the idempotent same-offer
+    case above: this is a genuinely different offer, so it's rejected
+    outright instead of silently returning the existing request.
+    """
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    offer1 = _create_offer(client, auth_a)
+    offer2 = _create_offer(client, auth_a)
+    client.post("/requests", headers=auth_b, json={"offer_id": offer1["id"]})
+
+    response = client.post("/requests", headers=auth_b, json={"offer_id": offer2["id"]})
+
+    assert response.status_code == 400
+
+
+def test_can_request_a_different_provider_while_one_request_is_already_live(client):
+    """The one-live-request rule is per PROVIDER, not global — a buyer
+    can have live requests with several different providers at once."""
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    auth_c = _auth_header(3, "Carol")
+    _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _login(client, 3, "Carol")
+    offer_alice = _create_offer(client, auth_a)
+    offer_carol = _create_offer(client, auth_c)
+    client.post("/requests", headers=auth_b, json={"offer_id": offer_alice["id"]})
+
+    response = client.post("/requests", headers=auth_b, json={"offer_id": offer_carol["id"]})
+
+    assert response.status_code == 201
+
+
+def test_can_request_a_different_offer_from_same_provider_after_first_is_rejected(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    offer1 = _create_offer(client, auth_a)
+    offer2 = _create_offer(client, auth_a)
+    req1 = client.post("/requests", headers=auth_b, json={"offer_id": offer1["id"]}).json()
+    client.post(f"/requests/{req1['id']}/reject", headers=auth_a, json={"reason": "no"})
+
+    response = client.post("/requests", headers=auth_b, json={"offer_id": offer2["id"]})
+
+    assert response.status_code == 201
+
+
 # --- listing ---------------------------------------------------------------
 
 

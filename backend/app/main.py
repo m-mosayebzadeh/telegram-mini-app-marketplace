@@ -18,6 +18,7 @@ from app.photo.router import router as photo_router
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
 from app.request.router import router as request_router
+from app.wallet.router import router as wallet_router
 
 
 @asynccontextmanager
@@ -46,6 +47,7 @@ app.include_router(audience_group_router)
 app.include_router(photo_router)
 app.include_router(offer_router)
 app.include_router(request_router)
+app.include_router(wallet_router)
 
 # Only wire up developer-only routes (see app/dev/router.py) when the
 # flag is explicitly turned on. Since it defaults to False, forgetting to

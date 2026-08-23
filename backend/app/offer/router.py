@@ -97,15 +97,30 @@ def get_offer(
 
 @router.get("", response_model=list[OfferOut])
 def list_offers(
-    provider_id: int,
+    provider_id: int | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[Offer]:
-    """Anyone browsing a provider's offers sees only ACTIVE ones; the
-    provider viewing their own list sees everything, including INACTIVE."""
-    query = db.query(Offer).filter(Offer.provider_id == provider_id)
-    if provider_id != current_user.id:
-        query = query.filter(Offer.status == OfferStatus.ACTIVE)
+    """
+    Two modes, chosen by whether provider_id is given:
+
+    - provider_id given: that one provider's offers. ACTIVE only, unless
+      the caller IS that provider, who also sees their own INACTIVE ones
+      (e.g. to manage their own listings).
+    - provider_id omitted: marketplace-wide discovery — every ACTIVE
+      offer from every provider. This is the "Customer Discovery" browse
+      view (TECHNICAL_REQUIREMENTS.md) that was missing until now; a
+      buyer had no way to find offers without already knowing a specific
+      provider_id. Never includes INACTIVE offers here, even the
+      caller's own — browse those via provider_id=<your own id> instead.
+    """
+    query = db.query(Offer).filter(Offer.status == OfferStatus.ACTIVE)
+    if provider_id is not None:
+        query = query.filter(Offer.provider_id == provider_id)
+        if provider_id == current_user.id:
+            # Drop the ACTIVE-only filter for your own listing so you
+            # can see (and manage) your own INACTIVE offers too.
+            query = db.query(Offer).filter(Offer.provider_id == provider_id)
     return query.all()
 
 

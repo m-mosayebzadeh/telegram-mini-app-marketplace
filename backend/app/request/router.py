@@ -4,8 +4,11 @@ accept, reject.
 
 Business rules from TECHNICAL_REQUIREMENTS.md section 4:
   - a buyer can't request their own offer
-  - re-requesting the same offer while a live request already exists is
-    idempotent (returns the existing one, no duplicate)
+  - a buyer can only have ONE live (pending/accepted) request to a given
+    PROVIDER at a time — across every offer that provider has, not per
+    offer. Re-requesting the exact same offer while it's still live is
+    idempotent (returns the existing one); requesting a DIFFERENT offer
+    from the same provider while one is already live is rejected.
   - a provider can have at most ONE open accepted request in total,
     across every offer they have — not per offer
   - rejecting always requires a reason
@@ -15,14 +18,39 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.offer import Offer, OfferStatus
 from app.models.request import Request, RequestStatus
+from app.models.transaction import Transaction, TransactionKind
 from app.models.user import User
 from app.request.schemas import RequestCreate, RequestOut, RequestReject
+from app.wallet.schemas import TransactionOut
+from app.wallet.service import InsufficientBalanceError, pay_for_item
 
 router = APIRouter(prefix="/requests", tags=["requests"])
+
+
+def _live_request_with_provider(db: Session, buyer_id: int, provider_id: int) -> Request | None:
+    """
+    The buyer's current pending/accepted request against ANY of
+    provider_id's offers, if any — a buyer can only have one live
+    request per provider at a time (see module docstring). Joins
+    through Offer because Request only stores offer_id, not
+    provider_id directly (the provider is always reached via
+    request.offer.provider_id).
+    """
+    return (
+        db.query(Request)
+        .join(Offer, Request.offer_id == Offer.id)
+        .filter(
+            Request.buyer_id == buyer_id,
+            Offer.provider_id == provider_id,
+            Request.status.in_([RequestStatus.PENDING, RequestStatus.ACCEPTED]),
+        )
+        .first()
+    )
 
 
 def _has_open_accepted_request(db: Session, provider_id: int) -> bool:
@@ -46,6 +74,15 @@ def _get_incoming_request(db: Session, request_id: int, provider_id: int) -> Req
     return req
 
 
+def _get_buyers_request(db: Session, request_id: int, buyer_id: int) -> Request:
+    """Loads a request and confirms `buyer_id` is the one who made it —
+    used by pay, so only the actual buyer can pay for their own request."""
+    req = db.get(Request, request_id)
+    if req is None or req.buyer_id != buyer_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found.")
+    return req
+
+
 @router.post("", response_model=RequestOut, status_code=status.HTTP_201_CREATED)
 def create_request(
     payload: RequestCreate,
@@ -60,17 +97,19 @@ def create_request(
             status_code=status.HTTP_400_BAD_REQUEST, detail="You can't request your own offer."
         )
 
-    existing = (
-        db.query(Request)
-        .filter(
-            Request.buyer_id == current_user.id,
-            Request.offer_id == offer.id,
-            Request.status.in_([RequestStatus.PENDING, RequestStatus.ACCEPTED]),
-        )
-        .first()
-    )
+    existing = _live_request_with_provider(db, current_user.id, offer.provider_id)
     if existing is not None:
-        return existing
+        if existing.offer_id == offer.id:
+            # Re-requesting the exact same offer: idempotent, no duplicate.
+            return existing
+        # A live request on a DIFFERENT offer from the same provider:
+        # blocked, not silently redirected — a buyer only gets one live
+        # conversation-in-progress per provider.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You already have a pending or accepted request with this provider "
+            "(on a different offer). Wait for it to be resolved before requesting another.",
+        )
 
     new_request = Request(buyer_id=current_user.id, offer_id=offer.id)
     db.add(new_request)
@@ -144,3 +183,63 @@ def reject_request(
     db.commit()
     db.refresh(req)
     return req
+
+
+@router.post("/{request_id}/pay", response_model=TransactionOut, status_code=status.HTTP_201_CREATED)
+def pay_for_request(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Transaction:
+    """
+    The buyer's payment step — only reachable after the provider has
+    accepted (TECHNICAL_REQUIREMENTS.md: payment always comes after
+    acceptance, never before; there's no way to reach this endpoint from
+    a PENDING request). Charges the buyer's wallet and pays the provider
+    their net share via app/wallet/service.py — see
+    TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار" for the full design.
+    """
+    req = _get_buyers_request(db, request_id, current_user.id)
+    if req.status != RequestStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only an accepted request can be paid for.",
+        )
+
+    already_paid = (
+        db.query(Transaction)
+        .filter(
+            Transaction.kind == TransactionKind.CHAT_REQUEST,
+            Transaction.request_id == req.id,
+        )
+        .first()
+    )
+    if already_paid is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This request has already been paid for.",
+        )
+
+    try:
+        transaction = pay_for_item(
+            db,
+            kind=TransactionKind.CHAT_REQUEST,
+            buyer_id=current_user.id,
+            provider_id=req.offer.provider_id,
+            gross_price_stars=req.offer.price_stars,
+            commission_rate_percent=settings.chat_commission_percent,
+            request_id=req.id,
+        )
+    except InsufficientBalanceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "reason": "insufficient_balance",
+                "needed_toman": exc.needed_toman,
+                "available_toman": exc.available_toman,
+            },
+        ) from exc
+
+    db.commit()
+    db.refresh(transaction)
+    return transaction
