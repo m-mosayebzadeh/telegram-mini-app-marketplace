@@ -79,7 +79,7 @@ export default function MyOffers() {
               </>
             }
           >
-            {offer.description}
+            {offer.title}
           </Cell>
         ))}
       </Section>

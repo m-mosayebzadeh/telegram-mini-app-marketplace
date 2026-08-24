@@ -24,6 +24,7 @@ def _create_offer(client, auth: dict, **overrides):
     payload = {
         "price_stars": 40,
         "display_duration_minutes": 30,
+        "title": "Chat with me",
         "description": "A nice chat",
     }
     payload.update(overrides)

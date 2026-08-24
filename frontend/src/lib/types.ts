@@ -27,6 +27,7 @@ export interface Offer {
   service_type: string
   price_stars: number
   display_duration_minutes: number
+  title: string
   description: string
   status: 'active' | 'inactive'
   created_at: string
@@ -79,6 +80,16 @@ export interface PublicProfile {
   bio: string | null
   followers_count: number
   following_count: number
+  follow_status: 'not_following' | 'pending' | 'accepted'
+}
+
+/** GET /pricing — the current Star-to-Toman rate and commission
+ * percentages, used to show a price breakdown without a round trip per
+ * keystroke (see lib/priceBreakdown.ts). */
+export interface PricingConfig {
+  star_to_toman_rate: number
+  chat_commission_percent: number
+  photo_commission_percent: number
 }
 
 /** One row in a followers/following list — GET /follow/{id}/followers or

@@ -66,6 +66,28 @@ def health_check() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/pricing")
+def read_pricing_config(
+    current_user: User = Depends(get_current_user),  # requires auth; not otherwise used
+) -> dict:
+    """
+    The current Star-to-Toman rate and commission percentages (see
+    TECHNICAL_REQUIREMENTS.md section 10 and app/core/config.py) — a
+    provider setting an offer's price needs these client-side, to show
+    "X Stars = Y Toman, Z commission, W net" as they type, without a
+    round trip per keystroke. These are phase-1 constants today (fixed
+    in settings, not a database table an admin panel edits yet), so this
+    endpoint's response is the same for everyone right now — but every
+    screen already reads it from here instead of hardcoding the numbers,
+    so nothing else has to change once phase 2 makes them dynamic.
+    """
+    return {
+        "star_to_toman_rate": settings.star_to_toman_rate,
+        "chat_commission_percent": settings.chat_commission_percent,
+        "photo_commission_percent": settings.photo_commission_percent,
+    }
+
+
 @app.get("/me")
 def read_current_user(current_user: User = Depends(get_current_user)) -> dict:
     """

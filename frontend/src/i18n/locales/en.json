@@ -33,7 +33,10 @@
     "followingCount": "{{count}} following",
     "followersTitle": "Followers",
     "followingTitle": "Following",
-    "followListEmpty": "No one here yet"
+    "followListEmpty": "No one here yet",
+    "follow": "Follow",
+    "following": "Following",
+    "requested": "Requested"
   },
   "providerSummary": {
     "title": "Provider summary",
@@ -69,7 +72,12 @@
     "deactivate": "Deactivate",
     "delete": "Delete",
     "deleteConfirm": "Delete this offer?",
+    "titleLabel": "Title",
     "priceStarsLabel": "Price (Stars)",
+    "priceInToman": "Toman equivalent",
+    "commission": "Commission",
+    "netEarnings": "Provider's net earnings",
+    "starsAndToman": "{{stars}} Stars ({{toman}} Toman)",
     "durationLabel": "Display duration (minutes)",
     "descriptionLabel": "Description",
     "createButton": "Create offer",

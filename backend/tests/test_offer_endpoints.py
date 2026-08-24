@@ -15,6 +15,7 @@ def _create_offer(client, auth: dict, **overrides):
     payload = {
         "price_stars": 10,
         "display_duration_minutes": 30,
+        "title": "Chat with me",
         "description": "A nice chat",
     }
     payload.update(overrides)
@@ -34,6 +35,20 @@ def test_create_offer_does_not_require_a_profile(client):
     body = response.json()
     assert body["status"] == "active"
     assert body["service_type"] == "chat"
+    assert body["title"] == "Chat with me"
+
+
+def test_create_offer_requires_a_title(client):
+    auth = _auth_header(1, "Alice")
+    _login(client, 1, "Alice")
+
+    response = client.post(
+        "/offers",
+        headers=auth,
+        json={"price_stars": 10, "display_duration_minutes": 30, "description": "A nice chat"},
+    )
+
+    assert response.status_code == 422
 
 
 def test_create_offer_rejects_non_positive_price(client):

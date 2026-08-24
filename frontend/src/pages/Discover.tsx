@@ -43,7 +43,7 @@ export default function Discover() {
             })}
             onClick={() => navigate(`/offers/${offer.id}`)}
           >
-            {offer.description}
+            {offer.title}
           </Cell>
         ))}
       </Section>

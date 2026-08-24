@@ -10,6 +10,7 @@ this exercises real HTTP responses (status codes, JSON body) and a real
 from conftest.py.
 """
 
+from app.core.config import settings
 from tests.helpers import sign_init_data
 
 
@@ -56,3 +57,18 @@ def test_me_reuses_existing_user_on_second_login(client):
     second = client.get("/me", headers={"X-Telegram-Init-Data": init_data_2}).json()
 
     assert first["id"] == second["id"]
+
+
+def test_pricing_config_matches_current_settings(client):
+    """GET /pricing — what CreateOffer.tsx and OfferDetail.tsx use to
+    show a Toman/commission breakdown without a round trip per keystroke
+    (see app/main.py's read_pricing_config)."""
+    init_data = sign_init_data({"id": 1, "first_name": "Alice"})
+
+    response = client.get("/pricing", headers={"X-Telegram-Init-Data": init_data})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["star_to_toman_rate"] == settings.star_to_toman_rate
+    assert body["chat_commission_percent"] == settings.chat_commission_percent
+    assert body["photo_commission_percent"] == settings.photo_commission_percent

@@ -33,7 +33,10 @@
     "followingCount": "{{count}} دنبال‌شونده",
     "followersTitle": "دنبال‌کنندگان",
     "followingTitle": "دنبال‌شونده‌ها",
-    "followListEmpty": "فعلاً کسی اینجا نیست"
+    "followListEmpty": "فعلاً کسی اینجا نیست",
+    "follow": "دنبال کردن",
+    "following": "دنبال می‌کنید",
+    "requested": "درخواست ارسال شد"
   },
   "providerSummary": {
     "title": "خلاصه ارائه‌دهنده",
@@ -69,7 +72,12 @@
     "deactivate": "غیرفعال‌سازی",
     "delete": "حذف",
     "deleteConfirm": "این پیشنهاد حذف بشه؟",
+    "titleLabel": "عنوان",
     "priceStarsLabel": "قیمت (استارز)",
+    "priceInToman": "معادل تومانی",
+    "commission": "کارمزد",
+    "netEarnings": "مبلغ نهایی ارائه‌دهنده",
+    "starsAndToman": "{{stars}} استارز ({{toman}} تومان)",
     "durationLabel": "مدت‌زمان نمایشی (دقیقه)",
     "descriptionLabel": "توضیحات",
     "createButton": "ساخت پیشنهاد",

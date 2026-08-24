@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { PriceBreakdown } from '../components/PriceBreakdown'
 import { apiFetch, ApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
 import type { Offer, Request } from '../lib/types'
@@ -82,8 +83,10 @@ export default function OfferDetail() {
 
   return (
     <List>
-      <Section header={offer.description}>
+      <Section header={offer.title}>
+        <Cell subtitle={t('offers.descriptionLabel')}>{offer.description}</Cell>
         <Cell subtitle={t('offers.priceStarsLabel')}>{offer.price_stars}</Cell>
+        <PriceBreakdown priceStars={offer.price_stars} commissionKind="chat" />
         <Cell subtitle={t('offers.durationLabel')}>{offer.display_duration_minutes}</Cell>
         <Cell subtitle={t('offers.status')}>
           {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}

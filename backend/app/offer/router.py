@@ -93,6 +93,7 @@ def create_offer(
         provider_id=current_user.id,
         price_stars=payload.price_stars,
         display_duration_minutes=payload.display_duration_minutes,
+        title=payload.title,
         description=payload.description,
     )
     db.add(offer)
@@ -165,6 +166,8 @@ def update_offer(
         offer.price_stars = payload.price_stars
     if payload.display_duration_minutes is not None:
         offer.display_duration_minutes = payload.display_duration_minutes
+    if payload.title is not None:
+        offer.title = payload.title
     if payload.description is not None:
         offer.description = payload.description
 

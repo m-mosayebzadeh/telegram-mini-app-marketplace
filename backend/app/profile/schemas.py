@@ -49,6 +49,13 @@ class PublicProfileOut(BaseModel):
     # pending follow request isn't a real follower yet.
     followers_count: int
     following_count: int
+    # The VIEWER's own relationship to this profile — "not_following" if
+    # there's no Follow row from the current caller to this user at all,
+    # otherwise that row's actual status. Always "not_following" when
+    # viewing your own profile (you can't follow yourself). Lets the
+    # frontend show the right button (Follow / Requested / Following)
+    # without a second round trip.
+    follow_status: str
 
 
 class FollowListItemOut(BaseModel):

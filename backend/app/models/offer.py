@@ -41,6 +41,11 @@ class Offer(Base):
     # this is NOT an enforced timer; nothing in this app ever reads this
     # value to decide when a chat session should end.
     display_duration_minutes: Mapped[int] = mapped_column(Integer)
+    # The short label shown wherever an offer is listed (Discover, "my
+    # offers", ...) — separate from `description`, which is the longer
+    # free-text explanation. Before this field existed, the UI was
+    # (wrongly) using `description` as if it were the title.
+    title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(String(2000))
 
     status: Mapped[OfferStatus] = mapped_column(

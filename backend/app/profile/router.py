@@ -40,6 +40,19 @@ def _following_count(db: Session, user_id: int) -> int:
     )
 
 
+def _follow_status(db: Session, *, viewer_id: int, target_id: int) -> str:
+    """The VIEWER's own relationship to target_id — see
+    PublicProfileOut.follow_status's docstring. Trivially "not_following"
+    when viewing your own profile, since a self-follow Follow row can
+    never exist (see the model's ck_no_self_follow constraint)."""
+    follow = (
+        db.query(Follow)
+        .filter(Follow.follower_id == viewer_id, Follow.followee_id == target_id)
+        .first()
+    )
+    return follow.status.value if follow else "not_following"
+
+
 @router.get("/me", response_model=ProfileOut)
 def read_my_profile(
     current_user: User = Depends(get_current_user),
@@ -103,6 +116,7 @@ def read_public_profile(
         bio=profile.bio if profile else None,
         followers_count=_followers_count(db, user_id),
         following_count=_following_count(db, user_id),
+        follow_status=_follow_status(db, viewer_id=current_user.id, target_id=user_id),
     )
 
 

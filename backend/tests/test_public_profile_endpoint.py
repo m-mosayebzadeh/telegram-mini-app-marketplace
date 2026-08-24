@@ -61,6 +61,34 @@ def test_public_profile_includes_follow_counts(client):
     assert response.json()["following_count"] == 0
 
 
+def test_follow_status_reflects_the_viewers_own_relationship(client):
+    alice = _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    auth_alice = _auth_header(1, "Alice")
+
+    # Before following: not_following.
+    before = client.get(f"/profiles/{bob['id']}", headers=auth_alice).json()
+    assert before["follow_status"] == "not_following"
+
+    # After requesting, but before Bob accepts: pending.
+    client.post(f"/follow/{bob['id']}", headers=auth_alice)
+    pending = client.get(f"/profiles/{bob['id']}", headers=auth_alice).json()
+    assert pending["follow_status"] == "pending"
+
+    # After Bob accepts: accepted.
+    client.post(f"/follow/{alice['id']}/accept", headers=_auth_header(2, "Bob"))
+    accepted = client.get(f"/profiles/{bob['id']}", headers=auth_alice).json()
+    assert accepted["follow_status"] == "accepted"
+
+
+def test_follow_status_on_your_own_profile_is_not_following(client):
+    alice = _login(client, 1, "Alice")
+
+    response = client.get(f"/profiles/{alice['id']}", headers=_auth_header(1, "Alice"))
+
+    assert response.json()["follow_status"] == "not_following"
+
+
 # --- provider summary ------------------------------------------------------
 
 
@@ -98,7 +126,7 @@ def test_provider_summary_tracks_response_and_rejection_rate(client):
     offer = client.post(
         "/offers",
         headers=auth_alice,
-        json={"price_stars": 10, "display_duration_minutes": 30, "description": "Chat"},
+        json={"price_stars": 10, "display_duration_minutes": 30, "title": "Chat with me", "description": "Chat"},
     ).json()
 
     bob_request = client.post(

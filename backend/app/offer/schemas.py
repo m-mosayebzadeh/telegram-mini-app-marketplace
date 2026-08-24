@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class OfferCreate(BaseModel):
     price_stars: int = Field(gt=0)
     display_duration_minutes: int = Field(gt=0)
+    title: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=2000)
 
 
@@ -19,6 +20,7 @@ class OfferUpdate(BaseModel):
 
     price_stars: int | None = Field(default=None, gt=0)
     display_duration_minutes: int | None = Field(default=None, gt=0)
+    title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, min_length=1, max_length=2000)
 
 
@@ -28,6 +30,7 @@ class OfferOut(BaseModel):
     service_type: str
     price_stars: int
     display_duration_minutes: int
+    title: str
     description: str
     status: str
     created_at: datetime
