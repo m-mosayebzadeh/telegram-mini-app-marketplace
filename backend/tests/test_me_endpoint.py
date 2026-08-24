@@ -71,4 +71,4 @@ def test_pricing_config_matches_current_settings(client):
     body = response.json()
     assert body["star_to_toman_rate"] == settings.star_to_toman_rate
     assert body["chat_commission_percent"] == settings.chat_commission_percent
-    assert body["photo_commission_percent"] == settings.photo_commission_percent
+    assert body["content_commission_percent"] == settings.content_commission_percent

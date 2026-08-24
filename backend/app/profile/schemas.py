@@ -16,6 +16,11 @@ class ProfileUpdate(BaseModel):
 
     avatar_url: str | None = Field(default=None, max_length=500)
     bio: str | None = Field(default=None, max_length=1000)
+    location: str | None = Field(default=None, max_length=200)
+    # Length capped at MAX_INTERESTS (app/models/profile.py) — checked in
+    # app/profile/router.py, since a JSON column can't carry a CHECK on
+    # list length the way a plain column can.
+    interests: list[str] = Field(default_factory=list)
 
 
 class ProfileOut(BaseModel):
@@ -24,6 +29,8 @@ class ProfileOut(BaseModel):
     id: int
     avatar_url: str | None
     bio: str | None
+    location: str | None
+    interests: list[str]
 
     # Lets FastAPI build this schema directly from a Profile ORM object
     # (profile.id, profile.avatar_url, ...) instead of requiring a plain
@@ -45,6 +52,8 @@ class PublicProfileOut(BaseModel):
     username: str | None
     avatar_url: str | None
     bio: str | None
+    location: str | None
+    interests: list[str]
     # Only counts ACCEPTED follows (see app/models/follow.py) — a
     # pending follow request isn't a real follower yet.
     followers_count: int

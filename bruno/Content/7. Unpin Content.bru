@@ -1,11 +1,11 @@
 meta {
-  name: 6. Delete Photo
+  name: 7. Unpin Content
   type: http
-  seq: 6
+  seq: 7
 }
 
-delete {
-  url: {{baseUrl}}/photos/{{photoId}}
+post {
+  url: {{baseUrl}}/content/{{contentId}}/unpin
   body: none
   auth: none
 }

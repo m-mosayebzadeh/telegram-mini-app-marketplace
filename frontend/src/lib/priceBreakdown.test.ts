@@ -9,7 +9,7 @@ describe('computePriceBreakdown', () => {
   it.each([
     [40, 10, 4, 36], // divides evenly
     [25, 10, 2, 23], // 2.5 -> rounds DOWN; the extra half-star goes to the provider
-    [100, 5, 5, 95], // the photo commission rate
+    [100, 5, 5, 95], // the content commission rate
     [1, 10, 0, 1], // smallest possible price: commission floors to 0
     [0, 10, 0, 0], // degenerate, but shouldn't throw
   ])(

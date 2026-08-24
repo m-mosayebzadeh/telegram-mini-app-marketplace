@@ -25,7 +25,7 @@ class TransactionOut(BaseModel):
     buyer_id: int
     provider_id: int
     request_id: int | None
-    photo_id: int | None
+    content_id: int | None
     gross_price_stars: int
     commission_rate_percent: int
     commission_stars: int

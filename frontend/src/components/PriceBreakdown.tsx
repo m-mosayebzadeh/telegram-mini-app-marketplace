@@ -7,10 +7,10 @@ import { getPricingConfig } from '../lib/pricing'
 interface PriceBreakdownProps {
   priceStars: number
   // Which commission rate applies — offers are chat-only today, but
-  // this component is written to also cover a future photo/offer mix
+  // this component is written to also cover a future content/offer mix
   // without needing a second copy of it (see GET /pricing, which
   // already returns both rates).
-  commissionKind: 'chat' | 'photo'
+  commissionKind: 'chat' | 'content'
   // 'full' (default): Toman equivalent + commission + net earnings —
   // meaningful only to the PROVIDER, since the commission and net
   // earnings are their own business numbers, not something a buyer
@@ -47,7 +47,7 @@ export function PriceBreakdown({ priceStars, commissionKind, variant = 'full' }:
     getPricingConfig().then((config) => {
       if (cancelled) return
       const percent =
-        commissionKind === 'chat' ? config.chat_commission_percent : config.photo_commission_percent
+        commissionKind === 'chat' ? config.chat_commission_percent : config.content_commission_percent
       setBreakdown(computePriceBreakdown(priceStars, percent, config.star_to_toman_rate))
     })
     return () => {

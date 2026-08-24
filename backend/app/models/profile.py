@@ -1,5 +1,6 @@
 """
-Profile: the public-facing "page" for a user (bio, avatar, photos).
+Profile: the public-facing "page" for a user (bio, avatar, location,
+interests).
 
 One-to-one with User: every user has at most one profile, and every
 profile belongs to exactly one user. The `unique=True` on user_id below
@@ -7,10 +8,15 @@ is what actually enforces the "one-to-one" part — without it, this would
 be a regular one-to-many relationship (one user could have many profiles).
 """
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+# A simple cap so "interests" can't turn into an unbounded free-for-all —
+# enforced in app/profile/router.py, not the database (JSON columns can't
+# carry a CHECK on list length the way a plain column can).
+MAX_INTERESTS = 10
 
 
 class Profile(Base):
@@ -25,6 +31,14 @@ class Profile(Base):
 
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     bio: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    # A JSON column (works the same on SQLite and Postgres) holding a
+    # plain list of short tag strings, e.g. ["Music", "Travel"]. No
+    # separate table: nothing yet needs to query "everyone interested in
+    # X" — see TECHNICAL_REQUIREMENTS.md, this is for future
+    # discovery/recommendation, not built now.
+    interests: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     # `relationship()` doesn't create a database column — it's a
     # convenience so Python code can write `profile.user` (or, from the

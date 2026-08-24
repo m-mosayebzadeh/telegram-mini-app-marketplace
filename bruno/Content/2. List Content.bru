@@ -1,0 +1,27 @@
+meta {
+  name: 2. List Content
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/content?user_id={{userIdA}}
+  body: none
+  auth: none
+}
+
+params:query {
+  user_id: {{userIdA}}
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  user_id={{userIdA}} assumes User A's real user id was saved there
+  (e.g. from "Auth/Get Me"). Only content the caller is allowed to know
+  about shows up here; send this same request with {{initDataB}}
+  instead to see the difference for a restricted item. Pinned items
+  sort first.
+}

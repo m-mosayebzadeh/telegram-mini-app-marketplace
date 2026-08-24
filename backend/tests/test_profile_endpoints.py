@@ -47,3 +47,28 @@ def test_put_again_updates_the_same_profile_not_a_new_one(client):
 
     assert first["id"] == second["id"]
     assert second["bio"] == "v2"
+
+
+def test_put_saves_location_and_interests(client):
+    response = client.put(
+        "/profile/me",
+        headers=AUTH_HEADER,
+        json={"location": "Tehran", "interests": ["Music", "Travel"]},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["location"] == "Tehran"
+    assert body["interests"] == ["Music", "Travel"]
+
+
+def test_put_rejects_too_many_interests(client):
+    from app.models.profile import MAX_INTERESTS
+
+    response = client.put(
+        "/profile/me",
+        headers=AUTH_HEADER,
+        json={"interests": [f"tag{i}" for i in range(MAX_INTERESTS + 1)]},
+    )
+
+    assert response.status_code == 400

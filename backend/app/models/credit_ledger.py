@@ -9,7 +9,7 @@ auditable: "where did this balance come from?" always has a real,
 traceable answer, instead of just trusting a number nobody can explain.
 
 The ledger's accounting unit is Toman, not Stars — see
-TECHNICAL_REQUIREMENTS.md for why the wallet and offer/photo pricing
+TECHNICAL_REQUIREMENTS.md for why the wallet and offer/content pricing
 deliberately use different units.
 """
 
@@ -28,7 +28,8 @@ class LedgerEntryType(str, enum.Enum):
     # any real payment. Gated behind settings.enable_dev_tools wherever
     # it's used (see app/dev/router.py) — never reachable in production.
     TOPUP_DEV_STUB = "topup_dev_stub"
-    # A buyer paying the full (gross) price of a chat request or a photo.
+    # A buyer paying the full (gross) price of a chat request or a piece
+    # of content.
     SPEND = "spend"
     # A provider receiving their net share (gross minus commission) of a
     # completed transaction.
@@ -47,7 +48,7 @@ class CreditLedgerEntry(Base):
     # platform revenue, not money owed to any one user's wallet, so it
     # deliberately isn't attached to a user — enforced by the CHECK
     # constraint below, the same "flag <-> matching column" pattern used
-    # throughout this codebase (see Photo, Request).
+    # throughout this codebase (see Content, Request).
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
     # Positive = money added to the wallet, negative = money removed.

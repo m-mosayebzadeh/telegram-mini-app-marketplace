@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # the only real guard.
     enable_dev_tools: bool = False
 
-    # Where uploaded photo files are stored (see app/core/storage.py).
+    # Where uploaded content files are stored (see app/core/storage.py).
     # Defaults to backend/uploads/, but tests override it directly
     # (settings.uploads_dir = tmp_path) so uploads made during a test run
     # never touch this real local folder.
@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # only has to move the VALUES into the database and add an endpoint
     # to edit them — no other code needs to change.
 
-    # Toman per Star. Used to convert a Star-denominated offer/photo
+    # Toman per Star. Used to convert a Star-denominated offer/content
     # price into the Toman amount actually charged against the wallet
     # ledger (which is Toman-denominated — see the ledger entity docs).
     star_to_toman_rate: int = 4000
@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     # split_commission() in app/wallet/service.py for why, and for the
     # rounding rule (always rounds in the provider's favor).
     chat_commission_percent: int = 10
-    photo_commission_percent: int = 5
+    content_commission_percent: int = 5
 
     # How long after a chat session closes before its transaction
     # auto-releases to the provider, if nobody disputes it (see

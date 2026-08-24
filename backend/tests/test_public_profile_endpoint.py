@@ -154,18 +154,22 @@ def test_provider_summary_counts_completed_services(client, db_session):
     auth_alice = _auth_header(1, "Alice")
     auth_bob = _auth_header(2, "Bob")
 
-    # A paid photo purchase settles instantly (see app/wallet/service.py),
+    # A paid content purchase settles instantly (see app/wallet/service.py),
     # so it's the simplest way to get one real SUCCEEDED transaction
     # without walking through the full accept -> pay -> close-session flow.
-    client.put("/profile/me", headers=auth_alice, json={"bio": "hi"})
-    photo = client.post(
-        "/photos",
+    content = client.post(
+        "/content",
         headers=auth_alice,
         files={"file": ("test.jpg", make_test_image_bytes(), "image/jpeg")},
-        data={"is_paid": "true", "price_stars": "10", "audience_type": "public"},
+        data={
+            "content_type": "photo",
+            "is_paid": "true",
+            "price_stars": "10",
+            "audience_type": "public",
+        },
     ).json()
     give_wallet_balance(db_session, bob["id"], amount_toman=10 * settings.star_to_toman_rate)
-    client.post(f"/photos/{photo['id']}/purchase", headers=auth_bob)
+    client.post(f"/content/{content['id']}/purchase", headers=auth_bob)
 
     response = client.get(f"/profiles/{alice['id']}/provider-summary", headers=auth_bob)
 
@@ -204,17 +208,21 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
     auth_alice = _auth_header(1, "Alice")
     auth_bob = _auth_header(2, "Bob")
 
-    # A paid photo purchase settles instantly -> SUCCEEDED, counts
+    # A paid content purchase settles instantly -> SUCCEEDED, counts
     # toward completed_transactions_count.
-    client.put("/profile/me", headers=auth_alice, json={"bio": "hi"})
-    photo = client.post(
-        "/photos",
+    content = client.post(
+        "/content",
         headers=auth_alice,
         files={"file": ("test.jpg", make_test_image_bytes(), "image/jpeg")},
-        data={"is_paid": "true", "price_stars": "10", "audience_type": "public"},
+        data={
+            "content_type": "photo",
+            "is_paid": "true",
+            "price_stars": "10",
+            "audience_type": "public",
+        },
     ).json()
     give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.star_to_toman_rate)
-    client.post(f"/photos/{photo['id']}/purchase", headers=auth_bob)
+    client.post(f"/content/{content['id']}/purchase", headers=auth_bob)
 
     # A paid chat request stays PENDING (idle money) -- still counts as
     # "spent" (the buyer was already charged), but not yet "completed".
@@ -230,6 +238,6 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
     response = client.get(f"/profiles/{bob['id']}/buyer-summary", headers=auth_alice)
 
     body = response.json()
-    assert body["status"] == "established"  # the photo purchase completed
-    assert body["completed_transactions_count"] == 1  # only the photo, not the still-pending chat
-    assert body["total_stars_spent"] == 30  # 10 (photo) + 20 (chat), pending or not
+    assert body["status"] == "established"  # the content purchase completed
+    assert body["completed_transactions_count"] == 1  # only the content, not the still-pending chat
+    assert body["total_stars_spent"] == 30  # 10 (content) + 20 (chat), pending or not

@@ -1,6 +1,6 @@
 """
 Wallet service: the shared logic behind every place money actually
-moves in this app (paying for a chat request, buying a photo). Kept in
+moves in this app (paying for a chat request, buying content). Kept in
 one place so "charge the buyer, pay the provider their net share, take
 a commission" is implemented exactly once, not copy-pasted into every
 router that needs it — see TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار".
@@ -21,7 +21,7 @@ from app.models.transaction import Transaction, TransactionKind, TransactionStat
 class InsufficientBalanceError(Exception):
     """
     Raised when a buyer's wallet doesn't cover the price of what they're
-    trying to pay for. Callers (the request/photo routers) catch this
+    trying to pay for. Callers (the request/content routers) catch this
     and turn it into an HTTP 402 response.
     """
 
@@ -77,14 +77,14 @@ def pay_for_item(
     gross_price_stars: int,
     commission_rate_percent: int,
     request_id: int | None = None,
-    photo_id: int | None = None,
+    content_id: int | None = None,
 ) -> Transaction:
     """
     Charges `buyer_id` the full price, right now, no matter what `kind`
     is — that part never waits. What happens to the provider's side
     depends on `kind`:
 
-      - PHOTO_PURCHASE: settles immediately. Delivery is instant and
+      - CONTENT_PURCHASE: settles immediately. Delivery is instant and
         verifiable (the buyer gets the file right away), so there's
         nothing to wait on — the provider's net share and the platform's
         commission are both credited in the same breath as the charge.
@@ -98,7 +98,7 @@ def pay_for_item(
         service nothing has confirmed actually happened.
 
     Always writes one Transaction row, plus a SPEND ledger entry for the
-    buyer; a PHOTO_PURCHASE additionally gets its RECEIVE and COMMISSION
+    buyer; a CONTENT_PURCHASE additionally gets its RECEIVE and COMMISSION
     entries immediately, a CHAT_REQUEST gets them later via
     release_transaction().
 
@@ -121,14 +121,14 @@ def pay_for_item(
     if balance < gross_toman:
         raise InsufficientBalanceError(needed_toman=gross_toman, available_toman=balance)
 
-    settles_immediately = kind == TransactionKind.PHOTO_PURCHASE
+    settles_immediately = kind == TransactionKind.CONTENT_PURCHASE
 
     transaction = Transaction(
         kind=kind,
         buyer_id=buyer_id,
         provider_id=provider_id,
         request_id=request_id,
-        photo_id=photo_id,
+        content_id=content_id,
         gross_price_stars=gross_price_stars,
         commission_rate_percent=commission_rate_percent,
         commission_stars=commission_stars,
@@ -163,7 +163,7 @@ def _credit_provider_and_commission(db: Session, transaction: Transaction) -> No
     """
     Writes the two ledger entries that actually pay someone out of a
     Transaction: the provider's net share, and the platform's
-    commission. Shared by pay_for_item() (for a PHOTO_PURCHASE, which
+    commission. Shared by pay_for_item() (for a CONTENT_PURCHASE, which
     settles immediately) and release_transaction() below (for a
     CHAT_REQUEST, once its session closes) — the money movement itself
     is identical either way, only the timing differs.
@@ -194,7 +194,7 @@ def release_transaction(db: Session, transaction: Transaction) -> None:
     Moves a PENDING CHAT_REQUEST transaction's held funds to their final
     destination: the provider's net share becomes spendable, and the
     platform collects its commission — via the exact same
-    _credit_provider_and_commission() a PHOTO_PURCHASE gets immediately.
+    _credit_provider_and_commission() a CONTENT_PURCHASE gets immediately.
 
     Does NOT commit (same convention as pay_for_item — caller commits).
     Callers must check transaction.status == PENDING themselves before

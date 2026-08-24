@@ -59,11 +59,11 @@ export interface ChatSession {
 
 export interface Transaction {
   id: number
-  kind: 'chat_request' | 'photo_purchase'
+  kind: 'chat_request' | 'content_purchase'
   buyer_id: number
   provider_id: number
   request_id: number | null
-  photo_id: number | null
+  content_id: number | null
   gross_price_stars: number
   commission_rate_percent: number
   commission_stars: number
@@ -82,6 +82,8 @@ export interface PublicProfile {
   username: string | null
   avatar_url: string | null
   bio: string | null
+  location: string | null
+  interests: string[]
   followers_count: number
   following_count: number
   follow_status: 'not_following' | 'pending' | 'accepted'
@@ -93,7 +95,7 @@ export interface PublicProfile {
 export interface PricingConfig {
   star_to_toman_rate: number
   chat_commission_percent: number
-  photo_commission_percent: number
+  content_commission_percent: number
 }
 
 /** One row in a followers/following list — GET /follow/{id}/followers or

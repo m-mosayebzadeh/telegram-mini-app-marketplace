@@ -13,11 +13,11 @@ from app.core.config import settings
 from app.core.database import Base, engine, get_db
 from app.audience_group.router import router as audience_group_router
 from app.chat_session.router import router as chat_session_router
+from app.content.router import router as content_router
 from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
 from app.models.follow import Follow, FollowStatus
 from app.offer.router import router as offer_router
-from app.photo.router import router as photo_router
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
 from app.request.router import router as request_router
@@ -47,7 +47,7 @@ app.include_router(profile_router)
 app.include_router(public_profile_router)
 app.include_router(follow_router)
 app.include_router(audience_group_router)
-app.include_router(photo_router)
+app.include_router(content_router)
 app.include_router(offer_router)
 app.include_router(request_router)
 app.include_router(wallet_router)
@@ -86,7 +86,7 @@ def read_pricing_config(
     return {
         "star_to_toman_rate": settings.star_to_toman_rate,
         "chat_commission_percent": settings.chat_commission_percent,
-        "photo_commission_percent": settings.photo_commission_percent,
+        "content_commission_percent": settings.content_commission_percent,
     }
 
 

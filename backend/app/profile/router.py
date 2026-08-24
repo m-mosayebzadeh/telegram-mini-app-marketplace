@@ -4,7 +4,7 @@ Profile endpoints — two routers on purpose:
   - `public_router` (prefix /profiles, plural): viewing ANY user's basic
     profile info, e.g. for a provider reviewing who's requesting their
     offer. No audience/privacy restriction — this is intentionally
-    public, unlike Photo's audience rules.
+    public, unlike Content's audience rules.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,7 +14,7 @@ from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.models.follow import Follow, FollowStatus
 from app.models.offer import Offer
-from app.models.profile import Profile
+from app.models.profile import MAX_INTERESTS, Profile
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User
@@ -84,6 +84,11 @@ def upsert_my_profile(
     don't have a profile yet" and "update my existing profile" — the
     caller doesn't need to know which case they're in.
     """
+    if len(payload.interests) > MAX_INTERESTS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"You can only have up to {MAX_INTERESTS} interests."
+        )
+
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
     if profile is None:
         profile = Profile(user_id=current_user.id)
@@ -91,6 +96,8 @@ def upsert_my_profile(
 
     profile.avatar_url = payload.avatar_url
     profile.bio = payload.bio
+    profile.location = payload.location
+    profile.interests = payload.interests
 
     db.commit()
     db.refresh(profile)
@@ -120,6 +127,8 @@ def read_public_profile(
         username=target.username,
         avatar_url=profile.avatar_url if profile else None,
         bio=profile.bio if profile else None,
+        location=profile.location if profile else None,
+        interests=profile.interests if profile else [],
         followers_count=_followers_count(db, user_id),
         following_count=_following_count(db, user_id),
         follow_status=_follow_status(db, viewer_id=current_user.id, target_id=user_id),

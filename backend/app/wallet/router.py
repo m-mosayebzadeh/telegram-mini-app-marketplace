@@ -2,8 +2,8 @@
 Wallet endpoints: checking your own balance.
 
 The actual charge/pay logic lives in app/wallet/service.py and is used
-by the request router (paying for a chat request) and the photo router
-(buying a paid photo) — there is no generic "top up for real" endpoint
+by the request router (paying for a chat request) and the content router
+(buying paid content) — there is no generic "top up for real" endpoint
 here yet; that's the manual card-to-card + admin review flow, deferred
 to phase 2 (see TECHNICAL_REQUIREMENTS.md). The only way to add balance
 right now is the dev-only stub in app/dev/router.py.

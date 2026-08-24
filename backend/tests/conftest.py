@@ -34,7 +34,7 @@ def isolated_uploads_dir(tmp_path):
     """
     Redirects settings.uploads_dir to a fresh, throwaway temp folder for
     every single test (autouse=True means every test gets this without
-    asking for it by name) — otherwise a test that uploads a photo would
+    asking for it by name) — otherwise a test that uploads content would
     write real files into this developer's actual backend/uploads/.
 
     pytest's built-in `tmp_path` fixture already creates and cleans up a

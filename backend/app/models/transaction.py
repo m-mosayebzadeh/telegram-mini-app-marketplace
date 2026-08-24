@@ -1,11 +1,11 @@
 """
 Transaction: one completed, paid purchase — either a chat request or a
-photo (see TECHNICAL_REQUIREMENTS.md, "تراکنش").
+piece of paid content (see TECHNICAL_REQUIREMENTS.md, "تراکنش").
 
 Deliberately independent of Request (per TECHNICAL_REQUIREMENTS.md
 section 3): a Request shows WHAT was asked for, a Transaction shows the
 financial outcome of paying for it. This also lets one Transaction model
-serve both chat requests and photo purchases instead of needing two
+serve both chat requests and content purchases instead of needing two
 near-identical tables.
 
 Every number here is computed ONCE, at the moment of payment, and frozen
@@ -27,7 +27,7 @@ from app.core.time import UTCDateTime, utcnow
 
 class TransactionKind(str, enum.Enum):
     CHAT_REQUEST = "chat_request"
-    PHOTO_PURCHASE = "photo_purchase"
+    CONTENT_PURCHASE = "content_purchase"
 
 
 class TransactionStatus(str, enum.Enum):
@@ -35,15 +35,13 @@ class TransactionStatus(str, enum.Enum):
     # charged (their SPEND ledger entry exists), but the provider's
     # share and the platform's commission are deliberately withheld —
     # not yet turned into CreditLedgerEntry rows — until the chat
-    # session this paid for actually closes cleanly. This is the "idle
-    # money" model from TECHNICAL_REQUIREMENTS.md: a provider is never
-    # paid out for a service that hasn't been confirmed to have
-    # happened. See release_transaction() in app/wallet/service.py —
-    # nothing calls it yet, since chat sessions don't exist yet, so
-    # every chat transaction currently stays PENDING forever. That's
-    # expected for now, not a bug.
+    # session this paid for actually closes and its grace period passes
+    # undisputed. This is the "idle money" model from
+    # TECHNICAL_REQUIREMENTS.md — see release_due_chat_transactions() in
+    # app/wallet/service.py for the mechanism that moves a transaction
+    # out of this state.
     PENDING = "pending"
-    # A PHOTO_PURCHASE transaction is created directly in this state —
+    # A CONTENT_PURCHASE transaction is created directly in this state —
     # delivery is instant and immediately verifiable (the buyer gets the
     # file right away), so there's no equivalent "did the service
     # actually happen" question to wait on. A CHAT_REQUEST transaction
@@ -68,16 +66,16 @@ class Transaction(Base):
     provider_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     # Exactly one of these two is set, matching `kind` — same
-    # "CHECK enforces which column is filled in" pattern as Photo's
+    # "CHECK enforces which column is filled in" pattern as Content's
     # audience_user_id / audience_group_id.
     request_id: Mapped[int | None] = mapped_column(ForeignKey("requests.id"), nullable=True)
-    photo_id: Mapped[int | None] = mapped_column(ForeignKey("photos.id"), nullable=True)
+    content_id: Mapped[int | None] = mapped_column(ForeignKey("contents.id"), nullable=True)
 
     # --- the Star-denominated split (the authoritative numbers) ---
-    # Copied from the Offer/Photo's price at the moment of payment, not
+    # Copied from the Offer/Content's price at the moment of payment, not
     # read live from it later — the source could theoretically change
     # (though business rules already block editing a live offer; this is
-    # just extra safety for photos, which have no such lock).
+    # just extra safety for content, which has no such lock).
     gross_price_stars: Mapped[int] = mapped_column(Integer)
     commission_rate_percent: Mapped[int] = mapped_column(Integer)
     commission_stars: Mapped[int] = mapped_column(Integer)
@@ -113,8 +111,8 @@ class Transaction(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "(kind = 'chat_request' AND request_id IS NOT NULL AND photo_id IS NULL) OR "
-            "(kind = 'photo_purchase' AND photo_id IS NOT NULL AND request_id IS NULL)",
+            "(kind = 'chat_request' AND request_id IS NOT NULL AND content_id IS NULL) OR "
+            "(kind = 'content_purchase' AND content_id IS NOT NULL AND request_id IS NULL)",
             name="ck_transaction_target_matches_kind",
         ),
         # The Star split must always account for the whole gross price —

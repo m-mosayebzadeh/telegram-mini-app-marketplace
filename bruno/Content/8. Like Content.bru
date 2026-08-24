@@ -1,0 +1,20 @@
+meta {
+  name: 8. Like Content
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/content/{{contentId}}/like
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  Idempotent — liking an already-liked item just confirms the current
+  state, no double-counting. "9. Unlike Content" reverses this.
+}
