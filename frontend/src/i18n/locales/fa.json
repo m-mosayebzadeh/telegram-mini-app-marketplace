@@ -1,4 +1,18 @@
 {
+  "common": {
+    "error": "مشکلی پیش اومد",
+    "language": "زبان",
+    "loading": "در حال بارگذاری…",
+    "back": "بازگشت",
+    "submit": "ثبت"
+  },
+  "tabs": {
+    "discover": "کشف",
+    "myOffers": "پیشنهادهای من",
+    "myRequests": "درخواست‌های من",
+    "wallet": "کیف پول",
+    "profile": "پروفایل"
+  },
   "account": {
     "title": "حساب شما",
     "displayName": "نام نمایشی",
@@ -12,10 +26,59 @@
     "spendable": "موجودی قابل‌خرج",
     "spendableValue": "{{toman}} تومان (~{{stars}} استارز)",
     "pending": "در انتظار (کسب‌شده، هنوز آزاد نشده)",
-    "pendingValue": "{{toman}} تومان"
+    "pendingValue": "{{toman}} تومان",
+    "topUpButton": "شارژ آزمایشی (فقط توسعه)",
+    "topUpAmountLabel": "مبلغ (تومان)",
+    "topUpSuccess": "شارژ شد"
   },
-  "common": {
-    "error": "مشکلی پیش اومد",
-    "language": "زبان"
+  "offers": {
+    "browseTitle": "پیشنهادهای فعال",
+    "none": "فعلاً پیشنهادی نیست",
+    "priceLine": "{{price}} استارز · {{minutes}} دقیقه",
+    "mineTitle": "پیشنهادهای من",
+    "createNew": "ساخت پیشنهاد جدید",
+    "status": "وضعیت",
+    "statusActive": "فعال",
+    "statusInactive": "غیرفعال",
+    "activate": "فعال‌سازی",
+    "deactivate": "غیرفعال‌سازی",
+    "delete": "حذف",
+    "deleteConfirm": "این پیشنهاد حذف بشه؟",
+    "priceStarsLabel": "قیمت (استارز)",
+    "durationLabel": "مدت‌زمان نمایشی (دقیقه)",
+    "descriptionLabel": "توضیحات",
+    "termsLabel": "شرایط خدمت",
+    "createButton": "ساخت پیشنهاد",
+    "requestButton": "درخواست این پیشنهاد",
+    "requestSent": "درخواست فرستاده شد",
+    "ownOffer": "این پیشنهاد خودتونه",
+    "incomingRequestsTitle": "درخواست‌های ورودی",
+    "noIncomingRequests": "فعلاً درخواستی نیومده"
+  },
+  "requests": {
+    "mineTitle": "درخواست‌های من",
+    "none": "فعلاً درخواستی نفرستادید",
+    "statusWaiting": "در انتظار پاسخ",
+    "statusRejected": "رد شده",
+    "statusCancelled": "لغو شده",
+    "reasonLabel": "دلیل",
+    "payButton": "پرداخت",
+    "paySuccess": "پرداخت انجام شد",
+    "insufficientBalance": "موجودی کافی نیست — اول کیف پول رو شارژ کنید",
+    "openSession": "ورود به نشست چت",
+    "acceptButton": "پذیرش",
+    "rejectButton": "رد",
+    "rejectReasonPlaceholder": "دلیل رد کردن را بنویسید"
+  },
+  "chatSession": {
+    "title": "نشست چت",
+    "statusOpen": "باز",
+    "statusClosed": "بسته",
+    "closeButton": "بستن نشست",
+    "disputeButton": "گزارش مشکل",
+    "closedByYou": "شما این نشست را بستید",
+    "closedByOther": "طرف مقابل این نشست را بست",
+    "disputeSuccess": "ثبت شد — تسویه تا بررسی متوقف می‌ماند",
+    "alreadyDisputed": "قبلاً گزارش شده"
   }
 }

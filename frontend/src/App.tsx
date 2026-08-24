@@ -1,91 +1,85 @@
-import { useEffect, useState } from 'react'
+import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
-import { apiFetch, ApiError } from './lib/api'
-import type { Balance, Me } from './lib/types'
+import { Tabbar } from '@telegram-apps/telegram-ui'
+import { MeProvider } from './lib/MeContext'
+import Discover from './pages/Discover'
+import OfferDetail from './pages/OfferDetail'
+import MyOffers from './pages/MyOffers'
+import CreateOffer from './pages/CreateOffer'
+import MyRequests from './pages/MyRequests'
+import ChatSessionDetail from './pages/ChatSessionDetail'
+import WalletPage from './pages/Wallet'
+import Profile from './pages/Profile'
 
 /**
- * The first real screen of the app — deliberately minimal. Its only
- * job right now is to prove the whole chain actually works end to end:
- * Telegram launch -> initData -> backend auth -> real data back. Every
- * other screen (offers, requests, chat) gets built on top of this same
- * apiFetch() plumbing next.
+ * The five bottom-tab sections and which URLs belong to each — kept as
+ * plain matcher functions (not a simple startsWith, since "/offers" is
+ * a literal prefix of both "/offers/mine" and "/offers/123" but those
+ * belong to different tabs) so the currently-selected tab is always
+ * unambiguous.
  */
-function App() {
-  const { t, i18n } = useTranslation()
-  const [me, setMe] = useState<Me | null>(null)
-  const [balance, setBalance] = useState<Balance | null>(null)
-  const [error, setError] = useState<string | null>(null)
+const TABS = [
+  {
+    key: 'discover',
+    path: '/offers',
+    isActive: (pathname: string) =>
+      pathname === '/' || (pathname.startsWith('/offers/') && !pathname.startsWith('/offers/mine') && pathname !== '/offers/new') || pathname === '/offers',
+  },
+  {
+    key: 'myOffers',
+    path: '/offers/mine',
+    isActive: (pathname: string) => pathname.startsWith('/offers/mine') || pathname === '/offers/new',
+  },
+  {
+    key: 'myRequests',
+    path: '/requests/mine',
+    isActive: (pathname: string) => pathname.startsWith('/requests/') || pathname.startsWith('/chat-sessions/'),
+  },
+  { key: 'wallet', path: '/wallet', isActive: (pathname: string) => pathname === '/wallet' },
+  { key: 'profile', path: '/profile', isActive: (pathname: string) => pathname === '/profile' },
+] as const
 
-  useEffect(() => {
-    async function load() {
-      try {
-        // Both calls need the caller to already be a known user — /me
-        // is what creates the User row on first login (see
-        // backend/app/main.py), so it must resolve before the wallet
-        // call, not run in parallel with it.
-        const meResult = await apiFetch<Me>('/me')
-        setMe(meResult)
-        const balanceResult = await apiFetch<Balance>('/wallet/balance')
-        setBalance(balanceResult)
-      } catch (err) {
-        if (err instanceof ApiError) {
-          setError(`${err.status}: ${JSON.stringify(err.body)}`)
-        } else {
-          setError(err instanceof Error ? err.message : String(err))
-        }
-      }
-    }
-    load()
-  }, [])
-
-  // A single toggle between the two supported languages — just enough
-  // to prove the bilingual setup actually works end to end. A real
-  // language picker (and the right-to-left layout work that goes with
-  // it) is final-UI polish, not this stage (see
-  // docs/TECHNICAL_REQUIREMENTS.md section 11).
-  function toggleLanguage() {
-    i18n.changeLanguage(i18n.language === 'fa' ? 'en' : 'fa')
-  }
-
-  if (error) {
-    return <Placeholder header={t('common.error')}>{error}</Placeholder>
-  }
-
-  if (!me || !balance) {
-    return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
-    )
-  }
+function AppShell() {
+  const { t } = useTranslation()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   return (
-    <List>
-      <Section header={t('account.title')}>
-        <Cell subtitle={t('account.displayName')}>{me.display_name}</Cell>
-        <Cell subtitle={t('account.username')}>{me.username ?? '—'}</Cell>
-        <Cell subtitle={t('account.status')}>
-          {me.status === 'active' ? t('account.statusActive') : t('account.statusBlocked')}
-        </Cell>
-      </Section>
-      <Section header={t('wallet.title')}>
-        <Cell subtitle={t('wallet.spendable')}>
-          {t('wallet.spendableValue', {
-            toman: balance.balance_toman.toLocaleString('en-US'),
-            stars: balance.balance_stars_equivalent.toLocaleString('en-US'),
-          })}
-        </Cell>
-        <Cell subtitle={t('wallet.pending')}>
-          {t('wallet.pendingValue', { toman: balance.pending_toman.toLocaleString('en-US') })}
-        </Cell>
-      </Section>
-      <Section>
-        <Cell subtitle={t('common.language')} onClick={toggleLanguage}>
-          {i18n.language === 'fa' ? 'فارسی' : 'English'}
-        </Cell>
-      </Section>
-    </List>
+    // Bottom padding so the fixed Tabbar never covers the last row of
+    // whatever page is currently showing.
+    <div style={{ paddingBottom: 64 }}>
+      <Routes>
+        <Route path="/" element={<Discover />} />
+        <Route path="/offers" element={<Discover />} />
+        <Route path="/offers/mine" element={<MyOffers />} />
+        <Route path="/offers/new" element={<CreateOffer />} />
+        <Route path="/offers/:id" element={<OfferDetail />} />
+        <Route path="/requests/mine" element={<MyRequests />} />
+        <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
+        <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/profile" element={<Profile />} />
+      </Routes>
+      <Tabbar>
+        {TABS.map((tab) => (
+          <Tabbar.Item
+            key={tab.path}
+            text={t(`tabs.${tab.key}`)}
+            selected={tab.isActive(location.pathname)}
+            onClick={() => navigate(tab.path)}
+          />
+        ))}
+      </Tabbar>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <MeProvider>
+      <BrowserRouter>
+        <AppShell />
+      </BrowserRouter>
+    </MeProvider>
   )
 }
 

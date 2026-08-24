@@ -1,4 +1,18 @@
 {
+  "common": {
+    "error": "Something went wrong",
+    "language": "Language",
+    "loading": "Loading…",
+    "back": "Back",
+    "submit": "Submit"
+  },
+  "tabs": {
+    "discover": "Discover",
+    "myOffers": "My offers",
+    "myRequests": "My requests",
+    "wallet": "Wallet",
+    "profile": "Profile"
+  },
   "account": {
     "title": "Your account",
     "displayName": "Display name",
@@ -12,10 +26,59 @@
     "spendable": "Spendable balance",
     "spendableValue": "{{toman}} Toman (~{{stars}} Stars)",
     "pending": "Pending (earned, not yet released)",
-    "pendingValue": "{{toman}} Toman"
+    "pendingValue": "{{toman}} Toman",
+    "topUpButton": "Add test balance (dev only)",
+    "topUpAmountLabel": "Amount (Toman)",
+    "topUpSuccess": "Balance added"
   },
-  "common": {
-    "error": "Something went wrong",
-    "language": "Language"
+  "offers": {
+    "browseTitle": "Active offers",
+    "none": "No offers yet",
+    "priceLine": "{{price}} Stars · {{minutes}} min",
+    "mineTitle": "My offers",
+    "createNew": "Create a new offer",
+    "status": "Status",
+    "statusActive": "active",
+    "statusInactive": "inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this offer?",
+    "priceStarsLabel": "Price (Stars)",
+    "durationLabel": "Display duration (minutes)",
+    "descriptionLabel": "Description",
+    "termsLabel": "Terms",
+    "createButton": "Create offer",
+    "requestButton": "Request this offer",
+    "requestSent": "Request sent",
+    "ownOffer": "This is your own offer",
+    "incomingRequestsTitle": "Incoming requests",
+    "noIncomingRequests": "No requests yet"
+  },
+  "requests": {
+    "mineTitle": "My requests",
+    "none": "You haven't requested anything yet",
+    "statusWaiting": "Waiting for response",
+    "statusRejected": "Rejected",
+    "statusCancelled": "Cancelled",
+    "reasonLabel": "Reason",
+    "payButton": "Pay",
+    "paySuccess": "Payment complete",
+    "insufficientBalance": "Insufficient balance — top up your wallet first",
+    "openSession": "Open chat session",
+    "acceptButton": "Accept",
+    "rejectButton": "Reject",
+    "rejectReasonPlaceholder": "Write a reason for rejecting"
+  },
+  "chatSession": {
+    "title": "Chat session",
+    "statusOpen": "Open",
+    "statusClosed": "Closed",
+    "closeButton": "Close session",
+    "disputeButton": "Report a problem",
+    "closedByYou": "You closed this session",
+    "closedByOther": "The other participant closed this session",
+    "disputeSuccess": "Recorded — settlement is on hold pending review",
+    "alreadyDisputed": "Already disputed"
   }
 }
