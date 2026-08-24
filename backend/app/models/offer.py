@@ -42,7 +42,6 @@ class Offer(Base):
     # value to decide when a chat session should end.
     display_duration_minutes: Mapped[int] = mapped_column(Integer)
     description: Mapped[str] = mapped_column(String(2000))
-    terms: Mapped[str] = mapped_column(String(2000))
 
     status: Mapped[OfferStatus] = mapped_column(
         Enum(OfferStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),

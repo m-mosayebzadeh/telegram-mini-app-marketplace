@@ -16,7 +16,6 @@ def _create_offer(client, auth: dict, **overrides):
         "price_stars": 10,
         "display_duration_minutes": 30,
         "description": "A nice chat",
-        "terms": "Be nice",
     }
     payload.update(overrides)
     return client.post("/offers", headers=auth, json=payload)

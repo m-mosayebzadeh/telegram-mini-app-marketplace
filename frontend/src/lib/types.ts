@@ -28,7 +28,6 @@ export interface Offer {
   price_stars: number
   display_duration_minutes: number
   description: string
-  terms: string
   status: 'active' | 'inactive'
   created_at: string
 }

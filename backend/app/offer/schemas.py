@@ -7,7 +7,6 @@ class OfferCreate(BaseModel):
     price_stars: int = Field(gt=0)
     display_duration_minutes: int = Field(gt=0)
     description: str = Field(min_length=1, max_length=2000)
-    terms: str = Field(min_length=1, max_length=2000)
 
 
 class OfferUpdate(BaseModel):
@@ -21,7 +20,6 @@ class OfferUpdate(BaseModel):
     price_stars: int | None = Field(default=None, gt=0)
     display_duration_minutes: int | None = Field(default=None, gt=0)
     description: str | None = Field(default=None, min_length=1, max_length=2000)
-    terms: str | None = Field(default=None, min_length=1, max_length=2000)
 
 
 class OfferOut(BaseModel):
@@ -31,7 +29,6 @@ class OfferOut(BaseModel):
     price_stars: int
     display_duration_minutes: int
     description: str
-    terms: str
     status: str
     created_at: datetime
 

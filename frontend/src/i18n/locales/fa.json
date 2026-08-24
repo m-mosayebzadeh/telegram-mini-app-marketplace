@@ -27,6 +27,9 @@
     "statusActive": "فعال",
     "statusBlocked": "مسدود"
   },
+  "profilePage": {
+    "bio": "بیوگرافی"
+  },
   "wallet": {
     "title": "کیف پول",
     "spendable": "موجودی قابل‌خرج",
@@ -53,9 +56,9 @@
     "priceStarsLabel": "قیمت (استارز)",
     "durationLabel": "مدت‌زمان نمایشی (دقیقه)",
     "descriptionLabel": "توضیحات",
-    "termsLabel": "شرایط خدمت",
     "createButton": "ساخت پیشنهاد",
     "requestButton": "درخواست این پیشنهاد",
+    "viewProfile": "دیدن پروفایل ارائه‌دهنده",
     "requestSent": "درخواست فرستاده شد",
     "ownOffer": "این پیشنهاد خودتونه",
     "incomingRequestsTitle": "درخواست‌های ورودی",

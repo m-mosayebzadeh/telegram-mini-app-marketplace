@@ -94,7 +94,6 @@ def create_offer(
         price_stars=payload.price_stars,
         display_duration_minutes=payload.display_duration_minutes,
         description=payload.description,
-        terms=payload.terms,
     )
     db.add(offer)
     db.commit()
@@ -168,8 +167,6 @@ def update_offer(
         offer.display_duration_minutes = payload.display_duration_minutes
     if payload.description is not None:
         offer.description = payload.description
-    if payload.terms is not None:
-        offer.terms = payload.terms
 
     db.commit()
     db.refresh(offer)

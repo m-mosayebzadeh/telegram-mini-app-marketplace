@@ -27,6 +27,9 @@
     "statusActive": "active",
     "statusBlocked": "blocked"
   },
+  "profilePage": {
+    "bio": "Bio"
+  },
   "wallet": {
     "title": "Wallet",
     "spendable": "Spendable balance",
@@ -53,9 +56,9 @@
     "priceStarsLabel": "Price (Stars)",
     "durationLabel": "Display duration (minutes)",
     "descriptionLabel": "Description",
-    "termsLabel": "Terms",
     "createButton": "Create offer",
     "requestButton": "Request this offer",
+    "viewProfile": "View provider's profile",
     "requestSent": "Request sent",
     "ownOffer": "This is your own offer",
     "incomingRequestsTitle": "Incoming requests",

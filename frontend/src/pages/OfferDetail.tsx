@@ -85,10 +85,13 @@ export default function OfferDetail() {
       <Section header={offer.description}>
         <Cell subtitle={t('offers.priceStarsLabel')}>{offer.price_stars}</Cell>
         <Cell subtitle={t('offers.durationLabel')}>{offer.display_duration_minutes}</Cell>
-        <Cell subtitle={t('offers.termsLabel')}>{offer.terms}</Cell>
         <Cell subtitle={t('offers.status')}>
           {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}
         </Cell>
+      </Section>
+
+      <Section>
+        <Cell onClick={() => navigate(`/profiles/${offer.provider_id}`)}>{t('offers.viewProfile')}</Cell>
       </Section>
 
       {!isOwner && (

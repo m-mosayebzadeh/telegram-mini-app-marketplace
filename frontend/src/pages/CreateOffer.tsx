@@ -12,7 +12,6 @@ export default function CreateOffer() {
   const [priceStars, setPriceStars] = useState('')
   const [durationMinutes, setDurationMinutes] = useState('')
   const [description, setDescription] = useState('')
-  const [terms, setTerms] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -26,7 +25,6 @@ export default function CreateOffer() {
           price_stars: Number(priceStars),
           display_duration_minutes: Number(durationMinutes),
           description,
-          terms,
         }),
       })
       navigate('/offers/mine')
@@ -56,13 +54,6 @@ export default function CreateOffer() {
             header={t('offers.descriptionLabel')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-          />
-        </Cell>
-        <Cell>
-          <Textarea
-            header={t('offers.termsLabel')}
-            value={terms}
-            onChange={(e) => setTerms(e.target.value)}
           />
         </Cell>
         {error && <Cell>{error}</Cell>}
