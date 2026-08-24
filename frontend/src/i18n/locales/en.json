@@ -1,0 +1,21 @@
+{
+  "account": {
+    "title": "Your account",
+    "displayName": "Display name",
+    "username": "Username",
+    "status": "Status",
+    "statusActive": "active",
+    "statusBlocked": "blocked"
+  },
+  "wallet": {
+    "title": "Wallet",
+    "spendable": "Spendable balance",
+    "spendableValue": "{{toman}} Toman (~{{stars}} Stars)",
+    "pending": "Pending (earned, not yet released)",
+    "pendingValue": "{{toman}} Toman"
+  },
+  "common": {
+    "error": "Something went wrong",
+    "language": "Language"
+  }
+}

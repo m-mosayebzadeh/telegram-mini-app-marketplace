@@ -1,0 +1,21 @@
+{
+  "account": {
+    "title": "حساب شما",
+    "displayName": "نام نمایشی",
+    "username": "نام کاربری",
+    "status": "وضعیت",
+    "statusActive": "فعال",
+    "statusBlocked": "مسدود"
+  },
+  "wallet": {
+    "title": "کیف پول",
+    "spendable": "موجودی قابل‌خرج",
+    "spendableValue": "{{toman}} تومان (~{{stars}} استارز)",
+    "pending": "در انتظار (کسب‌شده، هنوز آزاد نشده)",
+    "pendingValue": "{{toman}} تومان"
+  },
+  "common": {
+    "error": "مشکلی پیش اومد",
+    "language": "زبان"
+  }
+}
