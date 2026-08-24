@@ -28,7 +28,23 @@
     "statusBlocked": "مسدود"
   },
   "profilePage": {
-    "bio": "بیوگرافی"
+    "bio": "بیوگرافی",
+    "followersCount": "{{count}} دنبال‌کننده",
+    "followingCount": "{{count}} دنبال‌شونده",
+    "followersTitle": "دنبال‌کنندگان",
+    "followingTitle": "دنبال‌شونده‌ها",
+    "followListEmpty": "فعلاً کسی اینجا نیست"
+  },
+  "providerSummary": {
+    "title": "خلاصه ارائه‌دهنده",
+    "status": "وضعیت",
+    "established": "ارائه‌دهنده باسابقه",
+    "new": "تازه‌کار",
+    "joinedAt": "تاریخ عضویت",
+    "completedServices": "خدمات تکمیل‌شده",
+    "responseRate": "نرخ پاسخ‌دهی",
+    "rejectionRate": "نرخ رد کردن",
+    "disputedTransactions": "شکایت‌های ثبت‌شده"
   },
   "wallet": {
     "title": "کیف پول",
@@ -59,6 +75,7 @@
     "createButton": "ساخت پیشنهاد",
     "requestButton": "درخواست این پیشنهاد",
     "viewProfile": "دیدن پروفایل ارائه‌دهنده",
+    "viewProviderSummary": "خلاصه ارائه‌دهنده",
     "requestSent": "درخواست فرستاده شد",
     "ownOffer": "این پیشنهاد خودتونه",
     "incomingRequestsTitle": "درخواست‌های ورودی",

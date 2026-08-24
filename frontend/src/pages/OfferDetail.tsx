@@ -92,6 +92,9 @@ export default function OfferDetail() {
 
       <Section>
         <Cell onClick={() => navigate(`/profiles/${offer.provider_id}`)}>{t('offers.viewProfile')}</Cell>
+        <Cell onClick={() => navigate(`/profiles/${offer.provider_id}/provider-summary`)}>
+          {t('offers.viewProviderSummary')}
+        </Cell>
       </Section>
 
       {!isOwner && (

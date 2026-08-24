@@ -77,4 +77,27 @@ export interface PublicProfile {
   username: string | null
   avatar_url: string | null
   bio: string | null
+  followers_count: number
+  following_count: number
+}
+
+/** One row in a followers/following list — GET /follow/{id}/followers or
+ * /following. Lighter than PublicProfile: no bio, no counts. */
+export interface FollowListItem {
+  user_id: number
+  display_name: string
+  username: string | null
+  avatar_url: string | null
+}
+
+/** GET /profiles/{id}/provider-summary — see backend/app/profile/schemas.py's
+ * ProviderSummaryOut for which fields are real today vs. still blocked
+ * on the (unbuilt) Rating entity. */
+export interface ProviderSummary {
+  status: 'established' | 'new'
+  joined_at: string
+  completed_services_count: number
+  response_rate: number | null
+  rejection_rate: number | null
+  disputed_transactions_count: number
 }

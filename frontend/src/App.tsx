@@ -13,6 +13,8 @@ import ChatSessionDetail from './pages/ChatSessionDetail'
 import WalletPage from './pages/Wallet'
 import Profile from './pages/Profile'
 import PublicProfile from './pages/PublicProfile'
+import FollowList from './pages/FollowList'
+import ProviderSummary from './pages/ProviderSummary'
 
 /**
  * The five bottom-tab sections and which URLs belong to each — kept as
@@ -62,6 +64,8 @@ function AppShell() {
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/profiles/:id" element={<PublicProfile />} />
+        <Route path="/profiles/:id/provider-summary" element={<ProviderSummary />} />
+        <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
       <Tabbar>
         {TABS.map((tab) => (

@@ -28,7 +28,23 @@
     "statusBlocked": "blocked"
   },
   "profilePage": {
-    "bio": "Bio"
+    "bio": "Bio",
+    "followersCount": "{{count}} followers",
+    "followingCount": "{{count}} following",
+    "followersTitle": "Followers",
+    "followingTitle": "Following",
+    "followListEmpty": "No one here yet"
+  },
+  "providerSummary": {
+    "title": "Provider summary",
+    "status": "Status",
+    "established": "Established provider",
+    "new": "New",
+    "joinedAt": "Joined",
+    "completedServices": "Completed services",
+    "responseRate": "Response rate",
+    "rejectionRate": "Rejection rate",
+    "disputedTransactions": "Disputed transactions"
   },
   "wallet": {
     "title": "Wallet",
@@ -59,6 +75,7 @@
     "createButton": "Create offer",
     "requestButton": "Request this offer",
     "viewProfile": "View provider's profile",
+    "viewProviderSummary": "Provider summary",
     "requestSent": "Request sent",
     "ownOffer": "This is your own offer",
     "incomingRequestsTitle": "Incoming requests",

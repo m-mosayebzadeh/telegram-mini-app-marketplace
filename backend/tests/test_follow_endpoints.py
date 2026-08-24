@@ -138,3 +138,62 @@ def test_unfollow_nonexistent_relationship_returns_404(client):
     response = client.delete(f"/follow/{bob['id']}", headers=_auth_header(client, 1, "Alice"))
 
     assert response.status_code == 404
+
+
+# --- followers/following lists -------------------------------------------
+
+
+def test_followers_list_only_includes_accepted_follows(client):
+    alice = _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    eve = _login(client, 3, "Eve")
+    # Bob follows Alice and gets accepted; Eve follows Alice but stays pending.
+    client.post(f"/follow/{alice['id']}", headers=_auth_header(client, 2, "Bob"))
+    client.post(f"/follow/{bob['id']}/accept", headers=_auth_header(client, 1, "Alice"))
+    client.post(f"/follow/{alice['id']}", headers=_auth_header(client, 3, "Eve"))
+
+    response = client.get(f"/follow/{alice['id']}/followers", headers=_auth_header(client, 1, "Alice"))
+
+    assert response.status_code == 200
+    ids = [row["user_id"] for row in response.json()]
+    assert ids == [bob["id"]]  # Eve's still-pending request doesn't count
+    assert eve  # just to use the variable
+
+
+def test_following_list_only_includes_accepted_follows(client):
+    alice = _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    _login(client, 3, "Eve")
+    client.post(f"/follow/{bob['id']}", headers=_auth_header(client, 1, "Alice"))
+    client.post(f"/follow/{alice['id']}/accept", headers=_auth_header(client, 2, "Bob"))
+
+    response = client.get(f"/follow/{alice['id']}/following", headers=_auth_header(client, 1, "Alice"))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["user_id"] == bob["id"]
+    assert body[0]["display_name"] == "Bob"
+
+
+def test_followers_list_for_nonexistent_user_returns_404(client):
+    _login(client, 1, "Alice")
+
+    response = client.get("/follow/999999/followers", headers=_auth_header(client, 1, "Alice"))
+
+    assert response.status_code == 404
+
+
+def test_public_profile_reports_accepted_follow_counts(client):
+    alice = _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    _login(client, 3, "Eve")
+    client.post(f"/follow/{alice['id']}", headers=_auth_header(client, 2, "Bob"))
+    client.post(f"/follow/{bob['id']}/accept", headers=_auth_header(client, 1, "Alice"))
+    # A pending (not yet accepted) follow from Eve shouldn't count.
+    client.post(f"/follow/{alice['id']}", headers=_auth_header(client, 3, "Eve"))
+
+    response = client.get(f"/profiles/{alice['id']}", headers=_auth_header(client, 2, "Bob"))
+
+    assert response.json()["followers_count"] == 1
+    assert response.json()["following_count"] == 0

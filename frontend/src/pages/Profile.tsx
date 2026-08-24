@@ -1,11 +1,25 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { apiFetch } from '../lib/api'
 import { useMe } from '../lib/MeContext'
 import { clearDevUserChoice, isRealTelegramLaunch } from '../lib/session'
+import type { PublicProfile } from '../lib/types'
 
 export default function Profile() {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const { me, error } = useMe()
+  // Follower/following counts aren't part of /me (that's just the raw
+  // account record) -- they come from the same public-profile endpoint
+  // anyone else's profile uses, just pointed at your own id.
+  const [counts, setCounts] = useState<PublicProfile | null>(null)
+
+  useEffect(() => {
+    if (!me) return
+    apiFetch<PublicProfile>(`/profiles/${me.id}`).then(setCounts)
+  }, [me])
 
   // A single toggle between the two supported languages — just enough
   // to prove the bilingual setup works end to end. A real language
@@ -33,6 +47,22 @@ export default function Profile() {
         <Cell subtitle={t('account.status')}>
           {me.status === 'active' ? t('account.statusActive') : t('account.statusBlocked')}
         </Cell>
+      </Section>
+      <Section>
+        {counts === null ? (
+          <Cell>
+            <Spinner size="s" />
+          </Cell>
+        ) : (
+          <>
+            <Cell onClick={() => navigate(`/profiles/${me.id}/followers`)}>
+              {t('profilePage.followersCount', { count: counts.followers_count })}
+            </Cell>
+            <Cell onClick={() => navigate(`/profiles/${me.id}/following`)}>
+              {t('profilePage.followingCount', { count: counts.following_count })}
+            </Cell>
+          </>
+        )}
       </Section>
       <Section>
         <Cell subtitle={t('common.language')} onClick={toggleLanguage}>
