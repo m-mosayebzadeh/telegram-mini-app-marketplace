@@ -14,6 +14,7 @@ import WalletPage from './pages/Wallet'
 import Profile from './pages/Profile'
 import PublicProfile from './pages/PublicProfile'
 import FollowList from './pages/FollowList'
+import FollowRequests from './pages/FollowRequests'
 import ProviderSummary from './pages/ProviderSummary'
 
 /**
@@ -41,7 +42,11 @@ const TABS = [
     isActive: (pathname: string) => pathname.startsWith('/requests/') || pathname.startsWith('/chat-sessions/'),
   },
   { key: 'wallet', path: '/wallet', isActive: (pathname: string) => pathname === '/wallet' },
-  { key: 'profile', path: '/profile', isActive: (pathname: string) => pathname === '/profile' },
+  {
+    key: 'profile',
+    path: '/profile',
+    isActive: (pathname: string) => pathname === '/profile' || pathname === '/follow-requests',
+  },
 ] as const
 
 function AppShell() {
@@ -63,6 +68,7 @@ function AppShell() {
         <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/profiles/:id" element={<PublicProfile />} />
         <Route path="/profiles/:id/provider-summary" element={<ProviderSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />

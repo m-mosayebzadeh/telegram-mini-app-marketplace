@@ -6,14 +6,16 @@ Application entry point. Run locally with:
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
+from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, engine, get_db
 from app.audience_group.router import router as audience_group_router
 from app.chat_session.router import router as chat_session_router
 from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
+from app.models.follow import Follow, FollowStatus
 from app.offer.router import router as offer_router
 from app.photo.router import router as photo_router
 from app.profile.router import public_router as public_profile_router
@@ -89,7 +91,9 @@ def read_pricing_config(
 
 
 @app.get("/me")
-def read_current_user(current_user: User = Depends(get_current_user)) -> dict:
+def read_current_user(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> dict:
     """
     Returns the authenticated user's own record.
 
@@ -97,6 +101,11 @@ def read_current_user(current_user: User = Depends(get_current_user)) -> dict:
     request → X-Telegram-Init-Data header → validate_init_data →
     TelegramUser → get_current_user → our own User row.
     """
+    pending_follow_requests_count = (
+        db.query(Follow)
+        .filter(Follow.followee_id == current_user.id, Follow.status == FollowStatus.PENDING)
+        .count()
+    )
     return {
         "id": current_user.id,
         "telegram_id": current_user.telegram_id,
@@ -104,4 +113,10 @@ def read_current_user(current_user: User = Depends(get_current_user)) -> dict:
         "username": current_user.username,
         "status": current_user.status.value,
         "joined_at": current_user.joined_at.isoformat(),
+        # Shown as a badge on the Profile tab (see GET
+        # /follow/incoming-requests for the full inbox) — checked every
+        # time the app loads, since there's no push-notification system
+        # yet (TECHNICAL_REQUIREMENTS.md section 9 still has that as an
+        # undone idea).
+        "pending_follow_requests_count": pending_follow_requests_count,
     }

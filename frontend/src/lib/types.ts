@@ -13,6 +13,10 @@ export interface Me {
   username: string | null
   status: 'active' | 'blocked'
   joined_at: string
+  // How many people currently have an unanswered follow request in to
+  // you — shown as a badge on the Profile tab (see GET
+  // /follow/incoming-requests for the full inbox this links to).
+  pending_follow_requests_count: number
 }
 
 export interface Balance {
@@ -99,6 +103,18 @@ export interface FollowListItem {
   display_name: string
   username: string | null
   avatar_url: string | null
+}
+
+/** One row of GET /follow/incoming-requests — every follow request ever
+ * sent to the logged-in user, pending or already responded to (see
+ * backend/app/follow/schemas.py's IncomingFollowRequestOut). */
+export interface IncomingFollowRequest {
+  follow_id: number
+  requester: FollowListItem
+  status: 'pending' | 'accepted' | 'rejected'
+  requested_at: string
+  responded_at: string | null
+  i_follow_them_back: boolean
 }
 
 /** GET /profiles/{id}/provider-summary — see backend/app/profile/schemas.py's

@@ -65,6 +65,17 @@ export default function Profile() {
         )}
       </Section>
       <Section>
+        {/* The badge is the only "notification" for a new follow
+            request right now — checked on every /me call (see
+            backend/app/main.py), since there's no push-notification
+            system yet (TECHNICAL_REQUIREMENTS.md section 9). */}
+        <Cell onClick={() => navigate('/follow-requests')}>
+          {me.pending_follow_requests_count > 0
+            ? t('followRequests.linkWithCount', { count: me.pending_follow_requests_count })
+            : t('followRequests.link')}
+        </Cell>
+      </Section>
+      <Section>
         <Cell subtitle={t('common.language')} onClick={toggleLanguage}>
           {i18n.language === 'fa' ? 'فارسی' : 'English'}
         </Cell>

@@ -38,6 +38,13 @@
     "following": "Following",
     "requested": "Requested"
   },
+  "followRequests": {
+    "link": "Follow requests",
+    "linkWithCount": "Follow requests ({{count}} pending)",
+    "title": "Follow requests",
+    "none": "No follow requests yet",
+    "followBack": "Follow back"
+  },
   "providerSummary": {
     "title": "Provider summary",
     "status": "Status",
