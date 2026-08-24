@@ -86,7 +86,15 @@ export default function OfferDetail() {
       <Section header={offer.title}>
         <Cell subtitle={t('offers.descriptionLabel')}>{offer.description}</Cell>
         <Cell subtitle={t('offers.priceStarsLabel')}>{offer.price_stars}</Cell>
-        <PriceBreakdown priceStars={offer.price_stars} commissionKind="chat" />
+        {/* The provider (owner) sees the full breakdown, including their
+            own commission/net earnings — a buyer only needs to know
+            what THEY pay (Stars + Toman equivalent), never the
+            provider's commission or take-home numbers. */}
+        <PriceBreakdown
+          priceStars={offer.price_stars}
+          commissionKind="chat"
+          variant={isOwner ? 'full' : 'grossOnly'}
+        />
         <Cell subtitle={t('offers.durationLabel')}>{offer.display_duration_minutes}</Cell>
         <Cell subtitle={t('offers.status')}>
           {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}

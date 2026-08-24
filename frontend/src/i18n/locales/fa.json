@@ -63,6 +63,7 @@
     "browseTitle": "پیشنهادهای فعال",
     "none": "فعلاً پیشنهادی نیست",
     "priceLine": "{{price}} استارز · {{minutes}} دقیقه",
+    "priceLineWithToman": "{{price}} استارز (~{{toman}} تومان) · {{minutes}} دقیقه",
     "mineTitle": "پیشنهادهای من",
     "createNew": "ساخت پیشنهاد جدید",
     "status": "وضعیت",

@@ -63,6 +63,7 @@
     "browseTitle": "Active offers",
     "none": "No offers yet",
     "priceLine": "{{price}} Stars · {{minutes}} min",
+    "priceLineWithToman": "{{price}} Stars (~{{toman}} Toman) · {{minutes}} min",
     "mineTitle": "My offers",
     "createNew": "Create a new offer",
     "status": "Status",
