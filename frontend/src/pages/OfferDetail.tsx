@@ -5,7 +5,7 @@ import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-app
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { apiFetch, ApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
-import type { Offer, Request } from '../lib/types'
+import type { ChatSession, Offer, Request } from '../lib/types'
 
 /**
  * Two very different screens depending on who's looking, decided by
@@ -24,6 +24,7 @@ export default function OfferDetail() {
 
   const [offer, setOffer] = useState<Offer | null>(null)
   const [requests, setRequests] = useState<Request[] | null>(null)
+  const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
 
@@ -38,9 +39,18 @@ export default function OfferDetail() {
   // Only the owner can see who has requested their offer — this call
   // is skipped entirely for anyone else, matching what the backend
   // itself would reject anyway (see list_requests_for_offer).
+  //
+  // GET /chat-sessions/mine returns every session the current user is
+  // part of as EITHER buyer or provider (see backend/app/chat_session/
+  // router.py) — this is what makes the provider's own "enter chat
+  // session" link possible below; without it, an accepted-and-paid
+  // request had no way in for the provider at all (a real bug, not
+  // just a missing nicety — the buyer side already had this via
+  // MyRequests.tsx's own use of the same endpoint).
   useEffect(() => {
     if (!isOwner) return
     apiFetch<Request[]>(`/requests?offer_id=${id}`).then(setRequests)
+    apiFetch<ChatSession[]>('/chat-sessions/mine').then(setSessions)
   }, [isOwner, id])
 
   async function sendRequest() {
@@ -127,54 +137,68 @@ export default function OfferDetail() {
             </Cell>
           )}
           {requests !== null && requests.length === 0 && <Cell>{t('offers.noIncomingRequests')}</Cell>}
-          {requests?.map((request) => (
-            // Two rows per request, not one: clicking the row itself
-            // used to navigate to /requests/mine (the CURRENT user's
-            // own outgoing requests as a buyer) — meaningless for the
-            // provider looking at requests made TO them, and always
-            // empty for a pure provider. Replaced with two explicit
-            // actions a provider actually needs before deciding:
-            // the requester's profile, and their buyer summary.
-            <Fragment key={request.id}>
-              <Cell
-                subtitle={`#${request.buyer_id} — ${request.status}`}
-                onClick={() => navigate(`/profiles/${request.buyer_id}`)}
-              >
-                {t('offers.viewRequesterProfile')}
-              </Cell>
-              <Cell
-                onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
-                after={
-                  request.status === 'pending' ? (
-                    <>
-                      <Button
-                        size="s"
-                        mode="filled"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          respond(request.id, 'accept')
-                        }}
-                      >
-                        {t('requests.acceptButton')}
+          {requests?.map((request) => {
+            // The provider's own way into the chat session once a
+            // request is accepted and paid — a session exists the
+            // instant payment succeeds (see backend/app/request/
+            // router.py's pay_for_request), so "a matching session
+            // exists" and "this got paid for" are the same fact, same
+            // logic MyRequests.tsx uses for the buyer side.
+            const session = sessions?.find((s) => s.request_id === request.id)
+            return (
+              <Fragment key={request.id}>
+                <Cell
+                  subtitle={`#${request.buyer_id} — ${request.status}`}
+                  onClick={() => navigate(`/profiles/${request.buyer_id}`)}
+                >
+                  {t('offers.viewRequesterProfile')}
+                </Cell>
+                <Cell
+                  onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
+                  after={
+                    request.status === 'pending' ? (
+                      <>
+                        <Button
+                          size="s"
+                          mode="filled"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            respond(request.id, 'accept')
+                          }}
+                        >
+                          {t('requests.acceptButton')}
+                        </Button>
+                        <Button
+                          size="s"
+                          mode="outline"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            respond(request.id, 'reject')
+                          }}
+                        >
+                          {t('requests.rejectButton')}
+                        </Button>
+                      </>
+                    ) : undefined
+                  }
+                >
+                  {t('offers.viewBuyerSummary')}
+                </Cell>
+                {session && (
+                  <Cell
+                    onClick={() => navigate(`/chat-sessions/${session.id}`)}
+                    after={
+                      <Button size="s" mode="outline" onClick={(e) => e.stopPropagation()}>
+                        {t('requests.openSession')}
                       </Button>
-                      <Button
-                        size="s"
-                        mode="outline"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          respond(request.id, 'reject')
-                        }}
-                      >
-                        {t('requests.rejectButton')}
-                      </Button>
-                    </>
-                  ) : undefined
-                }
-              >
-                {t('offers.viewBuyerSummary')}
-              </Cell>
-            </Fragment>
-          ))}
+                    }
+                  >
+                    {session.status === 'open' ? t('chatSession.statusOpen') : t('chatSession.statusClosed')}
+                  </Cell>
+                )}
+              </Fragment>
+            )
+          })}
           {actionMessage && <Cell>{actionMessage}</Cell>}
         </Section>
       )}
