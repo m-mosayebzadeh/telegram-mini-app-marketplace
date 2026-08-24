@@ -2,7 +2,9 @@ import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-ro
 import { useTranslation } from 'react-i18next'
 import { Tabbar } from '@telegram-apps/telegram-ui'
 import { MeProvider } from './lib/MeContext'
+import { needsDevLogin } from './lib/session'
 import Discover from './pages/Discover'
+import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
 import MyOffers from './pages/MyOffers'
 import CreateOffer from './pages/CreateOffer'
@@ -74,6 +76,15 @@ function AppShell() {
 }
 
 function App() {
+  // Real Telegram launches never hit this — retrieveRawInitData()
+  // succeeds there, so needsDevLogin() is always false. This only ever
+  // shows up in a plain browser during local development, before a
+  // test user has been chosen for this tab (see lib/session.ts and
+  // pages/Login.tsx).
+  if (needsDevLogin()) {
+    return <Login />
+  }
+
   return (
     <MeProvider>
       <BrowserRouter>

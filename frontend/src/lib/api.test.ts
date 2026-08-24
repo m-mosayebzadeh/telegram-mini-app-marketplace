@@ -32,10 +32,12 @@ describe('apiFetch', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
     mockRetrieve.mockReset()
+    sessionStorage.clear()
   })
 
   afterEach(() => {
     vi.unstubAllGlobals()
+    sessionStorage.clear()
   })
 
   it('uses the real Telegram init data when available, without hitting the dev fallback', async () => {
@@ -55,25 +57,38 @@ describe('apiFetch', () => {
     )
   })
 
-  it('falls back to the dev endpoint when retrieveRawInitData throws (plain browser, no Telegram)', async () => {
+  it('falls back to the chosen test user when retrieveRawInitData throws (plain browser, no Telegram)', async () => {
     // This is the real behavior outside Telegram — see the comment in
-    // src/lib/api.ts's getInitData().
+    // src/lib/api.ts's getInitData(). The choice itself is made on the
+    // Login screen (see pages/Login.tsx), which stores it via
+    // lib/session.ts's setDevUserChoice() — here we just simulate that
+    // having already happened.
     mockRetrieve.mockImplementation(() => {
       throw new Error('no launch params found')
     })
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse({ init_data: 'dev-fallback-init-data' })) // /api/dev/test-init-data
-      .mockResolvedValueOnce(jsonResponse({ ok: true })) // the actual request
+    sessionStorage.setItem('devInitData', 'chosen-test-user-init-data')
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ ok: true }))
     const { apiFetch } = await freshApi()
 
     await apiFetch('/me')
 
-    expect(fetch).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/dev/test-init-data')
-    const secondCallOptions = vi.mocked(fetch).mock.calls[1][1]
-    expect((secondCallOptions?.headers as Record<string, string>)['X-Telegram-Init-Data']).toBe(
-      'dev-fallback-init-data',
+    // Exactly one fetch: the real endpoint — no separate call to mint a
+    // fresh dev initData, since a choice was already stored.
+    expect(fetch).toHaveBeenCalledTimes(1)
+    const options = vi.mocked(fetch).mock.calls[0][1]
+    expect((options?.headers as Record<string, string>)['X-Telegram-Init-Data']).toBe(
+      'chosen-test-user-init-data',
     )
+  })
+
+  it('throws instead of guessing when neither real Telegram nor a stored choice exists', async () => {
+    mockRetrieve.mockImplementation(() => {
+      throw new Error('no launch params found')
+    })
+    const { apiFetch } = await freshApi()
+
+    await expect(apiFetch('/me')).rejects.toThrow(/log in first/)
+    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('throws ApiError with the parsed body on a non-2xx response', async () => {

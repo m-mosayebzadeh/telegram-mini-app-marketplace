@@ -7,6 +7,7 @@
  */
 
 import { retrieveRawInitData } from '@telegram-apps/sdk-react'
+import { getDevUserChoice } from './session'
 
 /** Thrown by apiFetch() for any non-2xx response. Carries the parsed
  * JSON body (usually FastAPI's {"detail": ...}) so a screen can show a
@@ -41,8 +42,9 @@ let cachedInitData: string | null = null
  *      production.
  *   2. Running in a plain browser during local development (no
  *      Telegram WebView around it at all): there's no real initData to
- *      retrieve, so we ask the backend's dev-only endpoint to mint a
- *      validly-signed fake one — the exact same trick the Bruno
+ *      retrieve, so we use whichever test user was chosen on the Login
+ *      screen (see lib/session.ts and pages/Login.tsx) — signed by the
+ *      backend's dev-only endpoint, the exact same trick the Bruno
  *      collection uses (see backend/app/dev/router.py). This only
  *      works when the backend is running with ENABLE_DEV_TOOLS=true;
  *      inside real Telegram this branch is never reached at all.
@@ -67,16 +69,16 @@ async function getInitData(): Promise<string> {
     // returned nothing.
   }
 
-  const response = await fetch('/api/dev/test-init-data')
-  if (!response.ok) {
-    throw new Error(
-      'No real Telegram launch data, and the dev fallback failed — is the ' +
-        'backend running with ENABLE_DEV_TOOLS=true?',
-    )
+  const stored = getDevUserChoice()
+  if (!stored) {
+    // Should be unreachable in practice: App.tsx checks needsDevLogin()
+    // and shows the Login screen before rendering anything that could
+    // call apiFetch(). Kept as a clear failure instead of silently
+    // picking some default user, in case that invariant is ever broken.
+    throw new Error('No Telegram launch data and no test user chosen — log in first.')
   }
-  const { init_data: devInitData } = (await response.json()) as { init_data: string }
-  cachedInitData = devInitData
-  return devInitData
+  cachedInitData = stored
+  return stored
 }
 
 /**

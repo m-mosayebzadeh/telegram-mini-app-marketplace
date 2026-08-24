@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
 import { useMe } from '../lib/MeContext'
+import { clearDevUserChoice, isRealTelegramLaunch } from '../lib/session'
 
 export default function Profile() {
   const { t, i18n } = useTranslation()
@@ -38,6 +39,21 @@ export default function Profile() {
           {i18n.language === 'fa' ? 'فارسی' : 'English'}
         </Cell>
       </Section>
+      {/* Dev-only escape hatch back to the Login screen (see
+          pages/Login.tsx) — meaningless inside real Telegram, where
+          there's no "test user" to switch away from. */}
+      {!isRealTelegramLaunch() && (
+        <Section>
+          <Cell
+            onClick={() => {
+              clearDevUserChoice()
+              window.location.reload()
+            }}
+          >
+            {t('login.switchUser')}
+          </Cell>
+        </Section>
+      )}
     </List>
   )
 }

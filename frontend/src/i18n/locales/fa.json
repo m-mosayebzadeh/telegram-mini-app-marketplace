@@ -6,6 +6,12 @@
     "back": "بازگشت",
     "submit": "ثبت"
   },
+  "login": {
+    "title": "یک کاربر آزمایشی انتخاب کنید",
+    "noPassword": "بدون رمز عبور",
+    "failed": "ورود ناموفق بود — بک‌اند با ENABLE_DEV_TOOLS=true روشنه؟",
+    "switchUser": "تعویض کاربر آزمایشی"
+  },
   "tabs": {
     "discover": "کشف",
     "myOffers": "پیشنهادهای من",

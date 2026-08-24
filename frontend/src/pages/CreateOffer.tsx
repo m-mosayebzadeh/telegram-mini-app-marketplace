@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui'
+import { NumberField } from '../components/NumberField'
 import { apiFetch, ApiError } from '../lib/api'
 
 export default function CreateOffer() {
@@ -40,12 +41,7 @@ export default function CreateOffer() {
     <List>
       <Section header={t('offers.createNew')}>
         <Cell>
-          <Input
-            header={t('offers.priceStarsLabel')}
-            type="number"
-            value={priceStars}
-            onChange={(e) => setPriceStars(e.target.value)}
-          />
+          <NumberField header={t('offers.priceStarsLabel')} value={priceStars} onChange={setPriceStars} />
         </Cell>
         <Cell>
           <Input

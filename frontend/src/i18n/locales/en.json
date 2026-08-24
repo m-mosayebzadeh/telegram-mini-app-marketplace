@@ -6,6 +6,12 @@
     "back": "Back",
     "submit": "Submit"
   },
+  "login": {
+    "title": "Choose a test user",
+    "noPassword": "No password needed",
+    "failed": "Login failed — is the backend running with ENABLE_DEV_TOOLS=true?",
+    "switchUser": "Switch test user"
+  },
   "tabs": {
     "discover": "Discover",
     "myOffers": "My offers",

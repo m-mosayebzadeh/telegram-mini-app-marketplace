@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Cell, Input, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { NumberField } from '../components/NumberField'
 import { apiFetch, ApiError } from '../lib/api'
 import type { Balance } from '../lib/types'
 
@@ -62,12 +63,7 @@ export default function WalletPage() {
       </Section>
       <Section header={t('wallet.topUpButton')}>
         <Cell>
-          <Input
-            header={t('wallet.topUpAmountLabel')}
-            type="number"
-            value={topUpAmount}
-            onChange={(e) => setTopUpAmount(e.target.value)}
-          />
+          <NumberField header={t('wallet.topUpAmountLabel')} value={topUpAmount} onChange={setTopUpAmount} />
         </Cell>
         <Cell>
           <Button stretched onClick={topUp}>
