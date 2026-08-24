@@ -56,6 +56,15 @@
     "rejectionRate": "Rejection rate",
     "disputedTransactions": "Disputed transactions"
   },
+  "buyerSummary": {
+    "title": "Buyer summary",
+    "status": "Status",
+    "established": "Established buyer",
+    "new": "New account",
+    "joinedAt": "Joined",
+    "completedTransactions": "Completed transactions",
+    "totalStarsSpent": "Total Stars spent"
+  },
   "wallet": {
     "title": "Wallet",
     "spendable": "Spendable balance",
@@ -92,6 +101,8 @@
     "requestButton": "Request this offer",
     "viewProfile": "View provider's profile",
     "viewProviderSummary": "Provider summary",
+    "viewRequesterProfile": "View requester's profile",
+    "viewBuyerSummary": "Buyer summary",
     "requestSent": "Request sent",
     "ownOffer": "This is your own offer",
     "incomingRequestsTitle": "Incoming requests",

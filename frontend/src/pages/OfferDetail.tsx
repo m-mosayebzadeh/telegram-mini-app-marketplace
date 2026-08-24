@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
@@ -128,25 +128,52 @@ export default function OfferDetail() {
           )}
           {requests !== null && requests.length === 0 && <Cell>{t('offers.noIncomingRequests')}</Cell>}
           {requests?.map((request) => (
-            <Cell
-              key={request.id}
-              subtitle={`#${request.buyer_id} — ${request.status}`}
-              onClick={() => navigate(`/requests/mine`)}
-              after={
-                request.status === 'pending' ? (
-                  <>
-                    <Button size="s" mode="filled" onClick={(e) => { e.stopPropagation(); respond(request.id, 'accept') }}>
-                      {t('requests.acceptButton')}
-                    </Button>
-                    <Button size="s" mode="outline" onClick={(e) => { e.stopPropagation(); respond(request.id, 'reject') }}>
-                      {t('requests.rejectButton')}
-                    </Button>
-                  </>
-                ) : undefined
-              }
-            >
-              {request.status}
-            </Cell>
+            // Two rows per request, not one: clicking the row itself
+            // used to navigate to /requests/mine (the CURRENT user's
+            // own outgoing requests as a buyer) — meaningless for the
+            // provider looking at requests made TO them, and always
+            // empty for a pure provider. Replaced with two explicit
+            // actions a provider actually needs before deciding:
+            // the requester's profile, and their buyer summary.
+            <Fragment key={request.id}>
+              <Cell
+                subtitle={`#${request.buyer_id} — ${request.status}`}
+                onClick={() => navigate(`/profiles/${request.buyer_id}`)}
+              >
+                {t('offers.viewRequesterProfile')}
+              </Cell>
+              <Cell
+                onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
+                after={
+                  request.status === 'pending' ? (
+                    <>
+                      <Button
+                        size="s"
+                        mode="filled"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          respond(request.id, 'accept')
+                        }}
+                      >
+                        {t('requests.acceptButton')}
+                      </Button>
+                      <Button
+                        size="s"
+                        mode="outline"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          respond(request.id, 'reject')
+                        }}
+                      >
+                        {t('requests.rejectButton')}
+                      </Button>
+                    </>
+                  ) : undefined
+                }
+              >
+                {t('offers.viewBuyerSummary')}
+              </Cell>
+            </Fragment>
           ))}
           {actionMessage && <Cell>{actionMessage}</Cell>}
         </Section>

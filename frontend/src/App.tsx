@@ -16,6 +16,7 @@ import PublicProfile from './pages/PublicProfile'
 import FollowList from './pages/FollowList'
 import FollowRequests from './pages/FollowRequests'
 import ProviderSummary from './pages/ProviderSummary'
+import BuyerSummary from './pages/BuyerSummary'
 
 /**
  * The five bottom-tab sections and which URLs belong to each — kept as
@@ -71,6 +72,7 @@ function AppShell() {
         <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/profiles/:id" element={<PublicProfile />} />
         <Route path="/profiles/:id/provider-summary" element={<ProviderSummary />} />
+        <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
       <Tabbar>

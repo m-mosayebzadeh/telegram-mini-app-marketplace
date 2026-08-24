@@ -172,3 +172,64 @@ def test_provider_summary_counts_completed_services(client, db_session):
     body = response.json()
     assert body["status"] == "established"
     assert body["completed_services_count"] == 1
+
+
+# --- buyer summary ----------------------------------------------------------
+
+
+def test_buyer_summary_for_a_brand_new_user(client):
+    _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+
+    response = client.get(f"/profiles/{bob['id']}/buyer-summary", headers=_auth_header(1, "Alice"))
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "new"
+    assert body["completed_transactions_count"] == 0
+    assert body["total_stars_spent"] == 0
+
+
+def test_buyer_summary_for_a_nonexistent_user_returns_404(client):
+    _login(client, 1, "Alice")
+
+    response = client.get("/profiles/999999/buyer-summary", headers=_auth_header(1, "Alice"))
+
+    assert response.status_code == 404
+
+
+def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
+    alice = _login(client, 1, "Alice")  # provider
+    bob = _login(client, 2, "Bob")  # buyer
+    auth_alice = _auth_header(1, "Alice")
+    auth_bob = _auth_header(2, "Bob")
+
+    # A paid photo purchase settles instantly -> SUCCEEDED, counts
+    # toward completed_transactions_count.
+    client.put("/profile/me", headers=auth_alice, json={"bio": "hi"})
+    photo = client.post(
+        "/photos",
+        headers=auth_alice,
+        files={"file": ("test.jpg", make_test_image_bytes(), "image/jpeg")},
+        data={"is_paid": "true", "price_stars": "10", "audience_type": "public"},
+    ).json()
+    give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.star_to_toman_rate)
+    client.post(f"/photos/{photo['id']}/purchase", headers=auth_bob)
+
+    # A paid chat request stays PENDING (idle money) -- still counts as
+    # "spent" (the buyer was already charged), but not yet "completed".
+    offer = client.post(
+        "/offers",
+        headers=auth_alice,
+        json={"price_stars": 20, "display_duration_minutes": 30, "title": "Chat", "description": "Chat"},
+    ).json()
+    req = client.post("/requests", headers=auth_bob, json={"offer_id": offer["id"]}).json()
+    client.post(f"/requests/{req['id']}/accept", headers=auth_alice)
+    client.post(f"/requests/{req['id']}/pay", headers=auth_bob)
+
+    response = client.get(f"/profiles/{bob['id']}/buyer-summary", headers=auth_alice)
+
+    body = response.json()
+    assert body["status"] == "established"  # the photo purchase completed
+    assert body["completed_transactions_count"] == 1  # only the photo, not the still-pending chat
+    assert body["total_stars_spent"] == 30  # 10 (photo) + 20 (chat), pending or not

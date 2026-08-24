@@ -18,7 +18,13 @@ from app.models.profile import Profile
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User
-from app.profile.schemas import ProfileOut, ProfileUpdate, ProviderSummaryOut, PublicProfileOut
+from app.profile.schemas import (
+    BuyerSummaryOut,
+    ProfileOut,
+    ProfileUpdate,
+    ProviderSummaryOut,
+    PublicProfileOut,
+)
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 public_router = APIRouter(prefix="/profiles", tags=["profile"])
@@ -169,4 +175,49 @@ def read_provider_summary(
         response_rate=(responded_requests / total_requests) if total_requests > 0 else None,
         rejection_rate=(rejected_requests / total_requests) if total_requests > 0 else None,
         disputed_transactions_count=disputed_transactions_count,
+    )
+
+
+@public_router.get("/{user_id}/buyer-summary", response_model=BuyerSummaryOut)
+def read_buyer_summary(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> BuyerSummaryOut:
+    """
+    What a provider sees about `user_id` as a BUYER, before accepting or
+    rejecting their request — see BuyerSummaryOut's docstring for which
+    fields are real today vs. still blocked (buyer-cancel, disputes,
+    ratings — none of those exist yet).
+    """
+    target = db.get(User, user_id)
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+    completed_transactions_count = (
+        db.query(Transaction)
+        .filter(Transaction.buyer_id == user_id, Transaction.status == TransactionStatus.SUCCEEDED)
+        .count()
+    )
+
+    # Both PENDING and SUCCEEDED count as "spent" -- the buyer's SPEND
+    # ledger entry is written the instant they pay, regardless of
+    # whether the transaction has released to its provider yet (see
+    # app/wallet/service.py's pay_for_item).
+    total_stars_spent = (
+        db.query(Transaction)
+        .filter(
+            Transaction.buyer_id == user_id,
+            Transaction.status.in_([TransactionStatus.PENDING, TransactionStatus.SUCCEEDED]),
+        )
+        .with_entities(Transaction.gross_price_stars)
+        .all()
+    )
+    total_stars_spent_sum = sum(row[0] for row in total_stars_spent)
+
+    return BuyerSummaryOut(
+        status="established" if completed_transactions_count >= 1 else "new",
+        joined_at=target.joined_at,
+        completed_transactions_count=completed_transactions_count,
+        total_stars_spent=total_stars_spent_sum,
     )

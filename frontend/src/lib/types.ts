@@ -128,3 +128,13 @@ export interface ProviderSummary {
   rejection_rate: number | null
   disputed_transactions_count: number
 }
+
+/** GET /profiles/{id}/buyer-summary — see backend/app/profile/schemas.py's
+ * BuyerSummaryOut for which fields are real today vs. still blocked
+ * (buyer-cancel, disputes, ratings — none of those exist yet). */
+export interface BuyerSummary {
+  status: 'established' | 'new'
+  joined_at: string
+  completed_transactions_count: number
+  total_stars_spent: number
+}

@@ -88,3 +88,26 @@ class ProviderSummaryOut(BaseModel):
     response_rate: float | None
     rejection_rate: float | None
     disputed_transactions_count: int
+
+
+class BuyerSummaryOut(BaseModel):
+    """
+    GET /profiles/{user_id}/buyer-summary — the ORIGINAL direction of
+    "خلاصه اعتماد خریدار" (TECHNICAL_REQUIREMENTS.md section 2): what a
+    PROVIDER should see about a buyer before accepting/rejecting their
+    request. That entity was fully blocked when first documented (no
+    Transaction/ChatSession existed yet); like ProviderSummaryOut, it
+    now returns the subset that's genuinely computable today. Still
+    missing, per the doc: cancelled-by-buyer count (buyer-initiated
+    cancellation isn't built), dispute count (no Report entity yet), and
+    both rating averages (no Rating entity yet).
+    """
+
+    status: str  # "established" | "new"
+    joined_at: datetime
+    completed_transactions_count: int
+    # Everything ever charged to this buyer, whether the transaction has
+    # released to its provider yet or not (see Transaction.status) — the
+    # money already left their wallet the moment they paid, in both
+    # cases, so both count as "spent" from a trust-signal point of view.
+    total_stars_spent: int
