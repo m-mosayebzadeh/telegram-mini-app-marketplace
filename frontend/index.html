@@ -5,6 +5,36 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+    <!-- Vazirmatn: a rounded, modern typeface with full Persian AND Latin
+         coverage — used for the "premium lounge" profile redesign (see
+         src/styles/theme.css) so fa/en text shares one warm, geometric
+         voice instead of falling back to the browser's default system
+         font for Persian and a different one for Latin.
+
+         Loaded asynchronously (preload + swap-on-load, not a plain
+         blocking <link rel="stylesheet">) — a normal blocking stylesheet
+         link makes the whole page wait on this one external request
+         before it can render at all, and on a slow or restricted
+         network (a Telegram WebView with a flaky connection, a
+         corporate proxy, this being unreachable at all) that wait has
+         no upper bound. theme.css's font-family stacks already fall
+         back to system-ui, so there's nothing lost by letting the page
+         paint immediately in the fallback and upgrade to Vazirmatn
+         whenever/if it finishes loading. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="root"></div>

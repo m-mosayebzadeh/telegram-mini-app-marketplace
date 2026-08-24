@@ -89,6 +89,39 @@ export interface PublicProfile {
   follow_status: 'not_following' | 'pending' | 'accepted'
 }
 
+/** One photo or short video, owned directly by a user — see
+ * backend/app/content/schemas.py's ContentOut. Never carries a raw file
+ * path; the actual bytes are fetched separately from
+ * GET /content/{id}/file, which is access-checked server-side. */
+export interface Content {
+  id: number
+  user_id: number
+  content_type: 'photo' | 'short_video'
+  duration_seconds: number | null
+  is_paid: boolean
+  price_stars: number | null
+  has_spoiler: boolean
+  audience_type: 'public' | 'followers' | 'user' | 'group'
+  is_pinned: boolean
+  created_at: string
+  // Whether *this* viewer can currently see the real file — decides
+  // whether a grid tile shows the spoiler overlay or the image itself.
+  can_see_original: boolean
+  like_count: number
+  liked_by_me: boolean
+}
+
+/** PUT /profile/me's response — see backend/app/profile/schemas.py's
+ * ProfileOut. Distinct from PublicProfile: this is only ever your own,
+ * so it has no follower counts or follow_status. */
+export interface MyProfile {
+  id: number
+  avatar_url: string | null
+  bio: string | null
+  location: string | null
+  interests: string[]
+}
+
 /** GET /pricing — the current Star-to-Toman rate and commission
  * percentages, used to show a price breakdown without a round trip per
  * keystroke (see lib/priceBreakdown.ts). */

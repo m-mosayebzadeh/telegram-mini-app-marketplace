@@ -101,6 +101,30 @@ describe('apiFetch', () => {
     )
   })
 
+  it('does not set Content-Type on a FormData body, leaving the browser to add its own boundary', async () => {
+    mockRetrieve.mockReturnValue('real-init-data')
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ ok: true }))
+    const { apiFetch } = await freshApi()
+
+    const body = new FormData()
+    body.append('file', new Blob(['x']), 'test.jpg')
+    await apiFetch('/content', { method: 'POST', body })
+
+    const options = vi.mocked(fetch).mock.calls[0][1]
+    expect((options?.headers as Record<string, string>)['Content-Type']).toBeUndefined()
+  })
+
+  it('sets Content-Type: application/json on a plain object body', async () => {
+    mockRetrieve.mockReturnValue('real-init-data')
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ ok: true }))
+    const { apiFetch } = await freshApi()
+
+    await apiFetch('/profile/me', { method: 'PUT', body: JSON.stringify({ bio: 'hi' }) })
+
+    const options = vi.mocked(fetch).mock.calls[0][1]
+    expect((options?.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+  })
+
   it('resolves init data only once and reuses it across multiple calls', async () => {
     mockRetrieve.mockReturnValue('real-init-data')
     vi.mocked(fetch)

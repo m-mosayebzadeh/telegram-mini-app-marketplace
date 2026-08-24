@@ -11,8 +11,8 @@ import CreateOffer from './pages/CreateOffer'
 import MyRequests from './pages/MyRequests'
 import ChatSessionDetail from './pages/ChatSessionDetail'
 import WalletPage from './pages/Wallet'
-import Profile from './pages/Profile'
-import PublicProfile from './pages/PublicProfile'
+import ProfileTab from './pages/ProfileTab'
+import ContentDetail from './pages/ContentDetail'
 import FollowList from './pages/FollowList'
 import FollowRequests from './pages/FollowRequests'
 import ProviderSummary from './pages/ProviderSummary'
@@ -46,7 +46,8 @@ const TABS = [
   {
     key: 'profile',
     path: '/profile',
-    isActive: (pathname: string) => pathname === '/profile' || pathname === '/follow-requests',
+    isActive: (pathname: string) =>
+      pathname === '/profile' || pathname === '/follow-requests' || pathname.startsWith('/content/'),
   },
 ] as const
 
@@ -68,9 +69,10 @@ function AppShell() {
         <Route path="/requests/mine" element={<MyRequests />} />
         <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
         <Route path="/wallet" element={<WalletPage />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<ProfileTab />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
-        <Route path="/profiles/:id" element={<PublicProfile />} />
+        <Route path="/content/:id" element={<ContentDetail />} />
+        <Route path="/profiles/:id" element={<ProfileTab />} />
         <Route path="/profiles/:id/provider-summary" element={<ProviderSummary />} />
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />

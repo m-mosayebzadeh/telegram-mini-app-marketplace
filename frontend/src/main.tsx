@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AppRoot } from '@telegram-apps/telegram-ui'
 import '@telegram-apps/telegram-ui/dist/styles.css'
+import './styles/theme.css'
 // Side-effect import: initializes i18next before anything renders, so
 // the very first render already has translations available (see
 // src/i18n/config.ts).

@@ -92,11 +92,18 @@ async function getInitData(): Promise<string> {
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const initData = await getInitData()
 
+  // A FormData body (content upload — see lib/contentApi.ts) must NOT
+  // get an explicit Content-Type: the browser sets one itself, with the
+  // multipart boundary the body was actually encoded with. Setting it
+  // by hand here would produce a header with no boundary, which the
+  // server can't parse at all.
+  const isFormData = options.body instanceof FormData
+
   const response = await fetch(`/api${path}`, {
     ...options,
     headers: {
       'X-Telegram-Init-Data': initData,
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
   })
@@ -108,4 +115,31 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     throw new ApiError(response.status, body)
   }
   return body as T
+}
+
+/**
+ * Like apiFetch(), but for an endpoint whose response is raw bytes, not
+ * JSON — right now just GET /content/{id}/file (see lib/contentApi.ts).
+ * A plain <img src="..."> can't be used for that route directly: this
+ * backend authenticates via the X-Telegram-Init-Data header, and a
+ * browser's own image-loading request has no way to attach one — so the
+ * bytes have to be fetched here (where the header can be set) and handed
+ * to the <img> as an in-memory object URL instead.
+ *
+ * On a non-2xx response, still throws ApiError with the parsed JSON
+ * error body (e.g. the 402 payment-required shape), exactly like
+ * apiFetch() — only the success path returns a Blob instead of JSON.
+ */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const initData = await getInitData()
+
+  const response = await fetch(`/api${path}`, {
+    headers: { 'X-Telegram-Init-Data': initData },
+  })
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new ApiError(response.status, body)
+  }
+  return response.blob()
 }
