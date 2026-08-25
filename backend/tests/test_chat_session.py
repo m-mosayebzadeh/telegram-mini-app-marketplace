@@ -52,6 +52,67 @@ def _age_session(db_session, session_id: int, hours: int) -> None:
     db_session.commit()
 
 
+# --- enrichment (offer/participant/dispute info denormalized onto the
+# response for the chat UI's header and session-details panel) -----------
+
+
+def test_session_is_enriched_with_offer_and_role_info(client, db_session):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a, price_stars=40, display_duration_minutes=30)
+
+    session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
+
+    assert session["offer_title"] == "Chat with me"
+    assert session["price_stars"] == 40
+    assert session["display_duration_minutes"] == 30
+    assert session["disputed"] is False
+    assert session["transaction_status"] == "pending"
+
+
+def test_session_reports_my_role_and_the_other_participant_per_viewer(client, db_session):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    alice = _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a)
+    _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
+
+    # From the provider's (Alice's) point of view: she is the provider,
+    # and the other participant is the buyer, Bob.
+    provider_view = client.get("/chat-sessions/mine", headers=auth_a).json()[0]
+    assert provider_view["my_role"] == "provider"
+    assert provider_view["other_participant"]["user_id"] == bob["id"]
+    assert provider_view["other_participant"]["display_name"] == "Bob"
+
+    # From the buyer's (Bob's) point of view, the roles flip.
+    buyer_view = client.get("/chat-sessions/mine", headers=auth_b).json()[0]
+    assert buyer_view["my_role"] == "buyer"
+    assert buyer_view["other_participant"]["user_id"] == alice["id"]
+    assert buyer_view["other_participant"]["display_name"] == "Alice"
+
+
+def test_disputed_flag_and_transaction_status_reflect_a_dispute(client, db_session):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a)
+    session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
+    client.post(f"/chat-sessions/{session['id']}/close", headers=auth_b)
+
+    disputed = client.post(f"/chat-sessions/{session['id']}/dispute", headers=auth_a).json()
+
+    assert disputed["disputed"] is True
+    # The underlying Transaction is still "pending" (a dispute freezes
+    # release, it doesn't change the transaction's own status) — this
+    # confirms `disputed` and `transaction_status` are reported
+    # independently, matching how app/models/transaction.py models them.
+    assert disputed["transaction_status"] == "pending"
+
+
 # --- auto-creation on payment ---------------------------------------------
 
 

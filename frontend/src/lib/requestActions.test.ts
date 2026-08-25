@@ -24,6 +24,16 @@ function makeSession(overrides: Partial<ChatSession> = {}): ChatSession {
     opened_at: '2026-01-01T00:00:00Z',
     closed_at: null,
     closed_by_user_id: null,
+    // Enrichment fields (see TECHNICAL_REQUIREMENTS.md section 12) —
+    // getRequestAction() itself never looks at these, they're only here
+    // to satisfy ChatSession's shape.
+    my_role: 'buyer',
+    other_participant: { user_id: 2, display_name: 'Provider', username: null, avatar_url: null },
+    offer_title: 'An offer',
+    price_stars: 40,
+    display_duration_minutes: 30,
+    disputed: false,
+    transaction_status: 'pending',
     ...overrides,
   }
 }

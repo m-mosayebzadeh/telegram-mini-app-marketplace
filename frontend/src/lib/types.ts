@@ -47,6 +47,16 @@ export interface Request {
   responded_at: string | null
 }
 
+/** The other participant in a session, from the current viewer's point
+ * of view — see backend/app/chat_session/schemas.py's
+ * ChatSessionParticipantOut. Never carries telegram_id. */
+export interface ChatSessionParticipant {
+  user_id: number
+  display_name: string
+  username: string | null
+  avatar_url: string | null
+}
+
 export interface ChatSession {
   id: number
   request_id: number
@@ -55,6 +65,18 @@ export interface ChatSession {
   opened_at: string
   closed_at: string | null
   closed_by_user_id: number | null
+  // --- enrichment added for the chat session UI (see
+  // TECHNICAL_REQUIREMENTS.md section 12) — denormalized onto this
+  // response so the chat screen never needs a second round trip just to
+  // render its own header/session-details panel.
+  my_role: 'buyer' | 'provider'
+  other_participant: ChatSessionParticipant
+  offer_title: string
+  price_stars: number
+  // Informational only — never an enforced timer (see section 3).
+  display_duration_minutes: number
+  disputed: boolean
+  transaction_status: 'pending' | 'succeeded' | 'failed' | 'refunded'
 }
 
 export interface Transaction {
