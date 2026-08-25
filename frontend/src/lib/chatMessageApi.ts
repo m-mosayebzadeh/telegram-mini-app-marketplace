@@ -1,115 +1,188 @@
 /**
  * The message-domain "service layer" — the one place chat UI components
  * ask for messages, mirroring how lib/contentApi.ts is the one place
- * content screens ask for content. Every function here is currently
- * backed by mock data (lib/mockChatData.ts), per TECHNICAL_REQUIREMENTS.md
- * section 12 (spec item 43): session/offer/participant data is real, but
- * there's no real message backend yet. When one exists, only the bodies
- * of the functions in this file need to change — every component already
- * calls them as if they were async network calls (they return Promises),
- * so nothing else has to be touched.
+ * content screens ask for content. Backed by the real
+ * backend/app/chat_message/ endpoints — session/offer/participant data
+ * was always real (see lib/types.ts's ChatSession); this is the piece
+ * that used to be mocked (see TECHNICAL_REQUIREMENTS.md section 12) and
+ * has now been swapped for the real thing, exactly as the mock-phase
+ * architecture was meant to allow: only this file changed, no component
+ * or type here did.
+ *
+ * There's no real-time push (no websockets) — pages/ChatSessionDetail.tsx
+ * polls listMessages() on an interval while a session is open, which is
+ * what actually lets two different real participants see each other's
+ * messages (the mock phase never could, by construction: each browser
+ * only ever simulated its own private copy of the conversation).
  */
 
-import { generateMockConversation } from './mockChatData'
-import type { ChatMessage, ChatMessageStatus, NewMessageContent } from './chatMessageTypes'
+import { apiFetch, apiFetchBlob } from './api'
+import type { ChatMessage, ChatMessageStatus, ChatMessageType, NewMessageContent } from './chatMessageTypes'
 import type { ChatSession } from './types'
 
-// Keyed by session id, so re-opening the same session's chat screen
-// during one page session shows the same conversation instead of
-// re-rolling it — matters once sendMessage() (a later stage) starts
-// appending real in-memory messages that must not disappear on
-// navigating away and back.
-const conversationsBySessionId = new Map<number, ChatMessage[]>()
-
-/** Simulates real network latency so the message list's loading state
- * actually gets exercised during manual testing, instead of always
- * resolving instantly. */
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+/** The raw shape GET/POST /chat-sessions/{id}/messages returns — see
+ * backend/app/chat_message/schemas.py's ChatMessageOut. Deliberately has
+ * no `status` (every row here is already persisted — "sent" is the only
+ * state a server-known message can be in) and no `media_url` (a
+ * photo/video's bytes are fetched separately, see resolveMediaUrl below,
+ * the same authenticated-fetch pattern lib/contentApi.ts's
+ * fetchContentFileBlobUrl already uses for content). */
+interface ChatMessageApiRow {
+  id: number
+  chat_session_id: number
+  sender_id: number
+  type: ChatMessageType
+  text: string | null
+  duration_seconds: number | null
+  created_at: string
 }
 
-/**
- * Returns every message in `session`'s conversation, from `viewerId`'s
- * point of view, oldest first. Generates (and caches) the mock
- * conversation on first call for a given session.
- */
-export async function listMessages(session: ChatSession, viewerId: number): Promise<ChatMessage[]> {
-  await delay(250)
+// Resolved object URLs for photo/video messages, keyed by the real
+// (server-assigned) message id — a poll that re-fetches the same
+// message reuses this instead of re-downloading and re-creating a
+// fresh object URL for bytes that never change.
+const fileUrlCache = new Map<number, string>()
 
-  let messages = conversationsBySessionId.get(session.id)
-  if (!messages) {
-    messages = generateMockConversation(session, viewerId)
-    conversationsBySessionId.set(session.id, messages)
+async function resolveMediaUrl(sessionId: number, row: ChatMessageApiRow): Promise<string | null> {
+  if (row.type !== 'photo' && row.type !== 'video') return null
+
+  const cached = fileUrlCache.get(row.id)
+  if (cached) return cached
+
+  const blob = await apiFetchBlob(`/chat-sessions/${sessionId}/messages/${row.id}/file`)
+  const url = URL.createObjectURL(blob)
+  fileUrlCache.set(row.id, url)
+  return url
+}
+
+async function toChatMessage(sessionId: number, row: ChatMessageApiRow): Promise<ChatMessage> {
+  return {
+    id: String(row.id),
+    session_id: sessionId,
+    sender_id: row.sender_id,
+    type: row.type,
+    text: row.text,
+    media_url: await resolveMediaUrl(sessionId, row),
+    duration_seconds: row.duration_seconds,
+    status: 'sent',
+    created_at: row.created_at,
   }
-  return messages
+}
+
+/** Every message in `session`'s conversation, oldest first — a plain
+ * GET, no caching of the list itself (only of resolved file URLs, see
+ * above): the server is always the source of truth, which is exactly
+ * what makes two different participants' views converge. `viewerId`
+ * isn't needed here (unlike the old mock generator, which needed it to
+ * fabricate a conversation) but is kept in the signature so callers —
+ * and the polling effect in pages/ChatSessionDetail.tsx — don't need to
+ * change. */
+export async function listMessages(session: ChatSession, _viewerId: number): Promise<ChatMessage[]> {
+  const rows = await apiFetch<ChatMessageApiRow[]>(`/chat-sessions/${session.id}/messages`)
+  return Promise.all(rows.map((row) => toChatMessage(session.id, row)))
 }
 
 let nextDraftSuffix = 0
+// The NewMessageContent behind each still-in-flight draft message,
+// keyed by the draft's own client-generated id — deliverMessage() reads
+// from here (instead of needing the content passed to it again) so
+// retrying a failed send just needs the ChatMessage, not the original
+// content, including the raw File for a photo/video that hasn't
+// uploaded yet.
+const pendingContentByDraftId = new Map<string, NewMessageContent>()
 
 /**
- * Builds a new outgoing message in the 'sending' state and adds it to
- * the session's cached conversation immediately (optimistic UI: the
- * bubble shows up right away, before delivery is confirmed — exactly
- * like every real chat app's own send flow). Pure/synchronous on
- * purpose, so the caller can put the returned message into its own
- * render state in the same tick it was composed, then separately await
- * deliverMessage() to learn how it resolved.
+ * Builds a new outgoing message in the 'sending' state — optimistic UI,
+ * the bubble shows up immediately, before the real upload/POST even
+ * starts. Purely local/synchronous; deliverMessage() is what actually
+ * talks to the backend.
  */
 export function composeMessage(session: ChatSession, senderId: number, content: NewMessageContent): ChatMessage {
-  const message: ChatMessage = {
-    // Date.now() + an incrementing suffix (not just Math.random()) keeps
-    // ids unique even if two messages are composed within the same
-    // millisecond, while still being trivially readable in a debugger.
-    id: `draft-${Date.now()}-${nextDraftSuffix++}`,
+  const id = `draft-${Date.now()}-${nextDraftSuffix++}`
+  pendingContentByDraftId.set(id, content)
+
+  return {
+    id,
     session_id: session.id,
     sender_id: senderId,
-    text: null,
-    media_url: null,
-    duration_seconds: null,
-    ...content,
+    type: content.type,
+    text: content.type === 'text' ? content.text : null,
+    media_url: content.type === 'photo' || content.type === 'video' ? content.media_url : null,
+    duration_seconds: content.type === 'video' || content.type === 'voice' ? content.duration_seconds : null,
     status: 'sending',
     created_at: new Date().toISOString(),
   }
+}
 
-  const list = conversationsBySessionId.get(session.id) ?? []
-  list.push(message)
-  conversationsBySessionId.set(session.id, list)
-
-  return message
+export interface DeliverResult {
+  status: ChatMessageStatus
+  /** The message with its real, server-assigned id/fields — present
+   * only on success. The caller (pages/ChatSessionDetail.tsx) swaps its
+   * local draft for this, so the NEXT poll of listMessages() recognizes
+   * it as the same message (matching by id) instead of showing it twice. */
+  resolved?: ChatMessage
 }
 
 /**
- * Simulates actually delivering a composed message: waits a bit (like a
- * real network round trip), then resolves to 'sent' or 'failed' — and
- * updates the cached copy of the message to match, so re-visiting this
- * session later in the same page session still shows the outcome.
- *
- * Two ways a delivery fails, both deliberate:
- *   - a small random chance on every send, so the UI's failed/retry
- *     state is something a reviewer will actually run into during
- *     normal manual testing, not just a code path nobody ever sees;
- *   - a text message whose entire body is "fail" (case-insensitive)
- *     ALWAYS fails — a deterministic way to summon that state on demand
- *     for testing/demoing the retry button specifically.
- *
- * `random` and `delayMs` are overridable so tests can make this
- * deterministic and instant instead of actually waiting and rolling
- * dice — see chatMessageApi.test.ts.
+ * Actually sends a composed message to the backend. Looks up the
+ * message's pending NewMessageContent by id (see composeMessage) rather
+ * than taking it as a parameter — that's what lets retrying a failed
+ * send (pages/ChatSessionDetail.tsx's retryMessage) call this the exact
+ * same way as the original send, without the caller needing to hold
+ * onto the original content (including a photo/video's raw File)
+ * separately.
  */
-export async function deliverMessage(
-  message: ChatMessage,
-  options: { random?: () => number; delayMs?: number } = {},
-): Promise<ChatMessageStatus> {
-  const random = options.random ?? Math.random
-  const delayMs = options.delayMs ?? 500 + Math.random() * 500
-  await delay(delayMs)
+export async function deliverMessage(session: ChatSession, message: ChatMessage): Promise<DeliverResult> {
+  const content = pendingContentByDraftId.get(message.id)
+  if (!content) {
+    // Nothing to (re)send — e.g. called on an already-delivered message.
+    // Shouldn't happen in practice, but failing closed is safer than
+    // silently no-op-ing and leaving the bubble stuck on "sending".
+    return { status: 'failed' }
+  }
 
-  const forcedFailure = message.type === 'text' && message.text?.trim().toLowerCase() === 'fail'
-  const randomFailure = random() < 0.12
-  const finalStatus: ChatMessageStatus = forcedFailure || randomFailure ? 'failed' : 'sent'
+  const form = new FormData()
+  form.append('type', content.type)
+  if (content.type === 'text') {
+    form.append('text', content.text)
+  } else if (content.type === 'photo') {
+    form.append('file', content.file)
+  } else if (content.type === 'video') {
+    form.append('file', content.file)
+    form.append('duration_seconds', String(content.duration_seconds))
+  } else {
+    form.append('duration_seconds', String(content.duration_seconds))
+  }
 
-  const cached = conversationsBySessionId.get(message.session_id)?.find((m) => m.id === message.id)
-  if (cached) cached.status = finalStatus
+  try {
+    const row = await apiFetch<ChatMessageApiRow>(`/chat-sessions/${session.id}/messages`, {
+      method: 'POST',
+      body: form,
+    })
+    pendingContentByDraftId.delete(message.id)
 
-  return finalStatus
+    // Reuse the local preview URL we already have for a photo/video
+    // (it's the exact same bytes we just uploaded) instead of an
+    // immediate extra round trip to re-fetch what we already hold.
+    if (message.media_url && (row.type === 'photo' || row.type === 'video')) {
+      fileUrlCache.set(row.id, message.media_url)
+    }
+
+    const resolved: ChatMessage = {
+      id: String(row.id),
+      session_id: session.id,
+      sender_id: row.sender_id,
+      type: row.type,
+      text: row.text,
+      media_url: message.media_url,
+      duration_seconds: row.duration_seconds,
+      status: 'sent',
+      created_at: row.created_at,
+    }
+    return { status: 'sent', resolved }
+  } catch {
+    // Left in pendingContentByDraftId on purpose — a retry needs the
+    // same content (and File) still available.
+    return { status: 'failed' }
+  }
 }

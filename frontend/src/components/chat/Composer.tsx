@@ -9,8 +9,8 @@ interface ComposerProps {
    * conversation), so the whole composer is replaced with a notice. */
   disabled: boolean
   onSendText: (text: string) => void
-  onSendPhoto: (mediaUrl: string) => void
-  onSendVideo: (mediaUrl: string, durationSeconds: number) => void
+  onSendPhoto: (mediaUrl: string, file: File) => void
+  onSendVideo: (mediaUrl: string, file: File, durationSeconds: number) => void
   onSendVoice: (durationSeconds: number) => void
 }
 
@@ -81,9 +81,9 @@ export function Composer({ disabled, onSendText, onSendPhoto, onSendVideo, onSen
   function confirmAttachment(durationSeconds?: number) {
     if (!pendingAttachment) return
     if (pendingAttachment.kind === 'photo') {
-      onSendPhoto(pendingAttachment.previewUrl)
+      onSendPhoto(pendingAttachment.previewUrl, pendingAttachment.file)
     } else {
-      onSendVideo(pendingAttachment.previewUrl, durationSeconds ?? 0)
+      onSendVideo(pendingAttachment.previewUrl, pendingAttachment.file, durationSeconds ?? 0)
     }
     // Deliberately NOT revoking previewUrl here — it's now the sent
     // message's media_url and still needs to render in the message list.

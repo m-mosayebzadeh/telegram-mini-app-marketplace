@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, ApiError } from '../lib/api'
 import { composeMessage, deliverMessage, listMessages } from '../lib/chatMessageApi'
+import { mergeMessages } from '../lib/chatMessageMerge'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
 import { ChatHeader } from '../components/chat/ChatHeader'
 import { SessionDetailsPanel } from '../components/chat/SessionDetailsPanel'
@@ -23,11 +24,13 @@ import type { ChatSession } from '../lib/types'
  * message list, and (while the session is still open) the composer for
  * sending new text/photo/video/voice messages.
  *
- * Session/offer/participant data is REAL, fetched from the existing
- * (now-enriched) GET /chat-sessions/{id}. Message data — both the seeded
- * conversation and anything sent from this composer — is MOCK (see
- * lib/chatMessageApi.ts): there is no real message backend yet, per
- * TECHNICAL_REQUIREMENTS.md section 12's item 43.
+ * Session/offer/participant data AND message data are both real (see
+ * lib/chatMessageApi.ts and backend/app/chat_message/) — messages used
+ * to be mocked (TECHNICAL_REQUIREMENTS.md section 12's item 43), but
+ * that was only ever meant to hold until a real backend existed; it now
+ * does. There's no real-time push, so this screen polls for new
+ * messages on an interval while the session is open — the simplest way
+ * for two different participants to actually see each other's messages.
  */
 export default function ChatSessionDetail() {
   const { t } = useTranslation()
@@ -58,9 +61,8 @@ export default function ChatSessionDetail() {
 
   useEffect(loadSession, [loadSession])
 
-  // Messages load once the real session (and therefore the other
-  // participant's identity, which the mock generator needs) is
-  // available — see lib/mockChatData.ts's generateMockConversation().
+  // Initial load, with a real loading/error state — runs once the
+  // session (needed for its id) is available.
   useEffect(() => {
     if (!session || !me) return
     setMessagesLoading(true)
@@ -69,6 +71,25 @@ export default function ChatSessionDetail() {
       .then(setMessages)
       .catch((err) => setMessagesError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
       .finally(() => setMessagesLoading(false))
+  }, [session, me])
+
+  // Polling: the only way this screen finds out about a message the
+  // OTHER participant sent (there's no websocket/push here — see this
+  // component's own docstring above). Silent — no loading spinner, no
+  // clearing of messagesError — a poll that happens to fail is just
+  // tried again next tick rather than replacing the whole screen with
+  // an error. Stops once the session is no longer open, since nobody
+  // can send anything new past that point anyway.
+  useEffect(() => {
+    if (!session || !me || session.status !== 'open') return
+    const interval = setInterval(() => {
+      listMessages(session, me.id)
+        .then((serverMessages) => setMessages((prev) => mergeMessages(serverMessages, prev)))
+        .catch(() => {
+          // Silently skipped — see comment above.
+        })
+    }, 3000)
+    return () => clearInterval(interval)
   }, [session, me])
 
   async function confirmCloseSession() {
@@ -95,26 +116,28 @@ export default function ChatSessionDetail() {
   }
 
   /**
-   * Shared by every "send" path (text/photo/video/voice) and by retry:
-   * builds the outgoing message, shows it immediately in the 'sending'
-   * state (optimistic UI — the bubble appears before delivery is
-   * confirmed, the same as any real chat app), then updates it in place
-   * once lib/chatMessageApi.ts's simulated delivery resolves to 'sent'
-   * or 'failed'.
+   * Shared by every "send" path (text/photo/video/voice): builds the
+   * outgoing message, shows it immediately in the 'sending' state
+   * (optimistic UI — the bubble appears before the upload/POST is even
+   * confirmed, the same as any real chat app), then swaps it for the
+   * real, server-resolved message once lib/chatMessageApi.ts's
+   * deliverMessage() succeeds, or just flips its status to 'failed'
+   * (keeping the draft, so retryMessage below can reuse it).
    */
   function send(content: NewMessageContent) {
     if (!session || !me) return
     const message = composeMessage(session, me.id, content)
     setMessages((prev) => [...prev, message])
-    deliverMessage(message).then((status) => {
-      setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, status } : m)))
+    deliverMessage(session, message).then(({ status, resolved }) => {
+      setMessages((prev) => prev.map((m) => (m.id === message.id ? (resolved ?? { ...m, status }) : m)))
     })
   }
 
   function retryMessage(message: ChatMessage) {
+    if (!session) return
     setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, status: 'sending' } : m)))
-    deliverMessage({ ...message, status: 'sending' }).then((status) => {
-      setMessages((prev) => prev.map((m) => (m.id === message.id ? { ...m, status } : m)))
+    deliverMessage(session, message).then(({ status, resolved }) => {
+      setMessages((prev) => prev.map((m) => (m.id === message.id ? (resolved ?? { ...m, status }) : m)))
     })
   }
 
@@ -179,8 +202,10 @@ export default function ChatSessionDetail() {
       <Composer
         disabled={session.status !== 'open'}
         onSendText={(text) => send({ type: 'text', text })}
-        onSendPhoto={(mediaUrl) => send({ type: 'photo', media_url: mediaUrl })}
-        onSendVideo={(mediaUrl, durationSeconds) => send({ type: 'video', media_url: mediaUrl, duration_seconds: durationSeconds })}
+        onSendPhoto={(mediaUrl, file) => send({ type: 'photo', media_url: mediaUrl, file })}
+        onSendVideo={(mediaUrl, file, durationSeconds) =>
+          send({ type: 'video', media_url: mediaUrl, file, duration_seconds: durationSeconds })
+        }
         onSendVoice={(durationSeconds) => send({ type: 'voice', duration_seconds: durationSeconds })}
       />
 

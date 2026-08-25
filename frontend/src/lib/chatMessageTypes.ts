@@ -1,10 +1,12 @@
 /**
  * Message-domain types for the chat session UI (TECHNICAL_REQUIREMENTS.md
- * section 12). Deliberately kept separate from lib/types.ts: those types
- * mirror REAL backend response shapes one-to-one, while messages are
- * still mock data (see lib/mockChatData.ts) sitting behind a
- * service-layer interface (lib/chatMessageApi.ts) so a real backend can
- * be wired in later without any component or type here needing to change.
+ * section 12). Kept separate from lib/types.ts (which mirrors backend
+ * response shapes one-to-one) because a ChatMessage carries a few
+ * client-only concerns real API rows don't have — `status` (delivery
+ * state) and a temporary client-generated `id` for a message still in
+ * flight — that lib/chatMessageApi.ts's real backend calls (see
+ * backend/app/chat_message/) resolve into their final, server-assigned
+ * form once sending succeeds.
  */
 
 /** Only these four kinds of message content are allowed — no arbitrary
@@ -43,11 +45,20 @@ export interface ChatMessage {
  * timestamp) that only get filled in once sending actually starts (see
  * lib/chatMessageApi.ts's composeMessage()). A discriminated union on
  * `type` so e.g. a 'text' draft can't accidentally be built without
- * `text`, or a 'voice' draft without `duration_seconds`. */
+ * `text`, or a 'voice' draft without `duration_seconds`.
+ *
+ * `media_url` (photo/video) is a LOCAL object URL — from
+ * `URL.createObjectURL(file)` in components/chat/Composer.tsx — used
+ * for the optimistic preview bubble before the real upload finishes;
+ * `file` is the actual picked File, which is what gets uploaded (see
+ * lib/chatMessageApi.ts's deliverMessage()). Voice has neither: a voice
+ * "recording" is simulated (no real microphone access, see
+ * TECHNICAL_REQUIREMENTS.md section 12), so there's never a real file
+ * to upload for it — only the reported duration. */
 export type NewMessageContent =
   | { type: 'text'; text: string }
-  | { type: 'photo'; media_url: string }
-  | { type: 'video'; media_url: string; duration_seconds: number }
+  | { type: 'photo'; media_url: string; file: File }
+  | { type: 'video'; media_url: string; file: File; duration_seconds: number }
   | { type: 'voice'; duration_seconds: number }
 
 /** One calendar day's worth of consecutive messages — see

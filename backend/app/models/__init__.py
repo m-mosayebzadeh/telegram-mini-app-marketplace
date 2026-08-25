@@ -10,6 +10,7 @@ guarantee every model module gets imported at least once.
 """
 
 from app.models.audience_group import AudienceGroup, AudienceGroupMember  # noqa: F401
+from app.models.chat_message import ChatMessage  # noqa: F401
 from app.models.chat_session import ChatSession  # noqa: F401
 from app.models.content import Content  # noqa: F401
 from app.models.content_access import ContentOpenLog, ContentPurchase  # noqa: F401

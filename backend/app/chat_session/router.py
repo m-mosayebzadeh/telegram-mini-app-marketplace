@@ -22,6 +22,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from app.chat_session.access import get_participant_session
 from app.chat_session.schemas import ChatSessionOut, ChatSessionParticipantOut
 from app.core.config import settings
 from app.core.database import get_db
@@ -78,24 +79,6 @@ def _to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int)
     )
 
 
-def _get_participant_session(db: Session, session_id: int, user_id: int) -> ChatSession:
-    """Loads a session and confirms `user_id` is either its buyer or its
-    provider — used by every route below, so a stranger gets a plain 404,
-    same pattern as every other "only the people involved" check in this
-    app."""
-    chat_session = db.get(ChatSession, session_id)
-    if chat_session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
-
-    request = chat_session.request
-    is_buyer = request.buyer_id == user_id
-    is_provider = request.offer.provider_id == user_id
-    if not (is_buyer or is_provider):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
-
-    return chat_session
-
-
 @router.get("/mine", response_model=list[ChatSessionOut])
 def list_my_sessions(
     current_user: User = Depends(get_current_user),
@@ -119,7 +102,7 @@ def get_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatSessionOut:
-    chat_session = _get_participant_session(db, session_id, current_user.id)
+    chat_session = get_participant_session(db, session_id, current_user.id)
     return _to_chat_session_out(db, chat_session, current_user.id)
 
 
@@ -129,7 +112,7 @@ def close_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatSessionOut:
-    chat_session = _get_participant_session(db, session_id, current_user.id)
+    chat_session = get_participant_session(db, session_id, current_user.id)
     if chat_session.status != ChatSessionStatus.OPEN:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="This session is already closed."
@@ -157,7 +140,7 @@ def dispute_session(
     isn't built yet; that's the same deferred report/complaint system
     TECHNICAL_REQUIREMENTS.md section 7 already flags as an open decision.
     """
-    chat_session = _get_participant_session(db, session_id, current_user.id)
+    chat_session = get_participant_session(db, session_id, current_user.id)
     if chat_session.status != ChatSessionStatus.CLOSED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
