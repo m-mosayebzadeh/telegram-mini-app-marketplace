@@ -1,5 +1,9 @@
 <!doctype html>
-<html lang="en">
+<!-- lang="fa" dir="rtl" matches i18n/config.ts's default language (Persian)
+     — setting the correct value here, before any JS runs, avoids a flash
+     of left-to-right layout on first paint. src/i18n/config.ts keeps this
+     attribute in sync afterward if the user switches to English. -->
+<html lang="fa" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

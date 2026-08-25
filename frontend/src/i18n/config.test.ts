@@ -42,4 +42,21 @@ describe('i18n config', () => {
     const result = i18n.t('wallet.pendingValue', { toman: '1,000' })
     expect(result).toContain('1,000')
   })
+
+  it('sets <html dir="rtl" lang="fa"> for Persian and flips to ltr/en for English', async () => {
+    // theme.css is written entirely with logical properties (start/end,
+    // inset-inline-*) specifically so this one attribute is what makes
+    // the whole app render right-to-left — this test is what would catch
+    // it silently regressing back to always-ltr.
+    await i18n.changeLanguage('fa')
+    expect(document.documentElement.dir).toBe('rtl')
+    expect(document.documentElement.lang).toBe('fa')
+
+    await i18n.changeLanguage('en')
+    expect(document.documentElement.dir).toBe('ltr')
+    expect(document.documentElement.lang).toBe('en')
+
+    // Reset back to the default for any test that runs after this one.
+    await i18n.changeLanguage('fa')
+  })
 })

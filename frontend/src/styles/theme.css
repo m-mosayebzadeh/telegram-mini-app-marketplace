@@ -1037,6 +1037,15 @@
   flex: none;
 }
 
+/* The ‹ glyph itself doesn't flip on its own just because the page's
+   `dir` changes — a "back" chevron has to visually point toward where
+   back actually leads (the end of the reading direction), so it's
+   mirrored by hand here rather than swapping to a different character
+   per direction in the component. */
+[dir='rtl'] .hp-chat-back {
+  transform: scaleX(-1);
+}
+
 .hp-chat-header-identity {
   flex: 1;
   display: flex;
