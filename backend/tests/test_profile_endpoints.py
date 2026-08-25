@@ -72,3 +72,122 @@ def test_put_rejects_too_many_interests(client):
     )
 
     assert response.status_code == 400
+
+
+# --- is_trusted -------------------------------------------------------------
+# is_trusted has no field in ProfileUpdate at all (see app/profile/schemas.py) —
+# these confirm that's actually enforced, not just documented in a comment.
+
+
+def test_is_trusted_defaults_to_false(client):
+    response = client.put("/profile/me", headers=AUTH_HEADER, json={"bio": "Hi"})
+
+    assert response.json()["is_trusted"] is False
+
+
+def test_put_cannot_set_is_trusted(client):
+    # ProfileUpdate has no is_trusted field, so Pydantic silently drops
+    # this extra key (the default "ignore unknown fields" behavior) —
+    # this confirms that silent-drop actually results in the badge
+    # staying off, not a 422 that would at least be a visible signal.
+    response = client.put("/profile/me", headers=AUTH_HEADER, json={"bio": "Hi", "is_trusted": True})
+
+    assert response.status_code == 200
+    assert response.json()["is_trusted"] is False
+
+
+# --- birthday (month/day only, no year) -------------------------------------
+
+
+def test_birthday_defaults_to_unset(client):
+    response = client.put("/profile/me", headers=AUTH_HEADER, json={"bio": "Hi"})
+
+    body = response.json()
+    assert body["birthday_month"] is None
+    assert body["birthday_day"] is None
+
+
+def test_put_saves_a_valid_birthday(client):
+    response = client.put(
+        "/profile/me", headers=AUTH_HEADER, json={"birthday_month": 5, "birthday_day": 20}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["birthday_month"] == 5
+    assert body["birthday_day"] == 20
+
+
+def test_get_after_put_reflects_the_saved_birthday(client):
+    client.put("/profile/me", headers=AUTH_HEADER, json={"birthday_month": 3, "birthday_day": 1})
+
+    response = client.get("/profile/me", headers=AUTH_HEADER)
+
+    body = response.json()
+    assert body["birthday_month"] == 3
+    assert body["birthday_day"] == 1
+
+
+def test_put_without_birthday_fields_clears_a_previously_saved_one(client):
+    # PUT /profile/me is a full replace, not a partial patch — the same
+    # already-established behavior for bio/location/interests. A
+    # follow-up PUT that omits birthday_month/day should clear it, the
+    # same as omitting bio clears bio, not "leave it alone".
+    client.put("/profile/me", headers=AUTH_HEADER, json={"birthday_month": 5, "birthday_day": 20})
+
+    response = client.put("/profile/me", headers=AUTH_HEADER, json={"bio": "no birthday this time"})
+
+    body = response.json()
+    assert body["birthday_month"] is None
+    assert body["birthday_day"] is None
+
+
+def test_put_rejects_birthday_month_without_day(client):
+    response = client.put("/profile/me", headers=AUTH_HEADER, json={"birthday_month": 5})
+
+    assert response.status_code == 400
+
+
+def test_put_rejects_birthday_day_without_month(client):
+    response = client.put("/profile/me", headers=AUTH_HEADER, json={"birthday_day": 20})
+
+    assert response.status_code == 400
+
+
+def test_put_rejects_a_day_that_does_not_exist_in_any_year(client):
+    # February 30th doesn't exist in ANY year — Field(ge=1, le=31) alone
+    # can't catch this since 30 is in-range for a day in general; the
+    # router's own date(2000, month, day) check is what has to catch it.
+    response = client.put(
+        "/profile/me", headers=AUTH_HEADER, json={"birthday_month": 2, "birthday_day": 30}
+    )
+
+    assert response.status_code == 400
+
+
+def test_put_accepts_february_29th(client):
+    # 2000 (the fixed anchor year the router validates against — see
+    # app/profile/router.py) is a leap year, so Feb 29 is accepted even
+    # though the real year is never stored at all (see
+    # Profile.birthday_month's docstring on why there's no year here).
+    response = client.put(
+        "/profile/me", headers=AUTH_HEADER, json={"birthday_month": 2, "birthday_day": 29}
+    )
+
+    assert response.status_code == 200
+
+
+def test_put_rejects_birthday_month_out_of_range(client):
+    response = client.put(
+        "/profile/me", headers=AUTH_HEADER, json={"birthday_month": 13, "birthday_day": 1}
+    )
+
+    assert response.status_code == 422  # caught by Pydantic's Field(le=12), not the router
+
+
+def test_put_rejects_birthday_day_out_of_range(client):
+    response = client.put(
+        "/profile/me", headers=AUTH_HEADER, json={"birthday_month": 1, "birthday_day": 32}
+    )
+
+    assert response.status_code == 422  # caught by Pydantic's Field(le=31), not the router

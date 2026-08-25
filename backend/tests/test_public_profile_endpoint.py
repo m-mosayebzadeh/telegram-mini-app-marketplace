@@ -51,6 +51,50 @@ def test_viewing_a_nonexistent_user_returns_404(client):
     assert response.status_code == 404
 
 
+def test_public_profile_defaults_is_trusted_and_birthday_when_no_profile(client):
+    _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")  # never creates a Profile row at all
+
+    response = client.get(f"/profiles/{bob['id']}", headers=_auth_header(1, "Alice"))
+
+    body = response.json()
+    assert body["is_trusted"] is False
+    assert body["birthday_month"] is None
+    assert body["birthday_day"] is None
+
+
+def test_public_profile_reflects_a_saved_birthday(client):
+    _login(client, 1, "Alice")
+    bob_auth = _auth_header(2, "Bob")
+    bob = _login(client, 2, "Bob")
+    client.put("/profile/me", headers=bob_auth, json={"birthday_month": 8, "birthday_day": 17})
+
+    response = client.get(f"/profiles/{bob['id']}", headers=_auth_header(1, "Alice"))
+
+    body = response.json()
+    assert body["birthday_month"] == 8
+    assert body["birthday_day"] == 17
+
+
+def test_public_profile_reflects_is_trusted_once_set_directly_in_the_database(client, db_session):
+    # is_trusted has no HTTP endpoint at all that can set it (see
+    # app/profile/schemas.py's ProfileUpdate) — the only real way it
+    # ever becomes True today is backend/scripts/seed_demo_profile.py
+    # writing straight to the database, so that's what this simulates:
+    # confirming the READ path surfaces it correctly, since the write
+    # path is deliberately unreachable via the API.
+    from app.models.profile import Profile
+
+    _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    db_session.add(Profile(user_id=bob["id"], is_trusted=True))
+    db_session.commit()
+
+    response = client.get(f"/profiles/{bob['id']}", headers=_auth_header(1, "Alice"))
+
+    assert response.json()["is_trusted"] is True
+
+
 def test_public_profile_includes_follow_counts(client):
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
