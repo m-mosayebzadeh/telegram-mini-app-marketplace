@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, ApiError } from '../lib/api'
 import { getRequestAction } from '../lib/requestActions'
 import type { ChatSession, Request } from '../lib/types'
@@ -56,44 +56,47 @@ export default function MyRequests() {
       </Placeholder>
     )
   }
-  if (requests.length === 0) return <Placeholder>{t('requests.none')}</Placeholder>
 
   return (
-    <List>
-      <Section header={t('requests.mineTitle')}>
-        {requests.map((request) => {
-          const action = getRequestAction(request, sessions)
-          return (
-            <Cell
-              key={request.id}
-              subtitle={`#${request.offer_id}`}
-              after={
-                action.type === 'pay' ? (
-                  <Button size="s" loading={payingId === request.id} onClick={() => pay(request.id)}>
-                    {t('requests.payButton')}
-                  </Button>
-                ) : action.type === 'session' ? (
-                  <Button size="s" mode="outline" onClick={() => navigate(`/chat-sessions/${action.session.id}`)}>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('requests.mineTitle')}</div>
+
+      {requests.length === 0 ? (
+        <p className="hp-empty">{t('requests.none')}</p>
+      ) : (
+        <div className="hp-list">
+          {requests.map((request) => {
+            const action = getRequestAction(request, sessions)
+            return (
+              <div key={request.id} className="hp-list-row">
+                <div className="hp-list-row-main">
+                  <span className="hp-list-title">
+                    {action.type === 'waiting' && t('requests.statusWaiting')}
+                    {action.type === 'rejected' && `${t('requests.statusRejected')}: ${action.reason ?? ''}`}
+                    {action.type === 'cancelled' && `${t('requests.statusCancelled')}: ${action.reason ?? ''}`}
+                    {action.type === 'pay' && t('requests.payButton')}
+                    {action.type === 'session' &&
+                      (action.session.status === 'open' ? t('chatSession.statusOpen') : t('chatSession.statusClosed'))}
+                  </span>
+                  <span className="hp-list-subtitle">#{request.offer_id}</span>
+                </div>
+                {action.type === 'pay' && (
+                  <button className="hp-btn-sm hp-btn-sm-filled" disabled={payingId === request.id} onClick={() => pay(request.id)}>
+                    {payingId === request.id ? t('common.loading') : t('requests.payButton')}
+                  </button>
+                )}
+                {action.type === 'session' && (
+                  <button className="hp-btn-sm" onClick={() => navigate(`/chat-sessions/${action.session.id}`)}>
                     {t('requests.openSession')}
-                  </Button>
-                ) : undefined
-              }
-            >
-              {action.type === 'waiting' && t('requests.statusWaiting')}
-              {action.type === 'rejected' && `${t('requests.statusRejected')}: ${action.reason ?? ''}`}
-              {action.type === 'cancelled' && `${t('requests.statusCancelled')}: ${action.reason ?? ''}`}
-              {action.type === 'pay' && t('requests.payButton')}
-              {action.type === 'session' &&
-                (action.session.status === 'open' ? t('chatSession.statusOpen') : t('chatSession.statusClosed'))}
-            </Cell>
-          )
-        })}
-      </Section>
-      {message && (
-        <Section>
-          <Cell>{message}</Cell>
-        </Section>
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
-    </List>
+
+      {message && <p className="hp-hint" style={{ padding: '0 16px' }}>{message}</p>}
+    </div>
   )
 }

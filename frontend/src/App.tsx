@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Tabbar } from '@telegram-apps/telegram-ui'
 import { MeProvider } from './lib/MeContext'
 import { needsDevLogin } from './lib/session'
 import Discover from './pages/Discover'
@@ -57,8 +56,8 @@ function AppShell() {
   const navigate = useNavigate()
 
   return (
-    // Bottom padding so the fixed Tabbar never covers the last row of
-    // whatever page is currently showing.
+    // Bottom padding so the fixed bottom nav never covers the last row
+    // of whatever page is currently showing.
     <div style={{ paddingBottom: 64 }}>
       <Routes>
         <Route path="/" element={<Discover />} />
@@ -77,16 +76,26 @@ function AppShell() {
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
-      <Tabbar>
-        {TABS.map((tab) => (
-          <Tabbar.Item
-            key={tab.path}
-            text={t(`tabs.${tab.key}`)}
-            selected={tab.isActive(location.pathname)}
-            onClick={() => navigate(tab.path)}
-          />
-        ))}
-      </Tabbar>
+      {/* A custom hp-* bottom nav instead of telegram-ui's own <Tabbar> —
+          that one follows AppRoot's Telegram platform/light-dark theme,
+          which would clash with the fixed dark "lounge" background every
+          page now uses (see .hp-bottom-nav's comment in theme.css). Same
+          TABS/isActive logic as before, only the rendering changed. */}
+      <nav className="hp-bottom-nav">
+        {TABS.map((tab) => {
+          const active = tab.isActive(location.pathname)
+          return (
+            <button
+              key={tab.path}
+              className={`hp-bottom-nav-item ${active ? 'hp-bottom-nav-item-active' : ''}`}
+              onClick={() => navigate(tab.path)}
+            >
+              <span className="hp-bottom-nav-dot" aria-hidden="true" />
+              {t(`tabs.${tab.key}`)}
+            </button>
+          )
+        })}
+      </nav>
     </div>
   )
 }

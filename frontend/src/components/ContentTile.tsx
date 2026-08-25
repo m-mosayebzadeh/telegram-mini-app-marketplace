@@ -43,6 +43,12 @@ export function ContentTile({ content, onClick }: ContentTileProps) {
   }, [content.id, content.has_spoiler])
 
   const locked = content.has_spoiler
+  // Paid content is always spoilered too (CHECK constraint on the
+  // backend — see Content.has_spoiler's docstring), so "locked" alone
+  // can't tell a free teaser apart from a priced unlock. This mirrors
+  // the three grid states from the design pass exactly: free, spoiler
+  // (mystery veil, no price), premium (mystery veil + gold badge).
+  const premium = locked && content.is_paid && content.price_stars != null
 
   return (
     <button className="hp-tile" onClick={onClick}>
@@ -52,30 +58,57 @@ export function ContentTile({ content, onClick }: ContentTileProps) {
       {!locked && fileUrl && content.content_type === 'short_video' && (
         <video className="hp-tile-media" src={fileUrl} muted playsInline preload="metadata" />
       )}
-
-      {locked && (
-        <div className="hp-tile-lock">
-          <span className="hp-tile-lock-icon">🔒</span>
+      {!locked && content.content_type === 'short_video' && (
+        <div className="hp-tile-play-icon">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <path d="M8 5l11 7-11 7V5z" />
+          </svg>
         </div>
       )}
 
-      {content.content_type === 'short_video' && (
+      {locked && (
+        <div className={`hp-tile-veil ${premium ? 'hp-tile-veil-premium' : 'hp-tile-veil-spoiler'}`}>
+          {premium ? (
+            <div className="hp-tile-price-pill">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--hp-gold)" stroke="none">
+                <path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3.5z" />
+              </svg>
+              <span>{content.price_stars}</span>
+            </div>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)" stroke="none">
+              <path d="M12 3l1.7 6.8L20 11l-6.3 1.2L12 19l-1.7-6.8L4 11l6.3-1.2L12 3z" />
+            </svg>
+          )}
+        </div>
+      )}
+
+      {/* Only shown for a LOCKED video — an unlocked one already gets its
+          own play icon (hp-tile-play-icon above), so this would just be
+          a duplicate. */}
+      {locked && content.content_type === 'short_video' && (
         <span className="hp-tile-badge hp-tile-badge-end" aria-label={t('content.videoBadge')}>
-          ▶
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" stroke="none">
+            <path d="M8 5l11 7-11 7V5z" />
+          </svg>
         </span>
       )}
 
-      {content.is_pinned && <span className="hp-tile-badge hp-tile-badge-start">📌</span>}
+      {content.is_pinned && (
+        <span className="hp-tile-badge hp-tile-badge-start" aria-label={t('content.pinnedBadge')}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" stroke="none">
+            <path d="M14.4 2.6a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4l-3.2 3.2 1 4.7-1.6 1.6-4.2-4.2-4.8 4.8-1.4-1.4 4.8-4.8-4.2-4.2 1.6-1.6 4.7 1 3.2-3.2z" />
+          </svg>
+        </span>
+      )}
 
       {content.like_count > 0 && (
         <span className="hp-tile-likes">
-          <span>♥</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+            <path d="M12 21s-7.5-4.6-10-9C.3 8.4 2 4 6.2 4c2 0 3.5 1.1 4.3 2.4C11.3 5.1 12.8 4 14.8 4 19 4 20.7 8.4 19 12c-2.5 4.4-10 9-10 9z" />
+          </svg>
           <span>{content.like_count}</span>
         </span>
-      )}
-
-      {locked && content.is_paid && content.price_stars != null && (
-        <span className="hp-tile-price">⭐ {content.price_stars}</span>
       )}
     </button>
   )

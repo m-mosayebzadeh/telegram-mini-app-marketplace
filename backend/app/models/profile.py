@@ -8,7 +8,7 @@ is what actually enforces the "one-to-one" part — without it, this would
 be a regular one-to-many relationship (one user could have many profiles).
 """
 
-from sqlalchemy import JSON, ForeignKey, String
+from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -39,6 +39,32 @@ class Profile(Base):
     # X" — see TECHNICAL_REQUIREMENTS.md, this is for future
     # discovery/recommendation, not built now.
     interests: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+    # The "پروفایل معتبر" (verified/trusted profile) badge from the
+    # design pass — deliberately NOT part of ProfileUpdate (see
+    # app/profile/schemas.py and app/profile/router.py): a user can't
+    # grant this to themselves. For now it's only ever set by the demo
+    # seed script (backend/scripts/seed_demo_profile.py); a real
+    # verification flow is a later phase. The frontend shows nothing at
+    # all when this is False — never an empty placeholder badge.
+    is_trusted: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    # Birthday — month/day only, deliberately no year (nobody needs a
+    # stranger's age from a profile page, and it keeps this out of any
+    # "date of birth" privacy category). Gregorian on the wire; the
+    # frontend converts to the Jalali calendar for display since that's
+    # the app's default locale. Both null (never set) or both set —
+    # never just one — per the CHECK constraint below.
+    birthday_month: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    birthday_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            "(birthday_month IS NULL AND birthday_day IS NULL) OR "
+            "(birthday_month BETWEEN 1 AND 12 AND birthday_day BETWEEN 1 AND 31)",
+            name="ck_birthday_both_or_neither",
+        ),
+    )
 
     # `relationship()` doesn't create a database column — it's a
     # convenience so Python code can write `profile.user` (or, from the

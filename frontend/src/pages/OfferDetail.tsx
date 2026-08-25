@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { apiFetch, ApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
@@ -92,10 +92,17 @@ export default function OfferDetail() {
   }
 
   return (
-    <List>
-      <Section header={offer.title}>
-        <Cell subtitle={t('offers.descriptionLabel')}>{offer.description}</Cell>
-        <Cell subtitle={t('offers.priceStarsLabel')}>{offer.price_stars}</Cell>
+    <div className="hp-page">
+      <div className="hp-page-header">{offer.title}</div>
+
+      <div className="hp-card">
+        <p className="hp-bio" style={{ margin: 0 }}>
+          {offer.description}
+        </p>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('offers.priceStarsLabel')}</span>
+          <span className="hp-kv-value">{offer.price_stars}</span>
+        </div>
         {/* The provider (owner) sees the full breakdown, including their
             own commission/net earnings — a buyer only needs to know
             what THEY pay (Stars + Toman equivalent), never the
@@ -105,103 +112,105 @@ export default function OfferDetail() {
           commissionKind="chat"
           variant={isOwner ? 'full' : 'grossOnly'}
         />
-        <Cell subtitle={t('offers.durationLabel')}>{offer.display_duration_minutes}</Cell>
-        <Cell subtitle={t('offers.status')}>
-          {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}
-        </Cell>
-      </Section>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('offers.durationLabel')}</span>
+          <span className="hp-kv-value">{offer.display_duration_minutes}</span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('offers.status')}</span>
+          <span className="hp-kv-value">
+            {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}
+          </span>
+        </div>
+      </div>
 
-      <Section>
-        <Cell onClick={() => navigate(`/profiles/${offer.provider_id}`)}>{t('offers.viewProfile')}</Cell>
-        <Cell onClick={() => navigate(`/profiles/${offer.provider_id}/provider-summary`)}>
-          {t('offers.viewProviderSummary')}
-        </Cell>
-      </Section>
+      <div className="hp-list">
+        <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}`)}>
+          <span className="hp-list-title">{t('offers.viewProfile')}</span>
+        </button>
+        <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}/provider-summary`)}>
+          <span className="hp-list-title">{t('offers.viewProviderSummary')}</span>
+        </button>
+      </div>
 
       {!isOwner && (
-        <Section>
-          <Cell>
-            <Button stretched onClick={sendRequest}>
-              {t('offers.requestButton')}
-            </Button>
-          </Cell>
-          {actionMessage && <Cell>{actionMessage}</Cell>}
-        </Section>
+        <div className="hp-field" style={{ margin: '0 12px 14px' }}>
+          <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} onClick={sendRequest}>
+            {t('offers.requestButton')}
+          </button>
+          {actionMessage && <p className="hp-hint">{actionMessage}</p>}
+        </div>
       )}
 
       {isOwner && (
-        <Section header={t('offers.incomingRequestsTitle')}>
-          {requests === null && (
-            <Cell>
+        <>
+          <div className="hp-page-header" style={{ paddingTop: 0, fontSize: 16 }}>
+            {t('offers.incomingRequestsTitle')}
+          </div>
+
+          {requests === null ? (
+            <Placeholder>
               <Spinner size="s" />
-            </Cell>
+            </Placeholder>
+          ) : requests.length === 0 ? (
+            <p className="hp-empty">{t('offers.noIncomingRequests')}</p>
+          ) : (
+            <div className="hp-list">
+              {requests.map((request) => {
+                // The provider's own way into the chat session once a
+                // request is accepted and paid — a session exists the
+                // instant payment succeeds (see backend/app/request/
+                // router.py's pay_for_request), so "a matching session
+                // exists" and "this got paid for" are the same fact, same
+                // logic MyRequests.tsx uses for the buyer side.
+                const session = sessions?.find((s) => s.request_id === request.id)
+                return (
+                  <Fragment key={request.id}>
+                    <button className="hp-list-row" onClick={() => navigate(`/profiles/${request.buyer_id}`)}>
+                      <div className="hp-list-row-main">
+                        <span className="hp-list-title">{t('offers.viewRequesterProfile')}</span>
+                        <span className="hp-list-subtitle">
+                          #{request.buyer_id} — {request.status}
+                        </span>
+                      </div>
+                    </button>
+                    <div className="hp-list-row">
+                      <div
+                        className="hp-list-row-main"
+                        onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <span className="hp-list-title">{t('offers.viewBuyerSummary')}</span>
+                      </div>
+                      {request.status === 'pending' && (
+                        <div className="hp-list-row-actions">
+                          <button className="hp-btn-sm hp-btn-sm-filled" onClick={() => respond(request.id, 'accept')}>
+                            {t('requests.acceptButton')}
+                          </button>
+                          <button className="hp-btn-sm" onClick={() => respond(request.id, 'reject')}>
+                            {t('requests.rejectButton')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {session && (
+                      <div className="hp-list-row">
+                        <span className="hp-list-title">
+                          {session.status === 'open' ? t('chatSession.statusOpen') : t('chatSession.statusClosed')}
+                        </span>
+                        <button className="hp-btn-sm" onClick={() => navigate(`/chat-sessions/${session.id}`)}>
+                          {t('requests.openSession')}
+                        </button>
+                      </div>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </div>
           )}
-          {requests !== null && requests.length === 0 && <Cell>{t('offers.noIncomingRequests')}</Cell>}
-          {requests?.map((request) => {
-            // The provider's own way into the chat session once a
-            // request is accepted and paid — a session exists the
-            // instant payment succeeds (see backend/app/request/
-            // router.py's pay_for_request), so "a matching session
-            // exists" and "this got paid for" are the same fact, same
-            // logic MyRequests.tsx uses for the buyer side.
-            const session = sessions?.find((s) => s.request_id === request.id)
-            return (
-              <Fragment key={request.id}>
-                <Cell
-                  subtitle={`#${request.buyer_id} — ${request.status}`}
-                  onClick={() => navigate(`/profiles/${request.buyer_id}`)}
-                >
-                  {t('offers.viewRequesterProfile')}
-                </Cell>
-                <Cell
-                  onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
-                  after={
-                    request.status === 'pending' ? (
-                      <>
-                        <Button
-                          size="s"
-                          mode="filled"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            respond(request.id, 'accept')
-                          }}
-                        >
-                          {t('requests.acceptButton')}
-                        </Button>
-                        <Button
-                          size="s"
-                          mode="outline"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            respond(request.id, 'reject')
-                          }}
-                        >
-                          {t('requests.rejectButton')}
-                        </Button>
-                      </>
-                    ) : undefined
-                  }
-                >
-                  {t('offers.viewBuyerSummary')}
-                </Cell>
-                {session && (
-                  <Cell
-                    onClick={() => navigate(`/chat-sessions/${session.id}`)}
-                    after={
-                      <Button size="s" mode="outline" onClick={(e) => e.stopPropagation()}>
-                        {t('requests.openSession')}
-                      </Button>
-                    }
-                  >
-                    {session.status === 'open' ? t('chatSession.statusOpen') : t('chatSession.statusClosed')}
-                  </Cell>
-                )}
-              </Fragment>
-            )
-          })}
-          {actionMessage && <Cell>{actionMessage}</Cell>}
-        </Section>
+          {actionMessage && <p className="hp-hint" style={{ padding: '0 16px' }}>{actionMessage}</p>}
+        </>
       )}
-    </List>
+    </div>
   )
 }

@@ -2,6 +2,13 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@telegram-apps/telegram-ui'
 import { ApiError, apiFetch } from '../lib/api'
+import {
+  daysInJalaliMonth,
+  gregorianMonthDayToJalali,
+  jalaliMonthDayToGregorian,
+  jalaliYearFor,
+  JALALI_MONTH_NAMES,
+} from '../lib/jalali'
 import type { MyProfile, PublicProfile } from '../lib/types'
 
 // Mirrors backend/app/models/profile.py's MAX_INTERESTS — duplicated
@@ -25,6 +32,17 @@ export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
   const [bio, setBio] = useState(initial.bio ?? '')
   const [location, setLocation] = useState(initial.location ?? '')
   const [interestsText, setInterestsText] = useState(initial.interests.join(', '))
+  // The Jalali year "now" — the correct anchor for jalaliMonthDayToGregorian
+  // (a Jalali function needs a Jalali year, not new Date().getFullYear()'s
+  // Gregorian one — see jalaliYearFor's docstring for why that distinction
+  // matters right at the Esfand/Farvardin boundary).
+  const jalaliYear = jalaliYearFor()
+  const initialJalaliBirthday =
+    initial.birthday_month != null && initial.birthday_day != null
+      ? gregorianMonthDayToJalali(new Date().getFullYear(), initial.birthday_month, initial.birthday_day)
+      : null
+  const [birthdayMonth, setBirthdayMonth] = useState(initialJalaliBirthday?.jm ?? null)
+  const [birthdayDay, setBirthdayDay] = useState(initialJalaliBirthday?.jd ?? null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,9 +57,19 @@ export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
     setBusy(true)
     setError(null)
     try {
+      const gregorianBirthday =
+        birthdayMonth != null && birthdayDay != null
+          ? jalaliMonthDayToGregorian(jalaliYear, birthdayMonth, birthdayDay)
+          : null
       const updated = await apiFetch<MyProfile>('/profile/me', {
         method: 'PUT',
-        body: JSON.stringify({ bio: bio || null, location: location || null, interests }),
+        body: JSON.stringify({
+          bio: bio || null,
+          location: location || null,
+          interests,
+          birthday_month: gregorianBirthday?.gm ?? null,
+          birthday_day: gregorianBirthday?.gd ?? null,
+        }),
       })
       onSaved(updated)
     } catch (err) {
@@ -74,6 +102,52 @@ export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
         {tooManyInterests && (
           <p className="hp-error">{t('profilePage.interestsTooMany', { max: MAX_INTERESTS })}</p>
         )}
+      </div>
+
+      <div className="hp-field">
+        <label className="hp-field-label">{t('profilePage.birthdayLabel')}</label>
+        <div className="hp-birthday-edit-row">
+          <select
+            className="hp-birthday-select"
+            value={birthdayMonth ?? ''}
+            onChange={(e) => {
+              const nextMonth = e.target.value ? Number(e.target.value) : null
+              setBirthdayMonth(nextMonth)
+              // A day picked under a longer month (e.g. 31 under
+              // Farvardin) can outlive a switch to a shorter one (e.g.
+              // Mehr, 30 days) — clamp instead of silently sending an
+              // out-of-range day to jalaliMonthDayToGregorian.
+              if (nextMonth != null && birthdayDay != null) {
+                const maxDay = daysInJalaliMonth(jalaliYear, nextMonth)
+                if (birthdayDay > maxDay) setBirthdayDay(maxDay)
+              }
+            }}
+          >
+            <option value="">—</option>
+            {JALALI_MONTH_NAMES.map((name, i) => (
+              <option key={name} value={i + 1}>
+                {name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="hp-birthday-select hp-birthday-select-day"
+            value={birthdayDay ?? ''}
+            onChange={(e) => setBirthdayDay(e.target.value ? Number(e.target.value) : null)}
+            disabled={birthdayMonth == null}
+          >
+            <option value="">—</option>
+            {Array.from(
+              { length: birthdayMonth != null ? daysInJalaliMonth(jalaliYear, birthdayMonth) : 31 },
+              (_, i) => i + 1,
+            ).map((day) => (
+              <option key={day} value={day}>
+                {day}
+              </option>
+            ))}
+          </select>
+        </div>
+        <p className="hp-hint">{t('profilePage.birthdayHint')}</p>
       </div>
 
       {error && <p className="hp-error">{error}</p>}

@@ -52,12 +52,22 @@
     "interestsLabel": "علاقه‌مندی‌ها",
     "interestsPlaceholder": "با کاما جدا کنید، حداکثر {{max}} تا",
     "interestsTooMany": "حداکثر {{max}} علاقه‌مندی مجازه",
+    "birthdayLabel": "تولد (اختیاری)",
+    "birthdayHint": "بر اساس تقویم شمسی — سال ذخیره نمی‌شه.",
     "saveButton": "ذخیره",
     "saveSuccess": "پروفایل به‌روزرسانی شد",
-    "tabContent": "کانتنت",
+    "tabContent": "مدیا",
     "tabOffers": "پیشنهادها",
     "offersComingSoon": "به‌زودی",
-    "contentEmpty": "فعلاً کانتنتی نیست"
+    "contentEmpty": "فعلاً چیزی اینجا نیست",
+    "trustedBadge": "پروفایل معتبر",
+    "birthdaySheetTitle": "تولد",
+    "birthdayToday": "امروز تولدشه",
+    "birthdayCountdown": "{{count}} روز مانده",
+    "themeLabel": "تم",
+    "theme_velvet": "شب مخملی",
+    "theme_copper": "مسی مینیمال",
+    "theme_jade": "یشم شبانه"
   },
   "followRequests": {
     "link": "درخواست‌های دنبال کردن",
@@ -145,8 +155,8 @@
     "rejectReasonPlaceholder": "دلیل رد کردن را بنویسید"
   },
   "content": {
-    "uploadButton": "افزودن کانتنت",
-    "uploadTitle": "آپلود کانتنت",
+    "uploadButton": "افزودن مدیا",
+    "uploadTitle": "آپلود مدیا",
     "fileLabel": "فایل",
     "chooseFile": "برای انتخاب عکس یا ویدیو ضربه بزنید",
     "changeFile": "برای تغییر فایل ضربه بزنید",

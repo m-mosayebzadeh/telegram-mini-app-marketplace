@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, ApiError } from '../lib/api'
 import type { BuyerSummary as BuyerSummaryType } from '../lib/types'
 
@@ -33,17 +33,29 @@ export default function BuyerSummary() {
   }
 
   return (
-    <List>
-      <Section header={t('buyerSummary.title')}>
-        <Cell subtitle={t('buyerSummary.status')}>
-          {summary.status === 'established' ? t('buyerSummary.established') : t('buyerSummary.new')}
-        </Cell>
-        <Cell subtitle={t('buyerSummary.joinedAt')}>{new Date(summary.joined_at).toLocaleDateString()}</Cell>
-        <Cell subtitle={t('buyerSummary.completedTransactions')}>{summary.completed_transactions_count}</Cell>
-        <Cell subtitle={t('buyerSummary.totalStarsSpent')}>
-          {summary.total_stars_spent.toLocaleString('en-US')}
-        </Cell>
-      </Section>
-    </List>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('buyerSummary.title')}</div>
+
+      <div className="hp-card">
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('buyerSummary.status')}</span>
+          <span className="hp-kv-value">
+            {summary.status === 'established' ? t('buyerSummary.established') : t('buyerSummary.new')}
+          </span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('buyerSummary.joinedAt')}</span>
+          <span className="hp-kv-value">{new Date(summary.joined_at).toLocaleDateString()}</span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('buyerSummary.completedTransactions')}</span>
+          <span className="hp-kv-value">{summary.completed_transactions_count}</span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('buyerSummary.totalStarsSpent')}</span>
+          <span className="hp-kv-value">{summary.total_stars_spent.toLocaleString('en-US')}</span>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { NumberField } from '../components/NumberField'
 import { apiFetch, ApiError } from '../lib/api'
 import type { Balance } from '../lib/types'
@@ -49,29 +49,39 @@ export default function WalletPage() {
   }
 
   return (
-    <List>
-      <Section header={t('wallet.title')}>
-        <Cell subtitle={t('wallet.spendable')}>
-          {t('wallet.spendableValue', {
-            toman: balance.balance_toman.toLocaleString('en-US'),
-            stars: balance.balance_stars_equivalent.toLocaleString('en-US'),
-          })}
-        </Cell>
-        <Cell subtitle={t('wallet.pending')}>
-          {t('wallet.pendingValue', { toman: balance.pending_toman.toLocaleString('en-US') })}
-        </Cell>
-      </Section>
-      <Section header={t('wallet.topUpButton')}>
-        <Cell>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('wallet.title')}</div>
+
+      <div className="hp-card">
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('wallet.spendable')}</span>
+          <span className="hp-kv-value">
+            {t('wallet.spendableValue', {
+              toman: balance.balance_toman.toLocaleString('en-US'),
+              stars: balance.balance_stars_equivalent.toLocaleString('en-US'),
+            })}
+          </span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('wallet.pending')}</span>
+          <span className="hp-kv-value">
+            {t('wallet.pendingValue', { toman: balance.pending_toman.toLocaleString('en-US') })}
+          </span>
+        </div>
+      </div>
+
+      <div className="hp-card">
+        <h2 className="hp-card-title">{t('wallet.topUpButton')}</h2>
+        <div className="hp-field">
           <NumberField header={t('wallet.topUpAmountLabel')} value={topUpAmount} onChange={setTopUpAmount} />
-        </Cell>
-        <Cell>
-          <Button stretched onClick={topUp}>
+        </div>
+        <div className="hp-field">
+          <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} onClick={topUp}>
             {t('wallet.topUpButton')}
-          </Button>
-        </Cell>
-        {message && <Cell>{message}</Cell>}
-      </Section>
-    </List>
+          </button>
+        </div>
+        {message && <p className="hp-hint">{message}</p>}
+      </div>
+    </div>
   )
 }

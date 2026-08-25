@@ -8,6 +8,7 @@ import { ContentUploadForm } from '../components/ContentUploadForm'
 import { ProfileEditForm } from '../components/ProfileEditForm'
 import { ProfileHeader } from '../components/ProfileHeader'
 import { Sheet } from '../components/Sheet'
+import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { useMe } from '../lib/MeContext'
 import { clearDevUserChoice, isRealTelegramLaunch } from '../lib/session'
 import type { PublicProfile } from '../lib/types'
@@ -188,6 +189,11 @@ export default function ProfileTab() {
             <Cell subtitle={t('common.language')} onClick={toggleLanguage}>
               {i18n.language === 'fa' ? 'فارسی' : 'English'}
             </Cell>
+          </Section>
+          <Section>
+            <div style={{ padding: '10px 16px' }}>
+              <ThemeSwitcher />
+            </div>
           </Section>
           {!isRealTelegramLaunch() && (
             <Section>

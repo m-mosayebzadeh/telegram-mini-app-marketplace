@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Cell } from '@telegram-apps/telegram-ui'
 import { computePriceBreakdown, type PriceBreakdown as PriceBreakdownResult } from '../lib/priceBreakdown'
 import { getPricingConfig } from '../lib/pricing'
 
@@ -58,24 +57,38 @@ export function PriceBreakdown({ priceStars, commissionKind, variant = 'full' }:
   if (!breakdown) return null
 
   if (variant === 'grossOnly') {
-    return <Cell subtitle={t('offers.priceInToman')}>{breakdown.grossPriceToman.toLocaleString('en-US')}</Cell>
+    return (
+      <div className="hp-kv-row">
+        <span className="hp-kv-label">{t('offers.priceInToman')}</span>
+        <span className="hp-kv-value">{breakdown.grossPriceToman.toLocaleString('en-US')}</span>
+      </div>
+    )
   }
 
   return (
     <>
-      <Cell subtitle={t('offers.priceInToman')}>{breakdown.grossPriceToman.toLocaleString('en-US')}</Cell>
-      <Cell subtitle={t('offers.commission')}>
-        {t('offers.starsAndToman', {
-          stars: breakdown.commissionStars,
-          toman: breakdown.commissionToman.toLocaleString('en-US'),
-        })}
-      </Cell>
-      <Cell subtitle={t('offers.netEarnings')}>
-        {t('offers.starsAndToman', {
-          stars: breakdown.netProviderStars,
-          toman: breakdown.netProviderToman.toLocaleString('en-US'),
-        })}
-      </Cell>
+      <div className="hp-kv-row">
+        <span className="hp-kv-label">{t('offers.priceInToman')}</span>
+        <span className="hp-kv-value">{breakdown.grossPriceToman.toLocaleString('en-US')}</span>
+      </div>
+      <div className="hp-kv-row">
+        <span className="hp-kv-label">{t('offers.commission')}</span>
+        <span className="hp-kv-value">
+          {t('offers.starsAndToman', {
+            stars: breakdown.commissionStars,
+            toman: breakdown.commissionToman.toLocaleString('en-US'),
+          })}
+        </span>
+      </div>
+      <div className="hp-kv-row">
+        <span className="hp-kv-label">{t('offers.netEarnings')}</span>
+        <span className="hp-kv-value">
+          {t('offers.starsAndToman', {
+            stars: breakdown.netProviderStars,
+            toman: breakdown.netProviderToman.toLocaleString('en-US'),
+          })}
+        </span>
+      </div>
     </>
   )
 }

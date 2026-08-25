@@ -106,6 +106,16 @@ export interface PublicProfile {
   bio: string | null
   location: string | null
   interests: string[]
+  // "پروفایل معتبر" — see backend/app/models/profile.py's Profile.is_trusted
+  // docstring. Never settable by the profile's own owner; render nothing
+  // at all when this is false, never an empty badge placeholder.
+  is_trusted: boolean
+  // Gregorian month/day, no year — see Profile.birthday_month's
+  // docstring. Both present or both null. Convert with lib/jalali.ts
+  // before displaying (the app's default locale uses the Jalali
+  // calendar).
+  birthday_month: number | null
+  birthday_day: number | null
   followers_count: number
   following_count: number
   follow_status: 'not_following' | 'pending' | 'accepted'
@@ -142,6 +152,9 @@ export interface MyProfile {
   bio: string | null
   location: string | null
   interests: string[]
+  is_trusted: boolean
+  birthday_month: number | null
+  birthday_day: number | null
 }
 
 /** GET /pricing — the current Star-to-Toman rate and commission

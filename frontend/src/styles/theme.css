@@ -1,14 +1,24 @@
 /**
  * "Premium social lounge" visual theme for the profile tab and the
- * content unlock experience — a warm purple/orange/pink gradient system
- * on glass cards over a near-black backdrop. Class names are prefixed
- * `hp-` ("hot profile") so nothing here can accidentally collide with
- * telegram-ui's own classes.
+ * content unlock experience — glass cards over a near-black backdrop,
+ * in one of three switchable palettes (see the [data-hp-theme] blocks
+ * below). Class names are prefixed `hp-` ("hot profile") so nothing
+ * here can accidentally collide with telegram-ui's own classes.
  *
- * Design tokens (background, primary/accent/highlight) are fixed brand
- * colors, not derived from telegram-ui's theme — this section commits
- * to its own dark, emotional look on purpose (see the tokens block
- * below for why that's necessary, not just a style choice).
+ * Design tokens (background, primary/secondary/tertiary/gold, text)
+ * are fixed brand colors per theme, not derived from telegram-ui's own
+ * theme — this section commits to its own dark, emotional look on
+ * purpose, independent of Telegram's light/dark auto-detection.
+ *
+ * Three themes ship today — velvet (default), copper, jade — chosen
+ * via `document.documentElement.dataset.hpTheme` (see
+ * src/lib/ThemeContext.tsx and components/ThemeSwitcher.tsx). Every
+ * component in this file, and every future page, should be built
+ * entirely out of these tokens (--hp-bg/--hp-primary/--hp-secondary/
+ * --hp-tertiary/--hp-gold/--hp-text/--hp-text-muted and the *-rgb
+ * triplets for one-off rgba() shadows) rather than a hardcoded color —
+ * that's what makes a new theme a matter of adding one block below
+ * instead of hunting through every component.
  *
  * Imported once, globally, in main.tsx — the same way
  * '@telegram-apps/telegram-ui/dist/styles.css' is — rather than per
@@ -17,32 +27,72 @@
  */
 
 :root {
-  --hp-bg: #120d1b;
-  --hp-purple: #a855f7;
-  --hp-orange: #ff8a3d;
-  --hp-pink: #f472b6;
-  --hp-grad: linear-gradient(135deg, var(--hp-purple), var(--hp-pink) 55%, var(--hp-orange));
+  /* ---- velvet (default) — "Velvet After Dark" ---- */
+  --hp-bg: #0e0912;
+  --hp-primary: #9b6cff; /* violet */
+  --hp-secondary: #d94672; /* wine */
+  --hp-tertiary: #f2a06b; /* ember */
+  --hp-gold: #ffd36a; /* premium/gold accent, for unlocked-content UI */
+  --hp-primary-rgb: 155, 108, 255;
+  --hp-secondary-rgb: 217, 70, 114;
+  --hp-tertiary-rgb: 242, 160, 107;
+  --hp-gold-rgb: 255, 211, 106;
+  --hp-text: #f8f3f7;
+  --hp-text-muted: #b9acb8;
+
+  --hp-grad: linear-gradient(135deg, var(--hp-primary), var(--hp-secondary) 55%, var(--hp-tertiary));
   --hp-grad-soft: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--hp-purple) 30%, transparent),
-    color-mix(in srgb, var(--hp-orange) 30%, transparent)
+    color-mix(in srgb, var(--hp-primary) 30%, transparent),
+    color-mix(in srgb, var(--hp-tertiary) 30%, transparent)
   );
 
   /* Glass surfaces: a translucent tint over --hp-bg plus backdrop-blur
      (applied per-class below) rather than a flat opaque color — that's
      what makes a card read as "glass floating over the lounge" instead
      of "a solid gray box." Hairline borders only (rgba white), never a
-     hard, opaque one — per the brief's "no hard borders." */
+     hard, opaque one — per the brief's "no hard borders." Same across
+     all three themes on purpose: it's what lets a dark bg of any hue
+     read as "glass," not a per-theme choice. */
   --hp-glass: rgba(255, 255, 255, 0.055);
   --hp-glass-strong: rgba(255, 255, 255, 0.09);
   --hp-hairline: rgba(255, 255, 255, 0.09);
 
-  --hp-text: #f7f5fa;
-  --hp-text-muted: #b7aec4;
-  --hp-glow: 0 8px 32px rgba(168, 85, 247, 0.35);
-  --hp-glow-pink: 0 8px 28px rgba(244, 114, 182, 0.3);
+  --hp-glow: 0 8px 32px rgba(var(--hp-primary-rgb), 0.35);
 
   --hp-font: 'Vazirmatn', system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ---- copper — "Copper Minimal" ---- */
+[data-hp-theme='copper'] {
+  --hp-bg: #14120f;
+  --hp-primary: #c77a4b; /* copper */
+  --hp-secondary: #e8b778; /* gold */
+  --hp-tertiary: #a08966; /* bronze */
+  --hp-gold: #e8b778;
+  --hp-primary-rgb: 199, 122, 75;
+  --hp-secondary-rgb: 232, 183, 120;
+  --hp-tertiary-rgb: 160, 137, 102;
+  --hp-gold-rgb: 232, 183, 120;
+  --hp-text: #f5f1ea;
+  --hp-text-muted: #c9c0b2;
+  --hp-glow: 0 8px 32px rgba(var(--hp-primary-rgb), 0.35);
+}
+
+/* ---- jade — "Jade Noir" ---- */
+[data-hp-theme='jade'] {
+  --hp-bg: #0b0f0d;
+  --hp-primary: #3fae83; /* emerald */
+  --hp-secondary: #c24b5c; /* garnet */
+  --hp-tertiary: #e3b577; /* antique gold */
+  --hp-gold: #e3b577;
+  --hp-primary-rgb: 63, 174, 131;
+  --hp-secondary-rgb: 194, 75, 92;
+  --hp-tertiary-rgb: 227, 181, 119;
+  --hp-gold-rgb: 227, 181, 119;
+  --hp-text: #f3f5f1;
+  --hp-text-muted: #b9c4bc;
+  --hp-glow: 0 8px 32px rgba(var(--hp-primary-rgb), 0.35);
 }
 
 /*
@@ -63,12 +113,37 @@
   font-family: var(--hp-font);
 }
 
+/* A soft ambient wash rather than a hard-edged gradient banner — two
+   blurred glow blobs (primary + secondary) over the page's own --hp-bg,
+   plus a bottom pool where the glass card is about to overlap, closer to
+   how the "Velvet After Dark" mockups read than a flat color block. */
 .hp-cover {
-  height: 108px;
-  background: var(--hp-grad);
+  height: 168px;
+  background: var(--hp-bg);
   border-radius: 0 0 28px 28px;
   position: relative;
   overflow: hidden;
+}
+
+.hp-cover-glow {
+  position: absolute;
+  width: 62%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(38px);
+  pointer-events: none;
+}
+
+.hp-cover-glow-a {
+  top: -30%;
+  inset-inline-end: -8%;
+  background: radial-gradient(circle, rgba(var(--hp-primary-rgb), 0.32), transparent 70%);
+}
+
+.hp-cover-glow-b {
+  top: -10%;
+  inset-inline-start: -12%;
+  background: radial-gradient(circle, rgba(var(--hp-secondary-rgb), 0.24), transparent 70%);
 }
 
 /* A soft inner glow near the bottom of the cover — the light "pools"
@@ -78,7 +153,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(60% 80% at 50% 120%, rgba(255, 255, 255, 0.35), transparent);
+  background: radial-gradient(70% 80% at 50% 120%, rgba(255, 255, 255, 0.1), transparent);
 }
 
 /* ---------- glass card ---------- */
@@ -119,7 +194,7 @@
   border-radius: 50%;
   padding: 3.5px;
   background: var(--hp-grad);
-  box-shadow: var(--hp-glow), 0 0 0 6px rgba(168, 85, 247, 0.08);
+  box-shadow: var(--hp-glow), 0 0 0 6px rgba(var(--hp-primary-rgb), 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -164,6 +239,69 @@
   font-size: 13px;
   color: var(--hp-text-muted);
   margin-top: 7px;
+}
+
+/* ---------- trust badge + birthday (components/ProfileHeader.tsx) ---------- */
+
+.hp-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: rgba(var(--hp-primary-rgb), 0.12);
+  color: var(--hp-primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.hp-birthday-chip {
+  margin-top: 9px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hp-gold);
+  background: rgba(var(--hp-gold-rgb), 0.1);
+  box-shadow: 0 0 12px rgba(var(--hp-gold-rgb), 0.2);
+}
+
+.hp-birthday-sheet-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0 6px;
+  text-align: center;
+}
+
+.hp-birthday-sheet-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hp-gold);
+  background: rgba(var(--hp-gold-rgb), 0.12);
+  box-shadow: 0 0 20px rgba(var(--hp-gold-rgb), 0.25);
+}
+
+.hp-birthday-sheet-date {
+  margin: 14px 0 4px;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--hp-text);
+}
+
+.hp-birthday-sheet-countdown {
+  font-size: 13px;
+  color: var(--hp-text-muted);
 }
 
 /* ---------- chips ---------- */
@@ -345,7 +483,7 @@
   height: 3px;
   border-radius: 3px;
   background: var(--hp-grad);
-  box-shadow: 0 0 10px rgba(168, 85, 247, 0.7);
+  box-shadow: 0 0 10px rgba(var(--hp-primary-rgb), 0.7);
 }
 
 .hp-tab:disabled {
@@ -386,40 +524,67 @@
   display: block;
 }
 
-/* The "curiosity-driven" locked cover: a warm animated gradient blurred
-   with backdrop-filter, never the real file — see
-   components/ContentTile.tsx and app/content/access.py for why the
-   actual bytes are never sent to an unauthorized viewer at all, spoiler
-   or not. This is styled to READ as a soft blur, not a hard padlock
-   badge, so a locked tile still feels inviting rather than just denied. */
-.hp-tile-lock {
+/* The "curiosity-driven" locked cover — a blended mystery veil (never
+   the real file; see components/ContentTile.tsx and app/content/access.py
+   for why the actual bytes are never sent to an unauthorized viewer at
+   all, spoiler or not) with the state mark CENTERED, matching the design
+   pass: a plain sparkle for a free spoiler, a gold star+price pill for
+   a paid one — never a hard padlock badge, so a locked tile still feels
+   inviting rather than just denied. */
+.hp-tile-veil {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--hp-grad-soft);
-  backdrop-filter: blur(3px);
 }
 
-.hp-tile-lock-icon {
-  width: 30px;
-  height: 30px;
+.hp-tile-veil-spoiler {
+  background:
+    radial-gradient(120% 100% at 30% 20%, rgba(var(--hp-primary-rgb), 0.32), transparent 60%),
+    radial-gradient(120% 100% at 72% 82%, rgba(var(--hp-secondary-rgb), 0.26), transparent 60%),
+    var(--hp-glass-strong);
+}
+
+.hp-tile-veil-premium {
+  background:
+    radial-gradient(120% 100% at 30% 20%, rgba(var(--hp-gold-rgb), 0.3), transparent 60%),
+    radial-gradient(120% 100% at 76% 76%, rgba(var(--hp-secondary-rgb), 0.24), transparent 60%),
+    var(--hp-glass-strong);
+}
+
+.hp-tile-price-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background: rgba(14, 9, 18, 0.55);
+  box-shadow: 0 0 16px rgba(var(--hp-gold-rgb), 0.35);
+  color: var(--hp-gold);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.hp-tile-play-icon {
+  position: absolute;
+  inset-inline-start: 8px;
+  bottom: 8px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: rgba(18, 13, 27, 0.55);
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  box-shadow: 0 0 16px rgba(168, 85, 247, 0.55);
+  color: #fff;
 }
 
 .hp-tile-badge {
   position: absolute;
   top: 6px;
-  color: #fff;
+  display: flex;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.85));
-  font-size: 13px;
 }
 
 .hp-tile-badge-start {
@@ -443,19 +608,6 @@
   gap: 3px;
 }
 
-.hp-tile-price {
-  position: absolute;
-  bottom: 6px;
-  inset-inline-end: 7px;
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--hp-grad);
-  box-shadow: 0 2px 8px rgba(168, 85, 247, 0.5);
-}
-
 /* ---------- floating action button ---------- */
 
 .hp-fab {
@@ -470,7 +622,7 @@
   color: #fff;
   font-size: 27px;
   line-height: 1;
-  box-shadow: var(--hp-glow), 0 0 0 8px rgba(168, 85, 247, 0.1);
+  box-shadow: var(--hp-glow), 0 0 0 8px rgba(var(--hp-primary-rgb), 0.1);
   cursor: pointer;
   z-index: 40;
   display: flex;
@@ -594,6 +746,30 @@
   margin-bottom: 7px;
 }
 
+.hp-birthday-edit-row {
+  display: flex;
+  gap: 8px;
+}
+
+.hp-birthday-select {
+  flex: 2;
+  border: 1px solid var(--hp-hairline);
+  background: var(--hp-glass);
+  color: var(--hp-text);
+  border-radius: 12px;
+  padding: 10px 8px;
+  font-size: 13.5px;
+  font-family: var(--hp-font);
+}
+
+.hp-birthday-select-day {
+  flex: 1;
+}
+
+.hp-birthday-select:disabled {
+  opacity: 0.5;
+}
+
 .hp-segmented {
   display: flex;
   gap: 7px;
@@ -616,7 +792,7 @@
   background: var(--hp-grad);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
+  box-shadow: 0 4px 14px rgba(var(--hp-primary-rgb), 0.35);
 }
 
 .hp-dropzone {
@@ -686,6 +862,45 @@
   font-family: var(--hp-font);
 }
 
+/* ---------- theme switcher (components/ThemeSwitcher.tsx) ---------- */
+
+.hp-theme-switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.hp-theme-switch-label {
+  font-size: 14px;
+  color: var(--hp-text);
+}
+
+.hp-theme-switch-row {
+  display: flex;
+  gap: 10px;
+}
+
+.hp-theme-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--hp-hairline);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.hp-theme-swatch:active {
+  transform: scale(0.9);
+}
+
+.hp-theme-swatch-active {
+  border-color: var(--hp-bg);
+  box-shadow: 0 0 0 2px var(--hp-text);
+}
+
 /* ---------- premium content unlock (ContentDetail) ---------- */
 
 .hp-detail-hero {
@@ -718,9 +933,9 @@
   text-align: center;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--hp-purple) 45%, transparent),
-    color-mix(in srgb, var(--hp-pink) 40%, transparent) 50%,
-    color-mix(in srgb, var(--hp-orange) 45%, transparent)
+    color-mix(in srgb, var(--hp-primary) 45%, transparent),
+    color-mix(in srgb, var(--hp-secondary) 40%, transparent) 50%,
+    color-mix(in srgb, var(--hp-tertiary) 45%, transparent)
   );
   background-size: 200% 200%;
   animation: hp-shimmer 6s ease-in-out infinite;
@@ -778,7 +993,7 @@
 
 .hp-icon-btn.hp-icon-btn-active {
   background: var(--hp-grad-soft);
-  border-color: color-mix(in srgb, var(--hp-pink) 40%, transparent);
+  border-color: color-mix(in srgb, var(--hp-secondary) 40%, transparent);
 }
 
 .hp-icon-btn:disabled {
@@ -1253,4 +1468,214 @@
   border-radius: 50%;
   background: #fbbf24;
   animation: hp-recording-pulse 1.1s ease-in-out infinite;
+}
+
+/* ---------- shared page chrome (every list/form/summary page) ---------- */
+
+/* A plain bold title at the top of a page that has no hero card of its
+   own (Discover, My Offers, My Requests, ...) — the same role
+   telegram-ui's <Section header> used to play, just styled to match the
+   hp-* system instead of AppRoot's own theme. */
+.hp-page-header {
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 10px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--hp-text);
+  font-family: var(--hp-font);
+}
+
+/* A generic glass "card of rows" — every plain list page (offers,
+   requests, follow requests, follower lists, login's test-user picker)
+   is built out of one of these instead of telegram-ui's List/Section,
+   so they read as the same surface as the profile tab's own glass card. */
+.hp-list {
+  margin: 0 12px 14px;
+  background: var(--hp-glass);
+  border: 1px solid var(--hp-hairline);
+  border-radius: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.hp-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  font-family: var(--hp-font);
+}
+
+.hp-list-row:not(:last-child) {
+  border-bottom: 1px solid var(--hp-hairline);
+}
+
+button.hp-list-row {
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 0;
+  text-align: start;
+  cursor: pointer;
+  color: inherit;
+}
+
+button.hp-list-row:not(:last-child) {
+  border-bottom: 1px solid var(--hp-hairline);
+}
+
+button.hp-list-row:active {
+  background: var(--hp-grad-soft);
+}
+
+.hp-list-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.hp-list-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--hp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hp-list-subtitle {
+  font-size: 12.5px;
+  color: var(--hp-text-muted);
+}
+
+.hp-list-row-actions {
+  display: flex;
+  gap: 7px;
+  flex: none;
+}
+
+/* Small pill buttons used INSIDE a list row (accept/reject, activate/
+   deactivate, ...) — same font/radius language as .hp-btn but compact
+   enough to sit two-across next to a title. */
+.hp-btn-sm {
+  border: 1px solid var(--hp-hairline);
+  background: var(--hp-glass-strong);
+  color: var(--hp-text);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--hp-font);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hp-btn-sm-filled {
+  background: var(--hp-grad);
+  color: #fff;
+  border-color: transparent;
+}
+
+.hp-btn-sm:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* A generic label/value row — offer price, request status, provider
+   summary stats, wallet balances, ... anywhere a page needs to show a
+   handful of "key: value" facts without a full list-row treatment. */
+.hp-kv-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  font-size: 13.5px;
+}
+
+.hp-kv-label {
+  color: var(--hp-text-muted);
+}
+
+.hp-kv-value {
+  color: var(--hp-text);
+  font-weight: 600;
+  text-align: end;
+}
+
+/* A glass card used for one block of content on plain pages (offer
+   detail's own info, wallet balances/top-up form, ...) — the same
+   surface as .hp-list but without the row-divider styling, for content
+   that isn't a list of items. */
+.hp-card {
+  margin: 12px 12px 14px;
+  padding: 16px;
+  background: var(--hp-glass);
+  border: 1px solid var(--hp-hairline);
+  border-radius: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.hp-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--hp-text);
+  margin: 0 0 10px;
+}
+
+/* ---------- bottom navigation ---------- */
+
+/* Replaces telegram-ui's own <Tabbar> — that one follows AppRoot's
+   Telegram platform/light-dark theme, which clashes with this system's
+   own fixed dark "lounge" background (the same reason .hp-page commits
+   to var(--hp-bg) instead of AppRoot's theme, see its own comment
+   above). Since this bar is present on every single screen, it has to
+   match the hp-* tokens for "every page shares one template" to
+   actually hold up. */
+.hp-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  inset-inline: 0;
+  z-index: 30;
+  display: flex;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: rgba(18, 13, 27, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--hp-hairline);
+}
+
+.hp-bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  padding: 7px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--hp-font);
+  color: var(--hp-text-muted);
+  cursor: pointer;
+}
+
+.hp-bottom-nav-item-active {
+  color: var(--hp-text);
+}
+
+.hp-bottom-nav-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.hp-bottom-nav-item-active .hp-bottom-nav-dot {
+  background: var(--hp-grad);
+  box-shadow: 0 0 8px rgba(var(--hp-primary-rgb), 0.7);
 }

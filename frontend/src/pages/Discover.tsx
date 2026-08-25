@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, ApiError } from '../lib/api'
 import { getPricingConfig } from '../lib/pricing'
 import type { Offer } from '../lib/types'
@@ -9,7 +9,11 @@ import type { Offer } from '../lib/types'
 /** Marketplace-wide discovery: every ACTIVE offer from every provider
  * (GET /offers with no provider_id — see backend/app/offer/router.py).
  * This is the "Divar-style" browse list TECHNICAL_REQUIREMENTS.md
- * section 9 settled on, not a content feed. */
+ * section 9 settled on, not a content feed. Styled with the same hp-*
+ * "premium lounge" system as the profile tab (TECHNICAL_REQUIREMENTS.md
+ * section 12's follow-up: unifying every page onto one visual template) —
+ * loading/error states still use telegram-ui's Placeholder/Spinner, the
+ * same convention every other hp-page screen already follows. */
 export default function Discover() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -37,32 +41,36 @@ export default function Discover() {
       </Placeholder>
     )
   }
-  if (offers.length === 0) return <Placeholder>{t('offers.none')}</Placeholder>
 
   return (
-    <List>
-      <Section header={t('offers.browseTitle')}>
-        {offers.map((offer) => (
-          <Cell
-            key={offer.id}
-            subtitle={
-              starToTomanRate
-                ? t('offers.priceLineWithToman', {
-                    price: offer.price_stars,
-                    minutes: offer.display_duration_minutes,
-                    toman: (offer.price_stars * starToTomanRate).toLocaleString('en-US'),
-                  })
-                : t('offers.priceLine', {
-                    price: offer.price_stars,
-                    minutes: offer.display_duration_minutes,
-                  })
-            }
-            onClick={() => navigate(`/offers/${offer.id}`)}
-          >
-            {offer.title}
-          </Cell>
-        ))}
-      </Section>
-    </List>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('offers.browseTitle')}</div>
+
+      {offers.length === 0 ? (
+        <p className="hp-empty">{t('offers.none')}</p>
+      ) : (
+        <div className="hp-list">
+          {offers.map((offer) => (
+            <button key={offer.id} className="hp-list-row" onClick={() => navigate(`/offers/${offer.id}`)}>
+              <div className="hp-list-row-main">
+                <span className="hp-list-title">{offer.title}</span>
+                <span className="hp-list-subtitle">
+                  {starToTomanRate
+                    ? t('offers.priceLineWithToman', {
+                        price: offer.price_stars,
+                        minutes: offer.display_duration_minutes,
+                        toman: (offer.price_stars * starToTomanRate).toLocaleString('en-US'),
+                      })
+                    : t('offers.priceLine', {
+                        price: offer.price_stars,
+                        minutes: offer.display_duration_minutes,
+                      })}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

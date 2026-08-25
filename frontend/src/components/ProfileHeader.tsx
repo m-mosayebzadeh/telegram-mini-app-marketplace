@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@telegram-apps/telegram-ui'
+import { daysUntilNextBirthday, formatJalaliBirthday } from '../lib/jalali'
 import type { PublicProfile } from '../lib/types'
+import { Sheet } from './Sheet'
 
 interface ProfileHeaderProps {
   profile: PublicProfile
@@ -39,10 +42,16 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [birthdayOpen, setBirthdayOpen] = useState(false)
+
+  const hasBirthday = profile.birthday_month != null && profile.birthday_day != null
 
   return (
     <div>
-      <div className="hp-cover" />
+      <div className="hp-cover">
+        <div className="hp-cover-glow hp-cover-glow-a" />
+        <div className="hp-cover-glow hp-cover-glow-b" />
+      </div>
       <div className="hp-glass-card hp-header-card">
         <div className="hp-avatar-wrap">
           <div className="hp-avatar-ring">
@@ -57,10 +66,36 @@ export function ProfileHeader({
         <h1 className="hp-name">{profile.display_name}</h1>
         {profile.username && <p className="hp-username">@{profile.username}</p>}
 
+        {/* Nothing renders here at all when is_trusted is false — never
+            an empty placeholder badge (see PublicProfile.is_trusted's
+            docstring). */}
+        {profile.is_trusted && (
+          <div className="hp-trust-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+              <path d="M12 3l1.7 6.8L20 11l-6.3 1.2L12 19l-1.7-6.8L4 11l6.3-1.2L12 3z" />
+            </svg>
+            <span>{t('profilePage.trustedBadge')}</span>
+          </div>
+        )}
+
+        {hasBirthday && (
+          <button className="hp-birthday-chip" onClick={() => setBirthdayOpen(true)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 3v3" />
+              <circle cx="12" cy="5.6" r="1" fill="currentColor" stroke="none" />
+              <rect x="4.5" y="11" width="15" height="7.5" rx="2.4" />
+              <path d="M4.5 14.2c1.6-1.3 3.1-1.3 4.7 0s3.1 1.3 4.7 0s3.1-1.3 4.6 0" />
+            </svg>
+          </button>
+        )}
+
         {profile.bio && <p className="hp-bio">{profile.bio}</p>}
         {profile.location && (
           <div className="hp-meta-row">
-            <span>📍</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z" />
+              <circle cx="12" cy="9" r="2.4" />
+            </svg>
             <span>{profile.location}</span>
           </div>
         )}
@@ -127,6 +162,31 @@ export function ProfileHeader({
           </div>
         )}
       </div>
+
+      {birthdayOpen && hasBirthday && (
+        <Sheet title={t('profilePage.birthdaySheetTitle')} onClose={() => setBirthdayOpen(false)}>
+          <div className="hp-birthday-sheet-body">
+            <div className="hp-birthday-sheet-icon">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 3v3" />
+                <circle cx="12" cy="5.6" r="1" fill="currentColor" stroke="none" />
+                <rect x="4.5" y="11" width="15" height="7.5" rx="2.4" />
+                <path d="M4.5 14.2c1.6-1.3 3.1-1.3 4.7 0s3.1 1.3 4.7 0s3.1-1.3 4.6 0" />
+              </svg>
+            </div>
+            <p className="hp-birthday-sheet-date">
+              {formatJalaliBirthday(profile.birthday_month!, profile.birthday_day!)}
+            </p>
+            <span className="hp-birthday-sheet-countdown">
+              {daysUntilNextBirthday(profile.birthday_month!, profile.birthday_day!) === 0
+                ? t('profilePage.birthdayToday')
+                : t('profilePage.birthdayCountdown', {
+                    count: daysUntilNextBirthday(profile.birthday_month!, profile.birthday_day!),
+                  })}
+            </span>
+          </div>
+        </Sheet>
+      )}
     </div>
   )
 }

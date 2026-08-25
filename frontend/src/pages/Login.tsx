@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Cell, List, Section } from '@telegram-apps/telegram-ui'
 import { setDevUserChoice } from '../lib/session'
 
 /**
@@ -54,19 +53,21 @@ export default function Login() {
   }
 
   return (
-    <List>
-      <Section header={t('login.title')}>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('login.title')}</div>
+
+      <div className="hp-list">
         {TEST_USERS.map((user) => (
-          <Cell key={user.telegramId} subtitle={t('login.noPassword')} onClick={() => loginAs(user)}>
-            {user.firstName}
-          </Cell>
+          <button key={user.telegramId} className="hp-list-row" onClick={() => loginAs(user)}>
+            <div className="hp-list-row-main">
+              <span className="hp-list-title">{user.firstName}</span>
+              <span className="hp-list-subtitle">{t('login.noPassword')}</span>
+            </div>
+          </button>
         ))}
-      </Section>
-      {error && (
-        <Section>
-          <Cell>{error}</Cell>
-        </Section>
-      )}
-    </List>
+      </div>
+
+      {error && <p className="hp-error" style={{ padding: '0 16px' }}>{error}</p>}
+    </div>
   )
 }

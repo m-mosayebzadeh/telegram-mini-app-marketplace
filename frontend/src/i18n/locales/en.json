@@ -52,12 +52,22 @@
     "interestsLabel": "Interests",
     "interestsPlaceholder": "Comma-separated, up to {{max}}",
     "interestsTooMany": "Up to {{max}} interests allowed",
+    "birthdayLabel": "Birthday (optional)",
+    "birthdayHint": "Jalali calendar — no year is stored.",
     "saveButton": "Save",
     "saveSuccess": "Profile updated",
     "tabContent": "Content",
     "tabOffers": "Offers",
     "offersComingSoon": "Coming soon",
-    "contentEmpty": "No content yet"
+    "contentEmpty": "No content yet",
+    "trustedBadge": "Verified profile",
+    "birthdaySheetTitle": "Birthday",
+    "birthdayToday": "Today is the birthday",
+    "birthdayCountdown": "{{count}} days left",
+    "themeLabel": "Theme",
+    "theme_velvet": "Velvet After Dark",
+    "theme_copper": "Copper Minimal",
+    "theme_jade": "Jade Noir"
   },
   "followRequests": {
     "link": "Follow requests",

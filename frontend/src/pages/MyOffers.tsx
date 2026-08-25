@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Button, Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, ApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
 import type { Offer } from '../lib/types'
@@ -57,39 +57,43 @@ export default function MyOffers() {
   }
 
   return (
-    <List>
-      <Section header={t('offers.mineTitle')}>
-        {offers.length === 0 && <Cell>{t('offers.none')}</Cell>}
-        {offers.map((offer) => (
-          <Cell
-            key={offer.id}
-            subtitle={`${t('offers.priceLine', {
-              price: offer.price_stars,
-              minutes: offer.display_duration_minutes,
-            })} — ${offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}`}
-            onClick={() => navigate(`/offers/${offer.id}`)}
-            after={
-              <>
-                <Button size="s" mode="outline" onClick={(e) => { e.stopPropagation(); toggle(offer) }}>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('offers.mineTitle')}</div>
+
+      {offers.length === 0 ? (
+        <p className="hp-empty">{t('offers.none')}</p>
+      ) : (
+        <div className="hp-list">
+          {offers.map((offer) => (
+            <div key={offer.id} className="hp-list-row">
+              <div className="hp-list-row-main" onClick={() => navigate(`/offers/${offer.id}`)} style={{ cursor: 'pointer' }}>
+                <span className="hp-list-title">{offer.title}</span>
+                <span className="hp-list-subtitle">
+                  {t('offers.priceLine', {
+                    price: offer.price_stars,
+                    minutes: offer.display_duration_minutes,
+                  })}{' '}
+                  — {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}
+                </span>
+              </div>
+              <div className="hp-list-row-actions">
+                <button className="hp-btn-sm" onClick={() => toggle(offer)}>
                   {offer.status === 'active' ? t('offers.deactivate') : t('offers.activate')}
-                </Button>
-                <Button size="s" mode="outline" onClick={(e) => { e.stopPropagation(); remove(offer) }}>
+                </button>
+                <button className="hp-btn-sm" onClick={() => remove(offer)}>
                   {t('offers.delete')}
-                </Button>
-              </>
-            }
-          >
-            {offer.title}
-          </Cell>
-        ))}
-      </Section>
-      <Section>
-        <Cell>
-          <Button stretched onClick={() => navigate('/offers/new')}>
-            {t('offers.createNew')}
-          </Button>
-        </Cell>
-      </Section>
-    </List>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="hp-field" style={{ margin: '0 12px' }}>
+        <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} onClick={() => navigate('/offers/new')}>
+          {t('offers.createNew')}
+        </button>
+      </div>
+    </div>
   )
 }

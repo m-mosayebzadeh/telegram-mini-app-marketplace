@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, ApiError } from '../lib/api'
 import type { FollowListItem } from '../lib/types'
 
@@ -35,19 +35,25 @@ export default function FollowList() {
   }
 
   return (
-    <List>
-      <Section header={kind === 'followers' ? t('profilePage.followersTitle') : t('profilePage.followingTitle')}>
-        {items.length === 0 && <Cell>{t('profilePage.followListEmpty')}</Cell>}
-        {items.map((item) => (
-          <Cell
-            key={item.user_id}
-            subtitle={item.username ?? undefined}
-            onClick={() => navigate(`/profiles/${item.user_id}`)}
-          >
-            {item.display_name}
-          </Cell>
-        ))}
-      </Section>
-    </List>
+    <div className="hp-page">
+      <div className="hp-page-header">
+        {kind === 'followers' ? t('profilePage.followersTitle') : t('profilePage.followingTitle')}
+      </div>
+
+      {items.length === 0 ? (
+        <p className="hp-empty">{t('profilePage.followListEmpty')}</p>
+      ) : (
+        <div className="hp-list">
+          {items.map((item) => (
+            <button key={item.user_id} className="hp-list-row" onClick={() => navigate(`/profiles/${item.user_id}`)}>
+              <div className="hp-list-row-main">
+                <span className="hp-list-title">{item.display_name}</span>
+                {item.username && <span className="hp-list-subtitle">@{item.username}</span>}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

@@ -7,6 +7,8 @@ Profile endpoints — two routers on purpose:
     public, unlike Content's audience rules.
 """
 
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -88,6 +90,23 @@ def upsert_my_profile(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, f"You can only have up to {MAX_INTERESTS} interests."
         )
+    if (payload.birthday_month is None) != (payload.birthday_day is None):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "birthday_month and birthday_day must be set together."
+        )
+    if payload.birthday_month is not None and payload.birthday_day is not None:
+        # ProfileUpdate's Field(ge=..., le=...) only bounds each of
+        # birthday_month/birthday_day independently (1-12, 1-31) — it
+        # can't catch a combination like month=2, day=30 that doesn't
+        # exist in ANY year. 2000 is a leap year, so this also accepts
+        # Feb 29 (Gregorian; the year itself is never stored, see
+        # Profile.birthday_month's docstring).
+        try:
+            date(2000, payload.birthday_month, payload.birthday_day)
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST, "birthday_month/birthday_day is not a real calendar date."
+            ) from None
 
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
     if profile is None:
@@ -98,6 +117,10 @@ def upsert_my_profile(
     profile.bio = payload.bio
     profile.location = payload.location
     profile.interests = payload.interests
+    profile.birthday_month = payload.birthday_month
+    profile.birthday_day = payload.birthday_day
+    # is_trusted is intentionally untouched here — see ProfileUpdate's
+    # docstring; this endpoint can never grant it.
 
     db.commit()
     db.refresh(profile)
@@ -129,6 +152,9 @@ def read_public_profile(
         bio=profile.bio if profile else None,
         location=profile.location if profile else None,
         interests=profile.interests if profile else [],
+        is_trusted=profile.is_trusted if profile else False,
+        birthday_month=profile.birthday_month if profile else None,
+        birthday_day=profile.birthday_day if profile else None,
         followers_count=_followers_count(db, user_id),
         following_count=_following_count(db, user_id),
         follow_status=_follow_status(db, viewer_id=current_user.id, target_id=user_id),

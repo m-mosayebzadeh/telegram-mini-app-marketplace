@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Cell, List, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, ApiError } from '../lib/api'
 import type { ProviderSummary as ProviderSummaryType } from '../lib/types'
 
@@ -34,19 +34,37 @@ export default function ProviderSummary() {
   const percent = (value: number | null) => (value === null ? '—' : `${Math.round(value * 100)}%`)
 
   return (
-    <List>
-      <Section header={t('providerSummary.title')}>
-        <Cell subtitle={t('providerSummary.status')}>
-          {summary.status === 'established' ? t('providerSummary.established') : t('providerSummary.new')}
-        </Cell>
-        <Cell subtitle={t('providerSummary.joinedAt')}>
-          {new Date(summary.joined_at).toLocaleDateString()}
-        </Cell>
-        <Cell subtitle={t('providerSummary.completedServices')}>{summary.completed_services_count}</Cell>
-        <Cell subtitle={t('providerSummary.responseRate')}>{percent(summary.response_rate)}</Cell>
-        <Cell subtitle={t('providerSummary.rejectionRate')}>{percent(summary.rejection_rate)}</Cell>
-        <Cell subtitle={t('providerSummary.disputedTransactions')}>{summary.disputed_transactions_count}</Cell>
-      </Section>
-    </List>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('providerSummary.title')}</div>
+
+      <div className="hp-card">
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('providerSummary.status')}</span>
+          <span className="hp-kv-value">
+            {summary.status === 'established' ? t('providerSummary.established') : t('providerSummary.new')}
+          </span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('providerSummary.joinedAt')}</span>
+          <span className="hp-kv-value">{new Date(summary.joined_at).toLocaleDateString()}</span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('providerSummary.completedServices')}</span>
+          <span className="hp-kv-value">{summary.completed_services_count}</span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('providerSummary.responseRate')}</span>
+          <span className="hp-kv-value">{percent(summary.response_rate)}</span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('providerSummary.rejectionRate')}</span>
+          <span className="hp-kv-value">{percent(summary.rejection_rate)}</span>
+        </div>
+        <div className="hp-kv-row">
+          <span className="hp-kv-label">{t('providerSummary.disputedTransactions')}</span>
+          <span className="hp-kv-value">{summary.disputed_transactions_count}</span>
+        </div>
+      </div>
+    </div>
   )
 }

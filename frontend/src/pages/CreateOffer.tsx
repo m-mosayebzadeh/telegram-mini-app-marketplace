@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Button, Cell, Input, List, Section, Textarea } from '@telegram-apps/telegram-ui'
+import { Input, Textarea } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { NumberField } from '../components/NumberField'
 import { apiFetch, ApiError } from '../lib/api'
@@ -39,41 +39,50 @@ export default function CreateOffer() {
   }
 
   return (
-    <List>
-      <Section header={t('offers.createNew')}>
-        <Cell>
+    <div className="hp-page">
+      <div className="hp-page-header">{t('offers.createNew')}</div>
+
+      <div className="hp-card">
+        <div className="hp-field">
           <Input header={t('offers.titleLabel')} value={title} onChange={(e) => setTitle(e.target.value)} />
-        </Cell>
-        <Cell>
+        </div>
+        <div className="hp-field">
           <NumberField header={t('offers.priceStarsLabel')} value={priceStars} onChange={setPriceStars} />
-        </Cell>
+        </div>
         {/* Live preview — updates as the price above changes. Offers are
             chat-only for now, so commissionKind is always 'chat' here;
             see components/PriceBreakdown.tsx for why it still takes the
             kind explicitly rather than hardcoding it internally. */}
         <PriceBreakdown priceStars={Number(priceStars) || 0} commissionKind="chat" />
-        <Cell>
+        <div className="hp-field">
           <Input
             header={t('offers.durationLabel')}
             type="number"
             value={durationMinutes}
             onChange={(e) => setDurationMinutes(e.target.value)}
           />
-        </Cell>
-        <Cell>
+        </div>
+        <div className="hp-field">
           <Textarea
             header={t('offers.descriptionLabel')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-        </Cell>
-        {error && <Cell>{error}</Cell>}
-        <Cell>
-          <Button stretched loading={submitting} onClick={submit}>
-            {t('offers.createButton')}
-          </Button>
-        </Cell>
-      </Section>
-    </List>
+        </div>
+
+        {error && <p className="hp-error">{error}</p>}
+
+        <div className="hp-field">
+          <button
+            className="hp-btn hp-btn-gradient"
+            style={{ width: '100%' }}
+            disabled={submitting}
+            onClick={submit}
+          >
+            {submitting ? t('common.loading') : t('offers.createButton')}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
