@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.core.config import settings
-from app.core.database import Base, engine, get_db
+from app.core.database import get_db
+from app.core.migrate import run_migrations
 from app.audience_group.router import router as audience_group_router
 from app.chat_message.router import router as chat_message_router
 from app.chat_session.router import router as chat_session_router
@@ -27,18 +28,19 @@ from app.wallet.router import router as wallet_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # For local development only: creates any tables that don't exist yet,
-    # based on the models imported above (e.g. User). This is fine for now
-    # with SQLite, but is not how schema changes are managed once we move
-    # to Postgres — at that point we'll use a proper migration tool
-    # instead of create_all, so existing data isn't wiped or left out of
-    # sync.
+    # Brings the database up to date with every model change, whether
+    # that's a brand new table or a new column on an existing one — see
+    # app/core/migrate.py's docstring for the real incident that made
+    # this matter (a stale local database on one machine, from before a
+    # column was added, silently erroring on every request that touched
+    # it). Safe to run on every startup: a database already at the
+    # latest migration is simply a no-op.
     #
     # This runs when the app actually *starts* (not merely on import).
     # That distinction matters for tests: test_me_endpoint.py imports
     # this module but never starts it, so it never touches the real
     # database file — it wires up its own isolated one instead.
-    Base.metadata.create_all(bind=engine)
+    run_migrations()
     yield
 
 
