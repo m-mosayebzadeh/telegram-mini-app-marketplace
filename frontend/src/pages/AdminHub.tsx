@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMe } from '../lib/MeContext'
+import { IconCoin, IconShieldLock } from '../components/icons'
 
 /**
  * The admin panel's own "home" — a list of top-level sections (see the
@@ -25,12 +26,16 @@ export default function AdminHub() {
       <div className="hp-list">
         {hasFinance && (
           <button className="hp-list-row" onClick={() => navigate('/admin/finance')}>
-            <span className="hp-list-title">💰 {t('admin.sectionFinance')}</span>
+            <span className="hp-list-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <IconCoin size={18} /> {t('admin.sectionFinance')}
+            </span>
           </button>
         )}
         {adminAccess.is_owner && (
           <button className="hp-list-row" onClick={() => navigate('/admin/access')}>
-            <span className="hp-list-title">🔐 {t('admin.sectionAccess')}</span>
+            <span className="hp-list-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <IconShieldLock size={18} /> {t('admin.sectionAccess')}
+            </span>
           </button>
         )}
       </div>

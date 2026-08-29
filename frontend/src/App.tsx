@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { IconActivity, IconChat, IconDiscover, IconPersonFallback } from './components/icons'
+import { IconActivity, IconChat, IconDashboard, IconDiscover, IconPersonFallback } from './components/icons'
 import { apiFetch } from './lib/api'
 import { MeProvider, useMe } from './lib/MeContext'
 import { needsDevLogin } from './lib/session'
@@ -150,7 +150,7 @@ function AppShell() {
             onClick={() => navigate('/admin')}
           >
             <span className="hp-bottom-nav-icon" aria-hidden="true">
-              🛠
+              <IconDashboard size={22} />
             </span>
             {t('tabs.admin')}
           </button>

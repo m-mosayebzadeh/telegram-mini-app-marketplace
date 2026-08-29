@@ -14,6 +14,7 @@ import {
   unpinContent,
 } from '../lib/contentApi'
 import { useMe } from '../lib/MeContext'
+import { IconHeart, IconPin, IconTrash } from '../components/icons'
 import type { Content } from '../lib/types'
 
 /**
@@ -206,7 +207,7 @@ export default function ContentDetail() {
           onClick={toggleLike}
           disabled={busy}
         >
-          <span>{content.liked_by_me ? '❤️' : '🤍'}</span>
+          <IconHeart size={17} filled={content.liked_by_me} />
           <span>{t('content.likeCount', { count: content.like_count })}</span>
         </button>
         {isOwner && (
@@ -215,7 +216,8 @@ export default function ContentDetail() {
             onClick={togglePin}
             disabled={busy}
           >
-            📌 {content.is_pinned ? t('content.unpinButton') : t('content.pinButton')}
+            <IconPin size={17} filled={content.is_pinned} />
+            {content.is_pinned ? t('content.unpinButton') : t('content.pinButton')}
           </button>
         )}
       </div>
@@ -223,7 +225,8 @@ export default function ContentDetail() {
       {isOwner && (
         <div className="hp-icon-row">
           <button className="hp-icon-btn" onClick={remove} disabled={busy}>
-            🗑 {t('content.deleteButton')}
+            <IconTrash size={17} />
+            {t('content.deleteButton')}
           </button>
         </div>
       )}

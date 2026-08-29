@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { fetchContentFileBlobUrl } from '../lib/contentApi'
+import { IconPin } from './icons'
 import type { Content } from '../lib/types'
 
 interface ContentTileProps {
@@ -96,9 +97,7 @@ export function ContentTile({ content, onClick }: ContentTileProps) {
 
       {content.is_pinned && (
         <span className="hp-tile-badge hp-tile-badge-start" aria-label={t('content.pinnedBadge')}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="#fff" stroke="none">
-            <path d="M14.4 2.6a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4l-3.2 3.2 1 4.7-1.6 1.6-4.2-4.2-4.8 4.8-1.4-1.4 4.8-4.8-4.2-4.2 1.6-1.6 4.7 1 3.2-3.2z" />
-          </svg>
+          <IconPin size={11} filled />
         </span>
       )}
 

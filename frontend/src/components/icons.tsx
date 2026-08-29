@@ -20,10 +20,12 @@ export function IconChat({ size = 24 }: IconProps) {
   )
 }
 
+// Adapted from Tabler Icons (https://tabler.io/icons, MIT) — "flame",
+// the user's explicit pick for the Activity tab.
 export function IconActivity({ size = 24 }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M12 21s-7-4.4-9.5-8.8C.8 8.8 2.3 5 6 5c2 0 3.3 1.1 4 2.2C10.7 6.1 12 5 14 5c3.7 0 5.2 3.8 3.5 7.2C15 16.6 12 21 12 21Z" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 10.941c2.333 -3.308 .167 -7.823 -1 -8.941c0 3.395 -2.235 5.299 -3.667 6.706c-1.43 1.408 -2.333 3.294 -2.333 5.588c0 3.704 3.134 6.706 7 6.706c3.866 0 7 -3.002 7 -6.706c0 -1.712 -1.232 -4.403 -2.333 -5.588c-2.084 3.353 -3.257 3.353 -4.667 2.235" />
     </svg>
   )
 }
@@ -110,6 +112,76 @@ export function IconExternalLink({ size = 24 }: IconProps) {
       <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
       <path d="M11 13l9 -9" />
       <path d="M15 4h5v5" />
+    </svg>
+  )
+}
+
+// Below: more Tabler Icons (https://tabler.io/icons, MIT), same
+// re-set-strokeWidth convention as above — "layout-dashboard" for the
+// admin nav tab, "coin" for the Finance section, "shield-lock" for the
+// Access section (all user-picked).
+export function IconDashboard({ size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 4h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" />
+      <path d="M5 16h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" />
+      <path d="M15 12h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1" />
+      <path d="M15 4h4a1 1 0 0 1 1 1v2a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1" />
+    </svg>
+  )
+}
+
+export function IconCoin({ size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+      <path d="M14.8 9a2 2 0 0 0 -1.8 -1h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1 -1.8 -1" />
+      <path d="M12 7v10" />
+    </svg>
+  )
+}
+
+export function IconShieldLock({ size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" />
+      <path d="M11 11a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+      <path d="M12 12l0 2.5" />
+    </svg>
+  )
+}
+
+// Heart and Pin both take `filled` — the "active" state (liked /
+// pinned) — since the app already toggles between an outline and a
+// solid look for those two states (previously 🤍/❤️ and a plain 📌).
+export function IconHeart({ size = 24, filled = false }: IconProps & { filled?: boolean }) {
+  if (filled) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M6.979 3.074a6 6 0 0 1 4.988 1.425l.037 .033l.034 -.03a6 6 0 0 1 4.733 -1.44l.246 .036a6 6 0 0 1 3.364 10.008l-.18 .185l-.048 .041l-7.45 7.379a1 1 0 0 1 -1.313 .082l-.094 -.082l-7.493 -7.422a6 6 0 0 1 3.176 -10.215z" />
+      </svg>
+    )
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572" />
+    </svg>
+  )
+}
+
+export function IconPin({ size = 24, filled = false }: IconProps & { filled?: boolean }) {
+  if (filled) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M15.113 3.21l.094 .083l5.5 5.5a1 1 0 0 1 -1.175 1.59l-3.172 3.171l-1.424 3.797a1 1 0 0 1 -.158 .277l-.07 .08l-1.5 1.5a1 1 0 0 1 -1.32 .082l-.095 -.083l-2.793 -2.792l-3.793 3.792a1 1 0 0 1 -1.497 -1.32l.083 -.094l3.792 -3.793l-2.792 -2.793a1 1 0 0 1 -.083 -1.32l.083 -.094l1.5 -1.5a1 1 0 0 1 .258 -.187l.098 -.042l3.796 -1.425l3.171 -3.17a1 1 0 0 1 1.497 -1.26z" />
+      </svg>
+    )
+  }
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4" />
+      <path d="M9 15l-4.5 4.5" />
+      <path d="M14.5 4l5.5 5.5" />
     </svg>
   )
 }
