@@ -12,6 +12,7 @@ section 4:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -142,8 +143,22 @@ def list_offers(
         query = query.filter(Offer.provider_id == provider_id)
         if provider_id == current_user.id:
             # Drop the ACTIVE-only filter for your own listing so you
-            # can see (and manage) your own INACTIVE offers too.
-            query = db.query(Offer).filter(Offer.provider_id == provider_id)
+            # can see (and manage) your own INACTIVE offers too, and
+            # attach each one's request_count — see OfferOut's docstring
+            # for why this is only populated in this one branch.
+            offers = db.query(Offer).filter(Offer.provider_id == provider_id).all()
+            counts = dict(
+                db.query(Request.offer_id, func.count(Request.id))
+                .filter(Request.offer_id.in_([o.id for o in offers]))
+                .group_by(Request.offer_id)
+                .all()
+            )
+            return [
+                OfferOut.model_validate(o, from_attributes=True).model_copy(
+                    update={"request_count": counts.get(o.id, 0)}
+                )
+                for o in offers
+            ]
     return query.all()
 
 

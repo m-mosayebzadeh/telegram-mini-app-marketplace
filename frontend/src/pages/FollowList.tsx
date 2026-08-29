@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 import type { FollowListItem } from '../lib/types'
 
 /**
@@ -22,7 +22,7 @@ export default function FollowList() {
     setItems(null)
     apiFetch<FollowListItem[]>(`/follow/${id}/${kind}`)
       .then(setItems)
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }, [id, kind])
 
   if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
@@ -47,7 +47,9 @@ export default function FollowList() {
           {items.map((item) => (
             <button key={item.user_id} className="hp-list-row" onClick={() => navigate(`/profiles/${item.user_id}`)}>
               <div className="hp-list-row-main">
-                <span className="hp-list-title">{item.display_name}</span>
+                <span className="hp-list-title" dir="auto">
+                  {item.display_name}
+                </span>
                 {item.username && <span className="hp-list-subtitle">@{item.username}</span>}
               </div>
             </button>

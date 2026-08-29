@@ -15,6 +15,7 @@ Business rules from TECHNICAL_REQUIREMENTS.md section 4:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -26,7 +27,7 @@ from app.models.offer import Offer, OfferStatus
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionKind
 from app.models.user import User
-from app.request.schemas import RequestCreate, RequestOut, RequestReject
+from app.request.schemas import RequestActivityOut, RequestCreate, RequestOut, RequestReject
 from app.wallet.schemas import TransactionOut
 from app.wallet.service import InsufficientBalanceError, pay_for_item
 
@@ -146,6 +147,49 @@ def list_my_requests(
 ) -> list[Request]:
     """Everything the current user has requested, as a buyer."""
     return db.query(Request).filter(Request.buyer_id == current_user.id).all()
+
+
+@router.get("/activity", response_model=list[RequestActivityOut])
+def list_activity_requests(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[RequestActivityOut]:
+    """
+    The Activity tab's unified Requests feed: everything the current
+    user is part of, either sent (as buyer) or received (as provider on
+    one of their own offers), together, newest first. Separate from
+    /mine (kept as-is for existing buyer-only screens) since this one
+    needs the join through Offer to also catch received requests, plus
+    the denormalized fields RequestActivityOut adds.
+    """
+    rows = (
+        db.query(Request, Offer)
+        .join(Offer, Request.offer_id == Offer.id)
+        .filter(or_(Request.buyer_id == current_user.id, Offer.provider_id == current_user.id))
+        .order_by(Request.created_at.desc())
+        .all()
+    )
+
+    out: list[RequestActivityOut] = []
+    for request, offer in rows:
+        sent = request.buyer_id == current_user.id
+        counterpart_id = offer.provider_id if sent else request.buyer_id
+        counterpart = db.get(User, counterpart_id)
+        out.append(
+            RequestActivityOut(
+                id=request.id,
+                offer_id=offer.id,
+                offer_title=offer.title,
+                status=request.status.value,
+                reason=request.reason,
+                created_at=request.created_at,
+                responded_at=request.responded_at,
+                direction="sent" if sent else "received",
+                counterpart_user_id=counterpart_id,
+                counterpart_display_name=counterpart.display_name if counterpart else "",
+            )
+        )
+    return out
 
 
 @router.get("", response_model=list[RequestOut])

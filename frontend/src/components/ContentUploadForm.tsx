@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiError } from '../lib/api'
+import { formatApiError } from '../lib/api'
 import { uploadContent } from '../lib/contentApi'
 import { NumberField } from './NumberField'
 import type { Content } from '../lib/types'
@@ -83,7 +83,7 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
       })
       onUploaded(content)
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setBusy(false)
     }

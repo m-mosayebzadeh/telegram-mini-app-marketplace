@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, ApiError, formatApiError } from '../lib/api'
 import { getRequestAction } from '../lib/requestActions'
 import type { ChatSession, Request } from '../lib/types'
 
@@ -25,7 +25,7 @@ export default function MyRequests() {
         setRequests(r)
         setSessions(s)
       })
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }, [])
 
   useEffect(load, [load])
@@ -41,7 +41,7 @@ export default function MyRequests() {
       if (err instanceof ApiError && err.status === 402) {
         setMessage(t('requests.insufficientBalance'))
       } else {
-        setMessage(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+        setMessage(formatApiError(err))
       }
     } finally {
       setPayingId(null)

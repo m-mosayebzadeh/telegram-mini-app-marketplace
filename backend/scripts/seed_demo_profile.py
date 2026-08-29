@@ -40,6 +40,7 @@ from app.core.database import Base, SessionLocal, engine  # noqa: E402
 from app.core.config import settings  # noqa: E402
 from app.models.content import Content, ContentAudience, ContentType  # noqa: E402
 from app.models.profile import Profile  # noqa: E402
+from app.models.profile_photo import ProfilePhoto  # noqa: E402
 from app.models.user import User  # noqa: E402
 
 DEMO_TELEGRAM_ID = 111222333
@@ -148,7 +149,7 @@ def main() -> None:
         if user is None:
             user = User(
                 telegram_id=DEMO_TELEGRAM_ID,
-                display_name=DEMO_DISPLAY_NAME,
+                first_name=DEMO_DISPLAY_NAME,
                 username=DEMO_USERNAME,
             )
             db.add(user)
@@ -162,7 +163,12 @@ def main() -> None:
             profile = Profile(user_id=user.id)
             db.add(profile)
 
-        profile.avatar_url = DEMO_AVATAR_URL
+        # avatar_url is no longer a Profile column — see
+        # app/models/profile_photo.py; only add a demo photo if this
+        # user doesn't already have one, so re-running the script
+        # doesn't pile up duplicates.
+        if db.query(ProfilePhoto).filter(ProfilePhoto.user_id == user.id).first() is None:
+            db.add(ProfilePhoto(user_id=user.id, url=DEMO_AVATAR_URL))
         profile.bio = DEMO_BIO
         profile.location = DEMO_LOCATION
         profile.interests = DEMO_INTERESTS

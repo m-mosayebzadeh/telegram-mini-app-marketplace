@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 import type { IncomingFollowRequest } from '../lib/types'
 
 /**
@@ -22,7 +22,7 @@ export default function FollowRequests() {
   function load() {
     apiFetch<IncomingFollowRequest[]>('/follow/incoming-requests')
       .then(setRequests)
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }
 
   useEffect(load, [])
@@ -33,7 +33,7 @@ export default function FollowRequests() {
       await apiFetch(`/follow/${followerUserId}/${action}`, { method: 'POST' })
       load()
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setBusyId(null)
     }
@@ -45,7 +45,7 @@ export default function FollowRequests() {
       await apiFetch(`/follow/${followerUserId}`, { method: 'POST' })
       load()
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setBusyId(null)
     }

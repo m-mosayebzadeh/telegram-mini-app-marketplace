@@ -28,6 +28,26 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The standard "turn a caught error into on-screen text" used by every
+ * page's .catch() handler. Exists because that logic used to be
+ * duplicated inline (`err instanceof ApiError ? JSON.stringify(err.body)
+ * : String(err)`) in 14 different files, and every one of them had the
+ * same latent bug: when the server's error response isn't valid JSON —
+ * e.g. an ngrok tunnel's own HTML warning page standing in for the real
+ * response (see docs/LOCAL_DEV.md), or any other non-JSON error page —
+ * apiFetch() sets `body` to `null` (see its `.catch(() => null)`), and
+ * `JSON.stringify(null)` is the literal string "null", which then
+ * rendered on screen as if it were a real error message instead of
+ * something a person could act on.
+ */
+export function formatApiError(err: unknown): string {
+  if (err instanceof ApiError) {
+    return err.body != null ? JSON.stringify(err.body) : `Request failed (HTTP ${err.status})`
+  }
+  return String(err)
+}
+
 // Resolved once per page load, then reused — neither path (a real
 // Telegram launch, or the dev fallback below) changes mid-session.
 let cachedInitData: string | null = null
@@ -103,6 +123,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     ...options,
     headers: {
       'X-Telegram-Init-Data': initData,
+      // Harmless outside a tunnel (the real backend just ignores an
+      // unknown header) — see the matching header on apiFetchBlob()
+      // below for why it's needed at all when testing through ngrok.
+      'ngrok-skip-browser-warning': 'true',
       ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers,
     },
@@ -134,7 +158,17 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
   const initData = await getInitData()
 
   const response = await fetch(`/api${path}`, {
-    headers: { 'X-Telegram-Init-Data': initData },
+    headers: {
+      'X-Telegram-Init-Data': initData,
+      // ngrok's free tier serves an HTML "you are about to visit..."
+      // interstitial (see the first screenshot in the chat that led
+      // here) to any request that doesn't look like a normal browser
+      // navigation — Telegram's WebView doesn't, so every proxied
+      // request needs this header to actually reach the backend instead
+      // of getting that warning page back as if it were the real
+      // response (see docs/LOCAL_DEV.md for the rest of the tunnel setup).
+      'ngrok-skip-browser-warning': 'true',
+    },
   })
 
   if (!response.ok) {

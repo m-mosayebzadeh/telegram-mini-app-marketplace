@@ -15,8 +15,8 @@ from app.core.database import get_db
 from app.core.time import utcnow
 from app.follow.schemas import FollowOut, IncomingFollowRequestOut
 from app.models.follow import Follow, FollowStatus
-from app.models.profile import Profile
 from app.models.user import User
+from app.profile.photos import get_current_avatar_url
 from app.profile.schemas import FollowListItemOut
 
 router = APIRouter(prefix="/follow", tags=["follow"])
@@ -26,12 +26,11 @@ def _to_list_item(db: Session, user: User) -> FollowListItemOut:
     """Shared by list_followers/list_following below — a compact row (no
     bio, no follower counts) for a followers/following list, per
     FollowListItemOut's own docstring."""
-    profile = db.query(Profile).filter(Profile.user_id == user.id).first()
     return FollowListItemOut(
         user_id=user.id,
         display_name=user.display_name,
         username=user.username,
-        avatar_url=profile.avatar_url if profile else None,
+        avatar_url=get_current_avatar_url(db, user.id),
     )
 
 

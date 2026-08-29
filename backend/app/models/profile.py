@@ -29,7 +29,11 @@ class Profile(Base):
     # unique=True is what makes this one-to-one instead of one-to-many.
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
-    avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # No avatar_url column anymore — see app/models/profile_photo.py.
+    # A user can have any number of photos now; wherever a single
+    # "current avatar" url is needed, app/profile/photos.py's
+    # get_current_avatar_url() computes it from the newest ProfilePhoto
+    # row instead of reading a stored column here.
     bio: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     location: Mapped[str | None] = mapped_column(String(200), nullable=True)
 

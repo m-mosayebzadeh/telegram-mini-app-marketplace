@@ -57,11 +57,13 @@ def get_current_user(
         return existing_user
 
     # First time we've seen this telegram_id — create our own user record.
-    # display_name/username are only pre-filled here; the user can change
-    # them later inside the app (see TECHNICAL_REQUIREMENTS.md, section 2).
+    # first_name/last_name/username are only pre-filled here; the user
+    # can change them later inside the app (see TECHNICAL_REQUIREMENTS.md,
+    # section 2).
     new_user = User(
         telegram_id=telegram_user.id,
-        display_name=telegram_user.first_name or "New User",
+        first_name=telegram_user.first_name or "New User",
+        last_name=telegram_user.last_name,
         username=telegram_user.username,
     )
     db.add(new_user)

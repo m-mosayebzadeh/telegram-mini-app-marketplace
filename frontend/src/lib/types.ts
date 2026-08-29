@@ -35,6 +35,25 @@ export interface Offer {
   description: string
   status: 'active' | 'inactive'
   created_at: string
+  // Only set when listing your OWN offers (see backend/app/offer/schemas.py's
+  // OfferOut) — how many requests it's received in total, shown as a
+  // badge on the Activity tab's Offers segment.
+  request_count: number | null
+}
+
+/** One row in the Activity tab's unified Requests feed — see
+ * backend/app/request/schemas.py's RequestActivityOut. */
+export interface RequestActivity {
+  id: number
+  offer_id: number
+  offer_title: string
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  reason: string | null
+  created_at: string
+  responded_at: string | null
+  direction: 'sent' | 'received'
+  counterpart_user_id: number
+  counterpart_display_name: string
 }
 
 export interface Request {
@@ -77,6 +96,9 @@ export interface ChatSession {
   display_duration_minutes: number
   disputed: boolean
   transaction_status: 'pending' | 'succeeded' | 'failed' | 'refunded'
+  // Whether the CURRENT viewer archived this session — per-viewer, see
+  // backend/app/models/chat_session.py's archived_by_buyer/archived_by_provider.
+  archived: boolean
 }
 
 export interface Transaction {
@@ -119,6 +141,15 @@ export interface PublicProfile {
   followers_count: number
   following_count: number
   follow_status: 'not_following' | 'pending' | 'accepted'
+}
+
+/** One row of GET /profiles/{user_id}/photos — see
+ * backend/app/models/profile_photo.py. A user can have any number of
+ * these; `avatar_url` above is always just the newest one. */
+export interface ProfilePhoto {
+  id: number
+  url: string
+  created_at: string
 }
 
 /** One photo or short video, owned directly by a user — see

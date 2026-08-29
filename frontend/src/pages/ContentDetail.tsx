@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import { ApiError } from '../lib/api'
+import { ApiError, formatApiError } from '../lib/api'
 import {
   deleteContent,
   fetchContentFileBlobUrl,
@@ -56,7 +56,7 @@ export default function ContentDetail() {
         setContent(loaded)
         if (!loaded.has_spoiler) setRevealed(true)
       })
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }
 
   // A fresh item id means a fresh spoiler state — reset on navigation
@@ -106,7 +106,7 @@ export default function ContentDetail() {
         if (err instanceof ApiError && err.status === 402) {
           setMessage(t('content.insufficientBalance'))
         } else {
-          setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+          setError(formatApiError(err))
         }
       } finally {
         setBusy(false)
@@ -123,7 +123,7 @@ export default function ContentDetail() {
       const updated = content.liked_by_me ? await unlikeContent(content.id) : await likeContent(content.id)
       setContent(updated)
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setBusy(false)
     }
@@ -139,7 +139,7 @@ export default function ContentDetail() {
       if (err instanceof ApiError && err.status === 400) {
         setMessage(t('content.pinLimitReached', { max: 3 }))
       } else {
-        setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+        setError(formatApiError(err))
       }
     } finally {
       setBusy(false)
@@ -154,7 +154,7 @@ export default function ContentDetail() {
       await deleteContent(content.id)
       navigate(-1)
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
       setBusy(false)
     }
   }

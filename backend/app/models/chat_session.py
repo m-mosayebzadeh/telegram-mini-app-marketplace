@@ -17,7 +17,7 @@ this model only tracks the conversation's own open/closed state.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Enum, ForeignKey
+from sqlalchemy import Boolean, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -47,6 +47,17 @@ class ChatSession(Base):
     closed_by_user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), nullable=True
     )
+
+    # Per-viewer "archived" state — moves a session out of the Chats
+    # tab's main list into its Archived segment (see app/chat_session/router.py's
+    # /archive, /unarchive) without touching the other participant's
+    # view of the same session, and without deleting anything: the
+    # session (and the Transaction it's tied to) always stays exactly
+    # where it is, for both parties' financial/dispute history. Two
+    # plain booleans rather than a join table, since a session only ever
+    # has exactly two possible viewers (buyer, provider).
+    archived_by_buyer: Mapped[bool] = mapped_column(Boolean, default=False)
+    archived_by_provider: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Lets code reach `session.request.buyer_id` /
     # `session.request.offer.provider_id` instead of separate queries.

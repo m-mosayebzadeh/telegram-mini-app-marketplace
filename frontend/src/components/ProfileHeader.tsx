@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@telegram-apps/telegram-ui'
+import { apiFetch } from '../lib/api'
 import { daysUntilNextBirthday, formatJalaliBirthday } from '../lib/jalali'
-import type { PublicProfile } from '../lib/types'
+import type { MyProfile, PublicProfile } from '../lib/types'
+import { AvatarGallery } from './AvatarGallery'
+import { IconCamera, IconEdit, IconWallet } from './icons'
 import { Sheet } from './Sheet'
 
 interface ProfileHeaderProps {
@@ -13,6 +16,10 @@ interface ProfileHeaderProps {
   onFollow: () => void
   onUnfollow: () => void
   onEdit: () => void
+  // Called after a new avatar finishes uploading, so the parent can
+  // reload `profile` — ProfileHeader only ever receives `profile` as a
+  // read-only prop, it has no setter of its own.
+  onAvatarUploaded: () => void
   onShare: () => void
   moreMenuOpen: boolean
   onToggleMoreMenu: () => void
@@ -35,6 +42,7 @@ export function ProfileHeader({
   onFollow,
   onUnfollow,
   onEdit,
+  onAvatarUploaded,
   onShare,
   moreMenuOpen,
   onToggleMoreMenu,
@@ -43,8 +51,28 @@ export function ProfileHeader({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [birthdayOpen, setBirthdayOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const hasBirthday = profile.birthday_month != null && profile.birthday_day != null
+
+  async function handleAvatarPicked(file: File | null) {
+    if (!file) return
+    setAvatarBusy(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      await apiFetch<MyProfile>('/profile/me/avatar', { method: 'POST', body: form })
+      onAvatarUploaded()
+    } catch {
+      // A failed avatar upload just leaves the old photo in place — no
+      // separate error UI here; the existing photo (or the fallback
+      // initial) is always a valid state to stay on.
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
 
   return (
     <div>
@@ -54,7 +82,17 @@ export function ProfileHeader({
       </div>
       <div className="hp-glass-card hp-header-card">
         <div className="hp-avatar-wrap">
-          <div className="hp-avatar-ring">
+          {/* Tapping opens a simple fullscreen preview (see .hp-avatar-preview-*
+              below) — not the drag-to-zoom gesture Telegram's own app
+              has; a plain tap-to-view is the deliberately simpler
+              version agreed on for this pass. Only wired when there's
+              an actual photo — nothing to preview for the fallback
+              initial-letter circle. */}
+          <div
+            className="hp-avatar-ring"
+            onClick={() => profile.avatar_url && setPreviewOpen(true)}
+            style={{ cursor: profile.avatar_url ? 'pointer' : 'default' }}
+          >
             <Avatar
               size={96}
               src={profile.avatar_url ?? undefined}
@@ -63,7 +101,15 @@ export function ProfileHeader({
           </div>
         </div>
 
-        <h1 className="hp-name">{profile.display_name}</h1>
+        {/* dir="auto" — not the app's current UI language — decides
+            which way this renders: the browser picks RTL/LTR from the
+            name's OWN first strong character (see backend/app/models/user.py's
+            display_name property), so "سهیل mz" reads right-to-left
+            starting with سهیل, and "soheil mz" reads left-to-right,
+            regardless of whether the app itself is in Persian or English. */}
+        <h1 className="hp-name" dir="auto">
+          {profile.display_name}
+        </h1>
         {profile.username && <p className="hp-username">@{profile.username}</p>}
 
         {/* Nothing renders here at all when is_trusted is false — never
@@ -121,37 +167,67 @@ export function ProfileHeader({
           </button>
         </div>
 
-        <div className="hp-actions-row">
-          {isOwn ? (
-            <button className="hp-btn hp-btn-gradient" onClick={onEdit}>
+        {isOwn ? (
+          // DOM order = visual order for a plain flex row, and it
+          // already mirrors on its own under dir="rtl" vs dir="ltr" —
+          // the exact same mechanism App.tsx's bottom nav relies on
+          // (see its own comment) — so this one order is both "Set
+          // Photo | Edit Profile | Wallet" in English and, mirrored,
+          // "Wallet | Edit Profile | Set Photo" in Persian.
+          <div className="hp-actions-row">
+            <button
+              className="hp-header-action"
+              onClick={() => avatarInputRef.current?.click()}
+              disabled={avatarBusy}
+            >
+              <IconCamera size={22} />
+              {t('profilePage.setPhotoButton')}
+            </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={(e) => handleAvatarPicked(e.target.files?.[0] ?? null)}
+            />
+            <button className="hp-header-action" onClick={onEdit}>
+              <IconEdit size={22} />
               {t('profilePage.editButton')}
             </button>
-          ) : profile.follow_status === 'accepted' ? (
-            <button className="hp-btn hp-btn-outline hp-btn-wide" disabled={following} onClick={onUnfollow}>
-              {t('profilePage.following')}
+            <button className="hp-header-action" onClick={() => navigate('/wallet')}>
+              <IconWallet size={22} />
+              {t('wallet.title')}
             </button>
-          ) : profile.follow_status === 'pending' ? (
-            <button className="hp-btn hp-btn-outline hp-btn-wide" disabled>
-              {t('profilePage.requested')}
+          </div>
+        ) : (
+          <div className="hp-actions-row">
+            {profile.follow_status === 'accepted' ? (
+              <button className="hp-btn hp-btn-outline hp-btn-wide" disabled={following} onClick={onUnfollow}>
+                {t('profilePage.following')}
+              </button>
+            ) : profile.follow_status === 'pending' ? (
+              <button className="hp-btn hp-btn-outline hp-btn-wide" disabled>
+                {t('profilePage.requested')}
+              </button>
+            ) : (
+              <button className="hp-btn hp-btn-gradient" disabled={following} onClick={onFollow}>
+                {t('profilePage.follow')}
+              </button>
+            )}
+            <button className="hp-btn hp-btn-outline" onClick={onShare} aria-label={t('profilePage.shareButton')}>
+              ↗
             </button>
-          ) : (
-            <button className="hp-btn hp-btn-gradient" disabled={following} onClick={onFollow}>
-              {t('profilePage.follow')}
+            <button
+              className="hp-btn hp-btn-outline"
+              onClick={onToggleMoreMenu}
+              aria-label={t('profilePage.moreButton')}
+            >
+              ⋯
             </button>
-          )}
-          <button className="hp-btn hp-btn-outline" onClick={onShare} aria-label={t('profilePage.shareButton')}>
-            ↗
-          </button>
-          <button
-            className="hp-btn hp-btn-outline"
-            onClick={onToggleMoreMenu}
-            aria-label={t('profilePage.moreButton')}
-          >
-            ⋯
-          </button>
-        </div>
+          </div>
+        )}
 
-        {moreMenuOpen && (
+        {!isOwn && moreMenuOpen && (
           <div className="hp-menu">
             <button className="hp-menu-item" onClick={onMoreItemClick}>
               {t('profilePage.moreReport')}
@@ -162,6 +238,15 @@ export function ProfileHeader({
           </div>
         )}
       </div>
+
+      {previewOpen && profile.avatar_url && (
+        <AvatarGallery
+          userId={profile.user_id}
+          isOwn={isOwn}
+          onClose={() => setPreviewOpen(false)}
+          onChanged={onAvatarUploaded}
+        />
+      )}
 
       {birthdayOpen && hasBirthday && (
         <Sheet title={t('profilePage.birthdaySheetTitle')} onClose={() => setBirthdayOpen(false)}>

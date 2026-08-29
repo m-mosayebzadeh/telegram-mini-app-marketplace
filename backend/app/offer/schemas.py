@@ -35,4 +35,10 @@ class OfferOut(BaseModel):
     status: str
     created_at: datetime
 
+    # Only populated when listing your OWN offers (see list_offers) —
+    # None everywhere else (marketplace-wide discovery, someone else's
+    # offers), since a buyer browsing offers has no business seeing how
+    # many other people requested one before they did.
+    request_count: int | None = None
+
     model_config = {"from_attributes": True}

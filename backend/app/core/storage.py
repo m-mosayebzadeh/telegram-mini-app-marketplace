@@ -69,3 +69,53 @@ def delete_content_file(path: str | None) -> None:
     """Best-effort cleanup — used when a Content row is deleted."""
     if path:
         Path(path).unlink(missing_ok=True)
+
+
+# --- profile avatars ---
+#
+# Kept in their OWN subtree (uploads/avatars/{user_id}/...), never mixed
+# into the per-user Content folders above — this directory is mounted as
+# a plain public static route in app/main.py (see its comment), which is
+# safe only because a profile's avatar is already fully public with no
+# audience/spoiler restriction (see PublicProfileOut). Content files must
+# never be reachable that way, which is exactly why they live in a
+# separate, non-mounted directory and are only ever served through the
+# access-checked /content/{id}/file route instead.
+
+
+def _avatar_dir(user_id: int) -> Path:
+    directory = settings.uploads_dir / "avatars" / str(user_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def save_avatar_file(user_id: int, upload: UploadFile) -> str:
+    """Saves an avatar image and returns its PUBLIC url path (e.g.
+    "/avatars/3/<uuid>.jpg") — ready to store directly in
+    Profile.avatar_url and use as-is in an <img src>, unlike
+    save_content_file()'s local disk path."""
+    directory = _avatar_dir(user_id)
+    extension = Path(upload.filename or "").suffix or ".jpg"
+    filename = f"{uuid.uuid4().hex}{extension}"
+
+    data = upload.file.read()
+    if len(data) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"File too large: max {MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)}MB.",
+        )
+
+    with (directory / filename).open("wb") as destination:
+        destination.write(data)
+
+    return f"/avatars/{user_id}/{filename}"
+
+
+def delete_avatar_file(avatar_url: str | None) -> None:
+    """Best-effort cleanup of the OLD avatar file when it's replaced —
+    takes the public url path (as stored in Profile.avatar_url) and maps
+    it back to the real file on disk."""
+    if not avatar_url or not avatar_url.startswith("/avatars/"):
+        return
+    path = settings.uploads_dir / avatar_url.lstrip("/")
+    path.unlink(missing_ok=True)

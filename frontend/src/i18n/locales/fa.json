@@ -5,7 +5,8 @@
     "loading": "در حال بارگذاری…",
     "back": "بازگشت",
     "submit": "ثبت",
-    "close": "بستن"
+    "close": "بستن",
+    "cancel": "لغو"
   },
   "login": {
     "title": "یک کاربر آزمایشی انتخاب کنید",
@@ -15,10 +16,31 @@
   },
   "tabs": {
     "discover": "کشف",
-    "myOffers": "پیشنهادهای من",
-    "myRequests": "درخواست‌های من",
-    "wallet": "کیف پول",
+    "activity": "تعاملات",
+    "chats": "گفتگوها",
     "profile": "پروفایل"
+  },
+  "activityPage": {
+    "offersTab": "پیشنهادها",
+    "requestsTab": "درخواست‌ها",
+    "requestCount": "{{count}} درخواست",
+    "filterAll": "همه",
+    "filterSent": "فرستاده‌شده",
+    "filterReceived": "دریافت‌شده",
+    "sentTo": "به {{name}}",
+    "receivedFrom": "از {{name}}",
+    "offersEmpty": "فعلاً پیشنهادی نیست",
+    "requestsEmpty": "فعلاً چیزی اینجا نیست"
+  },
+  "chatsPage": {
+    "activeTab": "فعال",
+    "archivedTab": "بایگانی",
+    "archiveButton": "بایگانی",
+    "unarchiveButton": "خروج از بایگانی",
+    "activeEmpty": "فعلاً گفتگویی نیست",
+    "archivedEmpty": "چیزی توی بایگانی نیست",
+    "roleBuyer": "شما خریدید",
+    "roleProvider": "شما ارائه می‌دید"
   },
   "account": {
     "title": "حساب شما",
@@ -46,12 +68,20 @@
     "moreBlock": "مسدود کردن",
     "moreComingSoon": "فعلاً در دسترس نیست",
     "editButton": "ویرایش پروفایل",
+    "setPhotoButton": "عکس پروفایل",
+    "deletePhotoTitle": "حذف عکس",
+    "deletePhotoConfirm": "مطمئنید می‌خواید این عکس حذف بشه؟",
+    "photoSaved": "عکس توی گالری ذخیره شد.",
     "editTitle": "ویرایش پروفایل",
     "locationLabel": "موقعیت مکانی",
     "bioLabel": "بیوگرافی",
     "interestsLabel": "علاقه‌مندی‌ها",
     "interestsPlaceholder": "با کاما جدا کنید، حداکثر {{max}} تا",
     "interestsTooMany": "حداکثر {{max}} علاقه‌مندی مجازه",
+    "usernameLabel": "نام کاربری",
+    "usernameHint": "فقط حروف انگلیسی، عدد و آندرلاین (۳ تا ۳۲ کاراکتر).",
+    "usernameInvalidChars": "کاراکتر غیرمجاز داره — فقط حروف انگلیسی، عدد و آندرلاین مجازه.",
+    "usernameTaken": "این نام کاربری قبلاً گرفته شده.",
     "birthdayLabel": "تولد (اختیاری)",
     "birthdayHint": "بر اساس تقویم شمسی — سال ذخیره نمی‌شه.",
     "saveButton": "ذخیره",

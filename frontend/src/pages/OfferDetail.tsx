@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
 import type { ChatSession, Offer, Request } from '../lib/types'
 
@@ -33,7 +33,7 @@ export default function OfferDetail() {
   useEffect(() => {
     apiFetch<Offer>(`/offers/${id}`)
       .then(setOffer)
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }, [id])
 
   // Only the owner can see who has requested their offer — this call
@@ -59,7 +59,7 @@ export default function OfferDetail() {
       await apiFetch('/requests', { method: 'POST', body: JSON.stringify({ offer_id: Number(id) }) })
       setActionMessage(t('offers.requestSent'))
     } catch (err) {
-      setActionMessage(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setActionMessage(formatApiError(err))
     }
   }
 
@@ -78,7 +78,7 @@ export default function OfferDetail() {
       const refreshed = await apiFetch<Request[]>(`/requests?offer_id=${id}`)
       setRequests(refreshed)
     } catch (err) {
-      setActionMessage(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setActionMessage(formatApiError(err))
     }
   }
 

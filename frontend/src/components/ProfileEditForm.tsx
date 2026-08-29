@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Input } from '@telegram-apps/telegram-ui'
-import { ApiError, apiFetch } from '../lib/api'
+import { ApiError, formatApiError, apiFetch } from '../lib/api'
 import {
   daysInJalaliMonth,
   gregorianMonthDayToJalali,
@@ -16,6 +16,12 @@ import type { MyProfile, PublicProfile } from '../lib/types'
 // ContentUploadForm.tsx, since it's a fixed phase-1 policy constant.
 const MAX_INTERESTS = 10
 
+// Mirrors backend/app/main.py's USERNAME_PATTERN — same
+// duplicated-constant convention as MAX_INTERESTS above. Checked live
+// as the user types, so "invalid characters" shows up immediately
+// instead of only after a failed submit.
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,32}$/
+
 interface ProfileEditFormProps {
   initial: PublicProfile
   onSaved: (profile: MyProfile) => void
@@ -29,6 +35,8 @@ interface ProfileEditFormProps {
  * close control, so this form has no cancel button of its own. */
 export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
   const { t } = useTranslation()
+  const [username, setUsername] = useState(initial.username ?? '')
+  const [usernameError, setUsernameError] = useState<string | null>(null)
   const [bio, setBio] = useState(initial.bio ?? '')
   const [location, setLocation] = useState(initial.location ?? '')
   const [interestsText, setInterestsText] = useState(initial.interests.join(', '))
@@ -52,11 +60,39 @@ export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
     .filter((tag) => tag.length > 0)
   const tooManyInterests = interests.length > MAX_INTERESTS
 
+  const usernameChanged = username !== (initial.username ?? '')
+  // Only flagged once there's something to judge — an untouched, empty
+  // field isn't "invalid," it's just not set yet.
+  const usernameInvalid = username.length > 0 && !USERNAME_PATTERN.test(username)
+
   async function submit() {
-    if (tooManyInterests) return
+    if (tooManyInterests || usernameInvalid) return
     setBusy(true)
     setError(null)
+    setUsernameError(null)
     try {
+      // Username lives on User, not Profile (see backend/app/main.py's
+      // PUT /me/username) — a separate request, with its own two
+      // distinct failure reasons (invalid_characters / username_taken)
+      // that need their own hint text, not lumped into the generic
+      // profile-save error below.
+      if (usernameChanged && username.length > 0) {
+        try {
+          await apiFetch('/me/username', { method: 'PUT', body: JSON.stringify({ username }) })
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 400) {
+            const reason = (err.body as { detail?: { reason?: string } } | null)?.detail?.reason
+            setUsernameError(
+              reason === 'username_taken' ? t('profilePage.usernameTaken') : t('profilePage.usernameInvalidChars'),
+            )
+          } else {
+            setUsernameError(formatApiError(err))
+          }
+          setBusy(false)
+          return
+        }
+      }
+
       const gregorianBirthday =
         birthdayMonth != null && birthdayDay != null
           ? jalaliMonthDayToGregorian(jalaliYear, birthdayMonth, birthdayDay)
@@ -73,7 +109,7 @@ export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
       })
       onSaved(updated)
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setBusy(false)
     }
@@ -81,6 +117,20 @@ export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
 
   return (
     <div>
+      <div className="hp-field">
+        <Input
+          header={t('profilePage.usernameLabel')}
+          value={username}
+          onChange={(e) => {
+            setUsername(e.target.value)
+            setUsernameError(null)
+          }}
+          status={usernameInvalid ? 'error' : undefined}
+        />
+        <p className="hp-hint">{t('profilePage.usernameHint')}</p>
+        {usernameInvalid && <p className="hp-error">{t('profilePage.usernameInvalidChars')}</p>}
+        {usernameError && <p className="hp-error">{usernameError}</p>}
+      </div>
       <div className="hp-field">
         <Input header={t('profilePage.bioLabel')} value={bio} onChange={(e) => setBio(e.target.value)} />
       </div>
@@ -156,7 +206,7 @@ export function ProfileEditForm({ initial, onSaved }: ProfileEditFormProps) {
         <button
           className="hp-btn hp-btn-gradient"
           style={{ width: '100%' }}
-          disabled={tooManyInterests || busy}
+          disabled={tooManyInterests || usernameInvalid || busy}
           onClick={submit}
         >
           {busy ? t('common.loading') : t('profilePage.saveButton')}

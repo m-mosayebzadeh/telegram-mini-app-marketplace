@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 class ProfileUpdate(BaseModel):
     """What a client sends to create or update their own profile."""
 
-    avatar_url: str | None = Field(default=None, max_length=500)
     bio: str | None = Field(default=None, max_length=1000)
     location: str | None = Field(default=None, max_length=200)
     # Length capped at MAX_INTERESTS (app/models/profile.py) — checked in
@@ -31,6 +30,17 @@ class ProfileUpdate(BaseModel):
     # Deliberately no is_trusted here — see Profile.is_trusted's
     # docstring. A profile owner can never set their own trust badge
     # through this endpoint.
+
+
+class ProfilePhotoOut(BaseModel):
+    """One row of GET /profiles/{user_id}/photos — the fullscreen
+    gallery's swipe-through list (see app/models/profile_photo.py)."""
+
+    id: int
+    url: str
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
 
 
 class ProfileOut(BaseModel):

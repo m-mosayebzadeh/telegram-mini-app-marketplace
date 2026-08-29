@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 import { composeMessage, deliverMessage, listMessages } from '../lib/chatMessageApi'
 import { mergeMessages } from '../lib/chatMessageMerge'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
@@ -56,7 +56,7 @@ export default function ChatSessionDetail() {
   const loadSession = useCallback(() => {
     apiFetch<ChatSession>(`/chat-sessions/${id}`)
       .then(setSession)
-      .catch((err) => setSessionError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setSessionError(formatApiError(err)))
   }, [id])
 
   useEffect(loadSession, [loadSession])
@@ -69,7 +69,7 @@ export default function ChatSessionDetail() {
     setMessagesError(null)
     listMessages(session, me.id)
       .then(setMessages)
-      .catch((err) => setMessagesError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setMessagesError(formatApiError(err)))
       .finally(() => setMessagesLoading(false))
   }, [session, me])
 
@@ -99,7 +99,7 @@ export default function ChatSessionDetail() {
       setConfirmCloseOpen(false)
       loadSession()
     } catch (err) {
-      setActionMessage(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setActionMessage(formatApiError(err))
     } finally {
       setClosingSession(false)
     }
@@ -111,7 +111,7 @@ export default function ChatSessionDetail() {
       setActionMessage(t('chatSession.disputeSuccess'))
       loadSession()
     } catch (err) {
-      setActionMessage(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setActionMessage(formatApiError(err))
     }
   }
 

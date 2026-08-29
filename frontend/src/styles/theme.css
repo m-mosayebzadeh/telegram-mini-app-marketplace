@@ -364,6 +364,205 @@
   margin-top: 18px;
 }
 
+/* The own-profile action row (Set Photo / Edit Profile / Wallet) — icon
+   stacked above a small label, same proportions as Telegram's own
+   profile action row, just in this app's own dark/glass palette instead
+   of copying Telegram's colors. DOM order is the ONE thing that decides
+   left-to-right vs. right-to-left placement (see ProfileHeader.tsx's
+   comment) — a plain flex row already mirrors on its own under
+   dir="rtl", no per-language branching needed here either. */
+.hp-header-action {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--hp-hairline);
+  background: var(--hp-glass-strong);
+  border-radius: 14px;
+  padding: 11px 6px;
+  color: var(--hp-text);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--hp-font);
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.hp-header-action:active {
+  transform: scale(0.96);
+  background: var(--hp-grad-soft);
+}
+
+/* ---------- fullscreen avatar preview ---------- */
+
+.hp-avatar-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(4, 3, 8, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: hp-fade-in 0.15s ease;
+}
+
+.hp-avatar-preview-img {
+  max-width: 92vw;
+  max-height: 80vh;
+  border-radius: 18px;
+  object-fit: contain;
+}
+
+.hp-avatar-preview-close {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  inset-inline-start: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--hp-hairline);
+  background: var(--hp-glass-strong);
+  color: #fff;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Trash/download pair, top-end corner — mirrors Telegram's own ⋯ menu
+   position on its photo viewer, just as two direct icon buttons instead
+   of a menu (see the conversation that led here). */
+.hp-avatar-preview-actions {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  inset-inline-end: 16px;
+  display: flex;
+  gap: 10px;
+}
+
+.hp-avatar-preview-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--hp-hairline);
+  background: var(--hp-glass-strong);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Swipe-position dots along the bottom of the fullscreen preview —
+   only rendered when there's more than one photo. */
+.hp-avatar-preview-dots {
+  position: absolute;
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.hp-avatar-preview-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.hp-avatar-preview-dot-active {
+  background: #fff;
+}
+
+/* ---------- small centered confirm dialog (e.g. "Delete photo?") ---------- */
+
+.hp-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(4, 3, 8, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: hp-fade-in 0.15s ease;
+}
+
+.hp-confirm-box {
+  width: 100%;
+  max-width: 320px;
+  background: rgba(24, 18, 34, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--hp-hairline);
+  border-radius: 16px;
+  padding: 18px 18px 12px;
+  font-family: var(--hp-font);
+}
+
+.hp-confirm-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--hp-text);
+  margin: 0 0 8px;
+}
+
+.hp-confirm-message {
+  font-size: 13.5px;
+  color: var(--hp-text-muted);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.hp-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.hp-confirm-btn {
+  background: none;
+  border: none;
+  color: var(--hp-primary);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--hp-font);
+  cursor: pointer;
+  padding: 6px 2px;
+}
+
+.hp-confirm-btn-danger {
+  color: #fb7185;
+}
+
+/* ---------- small toast notification ---------- */
+
+.hp-toast {
+  position: fixed;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(28, 24, 38, 0.96);
+  border: 1px solid var(--hp-hairline);
+  color: var(--hp-text);
+  font-size: 13px;
+  font-family: var(--hp-font);
+  padding: 10px 16px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: hp-fade-in 0.15s ease;
+  white-space: nowrap;
+}
+
 .hp-btn {
   flex: 1;
   border: none;
@@ -1581,6 +1780,40 @@ button.hp-list-row:active {
   white-space: nowrap;
 }
 
+/* A small count pill — e.g. how many requests an offer has received
+   (see pages/Activity.tsx) — same visual family as .hp-chip but smaller
+   and meant to sit right next to a title, not wrap in a row of its own. */
+.hp-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--hp-grad);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Sent (↗) vs received (↘) marker on one row of the Activity tab's
+   unified Requests feed — mirrors Telegram's own Calls tab, which uses
+   the same kind of small directional arrow instead of a text label. */
+.hp-direction-icon {
+  flex: none;
+  font-size: 13px;
+  color: var(--hp-text-muted);
+}
+
+.hp-direction-icon-sent {
+  color: var(--hp-tertiary);
+}
+
+.hp-direction-icon-received {
+  color: var(--hp-primary);
+}
+
 .hp-btn-sm-filled {
   background: var(--hp-grad);
   color: #fff;
@@ -1662,10 +1895,10 @@ button.hp-list-row:active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   background: none;
   border: none;
-  padding: 7px 2px;
+  padding: 5px 2px 4px;
   font-size: 11px;
   font-weight: 600;
   font-family: var(--hp-font);
@@ -1673,18 +1906,34 @@ button.hp-list-row:active {
   cursor: pointer;
 }
 
+/* Simple color swap on the whole item — the icon inherits it via
+   currentColor (see components/icons.tsx), same "flat, minimal" nav
+   style as Telegram's own, no glow/gradient effects on this bar. */
 .hp-bottom-nav-item-active {
-  color: var(--hp-text);
+  color: var(--hp-primary);
 }
 
-.hp-bottom-nav-dot {
-  width: 5px;
-  height: 5px;
+.hp-bottom-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+}
+
+/* The Profile tab's "icon" is a small live thumbnail of the user's own
+   avatar (see App.tsx) — mirrors how Telegram's own Profile tab isn't a
+   generic person glyph but a shrunk copy of your real profile photo.
+   Sized to visually match the other 24x24 line icons, with a hairline
+   ring so it still reads as a nav icon even against a similarly dark
+   avatar image. */
+.hp-bottom-nav-avatar {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: transparent;
+  object-fit: cover;
+  border: 1.5px solid var(--hp-hairline);
 }
 
-.hp-bottom-nav-item-active .hp-bottom-nav-dot {
-  background: var(--hp-grad);
-  box-shadow: 0 0 8px rgba(var(--hp-primary-rgb), 0.7);
+.hp-bottom-nav-item-active .hp-bottom-nav-avatar {
+  border-color: var(--hp-primary);
 }

@@ -31,8 +31,19 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
+#
+# disable_existing_loggers=False matters here specifically because
+# run_migrations() (app/core/migrate.py) calls into this file on every
+# app startup, from inside the same process as uvicorn — fileConfig's
+# default (disable_existing_loggers=True) silently disables every
+# logger that already exists at that point, INCLUDING uvicorn's own. The
+# app kept working fine either way, but every log line after that point
+# — the "Application startup complete" line, every request log, every
+# unhandled-exception traceback — simply vanished, which made a real bug
+# look like the server had hung. Alembic's own CLI logging (its INFO
+# lines already visible above) is unaffected by this flag.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 # add your model's MetaData object here
 # for 'autogenerate' support

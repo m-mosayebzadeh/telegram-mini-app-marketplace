@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { NumberField } from '../components/NumberField'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 import type { Balance } from '../lib/types'
 
 export default function WalletPage() {
@@ -15,7 +15,7 @@ export default function WalletPage() {
   const load = useCallback(() => {
     apiFetch<Balance>('/wallet/balance')
       .then(setBalance)
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }, [])
 
   useEffect(load, [load])
@@ -35,7 +35,7 @@ export default function WalletPage() {
       setMessage(t('wallet.topUpSuccess'))
       load()
     } catch (err) {
-      setMessage(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setMessage(formatApiError(err))
     }
   }
 

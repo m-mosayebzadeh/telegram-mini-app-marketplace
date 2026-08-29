@@ -29,9 +29,9 @@ from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer
-from app.models.profile import Profile
 from app.models.request import Request
 from app.models.user import User
+from app.profile.photos import get_current_avatar_url
 
 router = APIRouter(prefix="/chat-sessions", tags=["chat-sessions"])
 
@@ -51,10 +51,6 @@ def _to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int)
     other_user_id = offer.provider_id if is_buyer else request.buyer_id
 
     other_user = db.get(User, other_user_id)
-    # A Profile row is optional (see app/models/profile.py) — a user who
-    # never set one up simply shows no avatar, same fallback used
-    # everywhere else a PublicProfile-shaped avatar is displayed.
-    other_profile = db.query(Profile).filter(Profile.user_id == other_user_id).first()
 
     return ChatSessionOut(
         id=chat_session.id,
@@ -69,13 +65,14 @@ def _to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int)
             user_id=other_user_id,
             display_name=other_user.display_name,
             username=other_user.username,
-            avatar_url=other_profile.avatar_url if other_profile else None,
+            avatar_url=get_current_avatar_url(db, other_user_id),
         ),
         offer_title=offer.title,
         price_stars=offer.price_stars,
         display_duration_minutes=offer.display_duration_minutes,
         disputed=transaction.disputed_at is not None,
         transaction_status=transaction.status.value,
+        archived=chat_session.archived_by_buyer if is_buyer else chat_session.archived_by_provider,
     )
 
 
@@ -124,6 +121,43 @@ def close_session(
     db.commit()
     db.refresh(chat_session)
     return _to_chat_session_out(db, chat_session, current_user.id)
+
+
+def _set_archived(db: Session, session_id: int, current_user: User, archived: bool) -> ChatSessionOut:
+    """Shared body for /archive and /unarchive — sets whichever of the
+    two per-viewer flags belongs to the caller's own role in this
+    session, never the other participant's."""
+    chat_session = get_participant_session(db, session_id, current_user.id)
+    is_buyer = chat_session.request.buyer_id == current_user.id
+    if is_buyer:
+        chat_session.archived_by_buyer = archived
+    else:
+        chat_session.archived_by_provider = archived
+    db.commit()
+    db.refresh(chat_session)
+    return _to_chat_session_out(db, chat_session, current_user.id)
+
+
+@router.post("/{session_id}/archive", response_model=ChatSessionOut)
+def archive_session(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """Moves this session out of the caller's main Chats list into their
+    Archived one (see ChatSession.archived_by_buyer/archived_by_provider's
+    docstring) — purely a per-viewer display preference, changes nothing
+    about the session's real status or the other participant's view."""
+    return _set_archived(db, session_id, current_user, archived=True)
+
+
+@router.post("/{session_id}/unarchive", response_model=ChatSessionOut)
+def unarchive_session(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    return _set_archived(db, session_id, current_user, archived=False)
 
 
 @router.post("/{session_id}/dispute", response_model=ChatSessionOut)

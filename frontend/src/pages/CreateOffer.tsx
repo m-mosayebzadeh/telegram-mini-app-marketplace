@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Input, Textarea } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { NumberField } from '../components/NumberField'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 
 export default function CreateOffer() {
   const { t } = useTranslation()
@@ -30,9 +30,9 @@ export default function CreateOffer() {
           description,
         }),
       })
-      navigate('/offers/mine')
+      navigate('/activity')
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setSubmitting(false)
     }

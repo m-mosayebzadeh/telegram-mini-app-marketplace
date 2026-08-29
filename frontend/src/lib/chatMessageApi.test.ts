@@ -32,6 +32,7 @@ function makeSession(overrides: Partial<ChatSession> = {}): ChatSession {
     display_duration_minutes: 30,
     disputed: false,
     transaction_status: 'pending',
+    archived: false,
     ...overrides,
   }
 }

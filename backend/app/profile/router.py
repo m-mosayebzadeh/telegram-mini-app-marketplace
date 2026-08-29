@@ -9,20 +9,24 @@ Profile endpoints — two routers on purpose:
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
+from app.core.storage import delete_avatar_file, save_avatar_file
 from app.models.follow import Follow, FollowStatus
 from app.models.offer import Offer
 from app.models.profile import MAX_INTERESTS, Profile
+from app.models.profile_photo import ProfilePhoto
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User
+from app.profile.photos import get_current_avatar_url
 from app.profile.schemas import (
     BuyerSummaryOut,
     ProfileOut,
+    ProfilePhotoOut,
     ProfileUpdate,
     ProviderSummaryOut,
     PublicProfileOut,
@@ -61,18 +65,31 @@ def _follow_status(db: Session, *, viewer_id: int, target_id: int) -> str:
     return follow.status.value if follow else "not_following"
 
 
+def _to_profile_out(db: Session, profile: Profile) -> ProfileOut:
+    return ProfileOut(
+        id=profile.id,
+        avatar_url=get_current_avatar_url(db, profile.user_id),
+        bio=profile.bio,
+        location=profile.location,
+        interests=profile.interests,
+        is_trusted=profile.is_trusted,
+        birthday_month=profile.birthday_month,
+        birthday_day=profile.birthday_day,
+    )
+
+
 @router.get("/me", response_model=ProfileOut)
 def read_my_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> Profile:
+) -> ProfileOut:
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
     if profile is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="You haven't created a profile yet.",
         )
-    return profile
+    return _to_profile_out(db, profile)
 
 
 @router.put("/me", response_model=ProfileOut)
@@ -80,7 +97,7 @@ def upsert_my_profile(
     payload: ProfileUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> Profile:
+) -> ProfileOut:
     """
     Create-or-update: PUT is idempotent, so one endpoint handles both "I
     don't have a profile yet" and "update my existing profile" — the
@@ -113,7 +130,9 @@ def upsert_my_profile(
         profile = Profile(user_id=current_user.id)
         db.add(profile)
 
-    profile.avatar_url = payload.avatar_url
+    # avatar_url is deliberately NOT touched here — it's only ever set
+    # via POST /profile/me/avatar below, so a plain bio/location edit
+    # can never accidentally wipe out an existing photo.
     profile.bio = payload.bio
     profile.location = payload.location
     profile.interests = payload.interests
@@ -124,7 +143,98 @@ def upsert_my_profile(
 
     db.commit()
     db.refresh(profile)
-    return profile
+    return _to_profile_out(db, profile)
+
+
+@router.post("/me/avatar", response_model=ProfileOut, status_code=status.HTTP_201_CREATED)
+def upload_my_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ProfileOut:
+    """
+    ADDS a new profile photo — the "Set Photo" action in the profile
+    header — without deleting any earlier ones (see
+    app/models/profile_photo.py). It becomes the current avatar shown
+    everywhere a single avatar_url is used, since that's always just the
+    newest ProfilePhoto row; every previous photo is still there to
+    swipe back through in the fullscreen gallery
+    (GET /profiles/{user_id}/photos below) until its owner deletes it.
+    """
+    # A Profile row isn't strictly needed to own photos, but every other
+    # endpoint here assumes one exists once a user has touched their
+    # profile at all — create it now rather than leaving photos orphaned
+    # from a profile that's never been created.
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if profile is None:
+        profile = Profile(user_id=current_user.id)
+        db.add(profile)
+        db.flush()
+
+    db.add(ProfilePhoto(user_id=current_user.id, url=save_avatar_file(current_user.id, file)))
+    db.commit()
+
+    return _to_profile_out(db, profile)
+
+
+@router.get("/me/photos", response_model=list[ProfilePhotoOut])
+def list_my_photos(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ProfilePhoto]:
+    """Shorthand for GET /profiles/{my own id}/photos — see that route
+    below for the actual query; this just saves the caller from needing
+    to already know their own user id."""
+    return _query_photos(db, current_user.id)
+
+
+@router.delete("/me/photos/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_my_photo(
+    photo_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Deletes ONE specific photo from the fullscreen gallery's trash
+    icon. If it happened to be the newest (i.e. "the" current avatar),
+    whichever photo is now newest becomes the avatar automatically —
+    see get_current_avatar_url()."""
+    photo = (
+        db.query(ProfilePhoto)
+        .filter(ProfilePhoto.id == photo_id, ProfilePhoto.user_id == current_user.id)
+        .first()
+    )
+    if photo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Photo not found.")
+
+    delete_avatar_file(photo.url)
+    db.delete(photo)
+    db.commit()
+
+
+def _query_photos(db: Session, user_id: int) -> list[ProfilePhoto]:
+    return (
+        db.query(ProfilePhoto)
+        .filter(ProfilePhoto.user_id == user_id)
+        .order_by(ProfilePhoto.created_at.desc())
+        .all()
+    )
+
+
+@public_router.get("/{user_id}/photos", response_model=list[ProfilePhotoOut])
+def list_photos(
+    user_id: int,
+    current_user: User = Depends(get_current_user),  # requires auth, just not "self"
+    db: Session = Depends(get_db),
+) -> list[ProfilePhoto]:
+    """
+    Every photo `user_id` has ever uploaded, newest first — feeds the
+    fullscreen gallery's swipe-through-previous-photos view. Public, no
+    audience restriction, same as the rest of this file — a profile
+    photo has no privacy rule the way Content does.
+    """
+    if db.get(User, user_id) is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+    return _query_photos(db, user_id)
 
 
 @public_router.get("/{user_id}", response_model=PublicProfileOut)
@@ -148,7 +258,7 @@ def read_public_profile(
         user_id=target.id,
         display_name=target.display_name,
         username=target.username,
-        avatar_url=profile.avatar_url if profile else None,
+        avatar_url=get_current_avatar_url(db, user_id),
         bio=profile.bio if profile else None,
         location=profile.location if profile else None,
         interests=profile.interests if profile else [],

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
 import type { Offer } from '../lib/types'
 
@@ -22,7 +22,7 @@ export default function MyOffers() {
     if (!me) return
     apiFetch<Offer[]>(`/offers?provider_id=${me.id}`)
       .then(setOffers)
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }, [me])
 
   useEffect(load, [load])
@@ -33,7 +33,7 @@ export default function MyOffers() {
       await apiFetch(`/offers/${offer.id}/${action}`, { method: 'POST' })
       load()
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     }
   }
 
@@ -43,7 +43,7 @@ export default function MyOffers() {
       await apiFetch(`/offers/${offer.id}`, { method: 'DELETE' })
       load()
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     }
   }
 

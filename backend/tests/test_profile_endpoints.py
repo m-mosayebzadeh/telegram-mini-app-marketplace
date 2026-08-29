@@ -2,7 +2,7 @@
 Integration tests for GET/PUT /profile/me.
 """
 
-from tests.helpers import sign_init_data
+from tests.helpers import make_test_image_bytes, sign_init_data
 
 AUTH_HEADER = {"X-Telegram-Init-Data": sign_init_data({"id": 900, "first_name": "Nina"})}
 
@@ -23,13 +23,28 @@ def test_put_creates_profile(client):
     response = client.put(
         "/profile/me",
         headers=AUTH_HEADER,
-        json={"avatar_url": "https://example.com/a.jpg", "bio": "Hello there"},
+        json={"bio": "Hello there"},
     )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["avatar_url"] == "https://example.com/a.jpg"
     assert body["bio"] == "Hello there"
+
+
+def test_put_never_touches_avatar_url(client):
+    """avatar_url is only ever set via POST /profile/me/avatar (see
+    upload_my_avatar) — a plain bio/location edit must never wipe out an
+    existing photo, and sending avatar_url in the JSON body (an old
+    client, or an attacker) must be silently ignored, not honored."""
+    client.put(
+        "/profile/me",
+        headers=AUTH_HEADER,
+        json={"avatar_url": "https://example.com/a.jpg", "bio": "Hello there"},
+    )
+
+    response = client.get("/profile/me", headers=AUTH_HEADER)
+
+    assert response.json()["avatar_url"] is None
 
 
 def test_get_after_put_returns_saved_profile(client):
@@ -191,3 +206,36 @@ def test_put_rejects_birthday_day_out_of_range(client):
     )
 
     assert response.status_code == 422  # caught by Pydantic's Field(le=31), not the router
+
+
+def test_upload_avatar_sets_a_public_url(client):
+    response = client.post(
+        "/profile/me/avatar",
+        headers=AUTH_HEADER,
+        files={"file": ("avatar.jpg", make_test_image_bytes(), "image/jpeg")},
+    )
+
+    assert response.status_code == 201
+    avatar_url = response.json()["avatar_url"]
+    assert avatar_url is not None
+    assert avatar_url.startswith("/avatars/")
+
+    # And it sticks — a plain GET sees the same url afterward.
+    assert client.get("/profile/me", headers=AUTH_HEADER).json()["avatar_url"] == avatar_url
+
+
+def test_upload_avatar_replaces_the_previous_one(client):
+    first_url = client.post(
+        "/profile/me/avatar",
+        headers=AUTH_HEADER,
+        files={"file": ("a.jpg", make_test_image_bytes(), "image/jpeg")},
+    ).json()["avatar_url"]
+
+    second_url = client.post(
+        "/profile/me/avatar",
+        headers=AUTH_HEADER,
+        files={"file": ("b.jpg", make_test_image_bytes(), "image/jpeg")},
+    ).json()["avatar_url"]
+
+    assert first_url != second_url
+    assert client.get("/profile/me", headers=AUTH_HEADER).json()["avatar_url"] == second_url

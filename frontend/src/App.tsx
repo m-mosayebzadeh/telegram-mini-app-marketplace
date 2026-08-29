@@ -1,13 +1,15 @@
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MeProvider } from './lib/MeContext'
+import { IconActivity, IconChat, IconDiscover, IconPersonFallback } from './components/icons'
+import { apiFetch } from './lib/api'
+import { MeProvider, useMe } from './lib/MeContext'
 import { needsDevLogin } from './lib/session'
+import type { PublicProfile } from './lib/types'
 import Discover from './pages/Discover'
 import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
-import MyOffers from './pages/MyOffers'
 import CreateOffer from './pages/CreateOffer'
-import MyRequests from './pages/MyRequests'
 import ChatSessionDetail from './pages/ChatSessionDetail'
 import WalletPage from './pages/Wallet'
 import ProfileTab from './pages/ProfileTab'
@@ -16,56 +18,84 @@ import FollowList from './pages/FollowList'
 import FollowRequests from './pages/FollowRequests'
 import ProviderSummary from './pages/ProviderSummary'
 import BuyerSummary from './pages/BuyerSummary'
+import Activity from './pages/Activity'
+import Chats from './pages/Chats'
 
 /**
- * The five bottom-tab sections and which URLs belong to each — kept as
- * plain matcher functions (not a simple startsWith, since "/offers" is
- * a literal prefix of both "/offers/mine" and "/offers/123" but those
- * belong to different tabs) so the currently-selected tab is always
- * unambiguous.
+ * The four bottom-tab sections and which URLs belong to each. Listed in
+ * ONE logical order — profile, activity, chats, discover — and left at
+ * that; a plain `display:flex; flex-direction:row` nav mirrors its
+ * child order automatically under `dir="rtl"` vs `dir="ltr"` (see
+ * index.html's `dir` attribute, kept in sync with the active language
+ * by i18n/config.ts), which is exactly why this one DOM order already
+ * renders "Profile | Activity | Chats | Discover" left-to-right in
+ * English and "پروفایل | تعاملات | گفتگوها | کشف" right-to-left in
+ * Persian without any per-language branching here.
+ *
+ * "My offers"/"My requests"/"Wallet" no longer have their own bottom
+ * tab — offer & request management moved into the Activity tab (see
+ * pages/Activity.tsx), and Wallet moved into the settings list at the
+ * bottom of the Profile tab. Their routes are kept below so existing
+ * deep links/navigate() calls elsewhere don't break, just unlinked from
+ * the nav bar itself.
  */
 const TABS = [
-  {
-    key: 'discover',
-    path: '/offers',
-    isActive: (pathname: string) =>
-      pathname === '/' || (pathname.startsWith('/offers/') && !pathname.startsWith('/offers/mine') && pathname !== '/offers/new') || pathname === '/offers',
-  },
-  {
-    key: 'myOffers',
-    path: '/offers/mine',
-    isActive: (pathname: string) => pathname.startsWith('/offers/mine') || pathname === '/offers/new',
-  },
-  {
-    key: 'myRequests',
-    path: '/requests/mine',
-    isActive: (pathname: string) => pathname.startsWith('/requests/') || pathname.startsWith('/chat-sessions/'),
-  },
-  { key: 'wallet', path: '/wallet', isActive: (pathname: string) => pathname === '/wallet' },
   {
     key: 'profile',
     path: '/profile',
     isActive: (pathname: string) =>
-      pathname === '/profile' || pathname === '/follow-requests' || pathname.startsWith('/content/'),
+      pathname === '/' ||
+      pathname === '/profile' ||
+      pathname === '/follow-requests' ||
+      pathname.startsWith('/content/') ||
+      pathname.startsWith('/profiles/'),
+  },
+  {
+    key: 'activity',
+    path: '/activity',
+    isActive: (pathname: string) => pathname === '/activity' || pathname === '/offers/new',
+  },
+  {
+    key: 'chats',
+    path: '/chats',
+    isActive: (pathname: string) => pathname === '/chats' || pathname.startsWith('/chat-sessions/'),
+  },
+  {
+    key: 'discover',
+    path: '/offers',
+    isActive: (pathname: string) => pathname === '/offers' || /^\/offers\/\d+$/.test(pathname),
   },
 ] as const
 
 function AppShell() {
   const { t } = useTranslation()
+  const { me } = useMe()
   const location = useLocation()
   const navigate = useNavigate()
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+
+  // One lightweight fetch for the nav bar's own small avatar thumbnail
+  // (see .hp-bottom-nav-avatar in theme.css) — separate from whatever
+  // the Profile tab itself loads, since this needs to be available on
+  // every screen, not just while the Profile tab is mounted.
+  useEffect(() => {
+    if (!me) return
+    apiFetch<PublicProfile>(`/profiles/${me.id}`)
+      .then((profile) => setAvatarUrl(profile.avatar_url))
+      .catch(() => setAvatarUrl(null))
+  }, [me])
 
   return (
     // Bottom padding so the fixed bottom nav never covers the last row
     // of whatever page is currently showing.
     <div style={{ paddingBottom: 64 }}>
       <Routes>
-        <Route path="/" element={<Discover />} />
+        <Route path="/" element={<ProfileTab />} />
         <Route path="/offers" element={<Discover />} />
-        <Route path="/offers/mine" element={<MyOffers />} />
         <Route path="/offers/new" element={<CreateOffer />} />
         <Route path="/offers/:id" element={<OfferDetail />} />
-        <Route path="/requests/mine" element={<MyRequests />} />
+        <Route path="/activity" element={<Activity />} />
+        <Route path="/chats" element={<Chats />} />
         <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/profile" element={<ProfileTab />} />
@@ -76,11 +106,6 @@ function AppShell() {
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
-      {/* A custom hp-* bottom nav instead of telegram-ui's own <Tabbar> —
-          that one follows AppRoot's Telegram platform/light-dark theme,
-          which would clash with the fixed dark "lounge" background every
-          page now uses (see .hp-bottom-nav's comment in theme.css). Same
-          TABS/isActive logic as before, only the rendering changed. */}
       <nav className="hp-bottom-nav">
         {TABS.map((tab) => {
           const active = tab.isActive(location.pathname)
@@ -90,7 +115,17 @@ function AppShell() {
               className={`hp-bottom-nav-item ${active ? 'hp-bottom-nav-item-active' : ''}`}
               onClick={() => navigate(tab.path)}
             >
-              <span className="hp-bottom-nav-dot" aria-hidden="true" />
+              <span className="hp-bottom-nav-icon" aria-hidden="true">
+                {tab.key === 'profile' &&
+                  (avatarUrl ? (
+                    <img className="hp-bottom-nav-avatar" src={avatarUrl} alt="" />
+                  ) : (
+                    <IconPersonFallback size={22} />
+                  ))}
+                {tab.key === 'activity' && <IconActivity size={22} />}
+                {tab.key === 'chats' && <IconChat size={22} />}
+                {tab.key === 'discover' && <IconDiscover size={22} />}
+              </span>
               {t(`tabs.${tab.key}`)}
             </button>
           )

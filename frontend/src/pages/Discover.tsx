@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import { apiFetch, ApiError } from '../lib/api'
+import { apiFetch, formatApiError } from '../lib/api'
 import { getPricingConfig } from '../lib/pricing'
 import type { Offer } from '../lib/types'
 
@@ -29,7 +29,7 @@ export default function Discover() {
   useEffect(() => {
     apiFetch<Offer[]>('/offers')
       .then(setOffers)
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
     getPricingConfig().then((config) => setStarToTomanRate(config.star_to_toman_rate))
   }, [])
 

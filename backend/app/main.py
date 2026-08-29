@@ -3,9 +3,13 @@ Application entry point. Run locally with:
     uvicorn app.main:app --reload
 """
 
+import re
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -45,6 +49,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Telegram Mini App Marketplace API", lifespan=lifespan)
+
+# The ONLY plain, unauthenticated static mount in the app — safe here
+# specifically because a profile avatar is already fully public with no
+# audience/spoiler rule (see PublicProfileOut). Content's own uploaded
+# files live in a completely separate, non-mounted directory
+# (uploads/{user_id}/..., vs. avatars' uploads/avatars/{user_id}/...)
+# and stay reachable only through the access-checked /content/{id}/file
+# route — see app/core/storage.py's module docstring.
+settings.uploads_dir.mkdir(parents=True, exist_ok=True)
+(settings.uploads_dir / "avatars").mkdir(parents=True, exist_ok=True)
+app.mount("/avatars", StaticFiles(directory=str(settings.uploads_dir / "avatars")), name="avatars")
 
 app.include_router(profile_router)
 app.include_router(public_profile_router)
@@ -124,3 +139,53 @@ def read_current_user(
         # undone idea).
         "pending_follow_requests_count": pending_follow_requests_count,
     }
+
+
+# a-z, A-Z, 0-9, and underscore only — matches what the product asked
+# for, not Telegram's own (stricter) @username rules, since this is our
+# app's own username, independent of the user's real Telegram handle.
+USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]{3,32}$")
+
+
+class UsernameUpdate(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+
+
+@app.put("/me/username")
+def update_username(
+    payload: UsernameUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Lets a user pick their own in-app username (separate from their real
+    Telegram @username — see User.username's docstring). Two distinct,
+    checkable error reasons on failure (not just one generic 400) so the
+    frontend can show the right hint: "invalid_characters" for anything
+    outside a-zA-Z0-9_ or the wrong length, "username_taken" if someone
+    else already has it.
+    """
+    if not USERNAME_PATTERN.match(payload.username):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, {"reason": "invalid_characters"})
+
+    # Checked up front (not just left to the database's unique
+    # constraint) so a taken username gets its own clear reason instead
+    # of a generic "integrity error" — the constraint itself stays as a
+    # second line of defense against a race between this check and the
+    # commit below (caught right after).
+    taken = (
+        db.query(User)
+        .filter(User.username == payload.username, User.id != current_user.id)
+        .first()
+    )
+    if taken is not None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, {"reason": "username_taken"})
+
+    current_user.username = payload.username
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, {"reason": "username_taken"}) from None
+
+    return {"username": current_user.username}

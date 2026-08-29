@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Cell, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
-import { ApiError, apiFetch } from '../lib/api'
+import { formatApiError, apiFetch } from '../lib/api'
 import { ContentGrid } from '../components/ContentGrid'
 import { ContentUploadForm } from '../components/ContentUploadForm'
 import { ProfileEditForm } from '../components/ProfileEditForm'
@@ -52,7 +52,7 @@ export default function ProfileTab() {
     if (targetId == null) return
     apiFetch<PublicProfile>(`/profiles/${targetId}`)
       .then(setProfile)
-      .catch((err) => setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err)))
+      .catch((err) => setError(formatApiError(err)))
   }
 
   useEffect(load, [targetId])
@@ -64,7 +64,7 @@ export default function ProfileTab() {
       await apiFetch(`/follow/${targetId}`, { method: 'POST' })
       load()
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setFollowing(false)
     }
@@ -77,7 +77,7 @@ export default function ProfileTab() {
       await apiFetch(`/follow/${targetId}`, { method: 'DELETE' })
       load()
     } catch (err) {
-      setError(err instanceof ApiError ? JSON.stringify(err.body) : String(err))
+      setError(formatApiError(err))
     } finally {
       setFollowing(false)
     }
@@ -118,6 +118,7 @@ export default function ProfileTab() {
         onFollow={follow}
         onUnfollow={unfollow}
         onEdit={() => setEditing(true)}
+        onAvatarUploaded={load}
         onShare={share}
         moreMenuOpen={moreMenuOpen}
         onToggleMoreMenu={() => setMoreMenuOpen(!moreMenuOpen)}

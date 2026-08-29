@@ -49,4 +49,10 @@ class ChatSessionOut(BaseModel):
     disputed: bool
     transaction_status: str  # "pending" | "succeeded" | "failed" | "refunded"
 
+    # Whether the CURRENT caller has archived this session (see
+    # ChatSession.archived_by_buyer/archived_by_provider) — per-viewer,
+    # so the same session can be archived for one participant and not
+    # the other. Drives the Chats tab's Active/Archived split.
+    archived: bool
+
     model_config = {"from_attributes": True}
