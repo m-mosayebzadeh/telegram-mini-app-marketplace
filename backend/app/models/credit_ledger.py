@@ -24,6 +24,10 @@ from app.core.time import UTCDateTime, utcnow
 
 
 class LedgerEntryType(str, enum.Enum):
+    # A real top-up, credited only after an admin approves a
+    # TopUpRequest (see app/topup/router.py) — the manual card-to-card
+    # flow from TECHNICAL_REQUIREMENTS.md's "شارژ کارت‌به‌کارت".
+    TOPUP = "topup"
     # Phase 1 only: a way to credit a wallet for local testing, without
     # any real payment. Gated behind settings.enable_dev_tools wherever
     # it's used (see app/dev/router.py) — never reachable in production.
@@ -75,8 +79,8 @@ class CreditLedgerEntry(Base):
             name="ck_commission_entries_have_no_user",
         ),
         CheckConstraint(
-            "(type = 'topup_dev_stub' AND transaction_id IS NULL) OR "
-            "(type != 'topup_dev_stub' AND transaction_id IS NOT NULL)",
+            "(type IN ('topup_dev_stub', 'topup') AND transaction_id IS NULL) OR "
+            "(type NOT IN ('topup_dev_stub', 'topup') AND transaction_id IS NOT NULL)",
             name="ck_topup_entries_have_no_transaction",
         ),
     )

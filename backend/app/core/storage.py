@@ -119,3 +119,39 @@ def delete_avatar_file(avatar_url: str | None) -> None:
         return
     path = settings.uploads_dir / avatar_url.lstrip("/")
     path.unlink(missing_ok=True)
+
+
+# --- top-up receipts ---
+#
+# A card-to-card transfer receipt is sensitive (it's proof of a real
+# bank transaction) and only two parties ever have a legitimate reason
+# to see it: the person who uploaded it, and an admin reviewing the
+# request — never the general public. So, like Content (and unlike
+# avatars), this lives in its own non-mounted directory and is only
+# ever served through the access-checked route in app/topup/router.py.
+
+
+def _receipt_dir(user_id: int) -> Path:
+    directory = settings.uploads_dir / "receipts" / str(user_id)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
+def save_receipt_file(user_id: int, upload: UploadFile) -> str:
+    """Saves a top-up receipt image and returns its local disk path,
+    ready to store in TopUpRequest.receipt_file_path."""
+    directory = _receipt_dir(user_id)
+    extension = Path(upload.filename or "").suffix or ".jpg"
+    path = directory / f"{uuid.uuid4().hex}{extension}"
+
+    data = upload.file.read()
+    if len(data) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"File too large: max {MAX_UPLOAD_SIZE_BYTES // (1024 * 1024)}MB.",
+        )
+
+    with path.open("wb") as destination:
+        destination.write(data)
+
+    return str(path)

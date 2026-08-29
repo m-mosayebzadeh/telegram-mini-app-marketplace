@@ -79,6 +79,27 @@ class Settings(BaseSettings):
     # is here).
     chat_release_grace_hours: int = 24
 
+    # --- admin access (see TECHNICAL_REQUIREMENTS.md, "پنل مدیریتی") ---
+    #
+    # The one true super-admin, identified by their real Telegram id —
+    # fixed here in .env rather than "first user to register", which
+    # would be a real security hole on a live database (anyone who signs
+    # up before the actual owner does would permanently become full
+    # admin). Every other admin (support, accountant, ...) is granted
+    # narrow, per-person access via the AdminGrant table instead — see
+    # app/auth/dependencies.py's require_admin().
+    owner_telegram_id: int | None = None
+
+    # --- manual card-to-card top-up (see app/topup/router.py) ---
+    #
+    # Deliberately NOT hardcoded with a real value here — this file is
+    # committed to git, and a bank card number/name is exactly the kind
+    # of thing that must only ever live in .env (gitignored), the same
+    # as TELEGRAM_BOT_TOKEN. Empty defaults just mean "not configured
+    # yet" rather than a hard failure, since tests never need these set.
+    topup_card_number: str = ""
+    topup_card_holder_name: str = ""
+
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 
 

@@ -16,6 +16,7 @@ from app.auth.dependencies import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.migrate import run_migrations
+from app.admin.router import router as admin_router
 from app.audience_group.router import router as audience_group_router
 from app.chat_message.router import router as chat_message_router
 from app.chat_session.router import router as chat_session_router
@@ -27,6 +28,7 @@ from app.offer.router import router as offer_router
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
 from app.request.router import router as request_router
+from app.topup.router import router as topup_router
 from app.wallet.router import router as wallet_router
 
 
@@ -71,6 +73,8 @@ app.include_router(request_router)
 app.include_router(wallet_router)
 app.include_router(chat_session_router)
 app.include_router(chat_message_router)
+app.include_router(topup_router)
+app.include_router(admin_router)
 
 # Only wire up developer-only routes (see app/dev/router.py) when the
 # flag is explicitly turned on. Since it defaults to False, forgetting to

@@ -253,6 +253,29 @@ def release_due_chat_transactions(db: Session, provider_id: int) -> None:
         db.commit()
 
 
+def credit_topup(db: Session, *, user_id: int, amount_toman: int) -> CreditLedgerEntry:
+    """
+    Writes a real TOPUP ledger entry — called only from
+    app/topup/router.py's admin-approve endpoint, once an admin has
+    confirmed a card-to-card transfer actually happened. Unlike
+    pay_for_item(), this doesn't touch a Transaction at all (see
+    CreditLedgerEntry's ck_topup_entries_have_no_transaction) — a top-up
+    isn't a marketplace purchase, it's money entering the ledger for the
+    first time.
+
+    Does NOT commit — the caller (the approve endpoint) commits together
+    with the TopUpRequest status change, so the two never happen as two
+    separate, out-of-sync writes.
+    """
+    entry = CreditLedgerEntry(
+        user_id=user_id,
+        amount_toman=amount_toman,
+        type=LedgerEntryType.TOPUP,
+    )
+    db.add(entry)
+    return entry
+
+
 def get_pending_provider_toman(db: Session, provider_id: int) -> int:
     """
     How much `provider_id` is currently owed from PENDING CHAT_REQUEST

@@ -9,6 +9,11 @@ fake Telegram initData string, so we can test auth-protected endpoints
 used to be a standalone script (scripts/generate_test_init_data.py) —
 as an endpoint, tools like Bruno can call it directly and use the result,
 instead of us copy-pasting a value by hand.
+
+There used to be a second endpoint here too — an arbitrary-amount wallet
+top-up with no real payment behind it. It's gone now that the real
+card-to-card flow exists (see app/topup/router.py and app/admin/router.py):
+that's the only way to add wallet balance anymore, even in local dev.
 """
 
 import hashlib
@@ -17,16 +22,10 @@ import json
 import time
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Request, status
 
-from app.auth.dependencies import get_current_user
 from app.core.config import settings
-from app.core.database import get_db
-from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
-from app.models.user import User
-from app.wallet.service import get_balance_toman
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/dev", tags=["dev-tools (local only)"])
 
@@ -85,37 +84,3 @@ def generate_test_init_data(
     # this matches how real Telegram initData is actually formatted.
     init_data = urlencode(fields)
     return TestInitDataResponse(init_data=init_data)
-
-
-class WalletTopUpRequest(BaseModel):
-    amount_toman: int = Field(gt=0)
-
-
-class WalletTopUpResponse(BaseModel):
-    balance_toman: int
-
-
-@router.post("/wallet-topup", response_model=WalletTopUpResponse, status_code=status.HTTP_201_CREATED)
-def dev_wallet_topup(
-    payload: WalletTopUpRequest,
-    request: Request,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> WalletTopUpResponse:
-    """
-    Credits the CALLING user's own wallet with an arbitrary amount — no
-    real payment behind this at all. This is the "شارژ آزمایشی" path
-    from TECHNICAL_REQUIREMENTS.md: the only way to get wallet balance
-    until real Stars payment / manual card-to-card top-up (both phase 2)
-    exist. Never reachable in production — see the module docstring.
-    """
-    _require_localhost(request)
-    db.add(
-        CreditLedgerEntry(
-            user_id=current_user.id,
-            amount_toman=payload.amount_toman,
-            type=LedgerEntryType.TOPUP_DEV_STUB,
-        )
-    )
-    db.commit()
-    return WalletTopUpResponse(balance_toman=get_balance_toman(db, current_user.id))
