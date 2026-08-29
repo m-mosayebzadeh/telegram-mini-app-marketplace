@@ -83,18 +83,16 @@ export default function TopUp() {
     setPreviewUrl(picked ? URL.createObjectURL(picked) : null)
   }
 
+  // Stars is the only field the backend actually stores
+  // (TopUpRequest.requested_stars) — Toman is purely a computed,
+  // read-only display, never a second thing to type into (see
+  // .hp-converter's comment in theme.css for why: a typed Toman amount
+  // that doesn't divide evenly by the rate used to silently round to a
+  // Star count that didn't match what the user thought they entered).
   function onStarsChange(raw: string) {
     const digits = raw.replace(/[^\d]/g, '')
     setStarsText(digits)
-    if (rate && digits) setTomanText(String(Number(digits) * rate))
-    else if (!digits) setTomanText('')
-  }
-
-  function onTomanChange(raw: string) {
-    const digits = raw.replace(/[^\d]/g, '')
-    setTomanText(digits)
-    if (rate && digits) setStarsText(String(Math.round(Number(digits) / rate)))
-    else if (!digits) setStarsText('')
+    setTomanText(rate && digits ? String(Number(digits) * rate) : '')
   }
 
   async function copyCardNumber() {
@@ -159,108 +157,97 @@ export default function TopUp() {
 
       {tab === 'direct' && (
         <>
-          <div className="hp-proscons">
-            <div className="hp-proscons-row hp-proscons-row-pro">
-              <span className="hp-proscons-icon">✓</span>
-              <span>{t('topup.directPro1')}</span>
-            </div>
-            <div className="hp-proscons-row hp-proscons-row-pro">
-              <span className="hp-proscons-icon">✓</span>
-              <span>{t('topup.directPro2')}</span>
-            </div>
-            <div className="hp-proscons-row hp-proscons-row-pro">
-              <span className="hp-proscons-icon">✓</span>
-              <span>{t('topup.directPro3')}</span>
-            </div>
-            <div className="hp-proscons-row hp-proscons-row-con">
-              <span className="hp-proscons-icon">✕</span>
-              <span>{t('topup.directCon1')}</span>
-            </div>
-          </div>
-
-          <div className="hp-bank-card">
-            <div className="hp-bank-card-chip" />
-            <div>
-              <div className="hp-bank-card-number">{cardInfo.card_number || '—'}</div>
-              <div className="hp-bank-card-holder">{cardInfo.card_holder_name || '—'}</div>
-            </div>
-            <button className="hp-bank-card-copy" onClick={copyCardNumber}>
-              {t('topup.cardCopy')}
-            </button>
-          </div>
-
-          <div className="hp-converter">
-            <div className="hp-converter-row">
-              <div className="hp-converter-field">
-                <span className="hp-field-label">{t('topup.converterStarsLabel')}</span>
-                <input
-                  className="hp-segmented-btn"
-                  style={{ width: '100%', textAlign: 'center' }}
-                  type="text"
-                  inputMode="numeric"
-                  value={starsText}
-                  onChange={(e) => onStarsChange(e.target.value)}
-                  placeholder="0"
-                />
+          <div className="hp-tab-body">
+            <div className="hp-proscons">
+              <div className="hp-proscons-row hp-proscons-row-pro">
+                <span className="hp-proscons-icon">✓</span>
+                <span>{t('topup.directPro1')}</span>
               </div>
-              <span className="hp-converter-swap">=</span>
-              <div className="hp-converter-field">
-                <span className="hp-field-label">{t('topup.converterTomanLabel')}</span>
-                <input
-                  className="hp-segmented-btn"
-                  style={{ width: '100%', textAlign: 'center' }}
-                  type="text"
-                  inputMode="numeric"
-                  value={tomanText ? Number(tomanText).toLocaleString('en-US') : ''}
-                  onChange={(e) => onTomanChange(e.target.value)}
-                  placeholder="0"
-                />
+              <div className="hp-proscons-row hp-proscons-row-pro">
+                <span className="hp-proscons-icon">✓</span>
+                <span>{t('topup.directPro2')}</span>
+              </div>
+              <div className="hp-proscons-row hp-proscons-row-pro">
+                <span className="hp-proscons-icon">✓</span>
+                <span>{t('topup.directPro3')}</span>
+              </div>
+              <div className="hp-proscons-row hp-proscons-row-con">
+                <span className="hp-proscons-icon">✕</span>
+                <span>{t('topup.directCon1')}</span>
               </div>
             </div>
-            <p className="hp-converter-rate-hint">
-              {t('topup.converterRateHint', { rate: rate.toLocaleString('en-US') })}
-            </p>
-          </div>
 
-          <div className="hp-field" style={{ margin: '15px 12px 0' }}>
-            <span className="hp-field-label">{t('topup.receiptLabel')}</span>
-            <label
-              className="hp-dropzone"
-              onClick={() => fileInputRef.current?.click()}
-              style={previewUrl ? { padding: 0 } : undefined}
-            >
-              {previewUrl ? (
-                <>
-                  <img className="hp-dropzone-preview" src={previewUrl} alt="" />
-                  <span className="hp-dropzone-preview-overlay">{t('topup.changeReceiptFile')}</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize: 26 }}>🧾</span>
-                  <span>{t('topup.chooseReceiptFile')}</span>
-                </>
-              )}
+            <div className="hp-bank-card">
+              <div className="hp-bank-card-chip" />
+              <div>
+                <div className="hp-bank-card-number">{cardInfo.card_number || '—'}</div>
+                <div className="hp-bank-card-holder">{cardInfo.card_holder_name || '—'}</div>
+              </div>
+              <button className="hp-bank-card-copy" onClick={copyCardNumber}>
+                {t('topup.cardCopy')}
+              </button>
+            </div>
+
+            <div className="hp-converter">
+              <span className="hp-field-label">{t('topup.converterStarsLabel')}</span>
               <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-                style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                className="hp-segmented-btn hp-converter-input"
+                type="text"
+                inputMode="numeric"
+                value={starsText}
+                onChange={(e) => onStarsChange(e.target.value)}
+                placeholder="0"
               />
-            </label>
-          </div>
+              {tomanText && (
+                <p className="hp-converter-toman-line">
+                  ≈ {Number(tomanText).toLocaleString('en-US')} {t('topup.converterTomanLabel')}
+                </p>
+              )}
+              <p className="hp-converter-rate-hint">
+                {t('topup.converterRateHint', { rate: rate.toLocaleString('en-US') })}
+              </p>
+            </div>
 
-          {submitError && <p className="hp-error" style={{ margin: '10px 12px 0' }}>{submitError}</p>}
+            <div className="hp-field">
+              <span className="hp-field-label">{t('topup.receiptLabel')}</span>
+              <label
+                className="hp-dropzone"
+                onClick={() => fileInputRef.current?.click()}
+                style={previewUrl ? { padding: 0 } : undefined}
+              >
+                {previewUrl ? (
+                  <>
+                    <img className="hp-dropzone-preview" src={previewUrl} alt="" />
+                    <span className="hp-dropzone-preview-overlay">{t('topup.changeReceiptFile')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 26 }}>🧾</span>
+                    <span>{t('topup.chooseReceiptFile')}</span>
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+                  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                />
+              </label>
+            </div>
 
-          <div className="hp-field">
-            <button
-              className="hp-btn hp-btn-gradient"
-              style={{ width: 'calc(100% - 24px)', margin: '0 12px' }}
-              disabled={!file || !starsText || busy}
-              onClick={submit}
-            >
-              {busy ? t('common.loading') : t('topup.submitButton')}
-            </button>
+            {submitError && <p className="hp-error">{submitError}</p>}
+
+            <div className="hp-field">
+              <button
+                className="hp-btn hp-btn-gradient"
+                style={{ width: '100%' }}
+                disabled={!file || !starsText || busy}
+                onClick={submit}
+              >
+                {busy ? t('common.loading') : t('topup.submitButton')}
+              </button>
+            </div>
           </div>
 
           <div className="hp-page-header" style={{ marginTop: 24 }}>
@@ -297,7 +284,7 @@ export default function TopUp() {
 
       {tab === 'stars' && (
         <>
-          <div className="hp-proscons">
+          <div className="hp-tab-body hp-proscons">
             <div className="hp-proscons-row hp-proscons-row-pro">
               <span className="hp-proscons-icon">✓</span>
               <span>{t('topup.starsPro1')}</span>
@@ -313,7 +300,7 @@ export default function TopUp() {
 
       {tab === 'intermediaries' && (
         <>
-          <div className="hp-proscons">
+          <div className="hp-tab-body hp-proscons">
             <div className="hp-proscons-row hp-proscons-row-con">
               <span className="hp-proscons-icon">✕</span>
               <span>{t('topup.intermediariesCon1')}</span>

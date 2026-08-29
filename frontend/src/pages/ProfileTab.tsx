@@ -9,6 +9,7 @@ import { ProfileEditForm } from '../components/ProfileEditForm'
 import { ProfileHeader } from '../components/ProfileHeader'
 import { Sheet } from '../components/Sheet'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
+import { getMyAdminAccess } from '../lib/adminApi'
 import { useMe } from '../lib/MeContext'
 import { clearDevUserChoice, isRealTelegramLaunch } from '../lib/session'
 import type { PublicProfile } from '../lib/types'
@@ -47,6 +48,12 @@ export default function ProfileTab() {
   const [uploading, setUploading] = useState(false)
   const [activeTab, setActiveTab] = useState<'content' | 'offers'>('content')
   const [contentRefreshKey, setContentRefreshKey] = useState(0)
+  // Whether to show a link into /admin/topups — GET /admin/me never
+  // 403s (see backend/app/admin/router.py), so this is a plain fetch,
+  // not something that needs try/catch-as-a-permission-check. Only
+  // fetched for your own profile; a visitor's profile has no reason to
+  // trigger it.
+  const [isAdmin, setIsAdmin] = useState(false)
 
   function load() {
     if (targetId == null) return
@@ -56,6 +63,13 @@ export default function ProfileTab() {
   }
 
   useEffect(load, [targetId])
+
+  useEffect(() => {
+    if (!me || targetId !== me.id) return
+    getMyAdminAccess()
+      .then((access) => setIsAdmin(access.is_owner || access.scopes.length > 0))
+      .catch(() => setIsAdmin(false))
+  }, [me, targetId])
 
   async function follow() {
     if (targetId == null) return
@@ -196,6 +210,11 @@ export default function ProfileTab() {
               <ThemeSwitcher />
             </div>
           </Section>
+          {isAdmin && (
+            <Section>
+              <Cell onClick={() => navigate('/admin/topups')}>{t('admin.topupsTitle')}</Cell>
+            </Section>
+          )}
           {!isRealTelegramLaunch() && (
             <Section>
               <Cell

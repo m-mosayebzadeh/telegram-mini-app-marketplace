@@ -26,6 +26,22 @@
  * too, not just the profile tab.
  */
 
+/* A real global box-sizing reset was living in src/index.css, but that
+   file is never imported anywhere (main.tsx only imports this file and
+   telegram-ui's own stylesheet) — so the whole app has actually been
+   running on the browser's default content-box model this whole time.
+   That's what let a plain `width: 100%` on any padded/bordered element
+   (an input, .hp-segmented-btn, ...) silently overflow its parent by
+   exactly its padding+border — the real cause of the top-up converter
+   box "sticking out" bug. Fixed here, in the file that's actually
+   loaded, so it's fixed everywhere at once instead of one inline
+   box-sizing per element. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   /* ---- velvet (default) — "Velvet After Dark" ---- */
   --hp-bg: #0e0912;
@@ -1938,10 +1954,22 @@ button.hp-list-row:active {
   border-color: var(--hp-primary);
 }
 
+/* A single consistently-padded wrapper for a whole tab's worth of
+   content — every child lines up on the exact same left/right edge
+   without each one needing its own margin (see pages/TopUp.tsx). */
+.hp-tab-body {
+  padding: 0 12px;
+}
+
 /* ---------- top-up: pros/cons list ---------- */
 
+/* No horizontal margin of its own — these three (.hp-proscons,
+   .hp-bank-card, .hp-converter) are always used together inside one
+   consistently-padded wrapper (see pages/TopUp.tsx's `.hp-tab-body`),
+   so every element on the tab shares the exact same left/right edge
+   instead of each one guessing its own margin number. */
 .hp-proscons {
-  margin: 14px 12px 0;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1980,18 +2008,17 @@ button.hp-list-row:active {
 /* ---------- top-up: bank card visual ---------- */
 
 .hp-bank-card {
-  margin: 16px 12px 0;
-  border-radius: 20px;
-  padding: 20px;
+  margin-top: 16px;
+  border-radius: 16px;
+  padding: 14px 16px;
   background: var(--hp-grad);
   box-shadow: var(--hp-glow);
   color: #fff;
   position: relative;
   overflow: hidden;
-  min-height: 130px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 10px;
   font-family: var(--hp-font);
 }
 
@@ -2003,9 +2030,9 @@ button.hp-list-row:active {
 }
 
 .hp-bank-card-chip {
-  width: 36px;
-  height: 26px;
-  border-radius: 6px;
+  width: 28px;
+  height: 20px;
+  border-radius: 5px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.5));
   position: relative;
   z-index: 1;
@@ -2014,9 +2041,9 @@ button.hp-list-row:active {
 .hp-bank-card-number {
   position: relative;
   z-index: 1;
-  font-size: 19px;
+  font-size: 16.5px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   direction: ltr;
   text-align: start;
   unicode-bidi: isolate;
@@ -2025,9 +2052,10 @@ button.hp-list-row:active {
 .hp-bank-card-holder {
   position: relative;
   z-index: 1;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   opacity: 0.92;
+  margin-top: 4px;
 }
 
 .hp-bank-card-copy {
@@ -2037,7 +2065,7 @@ button.hp-list-row:active {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   font-family: var(--hp-font);
   padding: 6px 12px;
@@ -2045,10 +2073,18 @@ button.hp-list-row:active {
   cursor: pointer;
 }
 
-/* ---------- top-up: converter ---------- */
+/* ---------- top-up: converter ----------
+   Stars is the only real, editable field (it's the one field the
+   backend actually stores — see TopUpRequest.requested_stars); Toman
+   is shown as a plain read-only line computed from it, never a second
+   input a person could type into separately. Two independently-typable
+   fields invited exactly the confusion this replaced: someone typing a
+   Toman amount that doesn't divide evenly by the rate got a
+   silently-rounded Star count that didn't match what they thought
+   they were asking for. */
 
 .hp-converter {
-  margin: 16px 12px 0;
+  margin-top: 16px;
   background: var(--hp-glass);
   border: 1px solid var(--hp-hairline);
   border-radius: 18px;
@@ -2056,26 +2092,22 @@ button.hp-list-row:active {
   backdrop-filter: blur(20px);
 }
 
-.hp-converter-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.hp-converter-input {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
 }
 
-.hp-converter-field {
-  flex: 1;
-  min-width: 0;
-}
-
-.hp-converter-swap {
-  flex: none;
-  font-size: 18px;
-  color: var(--hp-text-muted);
-  margin-top: 18px;
+.hp-converter-toman-line {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--hp-text);
 }
 
 .hp-converter-rate-hint {
-  margin-top: 10px;
+  margin-top: 6px;
   font-size: 12px;
   color: var(--hp-text-muted);
   text-align: center;
