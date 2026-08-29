@@ -118,7 +118,7 @@ def require_admin(scope: str):
     though here a plain 403 is fine since admin routes are already only
     reachable by someone who's authenticated as SOME real user.
 
-    Usage: `Depends(require_admin("wallet_topups"))` in a route's
+    Usage: `Depends(require_admin("finance.topups"))` in a route's
     signature — the returned callable is itself the dependency FastAPI
     calls, not something routes invoke directly.
     """

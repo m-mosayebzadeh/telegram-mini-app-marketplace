@@ -87,7 +87,7 @@ def _can_view_receipt(db: Session, viewer: User, topup_request: TopUpRequest) ->
     if is_owner(viewer):
         return True
     grant = db.query(AdminGrant).filter(AdminGrant.user_id == viewer.id).first()
-    return grant is not None and "wallet_topups" in grant.scopes
+    return grant is not None and "finance.topups" in grant.scopes
 
 
 @router.get("/requests/{request_id}/receipt")

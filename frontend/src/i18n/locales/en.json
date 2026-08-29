@@ -18,7 +18,8 @@
     "discover": "Discover",
     "activity": "Activity",
     "chats": "Chats",
-    "profile": "Profile"
+    "profile": "Profile",
+    "admin": "Admin"
   },
   "activityPage": {
     "offersTab": "Offers",
@@ -173,6 +174,9 @@
     "starsAmountMustBePositive": "Enter a Star amount greater than zero"
   },
   "admin": {
+    "hubTitle": "Admin Panel",
+    "sectionFinance": "Finance",
+    "sectionAccess": "Access",
     "topupsTitle": "Top-up requests",
     "filterAll": "All",
     "filterPending": "Pending",

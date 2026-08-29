@@ -18,7 +18,8 @@
     "discover": "کشف",
     "activity": "تعاملات",
     "chats": "گفتگوها",
-    "profile": "پروفایل"
+    "profile": "پروفایل",
+    "admin": "مدیریت"
   },
   "activityPage": {
     "offersTab": "پیشنهادها",
@@ -173,6 +174,9 @@
     "starsAmountMustBePositive": "تعداد استارز باید بزرگ‌تر از صفر باشه"
   },
   "admin": {
+    "hubTitle": "پنل مدیریت",
+    "sectionFinance": "مالی",
+    "sectionAccess": "دسترسی‌ها",
     "topupsTitle": "بررسی درخواست‌های شارژ",
     "filterAll": "همه",
     "filterPending": "در انتظار",

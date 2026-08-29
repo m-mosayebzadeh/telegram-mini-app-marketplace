@@ -83,9 +83,9 @@ def test_non_admin_gets_403_on_admin_routes(client):
 
 def test_only_owner_can_manage_grants(client):
     # A scoped admin (not the owner) still can't hand out grants.
-    client.post("/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 1002, "scopes": ["wallet_topups"]})
+    client.post("/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 1002, "scopes": ["finance.topups"]})
     response = client.post(
-        "/admin/grants", headers=OTHER_HEADER, json={"telegram_id": 1001, "scopes": ["wallet_topups"]}
+        "/admin/grants", headers=OTHER_HEADER, json={"telegram_id": 1001, "scopes": ["finance.topups"]}
     )
     assert response.status_code == 403
 
@@ -95,7 +95,7 @@ def test_scoped_grant_lets_a_non_owner_review_topups(client):
     assert client.get("/admin/topup-requests", headers=OTHER_HEADER).status_code == 403
 
     grant = client.post(
-        "/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 1002, "scopes": ["wallet_topups"]}
+        "/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 1002, "scopes": ["finance.topups"]}
     )
     assert grant.status_code == 201
 
@@ -104,7 +104,7 @@ def test_scoped_grant_lets_a_non_owner_review_topups(client):
 
 def test_grant_requires_the_target_to_have_logged_in_at_least_once(client):
     response = client.post(
-        "/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 424242, "scopes": ["wallet_topups"]}
+        "/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 424242, "scopes": ["finance.topups"]}
     )
     assert response.status_code == 404
 
@@ -206,12 +206,12 @@ def test_my_admin_access_reports_no_access_for_a_plain_user(client):
 def test_my_admin_access_reports_granted_scopes(client):
     client.get("/me", headers=OTHER_HEADER)  # so a User row for 1002 exists to grant to
     grant = client.post(
-        "/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 1002, "scopes": ["wallet_topups"]}
+        "/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 1002, "scopes": ["finance.topups"]}
     )
     assert grant.status_code == 201
     response = client.get("/admin/me", headers=OTHER_HEADER)
     assert response.status_code == 200
-    assert response.json() == {"is_owner": False, "scopes": ["wallet_topups"]}
+    assert response.json() == {"is_owner": False, "scopes": ["finance.topups"]}
 
 
 # --- first-login username collision (see app/auth/dependencies.py) ---------

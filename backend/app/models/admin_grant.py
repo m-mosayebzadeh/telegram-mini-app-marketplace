@@ -31,7 +31,7 @@ class AdminGrant(Base):
     # update ("this person's access is exactly this list").
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
 
-    # e.g. ["wallet_topups"] — checked by app/auth/dependencies.py's
+    # e.g. ["finance.topups"] — checked by app/auth/dependencies.py's
     # require_admin(scope). New scope strings can be introduced later
     # (dispute resolution, user management, ...) without a migration,
     # since this is just a JSON list, not a fixed column per permission.

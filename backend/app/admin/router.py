@@ -1,7 +1,7 @@
 """
 Admin-only endpoints: managing who else has admin access (owner-only),
 and reviewing top-up requests (owner, or anyone granted the
-"wallet_topups" scope — see app/auth/dependencies.py's require_admin).
+"finance.topups" scope — see app/auth/dependencies.py's require_admin).
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -126,7 +126,7 @@ def _topup_out(topup_request: TopUpRequest, requester: User) -> AdminTopUpReques
 @router.get("/topup-requests", response_model=list[AdminTopUpRequestOut])
 def list_topup_requests(
     status_filter: str | None = None,
-    current_user: User = Depends(require_admin("wallet_topups")),
+    current_user: User = Depends(require_admin("finance.topups")),
     db: Session = Depends(get_db),
 ) -> list[AdminTopUpRequestOut]:
     """status_filter defaults to showing everything; pass e.g.
@@ -152,7 +152,7 @@ def _get_pending_request(db: Session, request_id: int) -> TopUpRequest:
 def approve_topup_request(
     request_id: int,
     payload: TopUpApproveIn,
-    current_user: User = Depends(require_admin("wallet_topups")),
+    current_user: User = Depends(require_admin("finance.topups")),
     db: Session = Depends(get_db),
 ) -> AdminTopUpRequestOut:
     if payload.final_toman_amount <= 0:
@@ -177,7 +177,7 @@ def approve_topup_request(
 def reject_topup_request(
     request_id: int,
     payload: TopUpRejectIn,
-    current_user: User = Depends(require_admin("wallet_topups")),
+    current_user: User = Depends(require_admin("finance.topups")),
     db: Session = Depends(get_db),
 ) -> AdminTopUpRequestOut:
     topup_request = _get_pending_request(db, request_id)

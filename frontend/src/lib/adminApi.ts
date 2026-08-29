@@ -1,7 +1,7 @@
 /**
  * Admin-only calls to backend/app/admin/router.py — grants management
  * (owner-only) and top-up review (owner, or anyone granted the
- * "wallet_topups" scope). The backend enforces every one of these for
+ * "finance.topups" scope). The backend enforces every one of these for
  * real; getMyAdminAccess() only exists so the frontend can decide
  * whether to show admin UI at all, without treating a 403 as the signal.
  */

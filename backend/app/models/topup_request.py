@@ -40,7 +40,7 @@ class TopUpRequest(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     # Never served publicly — only the requester themselves or an admin
-    # with the "wallet_topups" scope can fetch the bytes (see
+    # with the "finance.topups" scope can fetch the bytes (see
     # app/topup/router.py), the same access-checked-route pattern
     # Content already uses instead of a plain static mount.
     receipt_file_path: Mapped[str] = mapped_column(String(500))

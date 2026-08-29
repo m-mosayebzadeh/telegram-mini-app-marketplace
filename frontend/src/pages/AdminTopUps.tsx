@@ -1,33 +1,22 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
-import {
-  approveTopUpRequest,
-  createAdminGrant,
-  deleteAdminGrant,
-  getMyAdminAccess,
-  listAdminGrants,
-  listTopUpRequestsForAdmin,
-  rejectTopUpRequest,
-} from '../lib/adminApi'
+import { approveTopUpRequest, listTopUpRequestsForAdmin, rejectTopUpRequest } from '../lib/adminApi'
 import { formatApiError } from '../lib/api'
 import { NumberField } from '../components/NumberField'
 import { Sheet } from '../components/Sheet'
 import { fetchTopUpReceiptBlobUrl } from '../lib/topupApi'
-import type { AdminGrant, AdminTopUpRequest, MyAdminAccess } from '../lib/types'
+import { useMe } from '../lib/MeContext'
+import type { AdminTopUpRequest } from '../lib/types'
 
-type StatusFilter = 'pending' | 'approved' | 'rejected' | undefined
+type StatusFilter = 'pending' | 'approved' | 'rejected'
 
-/**
- * Admin review of card-to-card top-up requests, plus (owner-only) a
- * small grants panel for handing out that same review access to
- * someone else — see backend/app/admin/router.py. Not linked from the
- * bottom nav; reached directly (e.g. /admin/topups) since it's not
- * something most users should ever stumble into.
- */
+/** "مالی → شارژها" — review card-to-card top-up requests. Access
+ * (owner or "finance.topups") comes from the session-wide check in
+ * MeContext, not a fetch of its own — see lib/MeContext.tsx. */
 export default function AdminTopUps() {
   const { t } = useTranslation()
-  const [access, setAccess] = useState<MyAdminAccess | null>(null)
+  const { adminAccess } = useMe()
   const [filter, setFilter] = useState<StatusFilter>('pending')
   const [requests, setRequests] = useState<AdminTopUpRequest[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -41,32 +30,19 @@ export default function AdminTopUps() {
   const [busy, setBusy] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
 
-  const [grants, setGrants] = useState<AdminGrant[] | null>(null)
-  const [grantTelegramId, setGrantTelegramId] = useState('')
-  const [grantError, setGrantError] = useState<string | null>(null)
+  const hasAccess = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.includes('finance.topups'))
 
-  function loadRequests(nextFilter: StatusFilter) {
+  function loadRequests() {
     setRequests(null)
-    listTopUpRequestsForAdmin(nextFilter)
+    listTopUpRequestsForAdmin(filter)
       .then(setRequests)
       .catch((err) => setError(formatApiError(err)))
   }
 
   useEffect(() => {
-    getMyAdminAccess()
-      .then((a) => {
-        setAccess(a)
-        if (a.is_owner || a.scopes.includes('wallet_topups')) loadRequests(filter)
-        if (a.is_owner) listAdminGrants().then(setGrants).catch(() => setGrants([]))
-      })
-      .catch((err) => setError(formatApiError(err)))
+    if (hasAccess) loadRequests()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    if (access && (access.is_owner || access.scopes.includes('wallet_topups'))) loadRequests(filter)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter])
+  }, [hasAccess, filter])
 
   function openReview(request: AdminTopUpRequest, mode: 'approve' | 'reject') {
     setReviewing({ request, mode })
@@ -79,8 +55,7 @@ export default function AdminTopUps() {
 
   async function openReceipt(requestId: number) {
     try {
-      const url = await fetchTopUpReceiptBlobUrl(requestId)
-      setReceiptUrl(url)
+      setReceiptUrl(await fetchTopUpReceiptBlobUrl(requestId))
     } catch (err) {
       setError(formatApiError(err))
     }
@@ -102,7 +77,7 @@ export default function AdminTopUps() {
     try {
       await approveTopUpRequest(reviewing.request.id, amount, reference.trim())
       setReviewing(null)
-      loadRequests(filter)
+      loadRequests()
     } catch (err) {
       setReviewError(formatApiError(err))
     } finally {
@@ -117,7 +92,7 @@ export default function AdminTopUps() {
     try {
       await rejectTopUpRequest(reviewing.request.id, reason.trim())
       setReviewing(null)
-      loadRequests(filter)
+      loadRequests()
     } catch (err) {
       setReviewError(formatApiError(err))
     } finally {
@@ -125,35 +100,15 @@ export default function AdminTopUps() {
     }
   }
 
-  async function submitGrant() {
-    const telegramId = Number(grantTelegramId)
-    if (!telegramId) return
-    setGrantError(null)
-    try {
-      await createAdminGrant(telegramId, ['wallet_topups'])
-      setGrantTelegramId('')
-      listAdminGrants().then(setGrants)
-    } catch (err) {
-      setGrantError(formatApiError(err))
-    }
-  }
-
-  async function revokeGrant(id: number) {
-    await deleteAdminGrant(id)
-    listAdminGrants().then(setGrants)
-  }
-
   if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
-  if (!access) {
+  if (!adminAccess) {
     return (
       <Placeholder>
         <Spinner size="l" />
       </Placeholder>
     )
   }
-  if (!access.is_owner && !access.scopes.includes('wallet_topups')) {
-    return <Placeholder header={t('admin.noAccess')} />
-  }
+  if (!hasAccess) return <Placeholder header={t('admin.noAccess')} />
 
   return (
     <div className="hp-page">
@@ -213,47 +168,6 @@ export default function AdminTopUps() {
             </div>
           ))}
         </div>
-      )}
-
-      {access.is_owner && (
-        <>
-          <div className="hp-page-header" style={{ marginTop: 24 }}>
-            {t('admin.grantsTitle')}
-          </div>
-          <div className="hp-field">
-            <NumberField
-              header={t('admin.grantTelegramIdLabel')}
-              value={grantTelegramId}
-              onChange={setGrantTelegramId}
-            />
-          </div>
-          {grantError && <p className="hp-error" style={{ margin: '0 12px' }}>{grantError}</p>}
-          <div className="hp-field">
-            <button
-              className="hp-btn hp-btn-gradient"
-              style={{ width: 'calc(100% - 24px)', margin: '0 12px' }}
-              disabled={!grantTelegramId}
-              onClick={submitGrant}
-            >
-              {t('admin.grantSubmit')}
-            </button>
-          </div>
-          {grants && grants.length > 0 && (
-            <div className="hp-list">
-              {grants.map((g) => (
-                <div key={g.id} className="hp-list-row">
-                  <span className="hp-list-title">
-                    {g.display_name}
-                    {g.username ? ` (@${g.username})` : ''}
-                  </span>
-                  <button className="hp-btn-sm" onClick={() => revokeGrant(g.id)}>
-                    {t('admin.grantRevoke')}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
       )}
 
       {receiptUrl && (

@@ -1,13 +1,20 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { getMyAdminAccess } from './adminApi'
 import { apiFetch } from './api'
-import type { Me } from './types'
+import type { Me, MyAdminAccess } from './types'
 
 interface MeState {
   me: Me | null
   error: string | null
+  // Fetched once alongside `me` (GET /admin/me never 403s — see
+  // backend/app/admin/router.py) so the bottom nav's admin tab (see
+  // App.tsx) is a single per-session check, not something re-fetched
+  // on every page. null while still loading; {is_owner:false,
+  // scopes:[]} for the overwhelming majority of users who aren't admins.
+  adminAccess: MyAdminAccess | null
 }
 
-const MeContext = createContext<MeState>({ me: null, error: null })
+const MeContext = createContext<MeState>({ me: null, error: null, adminAccess: null })
 
 /**
  * Fetches GET /me exactly once for the whole app and shares the result
@@ -18,12 +25,17 @@ const MeContext = createContext<MeState>({ me: null, error: null })
  * as the app's single entry point into the backend.
  */
 export function MeProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<MeState>({ me: null, error: null })
+  const [state, setState] = useState<MeState>({ me: null, error: null, adminAccess: null })
 
   useEffect(() => {
     apiFetch<Me>('/me')
-      .then((me) => setState({ me, error: null }))
-      .catch((err) => setState({ me: null, error: err instanceof Error ? err.message : String(err) }))
+      .then((me) => {
+        setState((s) => ({ ...s, me, error: null }))
+        getMyAdminAccess()
+          .then((adminAccess) => setState((s) => ({ ...s, adminAccess })))
+          .catch(() => setState((s) => ({ ...s, adminAccess: { is_owner: false, scopes: [] } })))
+      })
+      .catch((err) => setState((s) => ({ ...s, me: null, error: err instanceof Error ? err.message : String(err) })))
   }, [])
 
   return <MeContext.Provider value={state}>{children}</MeContext.Provider>

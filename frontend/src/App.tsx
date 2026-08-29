@@ -21,7 +21,10 @@ import BuyerSummary from './pages/BuyerSummary'
 import Activity from './pages/Activity'
 import Chats from './pages/Chats'
 import TopUp from './pages/TopUp'
+import AdminHub from './pages/AdminHub'
+import AdminFinance from './pages/AdminFinance'
 import AdminTopUps from './pages/AdminTopUps'
+import AdminAccess from './pages/AdminAccess'
 
 /**
  * The four bottom-tab sections and which URLs belong to each. Listed in
@@ -71,10 +74,14 @@ const TABS = [
 
 function AppShell() {
   const { t } = useTranslation()
-  const { me } = useMe()
+  const { me, adminAccess } = useMe()
   const location = useLocation()
   const navigate = useNavigate()
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  // A 5th nav item, only for the tiny minority of accounts with any
+  // admin access at all — adminAccess is fetched once per session (see
+  // MeContext.tsx), never re-checked per page/navigation.
+  const isAdmin = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.length > 0)
 
   // One lightweight fetch for the nav bar's own small avatar thumbnail
   // (see .hp-bottom-nav-avatar in theme.css) — separate from whatever
@@ -101,7 +108,10 @@ function AppShell() {
         <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/wallet/topup" element={<TopUp />} />
+        <Route path="/admin" element={<AdminHub />} />
+        <Route path="/admin/finance" element={<AdminFinance />} />
         <Route path="/admin/topups" element={<AdminTopUps />} />
+        <Route path="/admin/access" element={<AdminAccess />} />
         <Route path="/profile" element={<ProfileTab />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/content/:id" element={<ContentDetail />} />
@@ -134,6 +144,17 @@ function AppShell() {
             </button>
           )
         })}
+        {isAdmin && (
+          <button
+            className={`hp-bottom-nav-item ${location.pathname.startsWith('/admin') ? 'hp-bottom-nav-item-active' : ''}`}
+            onClick={() => navigate('/admin')}
+          >
+            <span className="hp-bottom-nav-icon" aria-hidden="true">
+              🛠
+            </span>
+            {t('tabs.admin')}
+          </button>
+        )}
       </nav>
     </div>
   )
