@@ -3,6 +3,15 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
+class MyAdminAccessOut(BaseModel):
+    """What the CALLING user can do, admin-wise — lets the frontend
+    decide whether to even show admin UI without guessing from a 403.
+    Always 200 (never itself a permission check) — see GET /admin/me."""
+
+    is_owner: bool
+    scopes: list[str]
+
+
 class AdminGrantCreate(BaseModel):
     # The target person's real Telegram id (something the owner asks
     # them for directly, e.g. via @userinfobot) — not our internal user

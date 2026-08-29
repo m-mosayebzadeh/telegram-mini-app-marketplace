@@ -239,3 +239,55 @@ export interface BuyerSummary {
   completed_transactions_count: number
   total_stars_spent: number
 }
+
+/** GET /topup/card-info — see backend/app/topup/schemas.py's
+ * TopUpCardInfoOut. Empty strings mean the owner hasn't set
+ * TOPUP_CARD_NUMBER/TOPUP_CARD_HOLDER_NAME in their .env yet. */
+export interface TopUpCardInfo {
+  card_number: string
+  card_holder_name: string
+}
+
+/** One card-to-card top-up request, from the requester's own point of
+ * view — see backend/app/topup/schemas.py's TopUpRequestOut. */
+export interface TopUpRequest {
+  id: number
+  user_id: number
+  requested_stars: number
+  star_rate_at_request: number
+  requested_toman_amount: number
+  status: 'pending' | 'approved' | 'rejected'
+  final_toman_amount: number | null
+  transaction_reference: string | null
+  rejection_reason: string | null
+  reviewed_by_user_id: number | null
+  reviewed_at: string | null
+  created_at: string
+}
+
+/** The admin-side view of a top-up request — see
+ * backend/app/admin/schemas.py's AdminTopUpRequestOut. Same fields as
+ * TopUpRequest, plus who's asking. */
+export interface AdminTopUpRequest extends Omit<TopUpRequest, 'user_id'> {
+  requester: { user_id: number; display_name: string; username: string | null }
+}
+
+/** GET /admin/me — never 403s, see backend/app/admin/router.py's
+ * docstring. is_owner implies every scope; scopes is only meaningful
+ * when is_owner is false. */
+export interface MyAdminAccess {
+  is_owner: boolean
+  scopes: string[]
+}
+
+/** One row of GET /admin/grants — see backend/app/admin/schemas.py's
+ * AdminGrantOut. */
+export interface AdminGrant {
+  id: number
+  user_id: number
+  display_name: string
+  username: string | null
+  scopes: string[]
+  granted_by_user_id: number
+  created_at: string
+}

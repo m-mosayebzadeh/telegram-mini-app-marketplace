@@ -100,3 +100,16 @@ export function IconWallet({ size = 24 }: IconProps) {
     </svg>
   )
 }
+
+// Adapted from Tabler Icons (https://tabler.io/icons, MIT) — same
+// "external-link" shape used to mark the intermediary top-up sites as
+// leaving the app, re-set to this file's strokeWidth for consistency.
+export function IconExternalLink({ size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" />
+      <path d="M11 13l9 -9" />
+      <path d="M15 4h5v5" />
+    </svg>
+  )
+}

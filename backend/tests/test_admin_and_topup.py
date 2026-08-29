@@ -188,6 +188,32 @@ def test_receipt_only_visible_to_requester_and_admins(client):
     assert client.get(f"/topup/requests/{request_id}/receipt", headers=OTHER_HEADER).status_code == 404
 
 
+# --- /admin/me (never 403s, see app/admin/router.py) ------------------
+
+
+def test_my_admin_access_reports_owner(client):
+    response = client.get("/admin/me", headers=OWNER_HEADER)
+    assert response.status_code == 200
+    assert response.json() == {"is_owner": True, "scopes": []}
+
+
+def test_my_admin_access_reports_no_access_for_a_plain_user(client):
+    response = client.get("/admin/me", headers=BUYER_HEADER)
+    assert response.status_code == 200
+    assert response.json() == {"is_owner": False, "scopes": []}
+
+
+def test_my_admin_access_reports_granted_scopes(client):
+    client.get("/me", headers=OTHER_HEADER)  # so a User row for 1002 exists to grant to
+    grant = client.post(
+        "/admin/grants", headers=OWNER_HEADER, json={"telegram_id": 1002, "scopes": ["wallet_topups"]}
+    )
+    assert grant.status_code == 201
+    response = client.get("/admin/me", headers=OTHER_HEADER)
+    assert response.status_code == 200
+    assert response.json() == {"is_owner": False, "scopes": ["wallet_topups"]}
+
+
 # --- first-login username collision (see app/auth/dependencies.py) ---------
 
 

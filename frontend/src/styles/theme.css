@@ -1937,3 +1937,185 @@ button.hp-list-row:active {
 .hp-bottom-nav-item-active .hp-bottom-nav-avatar {
   border-color: var(--hp-primary);
 }
+
+/* ---------- top-up: pros/cons list ---------- */
+
+.hp-proscons {
+  margin: 14px 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hp-proscons-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.hp-proscons-icon {
+  flex: none;
+  font-size: 13px;
+  margin-top: 1px;
+}
+
+.hp-proscons-row-pro .hp-proscons-icon {
+  color: #6ee7b7;
+}
+
+.hp-proscons-row-con .hp-proscons-icon {
+  color: #fda4af;
+}
+
+.hp-proscons-row-pro {
+  color: var(--hp-text);
+}
+
+.hp-proscons-row-con {
+  color: var(--hp-text-muted);
+}
+
+/* ---------- top-up: bank card visual ---------- */
+
+.hp-bank-card {
+  margin: 16px 12px 0;
+  border-radius: 20px;
+  padding: 20px;
+  background: var(--hp-grad);
+  box-shadow: var(--hp-glow);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--hp-font);
+}
+
+.hp-bank-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(60% 80% at 85% -10%, rgba(255, 255, 255, 0.35), transparent);
+}
+
+.hp-bank-card-chip {
+  width: 36px;
+  height: 26px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.5));
+  position: relative;
+  z-index: 1;
+}
+
+.hp-bank-card-number {
+  position: relative;
+  z-index: 1;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+.hp-bank-card-holder {
+  position: relative;
+  z-index: 1;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+.hp-bank-card-copy {
+  position: relative;
+  z-index: 1;
+  align-self: flex-end;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--hp-font);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* ---------- top-up: converter ---------- */
+
+.hp-converter {
+  margin: 16px 12px 0;
+  background: var(--hp-glass);
+  border: 1px solid var(--hp-hairline);
+  border-radius: 18px;
+  padding: 14px 16px;
+  backdrop-filter: blur(20px);
+}
+
+.hp-converter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hp-converter-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.hp-converter-swap {
+  flex: none;
+  font-size: 18px;
+  color: var(--hp-text-muted);
+  margin-top: 18px;
+}
+
+.hp-converter-rate-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--hp-text-muted);
+  text-align: center;
+}
+
+/* ---------- top-up: status pill (also usable anywhere else a plain
+   pending/approved/rejected-style state needs a colored badge) ---------- */
+
+.hp-status-pill {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.6;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex: none;
+}
+
+.hp-status-pending {
+  background: color-mix(in srgb, #fbbf24 25%, transparent);
+  color: #fcd34d;
+}
+
+.hp-status-approved {
+  background: color-mix(in srgb, #34d399 25%, transparent);
+  color: #6ee7b7;
+}
+
+.hp-status-rejected {
+  background: color-mix(in srgb, #fb7185 25%, transparent);
+  color: #fda4af;
+}
+
+/* ---------- top-up: external intermediary site links ---------- */
+
+.hp-external-link-icon {
+  flex: none;
+  font-size: 18px;
+  color: var(--hp-text-muted);
+}

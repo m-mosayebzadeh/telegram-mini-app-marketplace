@@ -11,9 +11,10 @@ from app.admin.schemas import (
     AdminGrantCreate,
     AdminGrantOut,
     AdminTopUpRequestOut,
+    MyAdminAccessOut,
     TopUpRequesterOut,
 )
-from app.auth.dependencies import require_admin, require_owner
+from app.auth.dependencies import get_current_user, is_owner, require_admin, require_owner
 from app.core.database import get_db
 from app.models.admin_grant import AdminGrant
 from app.models.topup_request import TopUpRequest, TopUpStatus
@@ -23,6 +24,23 @@ from app.core.time import utcnow
 from app.wallet.service import credit_topup
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@router.get("/me", response_model=MyAdminAccessOut)
+def get_my_admin_access(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MyAdminAccessOut:
+    """
+    Never 403s — this is the one admin route anyone can call, so the
+    frontend has a cheap way to ask "should I even show admin UI to
+    this person" without treating a plain 403 from a real admin route
+    as the answer (see lib/adminApi.ts's isAdmin() on the frontend).
+    """
+    if is_owner(current_user):
+        return MyAdminAccessOut(is_owner=True, scopes=[])
+    grant = db.query(AdminGrant).filter(AdminGrant.user_id == current_user.id).first()
+    return MyAdminAccessOut(is_owner=False, scopes=grant.scopes if grant else [])
 
 
 def _grant_out(grant: AdminGrant, user: User) -> AdminGrantOut:

@@ -20,6 +20,8 @@ import ProviderSummary from './pages/ProviderSummary'
 import BuyerSummary from './pages/BuyerSummary'
 import Activity from './pages/Activity'
 import Chats from './pages/Chats'
+import TopUp from './pages/TopUp'
+import AdminTopUps from './pages/AdminTopUps'
 
 /**
  * The four bottom-tab sections and which URLs belong to each. Listed in
@@ -98,6 +100,8 @@ function AppShell() {
         <Route path="/chats" element={<Chats />} />
         <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
         <Route path="/wallet" element={<WalletPage />} />
+        <Route path="/wallet/topup" element={<TopUp />} />
+        <Route path="/admin/topups" element={<AdminTopUps />} />
         <Route path="/profile" element={<ProfileTab />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/content/:id" element={<ContentDetail />} />
