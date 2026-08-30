@@ -239,3 +239,43 @@ def test_reactivating_respects_the_five_offer_cap(client):
     response = client.post(f"/offers/{offers[0]['id']}/activate", headers=auth)
 
     assert response.status_code == 400
+
+
+# --- my_request_status (see app/offer/router.py's _my_live_request_status) -
+
+
+def test_my_request_status_is_null_with_no_request(client):
+    provider = _auth_header(200, "Provider")
+    _login(client, 200, "Provider")
+    offer = _create_offer(client, provider).json()
+
+    buyer = _auth_header(201, "Buyer")
+    _login(client, 201, "Buyer")
+
+    response = client.get(f"/offers/{offer['id']}", headers=buyer)
+
+    assert response.json()["my_request_status"] is None
+
+
+def test_my_request_status_reflects_a_pending_request(client):
+    provider = _auth_header(202, "Provider")
+    _login(client, 202, "Provider")
+    offer = _create_offer(client, provider).json()
+
+    buyer = _auth_header(203, "Buyer")
+    _login(client, 203, "Buyer")
+    client.post("/requests", headers=buyer, json={"offer_id": offer["id"]})
+
+    response = client.get(f"/offers/{offer['id']}", headers=buyer)
+
+    assert response.json()["my_request_status"] == "pending"
+
+
+def test_my_request_status_is_null_for_the_owner_themselves(client):
+    provider = _auth_header(204, "Provider")
+    _login(client, 204, "Provider")
+    offer = _create_offer(client, provider).json()
+
+    response = client.get(f"/offers/{offer['id']}", headers=provider)
+
+    assert response.json()["my_request_status"] is None

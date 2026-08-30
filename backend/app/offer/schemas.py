@@ -41,4 +41,13 @@ class OfferOut(BaseModel):
     # many other people requested one before they did.
     request_count: int | None = None
 
+    # Only populated by GET /offers/{id} for a non-owner viewer — the
+    # status ('pending' | 'accepted') of the CALLER's own live request
+    # against this offer's provider, if any (see app/offer/router.py's
+    # _my_live_request_status, reusing the same "live request" rule
+    # app/request/router.py already enforces server-side). Lets the
+    # frontend disable "Request this offer" and show why, instead of
+    # only finding out after a rejected POST.
+    my_request_status: str | None = None
+
     model_config = {"from_attributes": True}

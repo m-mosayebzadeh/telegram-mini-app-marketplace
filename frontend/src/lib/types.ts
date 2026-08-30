@@ -39,6 +39,9 @@ export interface Offer {
   // OfferOut) — how many requests it's received in total, shown as a
   // badge on the Activity tab's Offers segment.
   request_count: number | null
+  // Only populated by GET /offers/{id} for a non-owner viewer — see
+  // backend/app/offer/schemas.py's OfferOut docstring.
+  my_request_status: 'pending' | 'accepted' | null
 }
 
 /** One row in the Activity tab's unified Requests feed — see

@@ -27,6 +27,13 @@ export default function OfferDetail() {
   const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (toast == null) return
+    const timer = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(timer)
+  }, [toast])
 
   const isOwner = !!(me && offer && offer.provider_id === me.id)
 
@@ -57,7 +64,10 @@ export default function OfferDetail() {
     setActionMessage(null)
     try {
       await apiFetch('/requests', { method: 'POST', body: JSON.stringify({ offer_id: Number(id) }) })
-      setActionMessage(t('offers.requestSent'))
+      setToast(t('offers.requestSent'))
+      // Refetch so the button immediately reflects the new pending
+      // request instead of staying enabled until the next full reload.
+      apiFetch<Offer>(`/offers/${id}`).then(setOffer)
     } catch (err) {
       setActionMessage(formatApiError(err))
     }
@@ -135,8 +145,13 @@ export default function OfferDetail() {
 
       {!isOwner && (
         <div className="hp-field" style={{ margin: '0 12px 14px' }}>
-          <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} onClick={sendRequest}>
-            {t('offers.requestButton')}
+          <button
+            className="hp-btn hp-btn-gradient"
+            style={{ width: '100%' }}
+            disabled={offer.my_request_status != null}
+            onClick={sendRequest}
+          >
+            {offer.my_request_status != null ? t('offers.requestSent') : t('offers.requestButton')}
           </button>
           {actionMessage && <p className="hp-hint">{actionMessage}</p>}
         </div>
@@ -211,6 +226,8 @@ export default function OfferDetail() {
           {actionMessage && <p className="hp-hint" style={{ padding: '0 16px' }}>{actionMessage}</p>}
         </>
       )}
+
+      {toast && <div className="hp-toast">{toast}</div>}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, formatApiError } from '../lib/api'
@@ -14,6 +14,7 @@ import type { BuyerSummary as BuyerSummaryType } from '../lib/types'
 export default function BuyerSummary() {
   const { t } = useTranslation()
   const { id } = useParams()
+  const navigate = useNavigate()
   const [summary, setSummary] = useState<BuyerSummaryType | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +35,12 @@ export default function BuyerSummary() {
 
   return (
     <div className="hp-page">
-      <div className="hp-page-header">{t('buyerSummary.title')}</div>
+      <div className="hp-page-back-header">
+        <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
+          ‹
+        </button>
+        <span className="hp-page-back-title">{t('buyerSummary.title')}</span>
+      </div>
 
       <div className="hp-card">
         <div className="hp-kv-row">

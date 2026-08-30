@@ -109,6 +109,13 @@ export default function ProfileTab() {
 
   return (
     <div className="hp-page">
+      {paramId && (
+        <div className="hp-page-back-header">
+          <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
+            ‹
+          </button>
+        </div>
+      )}
       <ProfileHeader
         profile={profile}
         isOwn={isOwn}

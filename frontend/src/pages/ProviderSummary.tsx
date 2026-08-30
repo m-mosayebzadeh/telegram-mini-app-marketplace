@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, formatApiError } from '../lib/api'
@@ -13,6 +13,7 @@ import type { ProviderSummary as ProviderSummaryType } from '../lib/types'
 export default function ProviderSummary() {
   const { t } = useTranslation()
   const { id } = useParams()
+  const navigate = useNavigate()
   const [summary, setSummary] = useState<ProviderSummaryType | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,7 +36,12 @@ export default function ProviderSummary() {
 
   return (
     <div className="hp-page">
-      <div className="hp-page-header">{t('providerSummary.title')}</div>
+      <div className="hp-page-back-header">
+        <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
+          ‹
+        </button>
+        <span className="hp-page-back-title">{t('providerSummary.title')}</span>
+      </div>
 
       <div className="hp-card">
         <div className="hp-kv-row">

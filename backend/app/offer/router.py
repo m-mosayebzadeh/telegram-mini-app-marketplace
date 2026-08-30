@@ -71,6 +71,35 @@ def _has_unfinished_accepted_request(db: Session, offer_id: int) -> bool:
     return False
 
 
+def _my_live_request_status(db: Session, buyer_id: int, provider_id: int) -> str | None:
+    """
+    The status of `buyer_id`'s own live (pending/accepted-and-not-yet-
+    finished) request against ANY of `provider_id`'s offers, if any —
+    same "one live request per provider" rule
+    app/request/router.py's _live_request_with_provider enforces at
+    creation time, duplicated here (this project's established pattern
+    for this exact check — see that function's own docstring) rather
+    than imported, so this router doesn't reach into request's.
+    """
+    candidates = (
+        db.query(Request)
+        .join(Offer, Request.offer_id == Offer.id)
+        .filter(
+            Request.buyer_id == buyer_id,
+            Offer.provider_id == provider_id,
+            Request.status.in_([RequestStatus.PENDING, RequestStatus.ACCEPTED]),
+        )
+        .all()
+    )
+    for request in candidates:
+        if request.status == RequestStatus.PENDING:
+            return request.status.value
+        session = db.query(ChatSession).filter(ChatSession.request_id == request.id).first()
+        if session is None or session.status == ChatSessionStatus.OPEN:
+            return request.status.value
+    return None
+
+
 def _get_owned_offer(db: Session, offer_id: int, owner_id: int) -> Offer:
     offer = db.get(Offer, offer_id)
     if offer is None or offer.provider_id != owner_id:
@@ -108,7 +137,7 @@ def get_offer(
     offer_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> Offer:
+) -> OfferOut:
     offer = db.get(Offer, offer_id)
     is_owner = offer is not None and offer.provider_id == current_user.id
     # Non-owners can't see an offer that's been taken off the market —
@@ -116,7 +145,11 @@ def get_offer(
     # way a deleted offer would.
     if offer is None or (offer.status != OfferStatus.ACTIVE and not is_owner):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
-    return offer
+
+    my_request_status = (
+        None if is_owner else _my_live_request_status(db, current_user.id, offer.provider_id)
+    )
+    return OfferOut.model_validate(offer).model_copy(update={"my_request_status": my_request_status})
 
 
 @router.get("", response_model=list[OfferOut])
