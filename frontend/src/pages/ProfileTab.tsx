@@ -5,7 +5,6 @@ import { Cell, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
 import { formatApiError, apiFetch } from '../lib/api'
 import { ContentGrid } from '../components/ContentGrid'
 import { ContentUploadForm } from '../components/ContentUploadForm'
-import { ProfileEditForm } from '../components/ProfileEditForm'
 import { ProfileHeader } from '../components/ProfileHeader'
 import { Sheet } from '../components/Sheet'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
@@ -43,7 +42,6 @@ export default function ProfileTab() {
   const [message, setMessage] = useState<string | null>(null)
   const [following, setFollowing] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
-  const [editing, setEditing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [activeTab, setActiveTab] = useState<'content' | 'offers'>('content')
   const [contentRefreshKey, setContentRefreshKey] = useState(0)
@@ -117,7 +115,6 @@ export default function ProfileTab() {
         following={following}
         onFollow={follow}
         onUnfollow={unfollow}
-        onEdit={() => setEditing(true)}
         onAvatarUploaded={load}
         onShare={share}
         moreMenuOpen={moreMenuOpen}
@@ -146,19 +143,6 @@ export default function ProfileTab() {
         <button className="hp-fab" onClick={() => setUploading(true)} aria-label={t('content.uploadButton')}>
           +
         </button>
-      )}
-
-      {editing && (
-        <Sheet title={t('profilePage.editTitle')} onClose={() => setEditing(false)}>
-          <ProfileEditForm
-            initial={profile}
-            onSaved={() => {
-              setEditing(false)
-              setMessage(t('profilePage.saveSuccess'))
-              load()
-            }}
-          />
-        </Sheet>
       )}
 
       {uploading && (

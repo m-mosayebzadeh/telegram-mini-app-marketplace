@@ -20,12 +20,14 @@ class ProfileUpdate(BaseModel):
     # app/profile/router.py, since a JSON column can't carry a CHECK on
     # list length the way a plain column can.
     interests: list[str] = Field(default_factory=list)
-    # Month/day only — see Profile.birthday_month's docstring
-    # (app/models/profile.py). Both set or both omitted; enforced in
-    # app/profile/router.py (a Pydantic Field can't cross-check two
-    # sibling fields against a database CHECK constraint directly).
+    # See Profile.birthday_month's docstring (app/models/profile.py).
+    # month/day are both-set-or-both-omitted; year is independently
+    # optional. Cross-field checks enforced in app/profile/router.py (a
+    # Pydantic Field can't cross-check sibling fields against a database
+    # CHECK constraint directly).
     birthday_month: int | None = Field(default=None, ge=1, le=12)
     birthday_day: int | None = Field(default=None, ge=1, le=31)
+    birthday_year: int | None = Field(default=None, ge=1900, le=2100)
 
     # Deliberately no is_trusted here — see Profile.is_trusted's
     # docstring. A profile owner can never set their own trust badge
@@ -54,6 +56,7 @@ class ProfileOut(BaseModel):
     is_trusted: bool
     birthday_month: int | None
     birthday_day: int | None
+    birthday_year: int | None
 
     # Lets FastAPI build this schema directly from a Profile ORM object
     # (profile.id, profile.avatar_url, ...) instead of requiring a plain
@@ -80,6 +83,7 @@ class PublicProfileOut(BaseModel):
     is_trusted: bool
     birthday_month: int | None
     birthday_day: int | None
+    birthday_year: int | None
     # Only counts ACCEPTED follows (see app/models/follow.py) — a
     # pending follow request isn't a real follower yet.
     followers_count: int

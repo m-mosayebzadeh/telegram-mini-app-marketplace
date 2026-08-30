@@ -122,6 +122,20 @@ export function jalaliMonthDayToGregorian(
   return { gm, gd }
 }
 
+/** Full Gregorian date -> full Jalali date, year included — for the
+ * (now real, optional) birthday year (see Profile.birthday_year's
+ * docstring). Unlike gregorianMonthDayToJalali above, this doesn't
+ * discard the year the underlying algorithm already computes. */
+export function gregorianToJalali(gy: number, gm: number, gd: number): { jy: number; jm: number; jd: number } {
+  return d2j(g2d(gy, gm, gd))
+}
+
+/** Full Jalali date -> full Gregorian date, year included — the
+ * counterpart to gregorianToJalali above. */
+export function jalaliToGregorian(jy: number, jm: number, jd: number): { gy: number; gm: number; gd: number } {
+  return d2g(j2d(jy, jm, jd))
+}
+
 /** The current Jalali year — the correct `jalaliYear` anchor to pass to
  * jalaliMonthDayToGregorian() when converting a value picked "now"
  * (e.g. a birthday edit form), as opposed to gregorianMonthDayToJalali's

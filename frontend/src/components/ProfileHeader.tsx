@@ -15,7 +15,6 @@ interface ProfileHeaderProps {
   following: boolean
   onFollow: () => void
   onUnfollow: () => void
-  onEdit: () => void
   // Called after a new avatar finishes uploading, so the parent can
   // reload `profile` — ProfileHeader only ever receives `profile` as a
   // read-only prop, it has no setter of its own.
@@ -41,7 +40,6 @@ export function ProfileHeader({
   following,
   onFollow,
   onUnfollow,
-  onEdit,
   onAvatarUploaded,
   onShare,
   moreMenuOpen,
@@ -190,7 +188,7 @@ export function ProfileHeader({
               style={{ display: 'none' }}
               onChange={(e) => handleAvatarPicked(e.target.files?.[0] ?? null)}
             />
-            <button className="hp-header-action" onClick={onEdit}>
+            <button className="hp-header-action" onClick={() => navigate('/profile/edit')}>
               <IconEdit size={22} />
               {t('profilePage.editButton')}
             </button>

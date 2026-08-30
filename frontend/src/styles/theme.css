@@ -1700,6 +1700,20 @@
    own (Discover, My Offers, My Requests, ...) — the same role
    telegram-ui's <Section header> used to play, just styled to match the
    hp-* system instead of AppRoot's own theme. */
+.hp-page-back-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 8px 6px;
+}
+
+.hp-page-back-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--hp-text);
+  font-family: var(--hp-font);
+}
+
 .hp-page-header {
   padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 10px;
   font-size: 20px;

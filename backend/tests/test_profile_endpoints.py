@@ -111,7 +111,7 @@ def test_put_cannot_set_is_trusted(client):
     assert response.json()["is_trusted"] is False
 
 
-# --- birthday (month/day only, no year) -------------------------------------
+# --- birthday (month/day, plus an independently optional year) -------------
 
 
 def test_birthday_defaults_to_unset(client):
@@ -178,6 +178,56 @@ def test_put_rejects_a_day_that_does_not_exist_in_any_year(client):
     )
 
     assert response.status_code == 400
+
+
+def test_put_saves_a_valid_birthday_with_year(client):
+    response = client.put(
+        "/profile/me",
+        headers=AUTH_HEADER,
+        json={"birthday_month": 5, "birthday_day": 20, "birthday_year": 1995},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["birthday_year"] == 1995
+
+
+def test_put_leaves_year_unset_when_omitted(client):
+    response = client.put(
+        "/profile/me", headers=AUTH_HEADER, json={"birthday_month": 5, "birthday_day": 20}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["birthday_year"] is None
+
+
+def test_put_rejects_year_without_month_or_day(client):
+    response = client.put("/profile/me", headers=AUTH_HEADER, json={"birthday_year": 1995})
+
+    assert response.status_code == 400
+
+
+def test_put_rejects_feb29_on_a_real_non_leap_year(client):
+    # Unlike the year-agnostic case (which tolerates Feb 29 via the 2000
+    # leap-year fallback), a REAL year must be validated for real — 2001
+    # wasn't a leap year, so this specific full date never existed.
+    response = client.put(
+        "/profile/me",
+        headers=AUTH_HEADER,
+        json={"birthday_month": 2, "birthday_day": 29, "birthday_year": 2001},
+    )
+
+    assert response.status_code == 400
+
+
+def test_put_accepts_feb29_on_a_real_leap_year(client):
+    response = client.put(
+        "/profile/me",
+        headers=AUTH_HEADER,
+        json={"birthday_month": 2, "birthday_day": 29, "birthday_year": 2000},
+    )
+
+    assert response.status_code == 200
 
 
 def test_put_accepts_february_29th(client):

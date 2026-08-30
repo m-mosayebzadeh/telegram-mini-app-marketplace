@@ -13,6 +13,7 @@ import CreateOffer from './pages/CreateOffer'
 import ChatSessionDetail from './pages/ChatSessionDetail'
 import WalletPage from './pages/Wallet'
 import ProfileTab from './pages/ProfileTab'
+import EditProfile from './pages/EditProfile'
 import ContentDetail from './pages/ContentDetail'
 import FollowList from './pages/FollowList'
 import FollowRequests from './pages/FollowRequests'
@@ -113,6 +114,7 @@ function AppShell() {
         <Route path="/admin/topups" element={<AdminTopUps />} />
         <Route path="/admin/access" element={<AdminAccess />} />
         <Route path="/profile" element={<ProfileTab />} />
+        <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/content/:id" element={<ContentDetail />} />
         <Route path="/profiles/:id" element={<ProfileTab />} />

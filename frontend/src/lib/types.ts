@@ -132,12 +132,13 @@ export interface PublicProfile {
   // docstring. Never settable by the profile's own owner; render nothing
   // at all when this is false, never an empty badge placeholder.
   is_trusted: boolean
-  // Gregorian month/day, no year — see Profile.birthday_month's
-  // docstring. Both present or both null. Convert with lib/jalali.ts
-  // before displaying (the app's default locale uses the Jalali
-  // calendar).
+  // Gregorian on the wire — see Profile.birthday_month's docstring.
+  // month/day are both-or-neither; year is independently optional even
+  // when month/day are set. Convert with lib/jalali.ts before
+  // displaying (the app's default locale uses the Jalali calendar).
   birthday_month: number | null
   birthday_day: number | null
+  birthday_year: number | null
   followers_count: number
   following_count: number
   follow_status: 'not_following' | 'pending' | 'accepted'
@@ -186,6 +187,7 @@ export interface MyProfile {
   is_trusted: boolean
   birthday_month: number | null
   birthday_day: number | null
+  birthday_year: number | null
 }
 
 /** GET /pricing — the current Star-to-Toman rate and commission

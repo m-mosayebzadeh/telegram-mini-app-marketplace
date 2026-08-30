@@ -53,19 +53,24 @@ class Profile(Base):
     # all when this is False — never an empty placeholder badge.
     is_trusted: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Birthday — month/day only, deliberately no year (nobody needs a
-    # stranger's age from a profile page, and it keeps this out of any
-    # "date of birth" privacy category). Gregorian on the wire; the
-    # frontend converts to the Jalali calendar for display since that's
-    # the app's default locale. Both null (never set) or both set —
-    # never just one — per the CHECK constraint below.
+    # Birthday — Gregorian on the wire; the frontend converts to the
+    # Jalali calendar for display/editing since that's the app's default
+    # locale (see frontend/src/lib/jalali.ts). month/day are both-or-
+    # neither (per the CHECK constraint below); year is independently
+    # optional even when month/day ARE set — matching Telegram's own
+    # "set birthdate" screen, which lets year be left as "—" while still
+    # showing month/day. (An earlier pass deliberately left year out
+    # entirely; revisited and reversed per explicit product decision —
+    # see the conversation that led here.)
     birthday_month: Mapped[int | None] = mapped_column(Integer, nullable=True)
     birthday_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    birthday_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     __table_args__ = (
         CheckConstraint(
-            "(birthday_month IS NULL AND birthday_day IS NULL) OR "
-            "(birthday_month BETWEEN 1 AND 12 AND birthday_day BETWEEN 1 AND 31)",
+            "(birthday_month IS NULL AND birthday_day IS NULL AND birthday_year IS NULL) OR "
+            "(birthday_month BETWEEN 1 AND 12 AND birthday_day BETWEEN 1 AND 31 "
+            " AND (birthday_year IS NULL OR birthday_year BETWEEN 1900 AND 2100))",
             name="ck_birthday_both_or_neither",
         ),
     )
