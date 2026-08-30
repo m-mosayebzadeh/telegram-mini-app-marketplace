@@ -53,8 +53,14 @@ def main() -> None:
         cur.execute(f"DELETE FROM {table}")
         print(f"{table}: {cur.rowcount} rows deleted")
     # Resets AUTOINCREMENT counters so new rows start back at id 1
-    # instead of continuing from wherever they left off.
-    cur.execute("DELETE FROM sqlite_sequence")
+    # instead of continuing from wherever they left off. sqlite_sequence
+    # only exists at all once some table used the AUTOINCREMENT keyword
+    # explicitly (none of ours do — a plain INTEGER PRIMARY KEY already
+    # auto-increments without it), so this is skipped, not an error, on
+    # a database where it was never created.
+    cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
+    if cur.fetchone():
+        cur.execute("DELETE FROM sqlite_sequence")
     con.commit()
     con.close()
     print("Done. alembic_version was left untouched.")
