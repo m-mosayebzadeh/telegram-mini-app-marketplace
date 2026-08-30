@@ -10,8 +10,16 @@ Run from backend/:
 """
 
 import sqlite3
+import sys
+from pathlib import Path
 
-from app.core.config import settings
+# Same fix as scripts/seed_demo_profile.py: running this as a plain
+# script (not `python -m scripts.truncate_all`) means backend/ itself
+# isn't on sys.path yet, so `import app...` fails with ModuleNotFoundError
+# unless we add it ourselves first.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.core.config import settings  # noqa: E402
 
 # Children first, parents last.
 TABLES_IN_DELETE_ORDER = [
