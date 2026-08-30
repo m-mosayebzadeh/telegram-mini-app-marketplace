@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MyAdminAccessOut(BaseModel):
@@ -54,3 +54,20 @@ class AdminTopUpRequestOut(BaseModel):
     reviewed_by_user_id: int | None
     reviewed_at: datetime | None
     created_at: datetime
+
+
+class PlatformRatesOut(BaseModel):
+    star_to_toman_rate: int
+    chat_commission_percent: int
+    content_commission_percent: int
+    updated_at: datetime
+
+
+class PlatformRatesUpdate(BaseModel):
+    # Percentages are 0-100 (whole numbers, see split_commission() in
+    # app/wallet/service.py); the rate just has to stay positive — a
+    # zero or negative Toman-per-Star rate would make every price
+    # nonsensical.
+    star_to_toman_rate: int = Field(gt=0)
+    chat_commission_percent: int = Field(ge=0, le=100)
+    content_commission_percent: int = Field(ge=0, le=100)

@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.content.access import can_see_original, can_view_content
 from app.content.schemas import ContentOut, PurchaseResult
+from app.core.rates import get_rates
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.storage import delete_content_file, save_content_file
@@ -306,7 +307,7 @@ def purchase_content(
             buyer_id=current_user.id,
             provider_id=provider_id,
             gross_price_stars=content.price_stars,
-            commission_rate_percent=settings.content_commission_percent,
+            commission_rate_percent=get_rates(db).content_commission_percent,
             content_id=content.id,
         )
     except InsufficientBalanceError as exc:

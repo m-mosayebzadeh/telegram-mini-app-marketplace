@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user, is_owner
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.rates import get_rates
 from app.core.storage import save_receipt_file
 from app.models.admin_grant import AdminGrant
 from app.models.topup_request import TopUpRequest
@@ -53,7 +54,7 @@ def create_topup_request(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "requested_stars must be positive.")
 
     receipt_path = save_receipt_file(current_user.id, file)
-    rate = settings.star_to_toman_rate
+    rate = get_rates(db).star_to_toman_rate
 
     topup_request = TopUpRequest(
         user_id=current_user.id,

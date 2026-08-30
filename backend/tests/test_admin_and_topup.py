@@ -229,3 +229,48 @@ def test_first_login_falls_back_to_no_username_on_collision(client):
     second = client.get("/me", headers=_auth_header(2002, "Second", "shared_name"))
     assert second.status_code == 200
     assert second.json()["username"] is None
+
+
+# --- platform rates (finance.rates scope) -----------------------------
+
+
+def test_rates_default_from_settings(client):
+    response = client.get("/admin/rates", headers=OWNER_HEADER)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["star_to_toman_rate"] == settings.star_to_toman_rate
+    assert body["chat_commission_percent"] == settings.chat_commission_percent
+    assert body["content_commission_percent"] == settings.content_commission_percent
+
+
+def test_rates_forbidden_without_scope(client):
+    response = client.get("/admin/rates", headers=BUYER_HEADER)
+    assert response.status_code == 403
+
+
+def test_owner_can_update_rates_and_it_affects_pricing(client):
+    update = client.put(
+        "/admin/rates",
+        headers=OWNER_HEADER,
+        json={"star_to_toman_rate": 5000, "chat_commission_percent": 12, "content_commission_percent": 7},
+    )
+    assert update.status_code == 200
+    assert update.json()["star_to_toman_rate"] == 5000
+
+    pricing = client.get("/pricing", headers=BUYER_HEADER)
+    assert pricing.json() == {
+        "star_to_toman_rate": 5000,
+        "chat_commission_percent": 12,
+        "content_commission_percent": 7,
+    }
+
+
+def test_scoped_grant_for_rates_only_covers_rates(client):
+    client.get("/me", headers=OTHER_HEADER)
+    client.post(
+        "/admin/grants",
+        headers=OWNER_HEADER,
+        json={"telegram_id": 1002, "scopes": ["finance.rates"]},
+    )
+    assert client.get("/admin/rates", headers=OTHER_HEADER).status_code == 200
+    assert client.get("/admin/topup-requests", headers=OTHER_HEADER).status_code == 403

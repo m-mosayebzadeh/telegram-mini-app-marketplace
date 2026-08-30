@@ -19,6 +19,7 @@ from app.models.credit_ledger import CreditLedgerEntry  # noqa: F401
 from app.models.follow import Follow  # noqa: F401
 from app.models.like import Like  # noqa: F401
 from app.models.offer import Offer  # noqa: F401
+from app.models.platform_rates import PlatformRates  # noqa: F401
 from app.models.profile import Profile  # noqa: F401
 from app.models.profile_photo import ProfilePhoto  # noqa: F401
 from app.models.request import Request  # noqa: F401

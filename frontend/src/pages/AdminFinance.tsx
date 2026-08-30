@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useMe } from '../lib/MeContext'
 
 /** "مالی" section — subsections are individually grantable
- * ("finance.topups", later "finance.withdrawals", "finance.rates"). */
+ * ("finance.topups", "finance.rates", later "finance.withdrawals"). */
 export default function AdminFinance() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -11,6 +11,7 @@ export default function AdminFinance() {
 
   if (!adminAccess) return null
   const hasTopups = adminAccess.is_owner || adminAccess.scopes.includes('finance.topups')
+  const hasRates = adminAccess.is_owner || adminAccess.scopes.includes('finance.rates')
 
   return (
     <div className="hp-page">
@@ -19,6 +20,11 @@ export default function AdminFinance() {
         {hasTopups && (
           <button className="hp-list-row" onClick={() => navigate('/admin/topups')}>
             <span className="hp-list-title">{t('admin.topupsTitle')}</span>
+          </button>
+        )}
+        {hasRates && (
+          <button className="hp-list-row" onClick={() => navigate('/admin/rates')}>
+            <span className="hp-list-title">{t('admin.ratesTitle')}</span>
           </button>
         )}
       </div>

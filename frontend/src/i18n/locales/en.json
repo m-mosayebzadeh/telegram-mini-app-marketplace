@@ -198,10 +198,17 @@
     "grantsTitle": "Admin access",
     "grantTelegramIdLabel": "Their Telegram id",
     "grantScopesLabel": "Access scopes",
-    "grantScopeWalletTopups": "Wallet top-up review",
+    "grantScopeTopups": "Top-up review",
+    "grantScopeRates": "Rates & commissions",
     "grantSubmit": "Grant access",
     "grantRevoke": "Revoke",
-    "grantsEmpty": "No one else has admin access yet"
+    "grantsEmpty": "No one else has admin access yet",
+    "ratesTitle": "Fees & rates",
+    "ratesStarLabel": "Toman per Star",
+    "ratesChatCommissionLabel": "Chat commission (%)",
+    "ratesContentCommissionLabel": "Content commission (%)",
+    "ratesSaveButton": "Save",
+    "ratesSaved": "Rates updated"
   },
   "offers": {
     "browseTitle": "Active offers",

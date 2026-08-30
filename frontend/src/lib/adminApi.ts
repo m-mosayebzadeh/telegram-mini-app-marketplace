@@ -7,7 +7,7 @@
  */
 
 import { apiFetch } from './api'
-import type { AdminGrant, AdminTopUpRequest, MyAdminAccess } from './types'
+import type { AdminGrant, AdminTopUpRequest, MyAdminAccess, PlatformRates } from './types'
 
 export function getMyAdminAccess(): Promise<MyAdminAccess> {
   return apiFetch<MyAdminAccess>('/admin/me')
@@ -52,4 +52,16 @@ export function rejectTopUpRequest(requestId: number, reason: string): Promise<A
     method: 'POST',
     body: JSON.stringify({ reason }),
   })
+}
+
+export function getPlatformRates(): Promise<PlatformRates> {
+  return apiFetch<PlatformRates>('/admin/rates')
+}
+
+export function updatePlatformRates(rates: {
+  star_to_toman_rate: number
+  chat_commission_percent: number
+  content_commission_percent: number
+}): Promise<PlatformRates> {
+  return apiFetch<PlatformRates>('/admin/rates', { method: 'PUT', body: JSON.stringify(rates) })
 }

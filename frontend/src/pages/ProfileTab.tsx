@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Cell, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
 import { formatApiError, apiFetch } from '../lib/api'
+import { IconArrowNarrowLeft } from '../components/icons'
 import { ContentGrid } from '../components/ContentGrid'
 import { ContentUploadForm } from '../components/ContentUploadForm'
 import { ProfileHeader } from '../components/ProfileHeader'
@@ -112,8 +113,9 @@ export default function ProfileTab() {
       {paramId && (
         <div className="hp-page-back-header">
           <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-            ‹
+            <IconArrowNarrowLeft size={20} />
           </button>
+          <span className="hp-page-back-title">{profile.display_name}</span>
         </div>
       )}
       <ProfileHeader

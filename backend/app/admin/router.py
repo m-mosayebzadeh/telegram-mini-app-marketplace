@@ -12,10 +12,13 @@ from app.admin.schemas import (
     AdminGrantOut,
     AdminTopUpRequestOut,
     MyAdminAccessOut,
+    PlatformRatesOut,
+    PlatformRatesUpdate,
     TopUpRequesterOut,
 )
 from app.auth.dependencies import get_current_user, is_owner, require_admin, require_owner
 from app.core.database import get_db
+from app.core.rates import get_rates
 from app.models.admin_grant import AdminGrant
 from app.models.topup_request import TopUpRequest, TopUpStatus
 from app.models.user import User
@@ -171,6 +174,35 @@ def approve_topup_request(
     db.commit()
     db.refresh(topup_request)
     return _topup_out(topup_request, db.get(User, topup_request.user_id))
+
+
+@router.get("/rates", response_model=PlatformRatesOut)
+def get_platform_rates(
+    current_user: User = Depends(require_admin("finance.rates")),
+    db: Session = Depends(get_db),
+) -> PlatformRatesOut:
+    return get_rates(db)
+
+
+@router.put("/rates", response_model=PlatformRatesOut)
+def update_platform_rates(
+    payload: PlatformRatesUpdate,
+    current_user: User = Depends(require_admin("finance.rates")),
+    db: Session = Depends(get_db),
+) -> PlatformRatesOut:
+    """
+    Only changes what's used for NEW transactions/top-ups from now on —
+    every past Transaction/CreditLedgerEntry/TopUpRequest already stored
+    its own frozen rate/commission at the time it was created, and
+    that never changes retroactively (see PlatformRates' docstring).
+    """
+    rates = get_rates(db)
+    rates.star_to_toman_rate = payload.star_to_toman_rate
+    rates.chat_commission_percent = payload.chat_commission_percent
+    rates.content_commission_percent = payload.content_commission_percent
+    db.commit()
+    db.refresh(rates)
+    return rates
 
 
 @router.post("/topup-requests/{request_id}/reject", response_model=AdminTopUpRequestOut)

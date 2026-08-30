@@ -19,8 +19,8 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.core.config import settings
 from app.core.database import get_db
+from app.core.rates import get_rates
 from app.core.time import utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer, OfferStatus
@@ -296,7 +296,7 @@ def pay_for_request(
             buyer_id=current_user.id,
             provider_id=req.offer.provider_id,
             gross_price_stars=req.offer.price_stars,
-            commission_rate_percent=settings.chat_commission_percent,
+            commission_rate_percent=get_rates(db).chat_commission_percent,
             request_id=req.id,
         )
     except InsufficientBalanceError as exc:

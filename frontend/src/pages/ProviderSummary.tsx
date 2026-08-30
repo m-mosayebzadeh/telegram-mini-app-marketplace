@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, formatApiError } from '../lib/api'
+import { IconArrowNarrowLeft } from '../components/icons'
 import type { ProviderSummary as ProviderSummaryType } from '../lib/types'
 
 /** GET /profiles/{id}/provider-summary — what a buyer sees about a
@@ -38,7 +39,7 @@ export default function ProviderSummary() {
     <div className="hp-page">
       <div className="hp-page-back-header">
         <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-          ‹
+          <IconArrowNarrowLeft size={20} />
         </button>
         <span className="hp-page-back-title">{t('providerSummary.title')}</span>
       </div>

@@ -169,6 +169,21 @@ export function IconHeart({ size = 24, filled = false }: IconProps & { filled?: 
   )
 }
 
+// "arrow-narrow-left" — the one and only back-navigation icon, used
+// everywhere a page has a back header (see .hp-page-back-header in
+// theme.css). Mirrors automatically under dir="rtl" the same way
+// IconChat etc. already rely on CSS, no per-language branching needed
+// here (see the [dir='rtl'] .hp-chat-back rule).
+export function IconArrowNarrowLeft({ size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12l14 0" />
+      <path d="M5 12l4 4" />
+      <path d="M5 12l4 -4" />
+    </svg>
+  )
+}
+
 export function IconPin({ size = 24, filled = false }: IconProps & { filled?: boolean }) {
   if (filled) {
     return (

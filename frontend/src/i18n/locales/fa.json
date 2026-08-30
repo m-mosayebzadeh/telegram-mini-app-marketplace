@@ -198,10 +198,17 @@
     "grantsTitle": "دسترسی‌های ادمین",
     "grantTelegramIdLabel": "آیدی تلگرام فرد",
     "grantScopesLabel": "دامنه‌ی دسترسی",
-    "grantScopeWalletTopups": "بررسی درخواست‌های شارژ",
+    "grantScopeTopups": "بررسی شارژها",
+    "grantScopeRates": "کارمزدها و نرخ‌ها",
     "grantSubmit": "اعطای دسترسی",
     "grantRevoke": "لغو دسترسی",
-    "grantsEmpty": "فعلاً به کسی دسترسی ندادید"
+    "grantsEmpty": "فعلاً به کسی دسترسی ندادید",
+    "ratesTitle": "کارمزدها",
+    "ratesStarLabel": "نرخ هر استار (تومان)",
+    "ratesChatCommissionLabel": "کارمزد چت (درصد)",
+    "ratesContentCommissionLabel": "کارمزد محتوا (درصد)",
+    "ratesSaveButton": "ذخیره",
+    "ratesSaved": "کارمزدها به‌روزرسانی شد"
   },
   "offers": {
     "browseTitle": "پیشنهادهای فعال",

@@ -25,6 +25,7 @@ import TopUp from './pages/TopUp'
 import AdminHub from './pages/AdminHub'
 import AdminFinance from './pages/AdminFinance'
 import AdminTopUps from './pages/AdminTopUps'
+import AdminRates from './pages/AdminRates'
 import AdminAccess from './pages/AdminAccess'
 
 /**
@@ -112,6 +113,7 @@ function AppShell() {
         <Route path="/admin" element={<AdminHub />} />
         <Route path="/admin/finance" element={<AdminFinance />} />
         <Route path="/admin/topups" element={<AdminTopUps />} />
+        <Route path="/admin/rates" element={<AdminRates />} />
         <Route path="/admin/access" element={<AdminAccess />} />
         <Route path="/profile" element={<ProfileTab />} />
         <Route path="/profile/edit" element={<EditProfile />} />

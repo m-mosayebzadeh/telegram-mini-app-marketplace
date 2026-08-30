@@ -12,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.rates import get_rates
 from app.core.time import utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
@@ -112,7 +113,7 @@ def pay_for_item(
     commission_stars, net_provider_stars = split_commission(
         gross_price_stars, commission_rate_percent
     )
-    rate = settings.star_to_toman_rate
+    rate = get_rates(db).star_to_toman_rate
     gross_toman = gross_price_stars * rate
     commission_toman = commission_stars * rate
     net_toman = net_provider_stars * rate

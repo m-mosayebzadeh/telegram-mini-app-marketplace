@@ -16,6 +16,7 @@ from app.auth.dependencies import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.migrate import run_migrations
+from app.core.rates import get_rates
 from app.admin.router import router as admin_router
 from app.audience_group.router import router as audience_group_router
 from app.chat_message.router import router as chat_message_router
@@ -94,22 +95,23 @@ def health_check() -> dict[str, str]:
 @app.get("/pricing")
 def read_pricing_config(
     current_user: User = Depends(get_current_user),  # requires auth; not otherwise used
+    db: Session = Depends(get_db),
 ) -> dict:
     """
     The current Star-to-Toman rate and commission percentages (see
-    TECHNICAL_REQUIREMENTS.md section 10 and app/core/config.py) — a
-    provider setting an offer's price needs these client-side, to show
+    TECHNICAL_REQUIREMENTS.md section 10 and app/models/platform_rates.py)
+    — a provider setting an offer's price needs these client-side, to show
     "X Stars = Y Toman, Z commission, W net" as they type, without a
-    round trip per keystroke. These are phase-1 constants today (fixed
-    in settings, not a database table an admin panel edits yet), so this
-    endpoint's response is the same for everyone right now — but every
-    screen already reads it from here instead of hardcoding the numbers,
-    so nothing else has to change once phase 2 makes them dynamic.
+    round trip per keystroke. Database-backed and admin-editable (see
+    GET/PUT /admin/rates) — every screen already reads it from here
+    instead of hardcoding the numbers, so an admin changing a rate takes
+    effect everywhere immediately.
     """
+    rates = get_rates(db)
     return {
-        "star_to_toman_rate": settings.star_to_toman_rate,
-        "chat_commission_percent": settings.chat_commission_percent,
-        "content_commission_percent": settings.content_commission_percent,
+        "star_to_toman_rate": rates.star_to_toman_rate,
+        "chat_commission_percent": rates.chat_commission_percent,
+        "content_commission_percent": rates.content_commission_percent,
     }
 
 

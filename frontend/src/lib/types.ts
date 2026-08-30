@@ -296,3 +296,14 @@ export interface AdminGrant {
   granted_by_user_id: number
   created_at: string
 }
+
+/** GET/PUT /admin/rates (scope "finance.rates") — see
+ * backend/app/models/platform_rates.py. Editing these only affects NEW
+ * transactions/top-ups; past ones already stored their own frozen
+ * rate/commission and never change retroactively. */
+export interface PlatformRates {
+  star_to_toman_rate: number
+  chat_commission_percent: number
+  content_commission_percent: number
+  updated_at: string
+}

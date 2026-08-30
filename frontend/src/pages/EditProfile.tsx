@@ -12,6 +12,7 @@ import {
   toPersianDigits,
 } from '../lib/jalali'
 import { Sheet } from '../components/Sheet'
+import { IconArrowNarrowLeft } from '../components/icons'
 import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'
 
@@ -168,7 +169,7 @@ export default function EditProfile() {
     <div className="hp-page">
       <div className="hp-page-back-header">
         <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-          ‹
+          <IconArrowNarrowLeft size={20} />
         </button>
         <span className="hp-page-back-title">{t('profilePage.editTitle')}</span>
       </div>
