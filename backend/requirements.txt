@@ -7,6 +7,12 @@ pydantic-settings==2.5.2
 
 # --- ORM / database access ---
 sqlalchemy==2.0.52
+# Schema migrations — see backend/migrations/README.md (or
+# docs/TECHNICAL_REQUIREMENTS.md) for the workflow. Runs automatically on
+# every app startup (app/main.py's lifespan), so a machine that's behind
+# on schema changes catches up on its next run instead of erroring on a
+# missing column.
+alembic==1.19.1
 
 # --- required by FastAPI to parse multipart/form-data (file uploads) ---
 python-multipart==0.0.12

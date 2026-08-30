@@ -9,6 +9,11 @@ fake Telegram initData string, so we can test auth-protected endpoints
 used to be a standalone script (scripts/generate_test_init_data.py) —
 as an endpoint, tools like Bruno can call it directly and use the result,
 instead of us copy-pasting a value by hand.
+
+There used to be a second endpoint here too — an arbitrary-amount wallet
+top-up with no real payment behind it. It's gone now that the real
+card-to-card flow exists (see app/topup/router.py and app/admin/router.py):
+that's the only way to add wallet balance anymore, even in local dev.
 """
 
 import hashlib
@@ -18,9 +23,9 @@ import time
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import BaseModel
 
 from app.core.config import settings
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/dev", tags=["dev-tools (local only)"])
 

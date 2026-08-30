@@ -12,6 +12,8 @@ __pycache__/
 # Local database (once it's added later)
 *.db
 *.sqlite3
+# Backups taken before a manual/one-off schema fix (see migrations/README.md)
+*.db.bak-*
 
 # Test cache
 .pytest_cache/

@@ -1,0 +1,21 @@
+meta {
+  name: 4. Get Balance (B)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/wallet/balance
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  Same as "3. Get Balance (A)", for User B. Handy right after "6. Pay
+  For Request (B)" or "Purchase Content" to confirm the charge actually
+  went through.
+}

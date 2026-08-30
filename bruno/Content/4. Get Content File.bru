@@ -1,0 +1,25 @@
+meta {
+  name: 4. Get Content File
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/content/{{contentId}}/file
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  The actual file bytes — for an item with no spoiler this just shows it
+  directly; for a spoiler item this IS the "tap to reveal" action (the
+  frontend shows a generic spoiler overlay without calling this at all
+  until tapped). For a free spoiler this always succeeds. For a paid one
+  without a purchase, expect 402 with {"reason": "payment_required",
+  "price_stars": N} — run "5. Purchase Content" first to unlock it, then
+  retry this.
+}

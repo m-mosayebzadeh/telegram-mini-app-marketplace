@@ -1,6 +1,7 @@
 """
 AudienceGroup: a reusable, named circle of users an owner controls (e.g.
-"Friends", "Family"), used to scope who a photo is published to. Members
+"Friends", "Family"), used to scope who a piece of content is published
+to. Members
 are stored as separate rows (AudienceGroupMember) rather than a single
 list column, so members can be added/removed one at a time and the
 database can enforce "no duplicate membership" itself.

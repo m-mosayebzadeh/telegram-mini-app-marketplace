@@ -1,0 +1,29 @@
+meta {
+  name: 5. Purchase Content
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/content/{{contentId}}/purchase
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  Charges User B's wallet and pays User A (the item's owner) their net
+  share, via the real credit ledger — see TECHNICAL_REQUIREMENTS.md
+  section 10. Only works on an item with is_paid: true (upload one with
+  the paid combo first, see "1. Upload Content" docs).
+
+  Run "2. Dev Top Up (B)" (Wallet folder) first, or this returns 402.
+  Note this now needs {{initDataB}}, not {{initData}} — User A is the
+  item's owner and can't purchase their own paid content (400).
+
+  Calling this again after already owning the item is safe (still 201,
+  no second charge).
+}

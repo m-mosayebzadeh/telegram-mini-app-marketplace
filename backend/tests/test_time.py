@@ -20,7 +20,7 @@ def test_joined_at_round_trips_as_timezone_aware_utc():
     Base.metadata.create_all(bind=engine)
 
     with Session(engine) as db:
-        user = User(telegram_id=1, display_name="test")
+        user = User(telegram_id=1, first_name="test")
         db.add(user)
         db.commit()
         db.refresh(user)  # forces a real read back from the database

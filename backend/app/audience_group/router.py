@@ -1,6 +1,6 @@
 """
 Audience groups: reusable named circles (e.g. "Friends", "Family") a user
-builds once and reuses to scope who a photo is published to (see
+builds once and reuses to scope who a piece of content is published to (see
 TECHNICAL_REQUIREMENTS.md section 2).
 
 Every endpoint here is scoped to db.query(...).filter(owner_id ==

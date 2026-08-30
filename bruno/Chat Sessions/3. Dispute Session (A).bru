@@ -1,0 +1,27 @@
+meta {
+  name: 3. Dispute Session (A)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/chat-sessions/{{sessionId}}/dispute
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  Only the participant who did NOT close it can dispute (User A here,
+  since "2. Close Session" used User B) — 400 otherwise. Only works
+  while CLOSED and still within chat_release_grace_hours of closing.
+  Freezes the transaction (Transaction.disputed_at) so the grace-period
+  auto-release skips it — check Wallet > "3. Get Balance (A)" to confirm
+  pending_toman stays put even well past the grace window.
+
+  Skip this request entirely to test the normal, undisputed path
+  instead.
+}

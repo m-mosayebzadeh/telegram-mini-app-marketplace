@@ -1,0 +1,15 @@
+meta {
+  name: 3. Get Offer
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/offers/{{offerId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}

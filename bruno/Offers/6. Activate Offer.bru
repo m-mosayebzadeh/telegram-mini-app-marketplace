@@ -1,0 +1,20 @@
+meta {
+  name: 6. Activate Offer
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/offers/{{offerId}}/activate
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  Idempotent if already active. 400 if you already have 5 other active
+  offers.
+}

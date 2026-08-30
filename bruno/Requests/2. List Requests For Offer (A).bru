@@ -1,0 +1,23 @@
+meta {
+  name: 2. List Requests For Offer (A)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/requests?offer_id={{offerId}}
+  body: none
+  auth: none
+}
+
+params:query {
+  offer_id: {{offerId}}
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  User A (the provider) sees who requested their offer.
+}

@@ -1,0 +1,42 @@
+meta {
+  name: 6. Pay For Request (B)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/requests/{{requestId}}/pay
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  Only reachable after "4. Accept Request (A)" — payment always comes
+  after acceptance, never before (400 otherwise). Run "2. Dev Top Up
+  (B)" (Wallet folder) first, or this returns 402 — the offer's
+  price_stars is converted to Toman at the current star_to_toman_rate
+  (4,000 by default) and charged against User B's wallet balance.
+
+  Calling this a second time for the same request returns 400 — a
+  request can only be paid for once.
+
+  User B is charged the full price immediately. User A's net share
+  (gross minus the chat commission — 10% by default, rounded in User
+  A's favor) is NOT credited yet, though — the response's "status" is
+  "pending", not "succeeded". This is the "idle money" model (see
+  TECHNICAL_REQUIREMENTS.md section 10): a chat-request transaction
+  only actually pays out once its chat session closes AND the
+  chat_release_grace_hours window passes with no dispute — check
+  "3./4. Get Balance" (Wallet folder) right after paying and you'll see
+  User B's balance drop, but User A's stays flat, with the net share
+  showing up in "pending_toman" instead. Contrast with Content > "5.
+  Purchase Content", which settles instantly.
+
+  This also opens the chat session itself — see the "Chat Sessions"
+  folder to close it (and watch the pending share move once the grace
+  window passes).
+}

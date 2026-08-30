@@ -43,11 +43,62 @@ class Settings(BaseSettings):
     # the only real guard.
     enable_dev_tools: bool = False
 
-    # Where uploaded photo files are stored (see app/core/storage.py).
+    # Where uploaded content files are stored (see app/core/storage.py).
     # Defaults to backend/uploads/, but tests override it directly
     # (settings.uploads_dir = tmp_path) so uploads made during a test run
     # never touch this real local folder.
     uploads_dir: Path = BACKEND_DIR / "uploads"
+
+    # --- financial settings (see TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار") ---
+    #
+    # Phase 1 only: these are plain constants here, not a database table,
+    # because the admin panel that would let someone change them at
+    # runtime is itself phase 2. Every other part of the app already
+    # reads these from `settings` instead of hardcoding them, so phase 2
+    # only has to move the VALUES into the database and add an endpoint
+    # to edit them — no other code needs to change.
+
+    # Toman per Star. Used to convert a Star-denominated offer/content
+    # price into the Toman amount actually charged against the wallet
+    # ledger (which is Toman-denominated — see the ledger entity docs).
+    star_to_toman_rate: int = 4000
+
+    # Platform commission, as a whole-number percentage, per kind of
+    # purchase. Applied to the STAR price (not the Toman amount) — see
+    # split_commission() in app/wallet/service.py for why, and for the
+    # rounding rule (always rounds in the provider's favor).
+    chat_commission_percent: int = 10
+    content_commission_percent: int = 5
+
+    # How long after a chat session closes before its transaction
+    # auto-releases to the provider, if nobody disputes it (see
+    # app/wallet/service.py's release_due_chat_transactions() and
+    # TECHNICAL_REQUIREMENTS.md's "مدل مالی و اعتبار" — this mirrors the
+    # grace-period pattern real escrow platforms like Upwork and
+    # Clarity.fm use, just shorter given how small a single chat payment
+    # is here).
+    chat_release_grace_hours: int = 24
+
+    # --- admin access (see TECHNICAL_REQUIREMENTS.md, "پنل مدیریتی") ---
+    #
+    # The one true super-admin, identified by their real Telegram id —
+    # fixed here in .env rather than "first user to register", which
+    # would be a real security hole on a live database (anyone who signs
+    # up before the actual owner does would permanently become full
+    # admin). Every other admin (support, accountant, ...) is granted
+    # narrow, per-person access via the AdminGrant table instead — see
+    # app/auth/dependencies.py's require_admin().
+    owner_telegram_id: int | None = None
+
+    # --- manual card-to-card top-up (see app/topup/router.py) ---
+    #
+    # Deliberately NOT hardcoded with a real value here — this file is
+    # committed to git, and a bank card number/name is exactly the kind
+    # of thing that must only ever live in .env (gitignored), the same
+    # as TELEGRAM_BOT_TOKEN. Empty defaults just mean "not configured
+    # yet" rather than a hard failure, since tests never need these set.
+    topup_card_number: str = ""
+    topup_card_holder_name: str = ""
 
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 

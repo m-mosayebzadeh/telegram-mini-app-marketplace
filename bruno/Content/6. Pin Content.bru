@@ -1,0 +1,20 @@
+meta {
+  name: 6. Pin Content
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/content/{{contentId}}/pin
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  Owner only. Up to 3 items can be pinned at once — a 4th attempt
+  returns 400. "7. Unpin Content" reverses this.
+}

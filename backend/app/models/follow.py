@@ -20,6 +20,14 @@ from app.core.time import UTCDateTime, utcnow
 class FollowStatus(str, enum.Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
+    # A rejected request is kept, not deleted — the whole point is to
+    # let the followee see their own request history (who they've
+    # rejected before), the same way Request keeps a REJECTED row
+    # instead of deleting it. Re-requesting after rejection resets this
+    # same row back to PENDING (see app/follow/router.py's
+    # request_follow) — the unique pair constraint below means there
+    # can only ever be one row per (follower, followee) anyway.
+    REJECTED = "rejected"
 
 
 class Follow(Base):
@@ -36,8 +44,9 @@ class Follow(Base):
     )
 
     requested_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
-    # None until the followee accepts (or, if we later add rejection,
-    # until they respond at all).
+    # None until the followee accepts or rejects — set either way,
+    # and cleared again if a rejected request gets reset back to
+    # PENDING by a fresh request from the same follower.
     responded_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     __table_args__ = (

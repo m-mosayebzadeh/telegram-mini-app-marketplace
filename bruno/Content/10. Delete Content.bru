@@ -1,0 +1,15 @@
+meta {
+  name: 10. Delete Content
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/content/{{contentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}

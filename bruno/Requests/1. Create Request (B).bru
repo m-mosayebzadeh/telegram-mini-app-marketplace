@@ -1,0 +1,30 @@
+meta {
+  name: 1. Create Request (B)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/requests
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+body:json {
+  {
+    "offer_id": {{offerId}}
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("requestId", res.getBody().id);
+}
+
+docs {
+  User B requests User A's offer. Run "1. Create Offer" (Offers folder)
+  and the Follow folder's "2. Setup User B - Get Me" first.
+}

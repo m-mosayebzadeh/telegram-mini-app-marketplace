@@ -1,0 +1,25 @@
+meta {
+  name: 5. Reject Request (A)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/requests/{{requestId}}/reject
+  body: json
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:json {
+  {
+    "reason": "Not available at this time"
+  }
+}
+
+docs {
+  Alternative to "4. Accept Request" — a reason is required.
+}

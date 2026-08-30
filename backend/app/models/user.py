@@ -42,11 +42,25 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
 
     # Display-only info, per TECHNICAL_REQUIREMENTS.md: NOT identity, just
-    # what's shown in the UI. Pre-filled from Telegram on first login, but
-    # the user may change these later inside the app, independent of
-    # their real Telegram profile.
-    display_name: Mapped[str] = mapped_column(String(128))
-    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # what's shown in the UI. Pre-filled from Telegram on first login (see
+    # app/auth/dependencies.py), but the user may change these later
+    # inside the app, independent of their real Telegram profile.
+    #
+    # Kept as two separate fields (not one combined "display name")
+    # because how they're JOINED for display depends on which script the
+    # name is written in — see the display_name property below — and a
+    # single pre-joined string can't be un-joined later to redo that.
+    first_name: Mapped[str] = mapped_column(String(128))
+    last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # Pre-filled from Telegram on first login, but the user can change it
+    # afterward inside the app (see PUT /me/username in app/main.py) —
+    # independent of their real Telegram @username from then on. Must be
+    # unique across the whole app once set (enforced by unique=True below
+    # AND re-checked in the endpoint for a clean 400 instead of a raw
+    # IntegrityError); nullable so "never set one" stays a valid state,
+    # and unique=True still allows any number of NULLs (SQLite/Postgres
+    # both treat NULL as distinct from every other NULL for uniqueness).
+    username: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
 
     joined_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
@@ -66,6 +80,25 @@ class User(Base):
     profile: Mapped["Profile | None"] = relationship(
         back_populates="user", uselist=False
     )
+
+    @property
+    def display_name(self) -> str:
+        """
+        first_name and last_name, joined the way TECHNICAL_REQUIREMENTS.md
+        describes — first_name, then a space, then last_name if there is
+        one. This is script-agnostic on purpose: WHICH SIDE each part
+        visually ends up on (a Persian name reading right-to-left, a
+        Latin one left-to-right) is a rendering concern, not something
+        baked into the stored string — the frontend gets this exact text
+        and renders it with `dir="auto"`, letting the browser's own bidi
+        algorithm pick the right direction from the name's own first
+        strong character, regardless of the app's current UI language.
+        Kept as a read-only property (not a stored column) so every
+        existing `.display_name` read across the codebase keeps working
+        unchanged after first_name/last_name replaced the old single
+        column.
+        """
+        return f"{self.first_name} {self.last_name}" if self.last_name else self.first_name
 
     def __repr__(self) -> str:
         return (

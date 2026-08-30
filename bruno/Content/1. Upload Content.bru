@@ -1,0 +1,44 @@
+meta {
+  name: 1. Upload Content
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/content
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+body:multipart-form {
+  file: @file()
+  content_type: photo
+  is_paid: false
+  has_spoiler: true
+  audience_type: public
+}
+
+script:post-response {
+  bru.setEnvVar("contentId", res.getBody().id);
+}
+
+docs {
+  Before sending: click the "file" field's value and pick any image
+  from your computer (Bruno needs a real local file for multipart
+  uploads — it can't be checked into the collection).
+
+  Content connects directly to User, not Profile — no need to create a
+  profile first.
+
+  Try different combinations by editing the body fields:
+  - content_type: short_video (also add "duration_seconds: 30", max 60)
+  - is_paid: true (also add "price_stars: 50") — forces has_spoiler too
+  - audience_type: user (also add "audience_user_id: {{userIdB}}")
+  - audience_type: group (also add "audience_group_id: {{groupId}}")
+
+  Max upload size is 10MB — larger files get a 400.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: 2. Close Session (B)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/chat-sessions/{{sessionId}}/close
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}
+
+docs {
+  Either participant can close — this one uses User B. Does NOT release
+  the held funds immediately; see "3. Dispute Session" and the Wallet
+  folder's balance requests for what happens next.
+}

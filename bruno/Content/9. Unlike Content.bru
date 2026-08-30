@@ -1,0 +1,15 @@
+meta {
+  name: 9. Unlike Content
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/content/{{contentId}}/like
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initDataB}}
+}

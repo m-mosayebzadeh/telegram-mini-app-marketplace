@@ -1,0 +1,20 @@
+meta {
+  name: 4. Accept Request (A)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/requests/{{requestId}}/accept
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
+
+docs {
+  400 if User A already has a different open accepted request elsewhere
+  (the global one-open-chat-at-a-time rule).
+}

@@ -1,0 +1,15 @@
+meta {
+  name: 5. Deactivate Offer
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/offers/{{offerId}}/deactivate
+  body: none
+  auth: none
+}
+
+headers {
+  X-Telegram-Init-Data: {{initData}}
+}
