@@ -86,12 +86,29 @@ export default function Activity() {
           onClick={() => setSegment('offers')}
         >
           {t('activityPage.offersTab')}
+          {/* Total pending requests across ALL of the current user's
+              offers — not just the one they're currently looking at
+              (that per-offer count is the .hp-badge inside each row
+              below) — so this tab itself signals "something needs a
+              response" before it's even opened. */}
+          {!!me.pending_requests_received_count && (
+            <span className="hp-badge" style={{ marginInlineStart: 6 }}>
+              {me.pending_requests_received_count}
+            </span>
+          )}
         </button>
         <button
           className={`hp-segmented-btn ${segment === 'requests' ? 'hp-segmented-active' : ''}`}
           onClick={() => setSegment('requests')}
         >
           {t('activityPage.requestsTab')}
+          {/* Live (accepted) requests received — the engagements the
+              current user, as provider, currently has open. */}
+          {!!me.accepted_requests_received_count && (
+            <span className="hp-badge" style={{ marginInlineStart: 6 }}>
+              {me.accepted_requests_received_count}
+            </span>
+          )}
         </button>
       </div>
 

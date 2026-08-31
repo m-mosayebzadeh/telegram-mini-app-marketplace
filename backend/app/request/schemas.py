@@ -23,6 +23,16 @@ class RequestOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class RequestForOfferOut(RequestOut):
+    """RequestOut plus just enough about the buyer to render the
+    incoming-requests list (see OfferDetail.tsx) as one row — avatar +
+    name — without a second round trip per row. Same denormalization
+    reasoning as RequestActivityOut below."""
+
+    buyer_display_name: str
+    buyer_avatar_url: str | None
+
+
 class RequestActivityOut(BaseModel):
     """
     One row in the Activity tab's unified Requests feed — every request

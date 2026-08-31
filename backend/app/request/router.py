@@ -27,7 +27,8 @@ from app.models.offer import Offer, OfferStatus
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionKind
 from app.models.user import User
-from app.request.schemas import RequestActivityOut, RequestCreate, RequestOut, RequestReject
+from app.profile.photos import get_current_avatar_url
+from app.request.schemas import RequestActivityOut, RequestCreate, RequestForOfferOut, RequestOut, RequestReject
 from app.wallet.schemas import TransactionOut
 from app.wallet.service import InsufficientBalanceError, pay_for_item
 
@@ -192,17 +193,34 @@ def list_activity_requests(
     return out
 
 
-@router.get("", response_model=list[RequestOut])
+@router.get("", response_model=list[RequestForOfferOut])
 def list_requests_for_offer(
     offer_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[Request]:
+) -> list[RequestForOfferOut]:
     """Incoming requests for one of the current user's own offers."""
     offer = db.get(Offer, offer_id)
     if offer is None or offer.provider_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
-    return db.query(Request).filter(Request.offer_id == offer_id).all()
+    requests = db.query(Request).filter(Request.offer_id == offer_id).all()
+    out = []
+    for r in requests:
+        buyer = db.get(User, r.buyer_id)
+        out.append(
+            RequestForOfferOut(
+                id=r.id,
+                buyer_id=r.buyer_id,
+                offer_id=r.offer_id,
+                status=r.status.value,
+                reason=r.reason,
+                created_at=r.created_at,
+                responded_at=r.responded_at,
+                buyer_display_name=buyer.display_name,
+                buyer_avatar_url=get_current_avatar_url(db, r.buyer_id),
+            )
+        )
+    return out
 
 
 @router.post("/{request_id}/accept", response_model=RequestOut)

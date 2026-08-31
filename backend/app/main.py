@@ -25,6 +25,8 @@ from app.content.router import router as content_router
 from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
 from app.models.follow import Follow, FollowStatus
+from app.models.offer import Offer
+from app.models.request import Request, RequestStatus
 from app.offer.router import router as offer_router
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
@@ -131,6 +133,22 @@ def read_current_user(
         .filter(Follow.followee_id == current_user.id, Follow.status == FollowStatus.PENDING)
         .count()
     )
+    # Requests against the current user's OWN offers (i.e. they're the
+    # provider being asked) — pending ones need a response, accepted
+    # ones are live engagements. Both are shown as badges on the
+    # Activity tab and the bottom nav (see Activity.tsx and App.tsx) so
+    # the tab itself signals "something needs your attention" without
+    # having to open it first — same reasoning as
+    # pending_follow_requests_count just above.
+    requests_received_query = db.query(Request).join(Offer, Request.offer_id == Offer.id).filter(
+        Offer.provider_id == current_user.id
+    )
+    pending_requests_received_count = requests_received_query.filter(
+        Request.status == RequestStatus.PENDING
+    ).count()
+    accepted_requests_received_count = requests_received_query.filter(
+        Request.status == RequestStatus.ACCEPTED
+    ).count()
     return {
         "id": current_user.id,
         "telegram_id": current_user.telegram_id,
@@ -144,6 +162,8 @@ def read_current_user(
         # yet (TECHNICAL_REQUIREMENTS.md section 9 still has that as an
         # undone idea).
         "pending_follow_requests_count": pending_follow_requests_count,
+        "pending_requests_received_count": pending_requests_received_count,
+        "accepted_requests_received_count": accepted_requests_received_count,
     }
 
 

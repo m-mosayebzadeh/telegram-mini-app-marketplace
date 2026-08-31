@@ -1,11 +1,11 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
+import { Avatar, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { apiFetch, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
-import type { ChatSession, Offer, Request } from '../lib/types'
+import type { ChatSession, Offer, RequestForOffer } from '../lib/types'
 
 /**
  * Two very different screens depending on who's looking, decided by
@@ -23,7 +23,7 @@ export default function OfferDetail() {
   const { me } = useMe()
 
   const [offer, setOffer] = useState<Offer | null>(null)
-  const [requests, setRequests] = useState<Request[] | null>(null)
+  const [requests, setRequests] = useState<RequestForOffer[] | null>(null)
   const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
@@ -56,7 +56,7 @@ export default function OfferDetail() {
   // MyRequests.tsx's own use of the same endpoint).
   useEffect(() => {
     if (!isOwner) return
-    apiFetch<Request[]>(`/requests?offer_id=${id}`).then(setRequests)
+    apiFetch<RequestForOffer[]>(`/requests?offer_id=${id}`).then(setRequests)
     apiFetch<ChatSession[]>('/chat-sessions/mine').then(setSessions)
   }, [isOwner, id])
 
@@ -85,7 +85,7 @@ export default function OfferDetail() {
           body: JSON.stringify({ reason }),
         })
       }
-      const refreshed = await apiFetch<Request[]>(`/requests?offer_id=${id}`)
+      const refreshed = await apiFetch<RequestForOffer[]>(`/requests?offer_id=${id}`)
       setRequests(refreshed)
     } catch (err) {
       setActionMessage(formatApiError(err))
@@ -134,14 +134,20 @@ export default function OfferDetail() {
         </div>
       </div>
 
-      <div className="hp-list">
-        <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}`)}>
-          <span className="hp-list-title">{t('offers.viewProfile')}</span>
-        </button>
-        <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}/provider-summary`)}>
-          <span className="hp-list-title">{t('offers.viewProviderSummary')}</span>
-        </button>
-      </div>
+      {/* The provider viewing their OWN offer has no business seeing
+          "view provider profile"/"provider summary" buttons about
+          themselves — those only make sense for a buyer looking at
+          someone else's offer. */}
+      {!isOwner && (
+        <div className="hp-list">
+          <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}`)}>
+            <span className="hp-list-title">{t('offers.viewProfile')}</span>
+          </button>
+          <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}/provider-summary`)}>
+            <span className="hp-list-title">{t('offers.viewProviderSummary')}</span>
+          </button>
+        </div>
+      )}
 
       {!isOwner && (
         <div className="hp-field" style={{ margin: '0 12px 14px' }}>
@@ -181,32 +187,34 @@ export default function OfferDetail() {
                 const session = sessions?.find((s) => s.request_id === request.id)
                 return (
                   <Fragment key={request.id}>
-                    <button className="hp-list-row" onClick={() => navigate(`/profiles/${request.buyer_id}`)}>
-                      <div className="hp-list-row-main">
-                        <span className="hp-list-title">{t('offers.viewRequesterProfile')}</span>
-                        <span className="hp-list-subtitle">
-                          #{request.buyer_id} — {request.status}
-                        </span>
-                      </div>
-                    </button>
-                    <div className="hp-list-row">
-                      <div
-                        className="hp-list-row-main"
-                        onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
-                        style={{ cursor: 'pointer' }}
+                    <div className="hp-list-row" style={{ flexWrap: 'wrap', rowGap: 8 }}>
+                      <button
+                        className="hp-chat-header-identity"
+                        style={{ flex: '1 1 auto', minWidth: 0 }}
+                        onClick={() => navigate(`/profiles/${request.buyer_id}`)}
                       >
-                        <span className="hp-list-title">{t('offers.viewBuyerSummary')}</span>
+                        <Avatar
+                          size={40}
+                          src={request.buyer_avatar_url ?? undefined}
+                          acronym={request.buyer_display_name.slice(0, 1).toUpperCase()}
+                        />
+                        <span className="hp-chat-header-name">{request.buyer_display_name}</span>
+                      </button>
+                      <div className="hp-list-row-actions" style={{ flexWrap: 'wrap' }}>
+                        <button className="hp-btn-sm" onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}>
+                          {t('offers.viewBuyerSummary')}
+                        </button>
+                        {request.status === 'pending' && (
+                          <>
+                            <button className="hp-btn-sm hp-btn-sm-filled" onClick={() => respond(request.id, 'accept')}>
+                              {t('requests.acceptButton')}
+                            </button>
+                            <button className="hp-btn-sm" onClick={() => respond(request.id, 'reject')}>
+                              {t('requests.rejectButton')}
+                            </button>
+                          </>
+                        )}
                       </div>
-                      {request.status === 'pending' && (
-                        <div className="hp-list-row-actions">
-                          <button className="hp-btn-sm hp-btn-sm-filled" onClick={() => respond(request.id, 'accept')}>
-                            {t('requests.acceptButton')}
-                          </button>
-                          <button className="hp-btn-sm" onClick={() => respond(request.id, 'reject')}>
-                            {t('requests.rejectButton')}
-                          </button>
-                        </div>
-                      )}
                     </div>
                     {session && (
                       <div className="hp-list-row">

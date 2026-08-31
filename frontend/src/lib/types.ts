@@ -17,6 +17,12 @@ export interface Me {
   // you — shown as a badge on the Profile tab (see GET
   // /follow/incoming-requests for the full inbox this links to).
   pending_follow_requests_count: number
+  // Requests against the current user's OWN offers (they're the
+  // provider being asked) — pending ones need a response, accepted
+  // ones are live engagements. Shown as badges on the Activity tab and
+  // the bottom nav's Activity icon (see pages/Activity.tsx, App.tsx).
+  pending_requests_received_count: number
+  accepted_requests_received_count: number
 }
 
 export interface Balance {
@@ -67,6 +73,15 @@ export interface Request {
   reason: string | null
   created_at: string
   responded_at: string | null
+}
+
+/** GET /requests?offer_id= (an offer owner's own incoming-requests
+ * list) — Request plus just enough about the buyer to render one row
+ * (avatar + name) without a second round trip. See backend/app/request/
+ * schemas.py's RequestForOfferOut. */
+export interface RequestForOffer extends Request {
+  buyer_display_name: string
+  buyer_avatar_url: string | null
 }
 
 /** The other participant in a session, from the current viewer's point

@@ -140,7 +140,21 @@ function AppShell() {
                   ) : (
                     <IconPersonFallback size={22} />
                   ))}
-                {tab.key === 'activity' && <IconActivity size={22} />}
+                {tab.key === 'activity' && (
+                  <>
+                    <IconActivity size={22} />
+                    {!!me && me.pending_requests_received_count > 0 && (
+                      <span className="hp-nav-badge hp-nav-badge-pending">
+                        {me.pending_requests_received_count}
+                      </span>
+                    )}
+                    {!!me && me.accepted_requests_received_count > 0 && (
+                      <span className="hp-nav-badge hp-nav-badge-accepted">
+                        {me.accepted_requests_received_count}
+                      </span>
+                    )}
+                  </>
+                )}
                 {tab.key === 'chats' && <IconChat size={22} />}
                 {tab.key === 'discover' && <IconDiscover size={22} />}
               </span>

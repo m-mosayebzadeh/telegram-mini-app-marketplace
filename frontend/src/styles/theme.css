@@ -1944,10 +1944,46 @@ button.hp-list-row:active {
 }
 
 .hp-bottom-nav-icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 24px;
+}
+
+/* Two small count dots on the Activity nav icon — pending requests
+   (received on the current user's own offers, need a response) on one
+   corner, already-accepted ones (live engagements) on the other, in
+   two different colors so they read as two different things at a
+   glance. Logical inset-inline-start/end (not left/right) so "pending
+   on the right, accepted on the left" — as seen in the app's primary
+   RTL/Persian layout — stays correct if the UI is ever mirrored to
+   LTR, same reasoning as the rest of the nav bar (see App.tsx). */
+.hp-nav-badge {
+  position: absolute;
+  top: -4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  border: 1.5px solid var(--hp-bg);
+}
+
+.hp-nav-badge-pending {
+  inset-inline-start: -7px;
+  background: var(--hp-grad);
+}
+
+.hp-nav-badge-accepted {
+  inset-inline-end: -7px;
+  background: var(--hp-tertiary);
 }
 
 /* The Profile tab's "icon" is a small live thumbnail of the user's own
