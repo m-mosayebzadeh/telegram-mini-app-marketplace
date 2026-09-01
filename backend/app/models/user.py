@@ -73,6 +73,15 @@ class User(Base):
         default=UserStatus.ACTIVE,
     )
 
+    # When this user last opened their own "my offers" list (Activity
+    # tab's Offers segment) — NULL means "never". Powers the per-offer
+    # request_count "new since you last looked" badge (see
+    # app/offer/router.py's list_offers): a provider's own-offers view
+    # both reads this (to decide what counts as new) and updates it to
+    # "now" in the same call, so simply opening that screen is what
+    # clears the badge — no separate "mark as read" action needed.
+    requests_last_viewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     # uselist=False is what tells SQLAlchemy "this side of the
     # relationship is a single object, not a list" — i.e. `user.profile`
     # instead of `user.profiles`. The actual one-to-one *constraint*

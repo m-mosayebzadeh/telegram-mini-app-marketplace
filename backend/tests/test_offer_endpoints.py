@@ -103,6 +103,95 @@ def test_listing_only_shows_active_offers_to_strangers(client):
     assert {o["id"] for o in owner_view} == {active["id"], inactive["id"]}
 
 
+# --- request_count: "new since you last looked", not a lifetime total ------
+
+
+def test_request_count_is_the_total_the_first_time_a_provider_ever_looks(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    auth_c = _auth_header(3, "Carol")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _login(client, 3, "Carol")
+    offer_a = _create_offer(client, auth_a).json()
+    offer_b = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer_a["id"]})
+    client.post("/requests", headers=auth_c, json={"offer_id": offer_a["id"]})
+    # Bob already has a live request with Alice (on offer_a) — the
+    # one-live-request-per-provider rule means he can't also request
+    # offer_b, so Dave (a fresh buyer) is used for it instead.
+    auth_dave = _auth_header(4, "Dave")
+    _login(client, 4, "Dave")
+    client.post("/requests", headers=auth_dave, json={"offer_id": offer_b["id"]})
+
+    response = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]})
+
+    counts = {o["id"]: o["request_count"] for o in response.json()}
+    assert counts[offer_a["id"]] == 2
+    assert counts[offer_b["id"]] == 1
+
+
+def test_request_count_resets_to_zero_after_being_viewed(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    first_view = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]}).json()
+    assert first_view[0]["request_count"] == 1
+
+    # Re-opening the same view again, with nothing new having happened
+    # in between, is what "the badge clears once you've seen it" means.
+    second_view = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]}).json()
+    assert second_view[0]["request_count"] == 0
+
+
+def test_request_count_only_counts_requests_created_since_the_last_view(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    auth_c = _auth_header(3, "Carol")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _login(client, 3, "Carol")
+    offer = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    # First view: sees Bob's request, and resets the clock.
+    client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]})
+
+    # A second, genuinely new request arrives after that view.
+    client.post("/requests", headers=auth_c, json={"offer_id": offer["id"]})
+
+    response = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]})
+
+    # Only Carol's request counts as new — Bob's was already seen, not
+    # re-counted just because it still exists.
+    assert response.json()[0]["request_count"] == 1
+
+
+def test_viewing_someone_elses_offers_never_touches_your_own_request_count(client):
+    # A stranger browsing (or even just fetching) another provider's
+    # offer list must not reset THAT provider's own "last viewed" clock
+    # — only the provider viewing their OWN list (provider_id == self)
+    # does.
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    alice = _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    # Bob looks at Alice's public offer list (not his own) — irrelevant
+    # to Alice's own badge.
+    client.get("/offers", headers=auth_b, params={"provider_id": alice["id"]})
+
+    own_view = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]}).json()
+    assert own_view[0]["request_count"] == 1
+    assert bob  # just to use the variable
+
+
 # --- discovery (no provider_id) --------------------------------------------
 
 

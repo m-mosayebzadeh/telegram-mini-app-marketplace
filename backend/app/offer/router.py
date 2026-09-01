@@ -180,12 +180,30 @@ def list_offers(
             # attach each one's request_count — see OfferOut's docstring
             # for why this is only populated in this one branch.
             offers = db.query(Offer).filter(Offer.provider_id == provider_id).all()
-            counts = dict(
-                db.query(Request.offer_id, func.count(Request.id))
-                .filter(Request.offer_id.in_([o.id for o in offers]))
-                .group_by(Request.offer_id)
-                .all()
+
+            # request_count is a "what's new since you last looked"
+            # badge, not a lifetime total — otherwise it would never go
+            # back down once a provider has already dealt with every
+            # request on an offer (see TECHNICAL_REQUIREMENTS.md section
+            # 4's note on this). `since` is NULL the very first time a
+            # provider ever opens this view, in which case every request
+            # that exists so far counts as "new".
+            since = current_user.requests_last_viewed_at
+            counts_query = db.query(Request.offer_id, func.count(Request.id)).filter(
+                Request.offer_id.in_([o.id for o in offers])
             )
+            if since is not None:
+                counts_query = counts_query.filter(Request.created_at > since)
+            counts = dict(counts_query.group_by(Request.offer_id).all())
+
+            # Simply opening this view is what clears the badge — no
+            # separate "mark as read" endpoint/action. Read `since`
+            # above BEFORE this update, so the counts just computed
+            # still reflect what was actually new for THIS visit; only
+            # the NEXT visit sees the reset.
+            current_user.requests_last_viewed_at = utcnow()
+            db.commit()
+
             return [
                 OfferOut.model_validate(o, from_attributes=True).model_copy(
                     update={"request_count": counts.get(o.id, 0)}
