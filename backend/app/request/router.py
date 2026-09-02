@@ -27,7 +27,8 @@ from app.models.offer import Offer, OfferStatus
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionKind
 from app.models.user import User
-from app.request.schemas import RequestActivityOut, RequestCreate, RequestOut, RequestReject
+from app.profile.photos import get_current_avatar_url
+from app.request.schemas import IncomingRequestOut, RequestActivityOut, RequestCreate, RequestOut, RequestReject
 from app.wallet.schemas import TransactionOut
 from app.wallet.service import InsufficientBalanceError, pay_for_item
 
@@ -192,19 +193,24 @@ def list_activity_requests(
     return out
 
 
-@router.get("", response_model=list[RequestOut])
+@router.get("", response_model=list[IncomingRequestOut])
 def list_requests_for_offer(
     offer_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[Request]:
+) -> list[IncomingRequestOut]:
     """
-    Incoming requests for one of the current user's own offers. Opening
-    THIS list is what clears that offer's own "unseen requests" badge
-    (OfferOut.request_count, see app/offer/router.py's list_offers) —
-    every request still comes back regardless of seen/unseen, only the
-    badge-counting cutoff (Offer.requests_last_viewed_at) moves forward;
-    a different offer's badge is never touched by this.
+    Incoming requests for one of the current user's own offers, each
+    enriched with its buyer's own display info (name/username/avatar) so
+    the row can show who's asking without a second round trip per
+    request — see IncomingRequestOut's docstring.
+
+    Opening THIS list is what clears that offer's own "unseen requests"
+    badge (OfferOut.request_count, see app/offer/router.py's
+    list_offers) — every request still comes back regardless of
+    seen/unseen, only the badge-counting cutoff
+    (Offer.requests_last_viewed_at) moves forward; a different offer's
+    badge is never touched by this.
     """
     offer = db.get(Offer, offer_id)
     if offer is None or offer.provider_id != current_user.id:
@@ -215,7 +221,24 @@ def list_requests_for_offer(
     offer.requests_last_viewed_at = utcnow()
     db.commit()
 
-    return requests
+    out: list[IncomingRequestOut] = []
+    for req in requests:
+        buyer = db.get(User, req.buyer_id)
+        out.append(
+            IncomingRequestOut(
+                id=req.id,
+                buyer_id=req.buyer_id,
+                offer_id=req.offer_id,
+                status=req.status.value,
+                reason=req.reason,
+                created_at=req.created_at,
+                responded_at=req.responded_at,
+                buyer_display_name=buyer.display_name if buyer else "",
+                buyer_username=buyer.username if buyer else None,
+                buyer_avatar_url=get_current_avatar_url(db, req.buyer_id),
+            )
+        )
+    return out
 
 
 @router.post("/{request_id}/accept", response_model=RequestOut)

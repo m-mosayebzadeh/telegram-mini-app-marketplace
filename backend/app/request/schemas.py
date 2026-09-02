@@ -23,6 +23,22 @@ class RequestOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class IncomingRequestOut(RequestOut):
+    """
+    One row in a PROVIDER's own "incoming requests for this offer" list
+    (GET /requests?offer_id=..., see app/request/router.py's
+    list_requests_for_offer) — adds the buyer's own display info,
+    denormalized onto each row the same "answer what the screen needs
+    directly" way ChatSessionOut and RequestActivityOut already do, so
+    the row can show the requester's avatar/name without a second round
+    trip per request.
+    """
+
+    buyer_display_name: str
+    buyer_username: str | None
+    buyer_avatar_url: str | None
+
+
 class RequestActivityOut(BaseModel):
     """
     One row in the Activity tab's unified Requests feed — every request

@@ -76,6 +76,16 @@ export interface Request {
   responded_at: string | null
 }
 
+/** GET /requests?offer_id=... — the SAME shape as Request, plus the
+ * buyer's own display info, denormalized so the provider's incoming-
+ * requests row can show an avatar/name without a second round trip per
+ * row (see backend/app/request/schemas.py's IncomingRequestOut). */
+export interface IncomingRequest extends Request {
+  buyer_display_name: string
+  buyer_username: string | null
+  buyer_avatar_url: string | null
+}
+
 /** The other participant in a session, from the current viewer's point
  * of view — see backend/app/chat_session/schemas.py's
  * ChatSessionParticipantOut. Never carries telegram_id. */

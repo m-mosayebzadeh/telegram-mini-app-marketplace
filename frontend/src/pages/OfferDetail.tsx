@@ -1,11 +1,11 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
+import { Avatar, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { apiFetch, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
-import type { ChatSession, Offer, Request } from '../lib/types'
+import type { ChatSession, IncomingRequest, Offer } from '../lib/types'
 
 /**
  * Two very different screens depending on who's looking, decided by
@@ -23,7 +23,7 @@ export default function OfferDetail() {
   const { me, refreshMe } = useMe()
 
   const [offer, setOffer] = useState<Offer | null>(null)
-  const [requests, setRequests] = useState<Request[] | null>(null)
+  const [requests, setRequests] = useState<IncomingRequest[] | null>(null)
   const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
@@ -62,7 +62,7 @@ export default function OfferDetail() {
     // unseen badge, never any other offer's. refreshMe() re-fetches
     // /me right after, so the bottom nav's dot (Me.has_unseen_requests)
     // updates within this same session instead of only on next reload.
-    apiFetch<Request[]>(`/requests?offer_id=${id}`)
+    apiFetch<IncomingRequest[]>(`/requests?offer_id=${id}`)
       .then(setRequests)
       .then(refreshMe)
     apiFetch<ChatSession[]>('/chat-sessions/mine').then(setSessions)
@@ -94,7 +94,7 @@ export default function OfferDetail() {
           body: JSON.stringify({ reason }),
         })
       }
-      const refreshed = await apiFetch<Request[]>(`/requests?offer_id=${id}`)
+      const refreshed = await apiFetch<IncomingRequest[]>(`/requests?offer_id=${id}`)
       setRequests(refreshed)
     } catch (err) {
       setActionMessage(formatApiError(err))
@@ -143,14 +143,19 @@ export default function OfferDetail() {
         </div>
       </div>
 
-      <div className="hp-list">
-        <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}`)}>
-          <span className="hp-list-title">{t('offers.viewProfile')}</span>
-        </button>
-        <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}/provider-summary`)}>
-          <span className="hp-list-title">{t('offers.viewProviderSummary')}</span>
-        </button>
-      </div>
+      {/* The owner obviously doesn't need to "view their own profile" or
+          their own provider summary while managing their own offer —
+          this block is only useful to someone ELSE looking at it. */}
+      {!isOwner && (
+        <div className="hp-list">
+          <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}`)}>
+            <span className="hp-list-title">{t('offers.viewProfile')}</span>
+          </button>
+          <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}/provider-summary`)}>
+            <span className="hp-list-title">{t('offers.viewProviderSummary')}</span>
+          </button>
+        </div>
+      )}
 
       {!isOwner && (
         <div className="hp-field" style={{ margin: '0 12px 14px' }}>
@@ -190,32 +195,47 @@ export default function OfferDetail() {
                 const session = sessions?.find((s) => s.request_id === request.id)
                 return (
                   <Fragment key={request.id}>
-                    <button className="hp-list-row" onClick={() => navigate(`/profiles/${request.buyer_id}`)}>
-                      <div className="hp-list-row-main">
-                        <span className="hp-list-title">{t('offers.viewRequesterProfile')}</span>
-                        <span className="hp-list-subtitle">
-                          #{request.buyer_id} — {request.status}
-                        </span>
-                      </div>
-                    </button>
+                    {/* One row: the requester's own avatar/name (tap to
+                        open their profile) on one side, "buyer summary"
+                        + accept/reject (pending only) on the other —
+                        replacing what used to be two separate rows. */}
                     <div className="hp-list-row">
-                      <div
-                        className="hp-list-row-main"
-                        onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
-                        style={{ cursor: 'pointer' }}
+                      <button
+                        className="hp-list-row-main hp-list-row-identity"
+                        onClick={() => navigate(`/profiles/${request.buyer_id}`)}
                       >
-                        <span className="hp-list-title">{t('offers.viewBuyerSummary')}</span>
+                        <Avatar
+                          size={40}
+                          src={request.buyer_avatar_url ?? undefined}
+                          acronym={request.buyer_display_name.slice(0, 1).toUpperCase()}
+                        />
+                        <span className="hp-list-row-text">
+                          <span className="hp-list-title" dir="auto">
+                            {request.buyer_display_name}
+                          </span>
+                          {request.buyer_username && (
+                            <span className="hp-list-subtitle">@{request.buyer_username}</span>
+                          )}
+                        </span>
+                      </button>
+                      <div className="hp-list-row-actions">
+                        <button
+                          className="hp-btn-sm"
+                          onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
+                        >
+                          {t('offers.viewBuyerSummary')}
+                        </button>
+                        {request.status === 'pending' && (
+                          <>
+                            <button className="hp-btn-sm hp-btn-sm-filled" onClick={() => respond(request.id, 'accept')}>
+                              {t('requests.acceptButton')}
+                            </button>
+                            <button className="hp-btn-sm" onClick={() => respond(request.id, 'reject')}>
+                              {t('requests.rejectButton')}
+                            </button>
+                          </>
+                        )}
                       </div>
-                      {request.status === 'pending' && (
-                        <div className="hp-list-row-actions">
-                          <button className="hp-btn-sm hp-btn-sm-filled" onClick={() => respond(request.id, 'accept')}>
-                            {t('requests.acceptButton')}
-                          </button>
-                          <button className="hp-btn-sm" onClick={() => respond(request.id, 'reject')}>
-                            {t('requests.rejectButton')}
-                          </button>
-                        </div>
-                      )}
                     </div>
                     {session && (
                       <div className="hp-list-row">
