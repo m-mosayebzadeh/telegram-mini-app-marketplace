@@ -9,11 +9,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
-    <!-- Vazirmatn: a rounded, modern typeface with full Persian AND Latin
-         coverage — used for the "premium lounge" profile redesign (see
-         src/styles/theme.css) so fa/en text shares one warm, geometric
-         voice instead of falling back to the browser's default system
-         font for Persian and a different one for Latin.
+    <!-- Vazirmatn (Persian + Latin) and Inter (Latin) — see
+         docs/MODERN_DESIGN_SPECIFICATION.md's Typography section:
+         Inter for English text, Vazirmatn for Persian text and as
+         Inter's fallback for any Latin glyph Inter doesn't cover, so
+         fa/en text mixed in the same string (a name, a username) still
+         renders from one coherent, deliberately-picked stack instead of
+         silently falling back to the OS's default system font.
 
          Loaded asynchronously (preload + swap-on-load, not a plain
          blocking <link rel="stylesheet">) — a normal blocking stylesheet
@@ -23,20 +25,20 @@
          corporate proxy, this being unreachable at all) that wait has
          no upper bound. theme.css's font-family stacks already fall
          back to system-ui, so there's nothing lost by letting the page
-         paint immediately in the fallback and upgrade to Vazirmatn
-         whenever/if it finishes loading. -->
+         paint immediately in the fallback and upgrade whenever/if this
+         finishes loading. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="preload"
       as="style"
-      href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       onload="this.onload=null;this.rel='stylesheet'"
     />
     <noscript>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       />
     </noscript>
   </head>

@@ -16,11 +16,12 @@ import { ThemeProvider } from './lib/ThemeContext.tsx'
 // sensible defaults in a plain browser (see src/lib/api.ts for the
 // matching fallback on the data side).
 //
-// ThemeProvider wraps everything else — it stamps data-hp-theme onto
-// <html> before styles/theme.css's tokens can matter to any component
-// — and sits outside AppRoot rather than inside it: the "premium
-// lounge" palette (velvet/copper/jade) is a brand choice independent
-// of AppRoot's own Telegram platform/light-dark detection.
+// ThemeProvider wraps everything else — it stamps data-theme="light"|
+// "dark" onto <html> before styles/theme.css's tokens can matter to
+// any component — and sits outside AppRoot rather than inside it: this
+// app's own Light/Dark choice (see docs/MODERN_DESIGN_SPECIFICATION.md)
+// is deliberately independent of AppRoot's own Telegram platform/
+// light-dark detection, which the app doesn't otherwise rely on.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>

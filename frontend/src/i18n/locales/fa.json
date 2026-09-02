@@ -96,9 +96,8 @@
     "birthdayToday": "امروز تولدشه",
     "birthdayCountdown": "{{count}} روز مانده",
     "themeLabel": "تم",
-    "theme_velvet": "شب مخملی",
-    "theme_copper": "مسی مینیمال",
-    "theme_jade": "یشم شبانه"
+    "themeMode_light": "روشن",
+    "themeMode_dark": "تیره"
   },
   "followRequests": {
     "link": "درخواست‌های دنبال کردن",

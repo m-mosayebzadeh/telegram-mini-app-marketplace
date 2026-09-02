@@ -1,74 +1,84 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 /**
- * The three "premium lounge" color themes the design pass in
- * docs/ (see the mockup exploration that preceded this) settled on —
- * velvet, copper, jade. Every one of styles/theme.css's --hp-* tokens
- * is redefined per theme under a `[data-hp-theme="…"]` selector, so
- * switching HP_THEMES only ever means picking one of these three ids;
- * a component should never reach for a raw color, only the tokens.
- *
- * This is deliberately a closed set (not a free-form color picker) —
- * per product decision, future pages are meant to be designed against
- * one of these three, not an arbitrary palette. Adding a fourth theme
- * later means adding one more id here plus its token block in
- * theme.css, nothing else.
+ * Light/Dark mode — see docs/MODERN_DESIGN_SPECIFICATION.md. Replaces
+ * the previous three-way "premium lounge" color-palette picker
+ * (velvet/copper/jade): this app now has exactly one visual system
+ * (Modern Monochrome Social, defined entirely as semantic --color-*
+ * tokens in styles/theme.css), and the only thing a person actually
+ * chooses is which of its two value sets — light or dark — is active.
  */
-export const HP_THEMES = ['velvet', 'copper', 'jade'] as const
+export const HP_THEME_MODES = ['light', 'dark'] as const
 
-export type HpTheme = (typeof HP_THEMES)[number]
+export type HpThemeMode = (typeof HP_THEME_MODES)[number]
 
-const DEFAULT_THEME: HpTheme = 'velvet'
-const STORAGE_KEY = 'hp-theme'
+const STORAGE_KEY = 'hp-theme-mode'
 
-function isHpTheme(value: string | null): value is HpTheme {
-  return value != null && (HP_THEMES as readonly string[]).includes(value)
+function isThemeMode(value: string | null): value is HpThemeMode {
+  return value != null && (HP_THEME_MODES as readonly string[]).includes(value)
 }
 
-function readStoredTheme(): HpTheme {
+/**
+ * No stored choice yet (first visit, or storage was cleared) falls
+ * back to the OS/Telegram color-scheme preference rather than a fixed
+ * default — the "least invasive" choice per the redesign brief, since
+ * it means a person who already prefers dark mode everywhere else
+ * never has to make a choice here just to get it. Once they DO pick
+ * one explicitly (see ThemeSwitcher.tsx), that choice always wins,
+ * even if their OS preference later changes.
+ */
+function systemPrefersDark(): boolean {
+  try {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+  } catch {
+    return false
+  }
+}
+
+function readStoredMode(): HpThemeMode {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return isHpTheme(stored) ? stored : DEFAULT_THEME
+    if (isThemeMode(stored)) return stored
   } catch {
     // localStorage can throw (private browsing, disabled storage) —
-    // falling back to the default is fine, it just won't persist.
-    return DEFAULT_THEME
+    // fall through to the system-preference default below, it just
+    // won't persist across reloads.
   }
+  return systemPrefersDark() ? 'dark' : 'light'
 }
 
 interface ThemeState {
-  theme: HpTheme
-  setTheme: (theme: HpTheme) => void
+  mode: HpThemeMode
+  setMode: (mode: HpThemeMode) => void
 }
 
-const ThemeContext = createContext<ThemeState>({ theme: DEFAULT_THEME, setTheme: () => {} })
+const ThemeContext = createContext<ThemeState>({ mode: 'light', setMode: () => {} })
 
 /**
- * Applies the active theme to `<html data-hp-theme="…">` — the root
- * element rather than `.hp-page` itself, so a theme choice also reaches
- * anything rendered outside the profile tab in the future (a modal, a
- * toast) without every such surface needing its own data attribute.
- * Persists the choice to localStorage so it survives a reload; when
- * themes are eventually gated behind a paid unlock, this is the single
- * place that would grow that check (see setTheme).
+ * Applies the active mode to `<html data-theme="light"|"dark">` — the
+ * root element rather than any one page, so a theme choice reaches
+ * absolutely everything (bottom sheets, modals, the bottom nav) the
+ * moment it's set, not just whatever's currently mounted inside a
+ * page. Persists the choice to localStorage so it survives a reload
+ * (see readStoredMode()).
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<HpTheme>(readStoredTheme)
+  const [mode, setModeState] = useState<HpThemeMode>(readStoredMode)
 
   useEffect(() => {
-    document.documentElement.dataset.hpTheme = theme
+    document.documentElement.dataset.theme = mode
     try {
-      localStorage.setItem(STORAGE_KEY, theme)
+      localStorage.setItem(STORAGE_KEY, mode)
     } catch {
-      // Best-effort persistence only — see readStoredTheme().
+      // Best-effort persistence only — see readStoredMode().
     }
-  }, [theme])
+  }, [mode])
 
-  function setTheme(next: HpTheme) {
-    setThemeState(next)
+  function setMode(next: HpThemeMode) {
+    setModeState(next)
   }
 
-  return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
+  return <ThemeContext.Provider value={{ mode, setMode }}>{children}</ThemeContext.Provider>
 }
 
 export function useHpTheme(): ThemeState {

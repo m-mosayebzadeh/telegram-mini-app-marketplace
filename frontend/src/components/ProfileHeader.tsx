@@ -74,30 +74,26 @@ export function ProfileHeader({
 
   return (
     <div>
-      <div className="hp-cover">
-        <div className="hp-cover-glow hp-cover-glow-a" />
-        <div className="hp-cover-glow hp-cover-glow-b" />
-      </div>
-      <div className="hp-glass-card hp-header-card">
-        <div className="hp-avatar-wrap">
-          {/* Tapping opens a simple fullscreen preview (see .hp-avatar-preview-*
-              below) — not the drag-to-zoom gesture Telegram's own app
-              has; a plain tap-to-view is the deliberately simpler
-              version agreed on for this pass. Only wired when there's
-              an actual photo — nothing to preview for the fallback
-              initial-letter circle. */}
-          <div
-            className="hp-avatar-ring"
-            onClick={() => profile.avatar_url && setPreviewOpen(true)}
-            style={{ cursor: profile.avatar_url ? 'pointer' : 'default' }}
-          >
-            <Avatar
-              size={96}
-              src={profile.avatar_url ?? undefined}
-              acronym={profile.display_name.slice(0, 1).toUpperCase()}
-            />
-          </div>
-        </div>
+      <div className="hp-profile-header">
+        {/* Tapping opens a simple fullscreen preview (see .hp-avatar-preview-*
+            below) — not the drag-to-zoom gesture Telegram's own app
+            has; a plain tap-to-view is the deliberately simpler
+            version agreed on for this pass. Only wired when there's
+            an actual photo — nothing to preview for the fallback
+            initial-letter circle. Plain circle, no colored ring — see
+            docs/MODERN_DESIGN_SPECIFICATION.md's Profile section. */}
+        <button
+          type="button"
+          className="hp-profile-avatar-btn"
+          onClick={() => profile.avatar_url && setPreviewOpen(true)}
+          style={{ cursor: profile.avatar_url ? 'pointer' : 'default' }}
+        >
+          <Avatar
+            size={96}
+            src={profile.avatar_url ?? undefined}
+            acronym={profile.display_name.slice(0, 1).toUpperCase()}
+          />
+        </button>
 
         {/* dir="auto" — not the app's current UI language — decides
             which way this renders: the browser picks RTL/LTR from the
@@ -110,27 +106,33 @@ export function ProfileHeader({
         </h1>
         {profile.username && <p className="hp-username">@{profile.username}</p>}
 
-        {/* Nothing renders here at all when is_trusted is false — never
-            an empty placeholder badge (see PublicProfile.is_trusted's
-            docstring). */}
-        {profile.is_trusted && (
-          <div className="hp-trust-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-              <path d="M12 3l1.7 6.8L20 11l-6.3 1.2L12 19l-1.7-6.8L4 11l6.3-1.2L12 3z" />
-            </svg>
-            <span>{t('profilePage.trustedBadge')}</span>
+        {/* Trust badge and birthday sit in one row now — small,
+            typographic marks rather than their own colorful pills,
+            nothing renders at all when neither applies. */}
+        {(profile.is_trusted || hasBirthday) && (
+          <div className="hp-identity-marks-row">
+            {/* Nothing renders here at all when is_trusted is false —
+                never an empty placeholder badge (see
+                PublicProfile.is_trusted's docstring). */}
+            {profile.is_trusted && (
+              <span className="hp-trust-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M12 3l1.7 6.8L20 11l-6.3 1.2L12 19l-1.7-6.8L4 11l6.3-1.2L12 3z" />
+                </svg>
+                <span>{t('profilePage.trustedBadge')}</span>
+              </span>
+            )}
+            {hasBirthday && (
+              <button className="hp-birthday-chip" onClick={() => setBirthdayOpen(true)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3v3" />
+                  <circle cx="12" cy="5.6" r="1" fill="currentColor" stroke="none" />
+                  <rect x="4.5" y="11" width="15" height="7.5" rx="2.4" />
+                  <path d="M4.5 14.2c1.6-1.3 3.1-1.3 4.7 0s3.1 1.3 4.7 0s3.1-1.3 4.6 0" />
+                </svg>
+              </button>
+            )}
           </div>
-        )}
-
-        {hasBirthday && (
-          <button className="hp-birthday-chip" onClick={() => setBirthdayOpen(true)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 3v3" />
-              <circle cx="12" cy="5.6" r="1" fill="currentColor" stroke="none" />
-              <rect x="4.5" y="11" width="15" height="7.5" rx="2.4" />
-              <path d="M4.5 14.2c1.6-1.3 3.1-1.3 4.7 0s3.1 1.3 4.7 0s3.1-1.3 4.6 0" />
-            </svg>
-          </button>
         )}
 
         {profile.bio && <p className="hp-bio">{profile.bio}</p>}

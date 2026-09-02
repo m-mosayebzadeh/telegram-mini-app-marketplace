@@ -96,9 +96,8 @@
     "birthdayToday": "Today is the birthday",
     "birthdayCountdown": "{{count}} days left",
     "themeLabel": "Theme",
-    "theme_velvet": "Velvet After Dark",
-    "theme_copper": "Copper Minimal",
-    "theme_jade": "Jade Noir"
+    "themeMode_light": "Light",
+    "themeMode_dark": "Dark"
   },
   "followRequests": {
     "link": "Follow requests",
