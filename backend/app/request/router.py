@@ -28,7 +28,7 @@ from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionKind
 from app.models.user import User
 from app.profile.photos import get_current_avatar_url
-from app.request.schemas import RequestActivityOut, RequestCreate, RequestForOfferOut, RequestOut, RequestReject
+from app.request.schemas import IncomingRequestOut, RequestActivityOut, RequestCreate, RequestOut, RequestReject
 from app.wallet.schemas import TransactionOut
 from app.wallet.service import InsufficientBalanceError, pay_for_item
 
@@ -162,6 +162,12 @@ def list_activity_requests(
     /mine (kept as-is for existing buyer-only screens) since this one
     needs the join through Offer to also catch received requests, plus
     the denormalized fields RequestActivityOut adds.
+
+    Opening THIS feed is also what clears the buyer-side "one of my sent
+    requests just got a response" notification (GET /me's
+    unseen_sent_request_updates_count, see User.sent_requests_last_viewed_at)
+    — the mirror image of how opening one offer's own request list
+    clears that offer's provider-side badge.
     """
     rows = (
         db.query(Request, Offer)
@@ -190,34 +196,56 @@ def list_activity_requests(
                 counterpart_display_name=counterpart.display_name if counterpart else "",
             )
         )
+
+    current_user.sent_requests_last_viewed_at = utcnow()
+    db.commit()
+
     return out
 
 
-@router.get("", response_model=list[RequestForOfferOut])
+@router.get("", response_model=list[IncomingRequestOut])
 def list_requests_for_offer(
     offer_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[RequestForOfferOut]:
-    """Incoming requests for one of the current user's own offers."""
+) -> list[IncomingRequestOut]:
+    """
+    Incoming requests for one of the current user's own offers, each
+    enriched with its buyer's own display info (name/username/avatar) so
+    the row can show who's asking without a second round trip per
+    request — see IncomingRequestOut's docstring.
+
+    Opening THIS list is what clears that offer's own "unseen requests"
+    badge (OfferOut.request_count, see app/offer/router.py's
+    list_offers) — every request still comes back regardless of
+    seen/unseen, only the badge-counting cutoff
+    (Offer.requests_last_viewed_at) moves forward; a different offer's
+    badge is never touched by this.
+    """
     offer = db.get(Offer, offer_id)
     if offer is None or offer.provider_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
+
     requests = db.query(Request).filter(Request.offer_id == offer_id).all()
-    out = []
-    for r in requests:
-        buyer = db.get(User, r.buyer_id)
+
+    offer.requests_last_viewed_at = utcnow()
+    db.commit()
+
+    out: list[IncomingRequestOut] = []
+    for req in requests:
+        buyer = db.get(User, req.buyer_id)
         out.append(
-            RequestForOfferOut(
-                id=r.id,
-                buyer_id=r.buyer_id,
-                offer_id=r.offer_id,
-                status=r.status.value,
-                reason=r.reason,
-                created_at=r.created_at,
-                responded_at=r.responded_at,
-                buyer_display_name=buyer.display_name,
-                buyer_avatar_url=get_current_avatar_url(db, r.buyer_id),
+            IncomingRequestOut(
+                id=req.id,
+                buyer_id=req.buyer_id,
+                offer_id=req.offer_id,
+                status=req.status.value,
+                reason=req.reason,
+                created_at=req.created_at,
+                responded_at=req.responded_at,
+                buyer_display_name=buyer.display_name if buyer else "",
+                buyer_username=buyer.username if buyer else None,
+                buyer_avatar_url=get_current_avatar_url(db, req.buyer_id),
             )
         )
     return out

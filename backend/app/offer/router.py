@@ -12,7 +12,7 @@ section 4:
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -180,12 +180,34 @@ def list_offers(
             # attach each one's request_count — see OfferOut's docstring
             # for why this is only populated in this one branch.
             offers = db.query(Offer).filter(Offer.provider_id == provider_id).all()
+
+            # request_count is a "what's new since you last opened THIS
+            # offer's own request list" badge, not a lifetime total —
+            # otherwise it would never go back down once a provider has
+            # already dealt with every request on an offer (see
+            # TECHNICAL_REQUIREMENTS.md section 4's note on this). Each
+            # offer has its OWN requests_last_viewed_at (see
+            # app/models/offer.py) — opening offer A's request list
+            # (app/request/router.py's list_requests_for_offer) clears
+            # only offer A's count, never offer B's, which is why this
+            # is one JOINed query comparing each request against its OWN
+            # offer's timestamp, not a single shared cutoff. NULL means
+            # "never opened", in which case every existing request on
+            # that offer still counts as unseen.
             counts = dict(
                 db.query(Request.offer_id, func.count(Request.id))
-                .filter(Request.offer_id.in_([o.id for o in offers]))
+                .join(Offer, Request.offer_id == Offer.id)
+                .filter(
+                    Offer.id.in_([o.id for o in offers]),
+                    or_(
+                        Offer.requests_last_viewed_at.is_(None),
+                        Request.created_at > Offer.requests_last_viewed_at,
+                    ),
+                )
                 .group_by(Request.offer_id)
                 .all()
             )
+
             return [
                 OfferOut.model_validate(o, from_attributes=True).model_copy(
                     update={"request_count": counts.get(o.id, 0)}

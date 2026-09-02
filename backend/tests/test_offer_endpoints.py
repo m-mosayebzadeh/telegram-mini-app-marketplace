@@ -103,6 +103,123 @@ def test_listing_only_shows_active_offers_to_strangers(client):
     assert {o["id"] for o in owner_view} == {active["id"], inactive["id"]}
 
 
+# --- request_count: "unseen on THIS offer", not a lifetime total -----------
+#
+# "Seen" is cleared per-offer, by opening THAT offer's own incoming-
+# requests list (GET /requests?offer_id=...) — never by merely viewing
+# the aggregate "my offers" list itself, and never affecting any OTHER
+# offer's own count.
+
+
+def test_request_count_is_the_total_the_first_time_a_provider_ever_looks(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    auth_c = _auth_header(3, "Carol")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _login(client, 3, "Carol")
+    offer_a = _create_offer(client, auth_a).json()
+    offer_b = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer_a["id"]})
+    client.post("/requests", headers=auth_c, json={"offer_id": offer_a["id"]})
+    # Bob already has a live request with Alice (on offer_a) — the
+    # one-live-request-per-provider rule means he can't also request
+    # offer_b, so Dave (a fresh buyer) is used for it instead.
+    auth_dave = _auth_header(4, "Dave")
+    _login(client, 4, "Dave")
+    client.post("/requests", headers=auth_dave, json={"offer_id": offer_b["id"]})
+
+    response = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]})
+
+    counts = {o["id"]: o["request_count"] for o in response.json()}
+    assert counts[offer_a["id"]] == 2
+    assert counts[offer_b["id"]] == 1
+
+
+def test_merely_viewing_the_offers_list_does_not_clear_any_badge(client):
+    # This is the exact behavior a first attempt at this feature got
+    # wrong: opening the aggregate "my offers" list is NOT "viewing"
+    # for badge purposes — only opening one specific offer's own
+    # request list is.
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]})
+    second_view = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]}).json()
+
+    assert second_view[0]["request_count"] == 1
+
+
+def test_opening_one_offers_request_list_clears_only_that_offers_badge(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    auth_c = _auth_header(3, "Carol")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _login(client, 3, "Carol")
+    offer_a = _create_offer(client, auth_a).json()
+    offer_b = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer_a["id"]})
+    client.post("/requests", headers=auth_c, json={"offer_id": offer_b["id"]})
+
+    # Alice opens offer A's own incoming-requests list.
+    client.get("/requests", headers=auth_a, params={"offer_id": offer_a["id"]})
+
+    counts = {
+        o["id"]: o["request_count"]
+        for o in client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]}).json()
+    }
+    assert counts[offer_a["id"]] == 0  # seen
+    assert counts[offer_b["id"]] == 1  # untouched
+
+
+def test_request_count_only_counts_requests_created_since_that_offer_was_last_opened(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    auth_c = _auth_header(3, "Carol")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _login(client, 3, "Carol")
+    offer = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    # Alice opens this offer's request list — sees Bob's request, resets
+    # the clock for THIS offer.
+    client.get("/requests", headers=auth_a, params={"offer_id": offer["id"]})
+
+    # A second, genuinely new request arrives after that.
+    client.post("/requests", headers=auth_c, json={"offer_id": offer["id"]})
+
+    response = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]})
+
+    # Only Carol's request counts as new — Bob's was already seen, not
+    # re-counted just because it still exists.
+    assert response.json()[0]["request_count"] == 1
+
+
+def test_a_strangers_view_of_your_offers_never_marks_anything_seen(client):
+    # Browsing (or even fetching) another provider's public offer list
+    # must not affect that provider's own badges at all — only the
+    # provider themself, opening one of their OWN offers' request
+    # lists, can clear a badge.
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    alice = _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a).json()
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    client.get("/offers", headers=auth_b, params={"provider_id": alice["id"]})
+
+    own_view = client.get("/offers", headers=auth_a, params={"provider_id": alice["id"]}).json()
+    assert own_view[0]["request_count"] == 1
+    assert bob  # just to use the variable
+
+
 # --- discovery (no provider_id) --------------------------------------------
 
 

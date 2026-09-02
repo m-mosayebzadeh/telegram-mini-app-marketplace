@@ -148,6 +148,25 @@ def test_list_mine_and_list_for_offer(client):
     assert len(incoming) == 1
 
 
+def test_incoming_requests_are_enriched_with_the_buyers_own_info(client):
+    # The incoming-requests row shows the requester's avatar/name
+    # directly (no second round trip per row) — see
+    # IncomingRequestOut/list_requests_for_offer.
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    bob = _login(client, 2, "Bob")
+    offer = _create_offer(client, auth_a)
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    incoming = client.get("/requests", headers=auth_a, params={"offer_id": offer["id"]}).json()
+
+    assert incoming[0]["buyer_id"] == bob["id"]
+    assert incoming[0]["buyer_display_name"] == "Bob"
+    # Bob never uploaded a profile photo — no avatar to show, not an error.
+    assert incoming[0]["buyer_avatar_url"] is None
+
+
 def test_only_the_provider_can_list_requests_for_an_offer(client):
     auth_a = _auth_header(1, "Alice")
     auth_c = _auth_header(3, "Carol")

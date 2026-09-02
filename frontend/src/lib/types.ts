@@ -17,12 +17,20 @@ export interface Me {
   // you — shown as a badge on the Profile tab (see GET
   // /follow/incoming-requests for the full inbox this links to).
   pending_follow_requests_count: number
-  // Requests against the current user's OWN offers (they're the
-  // provider being asked) — pending ones need a response, accepted
-  // ones are live engagements. Shown as badges on the Activity tab and
-  // the bottom nav's Activity icon (see pages/Activity.tsx, App.tsx).
-  pending_requests_received_count: number
-  accepted_requests_received_count: number
+  // Whether ANY of your own offers has a request you haven't seen yet
+  // (see backend/app/offer/router.py's list_offers and
+  // backend/app/request/router.py's list_requests_for_offer, which own
+  // the actual per-offer counting/clearing) — just a plain "something
+  // needs attention" dot on the Activity tab's bottom-nav icon (see
+  // App.tsx), not an exact count.
+  has_unseen_requests: boolean
+  // The buyer-side mirror: how many of YOUR OWN sent requests just got
+  // a response (accepted/rejected/cancelled) you haven't seen yet —
+  // cleared by opening the Activity tab's Requests segment (see
+  // backend/app/request/router.py's list_activity_requests). Unlike
+  // has_unseen_requests, this IS an exact count, since it also drives
+  // the numbered badge on the Requests segment button, not just a dot.
+  unseen_sent_request_updates_count: number
 }
 
 export interface Balance {
@@ -75,12 +83,13 @@ export interface Request {
   responded_at: string | null
 }
 
-/** GET /requests?offer_id= (an offer owner's own incoming-requests
- * list) — Request plus just enough about the buyer to render one row
- * (avatar + name) without a second round trip. See backend/app/request/
- * schemas.py's RequestForOfferOut. */
-export interface RequestForOffer extends Request {
+/** GET /requests?offer_id=... — the SAME shape as Request, plus the
+ * buyer's own display info, denormalized so the provider's incoming-
+ * requests row can show an avatar/name without a second round trip per
+ * row (see backend/app/request/schemas.py's IncomingRequestOut). */
+export interface IncomingRequest extends Request {
   buyer_display_name: string
+  buyer_username: string | null
   buyer_avatar_url: string | null
 }
 
