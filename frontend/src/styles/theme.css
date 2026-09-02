@@ -247,6 +247,15 @@
   white-space: pre-wrap;
 }
 
+/* A capped-height text block that scrolls internally once its content
+   is taller than that — for free-text a user can type as long as they
+   want (an offer's description, ...), so it can't be allowed to push
+   the rest of the card's real facts down an unbounded amount. */
+.hp-scrollable-text {
+  max-height: 160px;
+  overflow-y: auto;
+}
+
 .hp-meta-row {
   display: flex;
   align-items: center;

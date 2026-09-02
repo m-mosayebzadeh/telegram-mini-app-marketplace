@@ -115,9 +115,6 @@ export default function OfferDetail() {
       <div className="hp-page-header">{offer.title}</div>
 
       <div className="hp-card">
-        <p className="hp-bio" style={{ margin: 0 }}>
-          {offer.description}
-        </p>
         <div className="hp-kv-row">
           <span className="hp-kv-label">{t('offers.priceStarsLabel')}</span>
           <span className="hp-kv-value">{offer.price_stars}</span>
@@ -141,6 +138,11 @@ export default function OfferDetail() {
             {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}
           </span>
         </div>
+        {/* Last, not first — the numeric facts above are what a glance
+            needs; the free-text description can be long, so it gets a
+            capped height with its own scroll instead of pushing
+            everything else down the page. */}
+        <p className="hp-bio hp-scrollable-text">{offer.description}</p>
       </div>
 
       {/* The owner obviously doesn't need to "view their own profile" or
