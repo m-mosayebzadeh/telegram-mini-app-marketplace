@@ -113,11 +113,11 @@ export default function Activity() {
           onClick={() => setSegment('requests')}
         >
           {t('activityPage.requestsTab')}
-          {/* A different color than the Offers badge above on purpose —
-              this counts a DIFFERENT kind of event (one of YOUR sent
-              requests got a response), not a new incoming request. */}
+          {/* Same badge color as the Offers segment above — the label
+              already says which is which, so the count doesn't also
+              need its own color to tell them apart. */}
           {me.unseen_sent_request_updates_count > 0 && (
-            <span className="hp-badge hp-badge-alt" style={{ marginInlineStart: 6 }}>
+            <span className="hp-badge" style={{ marginInlineStart: 6 }}>
               {me.unseen_sent_request_updates_count}
             </span>
           )}
