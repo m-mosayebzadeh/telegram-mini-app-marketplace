@@ -141,6 +141,14 @@ function AppShell() {
                 {tab.key === 'activity' && <IconActivity size={22} />}
                 {tab.key === 'chats' && <IconChat size={22} />}
                 {tab.key === 'discover' && <IconDiscover size={22} />}
+                {/* A plain "something needs attention" dot, not a count
+                    — see lib/types.ts's Me.has_unseen_requests. Cleared
+                    per-offer by opening that offer's own request list
+                    (pages/OfferDetail.tsx), never by merely opening this
+                    tab itself. */}
+                {tab.key === 'activity' && me?.has_unseen_requests && (
+                  <span className="hp-nav-unseen-dot" aria-hidden="true" />
+                )}
               </span>
               {t(`tabs.${tab.key}`)}
             </button>

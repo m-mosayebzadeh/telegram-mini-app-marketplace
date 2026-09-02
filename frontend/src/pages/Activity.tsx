@@ -78,6 +78,13 @@ export default function Activity() {
     (r) => directionFilter === 'all' || r.direction === directionFilter,
   )
 
+  // Sum of every offer's own unseen count (see OfferOut.request_count) —
+  // the SAME per-offer numbers already shown inline below, just totaled
+  // for the segment button itself. Opening one specific offer's request
+  // list (pages/OfferDetail.tsx) is what reduces this, never opening
+  // this list itself — see backend/app/offer/router.py's list_offers.
+  const unseenOffersTotal = (offers ?? []).reduce((sum, o) => sum + (o.request_count ?? 0), 0)
+
   return (
     <div className="hp-page">
       <div className="hp-segmented" style={{ margin: '14px 12px 0' }}>
@@ -86,6 +93,11 @@ export default function Activity() {
           onClick={() => setSegment('offers')}
         >
           {t('activityPage.offersTab')}
+          {unseenOffersTotal > 0 && (
+            <span className="hp-badge" style={{ marginInlineStart: 6 }}>
+              {unseenOffersTotal}
+            </span>
+          )}
         </button>
         <button
           className={`hp-segmented-btn ${segment === 'requests' ? 'hp-segmented-active' : ''}`}

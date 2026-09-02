@@ -54,3 +54,15 @@ class Offer(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+    # When the provider last opened THIS offer's own incoming-requests
+    # list (GET /requests?offer_id=..., see app/request/router.py's
+    # list_requests_for_offer) — NULL means "never". Powers the
+    # per-offer "unseen requests" badge (OfferOut.request_count, see
+    # app/offer/router.py's list_offers): a request created after this
+    # timestamp counts as unseen. Deliberately per-OFFER, not a single
+    # per-user timestamp — opening offer A's own request list is what
+    # clears offer A's badge specifically, leaving offer B's untouched,
+    # per the product decision behind this (see
+    # TECHNICAL_REQUIREMENTS.md section 4).
+    requests_last_viewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

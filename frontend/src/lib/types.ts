@@ -17,6 +17,13 @@ export interface Me {
   // you — shown as a badge on the Profile tab (see GET
   // /follow/incoming-requests for the full inbox this links to).
   pending_follow_requests_count: number
+  // Whether ANY of your own offers has a request you haven't seen yet
+  // (see backend/app/offer/router.py's list_offers and
+  // backend/app/request/router.py's list_requests_for_offer, which own
+  // the actual per-offer counting/clearing) — just a plain "something
+  // needs attention" dot on the Activity tab's bottom-nav icon (see
+  // App.tsx), not an exact count.
+  has_unseen_requests: boolean
 }
 
 export interface Balance {

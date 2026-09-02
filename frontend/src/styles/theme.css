@@ -1944,10 +1944,26 @@ button.hp-list-row:active {
 }
 
 .hp-bottom-nav-icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 24px;
+}
+
+/* A plain "something's new" marker — no number, see lib/types.ts's
+   Me.has_unseen_requests and App.tsx's own comment on why this is a
+   dot, not a count. Positioned at the icon's top-inline-end corner so
+   it reads correctly in both text directions. */
+.hp-nav-unseen-dot {
+  position: absolute;
+  top: -1px;
+  inset-inline-end: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hp-secondary);
+  box-shadow: 0 0 0 2px rgba(18, 13, 27, 0.92);
 }
 
 /* The Profile tab's "icon" is a small live thumbnail of the user's own

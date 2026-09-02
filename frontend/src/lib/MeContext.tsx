@@ -12,9 +12,16 @@ interface MeState {
   // on every page. null while still loading; {is_owner:false,
   // scopes:[]} for the overwhelming majority of users who aren't admins.
   adminAccess: MyAdminAccess | null
+  // Re-fetches just `me` (not adminAccess, which never changes mid-session)
+  // — for a screen that just did something which could change one of
+  // /me's own live fields, most importantly `has_unseen_requests` (see
+  // pages/OfferDetail.tsx, which calls this right after loading an
+  // offer's own request list, so the bottom nav's dot updates within
+  // the same session instead of only on the next full app load).
+  refreshMe: () => void
 }
 
-const MeContext = createContext<MeState>({ me: null, error: null, adminAccess: null })
+const MeContext = createContext<MeState>({ me: null, error: null, adminAccess: null, refreshMe: () => {} })
 
 /**
  * Fetches GET /me exactly once for the whole app and shares the result
@@ -25,7 +32,13 @@ const MeContext = createContext<MeState>({ me: null, error: null, adminAccess: n
  * as the app's single entry point into the backend.
  */
 export function MeProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<MeState>({ me: null, error: null, adminAccess: null })
+  const [state, setState] = useState<Omit<MeState, 'refreshMe'>>({ me: null, error: null, adminAccess: null })
+
+  function fetchMe() {
+    apiFetch<Me>('/me')
+      .then((me) => setState((s) => ({ ...s, me, error: null })))
+      .catch((err) => setState((s) => ({ ...s, me: null, error: err instanceof Error ? err.message : String(err) })))
+  }
 
   useEffect(() => {
     apiFetch<Me>('/me')
@@ -38,7 +51,7 @@ export function MeProvider({ children }: { children: ReactNode }) {
       .catch((err) => setState((s) => ({ ...s, me: null, error: err instanceof Error ? err.message : String(err) })))
   }, [])
 
-  return <MeContext.Provider value={state}>{children}</MeContext.Provider>
+  return <MeContext.Provider value={{ ...state, refreshMe: fetchMe }}>{children}</MeContext.Provider>
 }
 
 /** `me` is null while still loading OR if the fetch failed — check

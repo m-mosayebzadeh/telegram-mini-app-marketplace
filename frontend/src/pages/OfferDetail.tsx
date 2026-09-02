@@ -20,7 +20,7 @@ export default function OfferDetail() {
   const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
-  const { me } = useMe()
+  const { me, refreshMe } = useMe()
 
   const [offer, setOffer] = useState<Offer | null>(null)
   const [requests, setRequests] = useState<Request[] | null>(null)
@@ -56,8 +56,17 @@ export default function OfferDetail() {
   // MyRequests.tsx's own use of the same endpoint).
   useEffect(() => {
     if (!isOwner) return
-    apiFetch<Request[]>(`/requests?offer_id=${id}`).then(setRequests)
+    // This exact call is what the backend treats as "the provider has
+    // now seen this offer's requests" (see backend/app/request/
+    // router.py's list_requests_for_offer) — it clears THIS offer's own
+    // unseen badge, never any other offer's. refreshMe() re-fetches
+    // /me right after, so the bottom nav's dot (Me.has_unseen_requests)
+    // updates within this same session instead of only on next reload.
+    apiFetch<Request[]>(`/requests?offer_id=${id}`)
+      .then(setRequests)
+      .then(refreshMe)
     apiFetch<ChatSession[]>('/chat-sessions/mine').then(setSessions)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally re-run only on isOwner/id changing, not on every refreshMe identity change (it's still the current one via closure either way)
   }, [isOwner, id])
 
   async function sendRequest() {

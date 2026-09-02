@@ -198,11 +198,24 @@ def list_requests_for_offer(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[Request]:
-    """Incoming requests for one of the current user's own offers."""
+    """
+    Incoming requests for one of the current user's own offers. Opening
+    THIS list is what clears that offer's own "unseen requests" badge
+    (OfferOut.request_count, see app/offer/router.py's list_offers) —
+    every request still comes back regardless of seen/unseen, only the
+    badge-counting cutoff (Offer.requests_last_viewed_at) moves forward;
+    a different offer's badge is never touched by this.
+    """
     offer = db.get(Offer, offer_id)
     if offer is None or offer.provider_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
-    return db.query(Request).filter(Request.offer_id == offer_id).all()
+
+    requests = db.query(Request).filter(Request.offer_id == offer_id).all()
+
+    offer.requests_last_viewed_at = utcnow()
+    db.commit()
+
+    return requests
 
 
 @router.post("/{request_id}/accept", response_model=RequestOut)

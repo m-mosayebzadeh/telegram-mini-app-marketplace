@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -24,6 +25,8 @@ from app.content.router import router as content_router
 from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
 from app.models.follow import Follow, FollowStatus
+from app.models.offer import Offer
+from app.models.request import Request
 from app.offer.router import router as offer_router
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
@@ -129,6 +132,28 @@ def read_current_user(
         .filter(Follow.followee_id == current_user.id, Follow.status == FollowStatus.PENDING)
         .count()
     )
+    # Whether ANY of this user's own offers has a request they haven't
+    # seen yet (see app/offer/router.py's list_offers and
+    # app/request/router.py's list_requests_for_offer, which together
+    # own the actual per-offer counting/clearing) — just a boolean here,
+    # for the bottom nav's plain "something needs attention" dot (see
+    # App.tsx), which has no room for — and doesn't need — an exact
+    # number. Same "checked on every app load" limitation as
+    # pending_follow_requests_count above, until a real push-notification
+    # system exists (TECHNICAL_REQUIREMENTS.md section 9).
+    has_unseen_requests = (
+        db.query(Request)
+        .join(Offer, Request.offer_id == Offer.id)
+        .filter(
+            Offer.provider_id == current_user.id,
+            or_(
+                Offer.requests_last_viewed_at.is_(None),
+                Request.created_at > Offer.requests_last_viewed_at,
+            ),
+        )
+        .first()
+        is not None
+    )
     return {
         "id": current_user.id,
         "telegram_id": current_user.telegram_id,
@@ -142,6 +167,7 @@ def read_current_user(
         # yet (TECHNICAL_REQUIREMENTS.md section 9 still has that as an
         # undone idea).
         "pending_follow_requests_count": pending_follow_requests_count,
+        "has_unseen_requests": has_unseen_requests,
     }
 
 
