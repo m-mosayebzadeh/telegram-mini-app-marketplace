@@ -117,6 +117,86 @@ def test_has_unseen_requests_clears_once_that_offers_request_list_is_opened(clie
     assert response.json()["has_unseen_requests"] is False
 
 
+# --- unseen_sent_request_updates_count --------------------------------------
+# The buyer-side mirror of has_unseen_requests: how many of MY sent
+# requests just got a response I haven't seen yet — cleared by opening
+# the Activity tab's Requests segment (GET /requests/activity).
+
+
+def test_unseen_sent_updates_is_zero_while_a_sent_request_is_still_pending(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    client.get("/me", headers=auth_a)
+    offer = client.post(
+        "/offers",
+        headers=auth_a,
+        json={"price_stars": 10, "display_duration_minutes": 30, "title": "Chat", "description": "d"},
+    ).json()
+
+    client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
+
+    # Bob's request is still pending — nothing has happened to it yet
+    # that Bob would need to be notified about.
+    response = client.get("/me", headers=auth_b)
+    assert response.json()["unseen_sent_request_updates_count"] == 0
+
+
+def test_unseen_sent_updates_counts_a_request_that_just_got_accepted(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    client.get("/me", headers=auth_b)
+    offer = client.post(
+        "/offers",
+        headers=auth_a,
+        json={"price_stars": 10, "display_duration_minutes": 30, "title": "Chat", "description": "d"},
+    ).json()
+    req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
+
+    client.post(f"/requests/{req['id']}/accept", headers=auth_a)
+
+    response = client.get("/me", headers=auth_b)
+    assert response.json()["unseen_sent_request_updates_count"] == 1
+
+
+def test_unseen_sent_updates_clears_once_the_requests_activity_feed_is_opened(client):
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    client.get("/me", headers=auth_b)
+    offer = client.post(
+        "/offers",
+        headers=auth_a,
+        json={"price_stars": 10, "display_duration_minutes": 30, "title": "Chat", "description": "d"},
+    ).json()
+    req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
+    client.post(f"/requests/{req['id']}/accept", headers=auth_a)
+
+    client.get("/requests/activity", headers=auth_b)
+
+    response = client.get("/me", headers=auth_b)
+    assert response.json()["unseen_sent_request_updates_count"] == 0
+
+
+def test_unseen_sent_updates_is_unaffected_by_the_providers_own_notifications(client):
+    # Accepting Bob's request should never mark anything "seen" for
+    # Alice (the provider) — has_unseen_requests and
+    # unseen_sent_request_updates_count are tracked completely
+    # independently, on different timestamps.
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    client.get("/me", headers=auth_b)
+    offer = client.post(
+        "/offers",
+        headers=auth_a,
+        json={"price_stars": 10, "display_duration_minutes": 30, "title": "Chat", "description": "d"},
+    ).json()
+    req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
+
+    client.post(f"/requests/{req['id']}/accept", headers=auth_a)
+
+    response = client.get("/me", headers=auth_a)
+    assert response.json()["unseen_sent_request_updates_count"] == 0
+
+
 def test_pricing_config_matches_current_settings(client):
     """GET /pricing — what CreateOffer.tsx and OfferDetail.tsx use to
     show a Toman/commission breakdown without a round trip per keystroke

@@ -20,7 +20,7 @@ type DirectionFilter = 'all' | 'sent' | 'received'
 export default function Activity() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { me } = useMe()
+  const { me, refreshMe } = useMe()
   const [segment, setSegment] = useState<Segment>('offers')
   const [offers, setOffers] = useState<Offer[] | null>(null)
   const [requests, setRequests] = useState<RequestActivity[] | null>(null)
@@ -35,9 +35,18 @@ export default function Activity() {
   }, [me])
 
   const loadRequests = useCallback(() => {
+    // This exact call is what the backend treats as "the buyer has now
+    // seen their sent requests' updates" (see backend/app/request/
+    // router.py's list_activity_requests) — it clears
+    // Me.unseen_sent_request_updates_count. refreshMe() re-fetches /me
+    // right after, so the bottom nav's dot/badge update within this
+    // same session instead of only on next reload (mirrors
+    // OfferDetail.tsx's identical pattern for the provider side).
     apiFetch<RequestActivity[]>('/requests/activity')
       .then(setRequests)
+      .then(refreshMe)
       .catch((err) => setError(formatApiError(err)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally not re-running on every refreshMe identity change, see OfferDetail.tsx's identical comment
   }, [])
 
   useEffect(() => {
@@ -104,6 +113,14 @@ export default function Activity() {
           onClick={() => setSegment('requests')}
         >
           {t('activityPage.requestsTab')}
+          {/* A different color than the Offers badge above on purpose —
+              this counts a DIFFERENT kind of event (one of YOUR sent
+              requests got a response), not a new incoming request. */}
+          {me.unseen_sent_request_updates_count > 0 && (
+            <span className="hp-badge hp-badge-alt" style={{ marginInlineStart: 6 }}>
+              {me.unseen_sent_request_updates_count}
+            </span>
+          )}
         </button>
       </div>
 

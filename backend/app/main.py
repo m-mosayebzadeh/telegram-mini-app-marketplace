@@ -26,7 +26,7 @@ from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
 from app.models.follow import Follow, FollowStatus
 from app.models.offer import Offer
-from app.models.request import Request
+from app.models.request import Request, RequestStatus
 from app.offer.router import router as offer_router
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
@@ -154,6 +154,22 @@ def read_current_user(
         .first()
         is not None
     )
+    # The mirror image, for the BUYER side: how many of MY sent requests
+    # just got a response (accepted/rejected/cancelled) I haven't seen
+    # yet — cleared by opening the Activity tab's Requests segment (see
+    # app/request/router.py's list_activity_requests), which is why this
+    # is a plain count (not per-request), unlike the provider side above.
+    # A still-PENDING request is never "unseen" here — nothing has
+    # happened on it yet for the buyer to be notified about.
+    since_sent = current_user.sent_requests_last_viewed_at
+    unseen_sent_query = db.query(Request).filter(
+        Request.buyer_id == current_user.id,
+        Request.status.in_([RequestStatus.ACCEPTED, RequestStatus.REJECTED, RequestStatus.CANCELLED]),
+    )
+    if since_sent is not None:
+        unseen_sent_query = unseen_sent_query.filter(Request.responded_at > since_sent)
+    unseen_sent_request_updates_count = unseen_sent_query.count()
+
     return {
         "id": current_user.id,
         "telegram_id": current_user.telegram_id,
@@ -168,6 +184,7 @@ def read_current_user(
         # undone idea).
         "pending_follow_requests_count": pending_follow_requests_count,
         "has_unseen_requests": has_unseen_requests,
+        "unseen_sent_request_updates_count": unseen_sent_request_updates_count,
     }
 
 

@@ -1875,6 +1875,16 @@ button.hp-list-row:active {
   font-weight: 700;
 }
 
+/* A visually distinct color for a DIFFERENT kind of unseen event — see
+   pages/Activity.tsx's Requests-segment badge (a sent request got a
+   response) vs. the default .hp-badge (a new incoming request). Solid
+   gold rather than the primary gradient, so the two are never
+   confusable at a glance. */
+.hp-badge-alt {
+  background: var(--hp-gold);
+  color: var(--hp-bg);
+}
+
 /* Sent (↗) vs received (↘) marker on one row of the Activity tab's
    unified Requests feed — mirrors Telegram's own Calls tab, which uses
    the same kind of small directional arrow instead of a text label. */
@@ -2012,6 +2022,21 @@ button.hp-list-row:active {
   border-radius: 50%;
   background: var(--hp-secondary);
   box-shadow: 0 0 0 2px rgba(18, 13, 27, 0.92);
+}
+
+/* The buyer-side "one of my sent requests got a response" dot — gold,
+   matching .hp-badge-alt, so it never looks like the same kind of
+   notification as the default (provider-side) dot above. */
+.hp-nav-unseen-dot-alt {
+  background: var(--hp-gold);
+}
+
+/* When BOTH dots are showing at once, shift this second one further
+   along so they sit side by side instead of exactly overlapping —
+   .hp-nav-unseen-dot-alt alone (only this one kind of unseen event)
+   stays in the default corner position. */
+.hp-nav-unseen-dot-secondary {
+  inset-inline-end: 7px;
 }
 
 /* The Profile tab's "icon" is a small live thumbnail of the user's own

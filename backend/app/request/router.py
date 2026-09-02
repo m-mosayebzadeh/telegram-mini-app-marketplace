@@ -162,6 +162,12 @@ def list_activity_requests(
     /mine (kept as-is for existing buyer-only screens) since this one
     needs the join through Offer to also catch received requests, plus
     the denormalized fields RequestActivityOut adds.
+
+    Opening THIS feed is also what clears the buyer-side "one of my sent
+    requests just got a response" notification (GET /me's
+    unseen_sent_request_updates_count, see User.sent_requests_last_viewed_at)
+    — the mirror image of how opening one offer's own request list
+    clears that offer's provider-side badge.
     """
     rows = (
         db.query(Request, Offer)
@@ -190,6 +196,10 @@ def list_activity_requests(
                 counterpart_display_name=counterpart.display_name if counterpart else "",
             )
         )
+
+    current_user.sent_requests_last_viewed_at = utcnow()
+    db.commit()
+
     return out
 
 

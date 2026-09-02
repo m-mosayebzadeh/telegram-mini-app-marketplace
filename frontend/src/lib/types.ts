@@ -24,6 +24,13 @@ export interface Me {
   // needs attention" dot on the Activity tab's bottom-nav icon (see
   // App.tsx), not an exact count.
   has_unseen_requests: boolean
+  // The buyer-side mirror: how many of YOUR OWN sent requests just got
+  // a response (accepted/rejected/cancelled) you haven't seen yet —
+  // cleared by opening the Activity tab's Requests segment (see
+  // backend/app/request/router.py's list_activity_requests). Unlike
+  // has_unseen_requests, this IS an exact count, since it also drives
+  // the numbered badge on the Requests segment button, not just a dot.
+  unseen_sent_request_updates_count: number
 }
 
 export interface Balance {

@@ -73,6 +73,19 @@ class User(Base):
         default=UserStatus.ACTIVE,
     )
 
+    # When this user last opened the Activity tab's Requests segment
+    # (GET /requests/activity, see app/request/router.py's
+    # list_activity_requests) — NULL means "never". Powers the buyer-side
+    # "one of my SENT requests just got accepted/rejected/cancelled"
+    # notification (GET /me's unseen_sent_request_updates_count) — the
+    # mirror image of Offer.requests_last_viewed_at, which is the
+    # provider-side "a new request arrived" notification. Deliberately a
+    # single per-user timestamp, not per-request: opening the whole
+    # Requests segment is what clears it, per the product decision
+    # behind this (see TECHNICAL_REQUIREMENTS.md section 4) — unlike the
+    # provider side, which is cleared per-offer.
+    sent_requests_last_viewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     # uselist=False is what tells SQLAlchemy "this side of the
     # relationship is a single object, not a list" — i.e. `user.profile`
     # instead of `user.profiles`. The actual one-to-one *constraint*
