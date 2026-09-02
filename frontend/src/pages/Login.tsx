@@ -9,15 +9,18 @@ import { setDevUserChoice } from '../lib/session'
  * reachable inside real Telegram — there, initData comes from the
  * launch itself and there's nothing to choose.
  *
- * The two users here are the same ones the Bruno collection and the
- * backend's dev endpoint already default to (Sara / Bob — see
+ * Sara and Bob are the same two users the Bruno collection and the
+ * backend's dev endpoint already default to (see
  * backend/app/dev/router.py and bruno/environments/local.bru), so a
  * request one of them creates in the browser is the same account
- * Bruno would see, and vice versa.
+ * Bruno would see, and vice versa. Soheil and Fatemeh are extra test
+ * accounts for manual multi-user testing (e.g. two-browser chat testing).
  */
 const TEST_USERS = [
   { telegramId: 111222333, firstName: 'Sara', username: 'sara_dev' },
   { telegramId: 222222, firstName: 'Bob', username: 'bob_dev' },
+  { telegramId: 333333, firstName: 'Soheil', username: 'soheil_dev' },
+  { telegramId: 444444, firstName: 'Fatemeh', username: 'fatemeh_dev' },
 ]
 
 export default function Login() {

@@ -20,7 +20,7 @@ type DirectionFilter = 'all' | 'sent' | 'received'
 export default function Activity() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { me } = useMe()
+  const { me, refreshMe } = useMe()
   const [segment, setSegment] = useState<Segment>('offers')
   const [offers, setOffers] = useState<Offer[] | null>(null)
   const [requests, setRequests] = useState<RequestActivity[] | null>(null)
@@ -35,9 +35,18 @@ export default function Activity() {
   }, [me])
 
   const loadRequests = useCallback(() => {
+    // This exact call is what the backend treats as "the buyer has now
+    // seen their sent requests' updates" (see backend/app/request/
+    // router.py's list_activity_requests) — it clears
+    // Me.unseen_sent_request_updates_count. refreshMe() re-fetches /me
+    // right after, so the bottom nav's dot/badge update within this
+    // same session instead of only on next reload (mirrors
+    // OfferDetail.tsx's identical pattern for the provider side).
     apiFetch<RequestActivity[]>('/requests/activity')
       .then(setRequests)
+      .then(refreshMe)
       .catch((err) => setError(formatApiError(err)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally not re-running on every refreshMe identity change, see OfferDetail.tsx's identical comment
   }, [])
 
   useEffect(() => {
@@ -78,6 +87,13 @@ export default function Activity() {
     (r) => directionFilter === 'all' || r.direction === directionFilter,
   )
 
+  // Sum of every offer's own unseen count (see OfferOut.request_count) —
+  // the SAME per-offer numbers already shown inline below, just totaled
+  // for the segment button itself. Opening one specific offer's request
+  // list (pages/OfferDetail.tsx) is what reduces this, never opening
+  // this list itself — see backend/app/offer/router.py's list_offers.
+  const unseenOffersTotal = (offers ?? []).reduce((sum, o) => sum + (o.request_count ?? 0), 0)
+
   return (
     <div className="hp-page">
       <div className="hp-segmented" style={{ margin: '14px 12px 0' }}>
@@ -86,14 +102,9 @@ export default function Activity() {
           onClick={() => setSegment('offers')}
         >
           {t('activityPage.offersTab')}
-          {/* Total pending requests across ALL of the current user's
-              offers — not just the one they're currently looking at
-              (that per-offer count is the .hp-badge inside each row
-              below) — so this tab itself signals "something needs a
-              response" before it's even opened. */}
-          {!!me.pending_requests_received_count && (
+          {unseenOffersTotal > 0 && (
             <span className="hp-badge" style={{ marginInlineStart: 6 }}>
-              {me.pending_requests_received_count}
+              {unseenOffersTotal}
             </span>
           )}
         </button>
@@ -102,11 +113,12 @@ export default function Activity() {
           onClick={() => setSegment('requests')}
         >
           {t('activityPage.requestsTab')}
-          {/* Live (accepted) requests received — the engagements the
-              current user, as provider, currently has open. */}
-          {!!me.accepted_requests_received_count && (
-            <span className="hp-badge" style={{ marginInlineStart: 6 }}>
-              {me.accepted_requests_received_count}
+          {/* A different color than the Offers badge above on purpose —
+              this counts a DIFFERENT kind of event (one of YOUR sent
+              requests got a response), not a new incoming request. */}
+          {me.unseen_sent_request_updates_count > 0 && (
+            <span className="hp-badge hp-badge-alt" style={{ marginInlineStart: 6 }}>
+              {me.unseen_sent_request_updates_count}
             </span>
           )}
         </button>

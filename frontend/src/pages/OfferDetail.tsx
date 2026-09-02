@@ -5,7 +5,7 @@ import { Avatar, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { apiFetch, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
-import type { ChatSession, Offer, RequestForOffer } from '../lib/types'
+import type { ChatSession, IncomingRequest, Offer } from '../lib/types'
 
 /**
  * Two very different screens depending on who's looking, decided by
@@ -20,10 +20,10 @@ export default function OfferDetail() {
   const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
-  const { me } = useMe()
+  const { me, refreshMe } = useMe()
 
   const [offer, setOffer] = useState<Offer | null>(null)
-  const [requests, setRequests] = useState<RequestForOffer[] | null>(null)
+  const [requests, setRequests] = useState<IncomingRequest[] | null>(null)
   const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
@@ -56,8 +56,17 @@ export default function OfferDetail() {
   // MyRequests.tsx's own use of the same endpoint).
   useEffect(() => {
     if (!isOwner) return
-    apiFetch<RequestForOffer[]>(`/requests?offer_id=${id}`).then(setRequests)
+    // This exact call is what the backend treats as "the provider has
+    // now seen this offer's requests" (see backend/app/request/
+    // router.py's list_requests_for_offer) — it clears THIS offer's own
+    // unseen badge, never any other offer's. refreshMe() re-fetches
+    // /me right after, so the bottom nav's dot (Me.has_unseen_requests)
+    // updates within this same session instead of only on next reload.
+    apiFetch<IncomingRequest[]>(`/requests?offer_id=${id}`)
+      .then(setRequests)
+      .then(refreshMe)
     apiFetch<ChatSession[]>('/chat-sessions/mine').then(setSessions)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally re-run only on isOwner/id changing, not on every refreshMe identity change (it's still the current one via closure either way)
   }, [isOwner, id])
 
   async function sendRequest() {
@@ -85,7 +94,7 @@ export default function OfferDetail() {
           body: JSON.stringify({ reason }),
         })
       }
-      const refreshed = await apiFetch<RequestForOffer[]>(`/requests?offer_id=${id}`)
+      const refreshed = await apiFetch<IncomingRequest[]>(`/requests?offer_id=${id}`)
       setRequests(refreshed)
     } catch (err) {
       setActionMessage(formatApiError(err))
@@ -106,9 +115,6 @@ export default function OfferDetail() {
       <div className="hp-page-header">{offer.title}</div>
 
       <div className="hp-card">
-        <p className="hp-bio" style={{ margin: 0 }}>
-          {offer.description}
-        </p>
         <div className="hp-kv-row">
           <span className="hp-kv-label">{t('offers.priceStarsLabel')}</span>
           <span className="hp-kv-value">{offer.price_stars}</span>
@@ -132,12 +138,19 @@ export default function OfferDetail() {
             {offer.status === 'active' ? t('offers.statusActive') : t('offers.statusInactive')}
           </span>
         </div>
+        {/* Last, not first — the numeric facts above are what a glance
+            needs; the free-text description can be long, so it gets its
+            own labeled box with a capped height and internal scroll
+            instead of pushing everything else down the page. */}
+        <div className="hp-field">
+          <span className="hp-field-label">{t('offers.descriptionLabel')}</span>
+          <p className="hp-bio hp-text-box hp-scrollable-text">{offer.description}</p>
+        </div>
       </div>
 
-      {/* The provider viewing their OWN offer has no business seeing
-          "view provider profile"/"provider summary" buttons about
-          themselves — those only make sense for a buyer looking at
-          someone else's offer. */}
+      {/* The owner obviously doesn't need to "view their own profile" or
+          their own provider summary while managing their own offer —
+          this block is only useful to someone ELSE looking at it. */}
       {!isOwner && (
         <div className="hp-list">
           <button className="hp-list-row" onClick={() => navigate(`/profiles/${offer.provider_id}`)}>
@@ -187,10 +200,13 @@ export default function OfferDetail() {
                 const session = sessions?.find((s) => s.request_id === request.id)
                 return (
                   <Fragment key={request.id}>
-                    <div className="hp-list-row" style={{ flexWrap: 'wrap', rowGap: 8 }}>
+                    {/* One row: the requester's own avatar/name (tap to
+                        open their profile) on one side, "buyer summary"
+                        + accept/reject (pending only) on the other —
+                        replacing what used to be two separate rows. */}
+                    <div className="hp-list-row">
                       <button
-                        className="hp-chat-header-identity"
-                        style={{ flex: '1 1 auto', minWidth: 0 }}
+                        className="hp-list-row-main hp-list-row-identity"
                         onClick={() => navigate(`/profiles/${request.buyer_id}`)}
                       >
                         <Avatar
@@ -198,10 +214,20 @@ export default function OfferDetail() {
                           src={request.buyer_avatar_url ?? undefined}
                           acronym={request.buyer_display_name.slice(0, 1).toUpperCase()}
                         />
-                        <span className="hp-chat-header-name">{request.buyer_display_name}</span>
+                        <span className="hp-list-row-text">
+                          <span className="hp-list-title" dir="auto">
+                            {request.buyer_display_name}
+                          </span>
+                          {request.buyer_username && (
+                            <span className="hp-list-subtitle">@{request.buyer_username}</span>
+                          )}
+                        </span>
                       </button>
-                      <div className="hp-list-row-actions" style={{ flexWrap: 'wrap' }}>
-                        <button className="hp-btn-sm" onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}>
+                      <div className="hp-list-row-actions">
+                        <button
+                          className="hp-btn-sm"
+                          onClick={() => navigate(`/profiles/${request.buyer_id}/buyer-summary`)}
+                        >
                           {t('offers.viewBuyerSummary')}
                         </button>
                         {request.status === 'pending' && (

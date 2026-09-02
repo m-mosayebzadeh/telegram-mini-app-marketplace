@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -133,22 +134,44 @@ def read_current_user(
         .filter(Follow.followee_id == current_user.id, Follow.status == FollowStatus.PENDING)
         .count()
     )
-    # Requests against the current user's OWN offers (i.e. they're the
-    # provider being asked) — pending ones need a response, accepted
-    # ones are live engagements. Both are shown as badges on the
-    # Activity tab and the bottom nav (see Activity.tsx and App.tsx) so
-    # the tab itself signals "something needs your attention" without
-    # having to open it first — same reasoning as
-    # pending_follow_requests_count just above.
-    requests_received_query = db.query(Request).join(Offer, Request.offer_id == Offer.id).filter(
-        Offer.provider_id == current_user.id
+    # Whether ANY of this user's own offers has a request they haven't
+    # seen yet (see app/offer/router.py's list_offers and
+    # app/request/router.py's list_requests_for_offer, which together
+    # own the actual per-offer counting/clearing) — just a boolean here,
+    # for the bottom nav's plain "something needs attention" dot (see
+    # App.tsx), which has no room for — and doesn't need — an exact
+    # number. Same "checked on every app load" limitation as
+    # pending_follow_requests_count above, until a real push-notification
+    # system exists (TECHNICAL_REQUIREMENTS.md section 9).
+    has_unseen_requests = (
+        db.query(Request)
+        .join(Offer, Request.offer_id == Offer.id)
+        .filter(
+            Offer.provider_id == current_user.id,
+            or_(
+                Offer.requests_last_viewed_at.is_(None),
+                Request.created_at > Offer.requests_last_viewed_at,
+            ),
+        )
+        .first()
+        is not None
     )
-    pending_requests_received_count = requests_received_query.filter(
-        Request.status == RequestStatus.PENDING
-    ).count()
-    accepted_requests_received_count = requests_received_query.filter(
-        Request.status == RequestStatus.ACCEPTED
-    ).count()
+    # The mirror image, for the BUYER side: how many of MY sent requests
+    # just got a response (accepted/rejected/cancelled) I haven't seen
+    # yet — cleared by opening the Activity tab's Requests segment (see
+    # app/request/router.py's list_activity_requests), which is why this
+    # is a plain count (not per-request), unlike the provider side above.
+    # A still-PENDING request is never "unseen" here — nothing has
+    # happened on it yet for the buyer to be notified about.
+    since_sent = current_user.sent_requests_last_viewed_at
+    unseen_sent_query = db.query(Request).filter(
+        Request.buyer_id == current_user.id,
+        Request.status.in_([RequestStatus.ACCEPTED, RequestStatus.REJECTED, RequestStatus.CANCELLED]),
+    )
+    if since_sent is not None:
+        unseen_sent_query = unseen_sent_query.filter(Request.responded_at > since_sent)
+    unseen_sent_request_updates_count = unseen_sent_query.count()
+
     return {
         "id": current_user.id,
         "telegram_id": current_user.telegram_id,
@@ -162,8 +185,8 @@ def read_current_user(
         # yet (TECHNICAL_REQUIREMENTS.md section 9 still has that as an
         # undone idea).
         "pending_follow_requests_count": pending_follow_requests_count,
-        "pending_requests_received_count": pending_requests_received_count,
-        "accepted_requests_received_count": accepted_requests_received_count,
+        "has_unseen_requests": has_unseen_requests,
+        "unseen_sent_request_updates_count": unseen_sent_request_updates_count,
     }
 
 
