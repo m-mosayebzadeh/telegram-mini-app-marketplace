@@ -139,10 +139,13 @@ export default function OfferDetail() {
           </span>
         </div>
         {/* Last, not first — the numeric facts above are what a glance
-            needs; the free-text description can be long, so it gets a
-            capped height with its own scroll instead of pushing
-            everything else down the page. */}
-        <p className="hp-bio hp-scrollable-text">{offer.description}</p>
+            needs; the free-text description can be long, so it gets its
+            own labeled box with a capped height and internal scroll
+            instead of pushing everything else down the page. */}
+        <div className="hp-field">
+          <span className="hp-field-label">{t('offers.descriptionLabel')}</span>
+          <p className="hp-bio hp-text-box hp-scrollable-text">{offer.description}</p>
+        </div>
       </div>
 
       {/* The owner obviously doesn't need to "view their own profile" or

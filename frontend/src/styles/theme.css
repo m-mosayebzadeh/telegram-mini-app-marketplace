@@ -256,6 +256,18 @@
   overflow-y: auto;
 }
 
+/* A distinct boxed surface for a labeled block of free text — same
+   glass/hairline language as every other surface, so a long
+   description reads as its own clearly-bounded area under its label
+   instead of just trailing off loosely at the bottom of a card. */
+.hp-text-box {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--hp-glass);
+  border: 1px solid var(--hp-hairline);
+  border-radius: 14px;
+}
+
 .hp-meta-row {
   display: flex;
   align-items: center;
