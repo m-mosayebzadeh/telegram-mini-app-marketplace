@@ -1,0 +1,30 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Secret config files
+.env
+*.env
+
+# Python cache
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local databases
+*.db
+*.sqlite3
+*.db.bak-*
+
+# Local uploads
+uploads/
+
+# Docker image archives
+*.tar
+
+# TLS certificates and private keys
+*.pem
+nginx/certs/
+
+# Deployment runbook — describes real VPS layout/domains, kept local-only
+docs/DEPLOYMENT_RUNBOOK.md
