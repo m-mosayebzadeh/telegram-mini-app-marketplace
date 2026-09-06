@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { formatApiError } from '../lib/api'
@@ -34,6 +35,13 @@ function statusLabel(status: TopUpRequest['status']): string {
  */
 export default function TopUp() {
   const { t } = useTranslation()
+  // Arriving from OfferDetail.tsx's "insufficient balance" dialog
+  // passes exactly how many Stars are missing, so this screen opens
+  // with that amount already typed in instead of making someone go
+  // work it out and re-type it themselves.
+  const location = useLocation()
+  const prefillStars = (location.state as { prefillStars?: number } | null)?.prefillStars ?? null
+
   const [tab, setTab] = useState<Tab>('direct')
   const [rate, setRate] = useState<number | null>(null)
   const [cardInfo, setCardInfo] = useState<TopUpCardInfo | null>(null)
@@ -43,7 +51,7 @@ export default function TopUp() {
 
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [starsText, setStarsText] = useState('')
+  const [starsText, setStarsText] = useState(prefillStars ? String(prefillStars) : '')
   const [tomanText, setTomanText] = useState('')
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -57,12 +65,20 @@ export default function TopUp() {
 
   useEffect(() => {
     getPricingConfig()
-      .then((config) => setRate(config.star_to_toman_rate))
+      .then((config) => {
+        setRate(config.star_to_toman_rate)
+        // The Toman line couldn't be computed until the rate arrived —
+        // only relevant when starsText was pre-filled (see prefillStars
+        // above); a normal manual edit already goes through
+        // onStarsChange, which sets both at once.
+        if (prefillStars) setTomanText(String(prefillStars * config.star_to_toman_rate))
+      })
       .catch((err) => setError(formatApiError(err)))
     getTopUpCardInfo()
       .then(setCardInfo)
       .catch((err) => setError(formatApiError(err)))
     loadHistory()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- prefillStars only matters on the initial mount (it's how this screen was navigated to), not a live dependency
   }, [])
 
   useEffect(() => {
@@ -90,7 +106,11 @@ export default function TopUp() {
   // that doesn't divide evenly by the rate used to silently round to a
   // Star count that didn't match what the user thought they entered).
   function onStarsChange(raw: string) {
-    const digits = raw.replace(/[^\d]/g, '')
+    // Leading zeros stripped too ("00100" -> "100") — not just non-digit
+    // characters — so the field never holds a value that LOOKS like a
+    // different, smaller number than what Number(digits) below actually
+    // parses it as.
+    const digits = raw.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '')
     setStarsText(digits)
     setTomanText(rate && digits ? String(Number(digits) * rate) : '')
   }

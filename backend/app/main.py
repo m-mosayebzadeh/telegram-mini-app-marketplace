@@ -29,6 +29,7 @@ from app.models.follow import Follow, FollowStatus
 from app.models.offer import Offer
 from app.models.request import Request, RequestStatus
 from app.offer.router import router as offer_router
+from app.profile.photos import get_current_avatar_url
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
 from app.request.router import router as request_router
@@ -179,6 +180,14 @@ def read_current_user(
         "username": current_user.username,
         "status": current_user.status.value,
         "joined_at": current_user.joined_at.isoformat(),
+        # The bottom nav's own small avatar thumbnail (see App.tsx) reads
+        # this directly instead of running its own separate fetch — that
+        # older approach only ever re-ran when MeContext's `me` object
+        # itself changed identity (effectively once per session), so
+        # uploading a new avatar never updated the nav icon until a full
+        # reload. Now it just comes along for free with the same
+        # refreshMe() every other /me-backed value already uses.
+        "avatar_url": get_current_avatar_url(db, current_user.id),
         # Shown as a badge on the Profile tab (see GET
         # /follow/incoming-requests for the full inbox) — checked every
         # time the app loads, since there's no push-notification system
@@ -187,7 +196,46 @@ def read_current_user(
         "pending_follow_requests_count": pending_follow_requests_count,
         "has_unseen_requests": has_unseen_requests,
         "unseen_sent_request_updates_count": unseen_sent_request_updates_count,
+        # Raw first_name/last_name, not just the combined display_name —
+        # EditProfile.tsx needs these separately (a Telegram-style "Your
+        # name" card with two fields), and splitting display_name back
+        # apart on the frontend would be lossy (a last name with a space
+        # in it, a name with no last name at all, ...).
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
     }
+
+
+class NameUpdate(BaseModel):
+    first_name: str = Field(min_length=1, max_length=128)
+    last_name: str | None = Field(default=None, max_length=128)
+
+
+@app.put("/me/name")
+def update_name(
+    payload: NameUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    Lets a user edit their own first/last name (pre-filled from Telegram
+    at first login, per app/auth/dependencies.py, but never editable
+    until now). first_name is required — a name made of only whitespace
+    is rejected the same as an empty one, since Field(min_length=1)
+    alone wouldn't catch " ". last_name is optional; an empty/whitespace
+    value is stored as None (not ""), matching User.display_name's own
+    "only add the space if there IS a last name" logic.
+    """
+    first_name = payload.first_name.strip()
+    if not first_name:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "first_name can't be empty.")
+    last_name = payload.last_name.strip() if payload.last_name else None
+
+    current_user.first_name = first_name
+    current_user.last_name = last_name or None
+    db.commit()
+
+    return {"first_name": current_user.first_name, "last_name": current_user.last_name}
 
 
 # a-z, A-Z, 0-9, and underscore only — matches what the product asked

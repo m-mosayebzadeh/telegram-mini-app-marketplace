@@ -13,6 +13,14 @@ export interface Me {
   username: string | null
   status: 'active' | 'blocked'
   joined_at: string
+  // The bottom nav's own small avatar thumbnail (see App.tsx) reads this
+  // directly, refreshed the same way every other /me value is — see
+  // MeContext.tsx's refreshMe().
+  avatar_url: string | null
+  // Raw name parts, not just display_name — EditProfile.tsx's "your
+  // name" card edits these separately (see PUT /me/name).
+  first_name: string
+  last_name: string | null
   // How many people currently have an unanswered follow request in to
   // you — shown as a badge on the Profile tab (see GET
   // /follow/incoming-requests for the full inbox this links to).

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@telegram-apps/telegram-ui'
 import { apiFetch } from '../lib/api'
 import { daysUntilNextBirthday, formatJalaliBirthday } from '../lib/jalali'
+import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'
 import { AvatarGallery } from './AvatarGallery'
 import { IconCamera, IconEdit, IconWallet } from './icons'
@@ -48,12 +49,25 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { refreshMe } = useMe()
   const [birthdayOpen, setBirthdayOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [avatarBusy, setAvatarBusy] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const hasBirthday = profile.birthday_month != null && profile.birthday_day != null
+
+  // Every place the CURRENT avatar can change — a fresh upload here, or
+  // picking/deleting a photo in the fullscreen gallery below — needs to
+  // do two things: reload this page's own `profile` prop (onAvatarUploaded,
+  // owned by the parent) AND refresh the bottom nav's thumbnail, which
+  // reads straight off `me.avatar_url` (see App.tsx) and only updates
+  // when refreshMe() re-fetches /me. Wrapped in one function so neither
+  // call site below can forget the second half.
+  function notifyAvatarChanged() {
+    onAvatarUploaded()
+    refreshMe()
+  }
 
   async function handleAvatarPicked(file: File | null) {
     if (!file) return
@@ -62,7 +76,7 @@ export function ProfileHeader({
       const form = new FormData()
       form.append('file', file)
       await apiFetch<MyProfile>('/profile/me/avatar', { method: 'POST', body: form })
-      onAvatarUploaded()
+      notifyAvatarChanged()
     } catch {
       // A failed avatar upload just leaves the old photo in place — no
       // separate error UI here; the existing photo (or the fallback
@@ -242,7 +256,7 @@ export function ProfileHeader({
           userId={profile.user_id}
           isOwn={isOwn}
           onClose={() => setPreviewOpen(false)}
-          onChanged={onAvatarUploaded}
+          onChanged={notifyAvatarChanged}
         />
       )}
 

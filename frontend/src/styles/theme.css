@@ -1739,10 +1739,75 @@
 }
 
 .hp-page-back-title {
+  flex: 1;
   font-size: 17px;
   font-weight: 800;
   color: var(--hp-text);
   font-family: var(--hp-font);
+}
+
+/* The trailing confirm/save action next to a back header (e.g.
+   EditProfile.tsx's Account-style page) — same reset as .hp-chat-back,
+   just tinted as an action rather than plain text, and dimmed when
+   disabled instead of just doing nothing on tap. */
+.hp-page-confirm-btn {
+  background: none;
+  border: none;
+  color: var(--hp-primary);
+  padding: 4px 6px;
+  cursor: pointer;
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+.hp-page-confirm-btn:disabled {
+  color: var(--hp-text-muted);
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- grouped fields (EditProfile.tsx's "your name" card) ----------
+   Telegram's own Account screen groups first/last name into ONE card
+   with a hairline divider between the two rows, rather than two
+   separate boxed fields — this is that pattern, kept generic enough to
+   reuse anywhere a couple of related plain-text fields belong together. */
+.hp-grouped-card {
+  margin: 12px 12px 0;
+  background: var(--hp-glass);
+  border: 1px solid var(--hp-hairline);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.hp-grouped-row {
+  padding: 12px 14px;
+}
+
+.hp-grouped-row:not(:last-child) {
+  border-bottom: 1px solid var(--hp-hairline);
+}
+
+.hp-grouped-input {
+  width: 100%;
+  border: none;
+  background: none;
+  outline: none;
+  padding: 0;
+  font-size: 15px;
+  font-family: var(--hp-font);
+  color: var(--hp-text);
+}
+
+.hp-grouped-input::placeholder {
+  color: var(--hp-text-muted);
+}
+
+/* A small trailing character count, e.g. Bio's Input `after` slot. */
+.hp-char-count {
+  font-size: 12.5px;
+  color: var(--hp-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .hp-page-header {

@@ -12,13 +12,26 @@ import {
   toPersianDigits,
 } from '../lib/jalali'
 import { Sheet } from '../components/Sheet'
-import { IconArrowNarrowLeft } from '../components/icons'
+import { IconArrowNarrowLeft, IconCheck } from '../components/icons'
 import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'
 
 const MAX_INTERESTS = 10
+const MAX_BIO = 1000
 const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,32}$/
 const CURRENT_JALALI_YEAR = jalaliYearFor()
+
+/** English birthday display ("17 Sep, 2025" / "17 Sep" with no year) —
+ * day-first regardless of locale default, which Intl's own {day,month}
+ * formatting doesn't guarantee, so only the month abbreviation comes
+ * from Intl; day/year are placed by hand to match the exact format
+ * asked for. The year in the dummy Date below is never shown — it only
+ * exists because Date needs one — so any non-leap year works for every
+ * real month/day combination. */
+function formatGregorianBirthday(month: number, day: number, year: number | null): string {
+  const monthAbbr = new Date(2001, month - 1, 1).toLocaleDateString('en-US', { month: 'short' })
+  return year != null ? `${day} ${monthAbbr}, ${year}` : `${day} ${monthAbbr}`
+}
 
 /**
  * A real pushed page (back-arrow header, not a bottom sheet) — the
@@ -31,12 +44,15 @@ const CURRENT_JALALI_YEAR = jalaliYearFor()
  * and Save button to match the same "tap in, set it, done" shape).
  */
 export default function EditProfile() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const { me } = useMe()
+  const { me, refreshMe } = useMe()
 
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
 
   const [username, setUsername] = useState('')
   const [usernameSheetOpen, setUsernameSheetOpen] = useState(false)
@@ -55,6 +71,12 @@ export default function EditProfile() {
 
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!me) return
+    setFirstName(me.first_name)
+    setLastName(me.last_name ?? '')
+  }, [me])
 
   useEffect(() => {
     if (!me) return
@@ -82,6 +104,20 @@ export default function EditProfile() {
     .filter((tag) => tag.length > 0)
   const tooManyInterests = interests.length > MAX_INTERESTS
   const usernameInvalid = usernameDraft.length > 0 && !USERNAME_PATTERN.test(usernameDraft)
+  const firstNameEmpty = firstName.trim().length === 0
+
+  async function saveName(): Promise<boolean> {
+    try {
+      await apiFetch('/me/name', {
+        method: 'PUT',
+        body: JSON.stringify({ first_name: firstName.trim(), last_name: lastName.trim() || null }),
+      })
+      return true
+    } catch (err) {
+      setError(formatApiError(err))
+      return false
+    }
+  }
 
   async function saveProfile(nextJy: number | null, nextJm: number | null, nextJd: number | null): Promise<boolean> {
     setBusy(true)
@@ -109,8 +145,21 @@ export default function EditProfile() {
   }
 
   async function submitMain() {
-    if (tooManyInterests) return
-    if (await saveProfile(jy, jm, jd)) navigate(-1)
+    if (firstNameEmpty || tooManyInterests || busy) return
+    setBusy(true)
+    setError(null)
+    // Name is its own backend resource (PUT /me/name), saved alongside
+    // the rest here since the header checkmark is one combined "save
+    // everything on this page" action — only proceed to the bio/
+    // location/interests/birthday save if the name save succeeded.
+    if (!(await saveName())) {
+      setBusy(false)
+      return
+    }
+    if (await saveProfile(jy, jm, jd)) {
+      refreshMe()
+      navigate(-1)
+    }
   }
 
   async function submitBirthday() {
@@ -152,10 +201,6 @@ export default function EditProfile() {
     setBirthdaySheetOpen(true)
   }
 
-  const birthdayValueLabel = jm != null && jd != null
-    ? `${toPersianDigits(jd)} ${JALALI_MONTH_NAMES[jm - 1]}${jy != null ? ' ' + toPersianDigits(jy) : ''}`
-    : '—'
-
   if (loadError) return <Placeholder header={t('common.error')}>{loadError}</Placeholder>
   if (!profile) {
     return (
@@ -165,6 +210,13 @@ export default function EditProfile() {
     )
   }
 
+  const hasBirthday = jm != null && jd != null
+  const birthdayValueLabel = hasBirthday
+    ? i18n.language === 'en'
+      ? formatGregorianBirthday(profile.birthday_month!, profile.birthday_day!, profile.birthday_year)
+      : `${toPersianDigits(jd)} ${JALALI_MONTH_NAMES[jm - 1]}${jy != null ? ' ' + toPersianDigits(jy) : ''}`
+    : t('profilePage.addBirthday')
+
   return (
     <div className="hp-page">
       <div className="hp-page-back-header">
@@ -172,18 +224,49 @@ export default function EditProfile() {
           <IconArrowNarrowLeft size={20} />
         </button>
         <span className="hp-page-back-title">{t('profilePage.editTitle')}</span>
+        <button
+          className="hp-page-confirm-btn"
+          disabled={firstNameEmpty || tooManyInterests || busy}
+          onClick={submitMain}
+          aria-label={t('profilePage.saveButton')}
+        >
+          <IconCheck size={22} />
+        </button>
       </div>
 
       <div className="hp-tab-body">
-        <div className="hp-list">
-          <button className="hp-list-row" onClick={openUsernameSheet}>
-            <span className="hp-list-title">{t('profilePage.usernameLabel')}</span>
-            <span className="hp-list-subtitle">{username || '—'} ›</span>
-          </button>
+        {/* "Your name" — one grouped card, two rows, no separate boxed
+            fields (matches Telegram's own Account screen). First name
+            is required; the checkmark above stays disabled while it's
+            empty instead of erroring only after a tap. */}
+        <div className="hp-grouped-card">
+          <div className="hp-grouped-row">
+            <input
+              className="hp-grouped-input"
+              placeholder={t('profilePage.firstNamePlaceholder')}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+          </div>
+          <div className="hp-grouped-row">
+            <input
+              className="hp-grouped-input"
+              placeholder={t('profilePage.lastNamePlaceholder')}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="hp-field">
-          <Input header={t('profilePage.bioLabel')} value={bio} onChange={(e) => setBio(e.target.value)} />
+          <Input
+            header={t('profilePage.bioLabel')}
+            value={bio}
+            maxLength={MAX_BIO}
+            onChange={(e) => setBio(e.target.value)}
+            after={<span className="hp-char-count">{bio.length}/{MAX_BIO}</span>}
+          />
+          <p className="hp-hint">{t('profilePage.bioHint')}</p>
         </div>
         <div className="hp-field">
           <Input header={t('profilePage.locationLabel')} value={location} onChange={(e) => setLocation(e.target.value)} />
@@ -199,20 +282,19 @@ export default function EditProfile() {
           {tooManyInterests && <p className="hp-error">{t('profilePage.interestsTooMany', { max: MAX_INTERESTS })}</p>}
         </div>
 
-        <div className="hp-list" style={{ marginTop: 14 }}>
+        <p className="hp-field-label" style={{ margin: '18px 12px 0' }}>
+          {t('profilePage.yourInfoLabel')}
+        </p>
+        <div className="hp-list">
+          <button className="hp-list-row" onClick={openUsernameSheet}>
+            <span className="hp-list-title">{username ? `@${username}` : t('profilePage.addUsername')}</span>
+          </button>
           <button className="hp-list-row" onClick={openBirthdaySheet}>
-            <span className="hp-list-title">{t('profilePage.birthdayLabel')}</span>
-            <span className="hp-list-subtitle">{birthdayValueLabel}</span>
+            <span className="hp-list-title">{hasBirthday ? birthdayValueLabel : t('profilePage.addBirthday')}</span>
           </button>
         </div>
 
-        {error && <p className="hp-error">{error}</p>}
-
-        <div className="hp-field">
-          <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} disabled={tooManyInterests || busy} onClick={submitMain}>
-            {busy ? t('common.loading') : t('profilePage.saveButton')}
-          </button>
-        </div>
+        {error && <p className="hp-error" style={{ margin: '12px 12px 0' }}>{error}</p>}
       </div>
 
       {usernameSheetOpen && (

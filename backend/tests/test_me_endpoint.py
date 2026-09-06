@@ -197,6 +197,49 @@ def test_unseen_sent_updates_is_unaffected_by_the_providers_own_notifications(cl
     assert response.json()["unseen_sent_request_updates_count"] == 0
 
 
+# --- PUT /me/name -----------------------------------------------------
+
+
+def test_me_includes_raw_first_and_last_name(client):
+    auth = _auth_header(1, "Soheil")
+    response = client.get("/me", headers=auth)
+    body = response.json()
+    assert body["first_name"] == "Soheil"
+    assert body["last_name"] is None
+
+
+def test_update_name_sets_first_and_last_name(client):
+    auth = _auth_header(1, "Soheil")
+    client.get("/me", headers=auth)
+
+    response = client.put("/me/name", headers=auth, json={"first_name": "Ali", "last_name": "Rezaei"})
+
+    assert response.status_code == 200
+    assert response.json() == {"first_name": "Ali", "last_name": "Rezaei"}
+    me = client.get("/me", headers=auth).json()
+    assert me["display_name"] == "Ali Rezaei"
+
+
+def test_update_name_rejects_empty_first_name(client):
+    auth = _auth_header(1, "Soheil")
+    client.get("/me", headers=auth)
+
+    response = client.put("/me/name", headers=auth, json={"first_name": "   ", "last_name": None})
+
+    assert response.status_code == 400
+
+
+def test_update_name_treats_blank_last_name_as_none(client):
+    auth = _auth_header(1, "Soheil")
+    client.get("/me", headers=auth)
+    client.put("/me/name", headers=auth, json={"first_name": "Ali", "last_name": "Rezaei"})
+
+    response = client.put("/me/name", headers=auth, json={"first_name": "Ali", "last_name": "  "})
+
+    assert response.status_code == 200
+    assert response.json()["last_name"] is None
+
+
 def test_pricing_config_matches_current_settings(client):
     """GET /pricing — what CreateOffer.tsx and OfferDetail.tsx use to
     show a Toman/commission breakdown without a round trip per keystroke

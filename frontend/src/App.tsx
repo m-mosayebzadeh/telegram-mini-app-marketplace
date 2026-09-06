@@ -1,11 +1,8 @@
-import { useEffect, useState } from 'react'
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { IconActivity, IconChat, IconDashboard, IconDiscover, IconPersonFallback } from './components/icons'
-import { apiFetch } from './lib/api'
 import { MeProvider, useMe } from './lib/MeContext'
 import { needsDevLogin } from './lib/session'
-import type { PublicProfile } from './lib/types'
 import Discover from './pages/Discover'
 import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
@@ -79,22 +76,18 @@ function AppShell() {
   const { me, adminAccess } = useMe()
   const location = useLocation()
   const navigate = useNavigate()
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  // The nav bar's own small avatar thumbnail (see .hp-bottom-nav-avatar
+  // in theme.css) comes straight from `me` now — it used to run its own
+  // separate /profiles/{id} fetch, but that only re-ran when `me` itself
+  // changed identity (effectively once per session), so uploading a new
+  // avatar elsewhere in the app never updated this thumbnail until a
+  // full reload. `me.avatar_url` updates the same way every other /me
+  // value does, via useMe()'s refreshMe() (see ProfileHeader.tsx).
+  const avatarUrl = me?.avatar_url ?? null
   // A 5th nav item, only for the tiny minority of accounts with any
   // admin access at all — adminAccess is fetched once per session (see
   // MeContext.tsx), never re-checked per page/navigation.
   const isAdmin = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.length > 0)
-
-  // One lightweight fetch for the nav bar's own small avatar thumbnail
-  // (see .hp-bottom-nav-avatar in theme.css) — separate from whatever
-  // the Profile tab itself loads, since this needs to be available on
-  // every screen, not just while the Profile tab is mounted.
-  useEffect(() => {
-    if (!me) return
-    apiFetch<PublicProfile>(`/profiles/${me.id}`)
-      .then((profile) => setAvatarUrl(profile.avatar_url))
-      .catch(() => setAvatarUrl(null))
-  }, [me])
 
   return (
     // Bottom padding so the fixed bottom nav never covers the last row

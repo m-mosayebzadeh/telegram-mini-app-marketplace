@@ -184,6 +184,17 @@ export function IconArrowNarrowLeft({ size = 24 }: IconProps) {
   )
 }
 
+// "check" — the confirm/save action next to a page's back header (see
+// .hp-page-confirm-btn in theme.css), e.g. EditProfile.tsx's Account-
+// style page.
+export function IconCheck({ size = 24 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12l5 5l10 -10" />
+    </svg>
+  )
+}
+
 export function IconPin({ size = 24, filled = false }: IconProps & { filled?: boolean }) {
   if (filled) {
     return (

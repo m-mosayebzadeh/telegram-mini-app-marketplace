@@ -5,7 +5,8 @@ import { Avatar, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
 import { apiFetch, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
-import type { ChatSession, IncomingRequest, Offer } from '../lib/types'
+import { getPricingConfig } from '../lib/pricing'
+import type { Balance, ChatSession, IncomingRequest, Offer } from '../lib/types'
 
 /**
  * Two very different screens depending on who's looking, decided by
@@ -28,6 +29,9 @@ export default function OfferDetail() {
   const [error, setError] = useState<string | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [balance, setBalance] = useState<Balance | null>(null)
+  const [starToTomanRate, setStarToTomanRate] = useState<number | null>(null)
+  const [insufficientOpen, setInsufficientOpen] = useState(false)
 
   useEffect(() => {
     if (toast == null) return
@@ -69,6 +73,17 @@ export default function OfferDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally re-run only on isOwner/id changing, not on every refreshMe identity change (it's still the current one via closure either way)
   }, [isOwner, id])
 
+  // Only a buyer looking at someone ELSE's offer needs their own wallet
+  // balance — fetched once the ownership question is settled, so a
+  // provider never triggers this at all.
+  useEffect(() => {
+    if (isOwner) return
+    apiFetch<Balance>('/wallet/balance').then(setBalance).catch(() => setBalance(null))
+    getPricingConfig()
+      .then((config) => setStarToTomanRate(config.star_to_toman_rate))
+      .catch(() => setStarToTomanRate(null))
+  }, [isOwner])
+
   async function sendRequest() {
     setActionMessage(null)
     try {
@@ -80,6 +95,26 @@ export default function OfferDetail() {
     } catch (err) {
       setActionMessage(formatApiError(err))
     }
+  }
+
+  // The actual payment only happens once the provider accepts (see
+  // pay_for_request in the backend) — a request itself is free to send
+  // even with zero balance. That used to mean a buyer with insufficient
+  // funds could send a request that was doomed to fail at payment time
+  // with no warning up front. This is that warning: caught here, before
+  // the request is even created, with a shortcut straight into top-up.
+  const missingStars = offer && balance ? Math.max(0, offer.price_stars - balance.balance_stars_equivalent) : 0
+
+  function handleRequestClick() {
+    if (missingStars > 0) {
+      setInsufficientOpen(true)
+      return
+    }
+    sendRequest()
+  }
+
+  function goToTopUp() {
+    navigate('/wallet/topup', { state: { prefillStars: missingStars } })
   }
 
   async function respond(requestId: number, action: 'accept' | 'reject') {
@@ -168,7 +203,7 @@ export default function OfferDetail() {
             className="hp-btn hp-btn-gradient"
             style={{ width: '100%' }}
             disabled={offer.my_request_status != null}
-            onClick={sendRequest}
+            onClick={handleRequestClick}
           >
             {offer.my_request_status != null ? t('offers.requestSent') : t('offers.requestButton')}
           </button>
@@ -259,6 +294,28 @@ export default function OfferDetail() {
           )}
           {actionMessage && <p className="hp-hint" style={{ padding: '0 16px' }}>{actionMessage}</p>}
         </>
+      )}
+
+      {insufficientOpen && (
+        <div className="hp-confirm-backdrop" onClick={() => setInsufficientOpen(false)}>
+          <div className="hp-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <p className="hp-confirm-title">{t('offers.insufficientBalanceTitle')}</p>
+            <p className="hp-confirm-message">
+              {t('offers.insufficientBalanceMessage', {
+                stars: missingStars.toLocaleString('en-US'),
+                toman: (missingStars * (starToTomanRate ?? 0)).toLocaleString('en-US'),
+              })}
+            </p>
+            <div className="hp-confirm-actions">
+              <button className="hp-confirm-btn" onClick={() => setInsufficientOpen(false)}>
+                {t('common.cancel')}
+              </button>
+              <button className="hp-confirm-btn" onClick={goToTopUp}>
+                {t('offers.quickTopUpButton')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {toast && <div className="hp-toast">{toast}</div>}
