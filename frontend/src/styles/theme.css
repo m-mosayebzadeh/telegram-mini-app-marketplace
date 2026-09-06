@@ -49,6 +49,14 @@
   --hp-secondary: #d94672; /* wine */
   --hp-tertiary: #f2a06b; /* ember */
   --hp-gold: #ffd36a; /* premium/gold accent, for unlocked-content UI */
+  /* A dedicated "something's new/unseen" color — see .hp-badge and
+     .hp-nav-unseen-dot — deliberately its own token rather than reusing
+     --hp-secondary/--hp-gold (which already mean other things, and
+     didn't read as a clear "alert" color in every theme). Picked fresh
+     per theme for contrast against that theme's own --hp-bg, but
+     always landing in the same coral/red family so "something's new"
+     reads the same way everywhere the app is used. */
+  --hp-notify: #ff4d6d;
   --hp-primary-rgb: 155, 108, 255;
   --hp-secondary-rgb: 217, 70, 114;
   --hp-tertiary-rgb: 242, 160, 107;
@@ -86,6 +94,7 @@
   --hp-secondary: #e8b778; /* gold */
   --hp-tertiary: #a08966; /* bronze */
   --hp-gold: #e8b778;
+  --hp-notify: #ef4444;
   --hp-primary-rgb: 199, 122, 75;
   --hp-secondary-rgb: 232, 183, 120;
   --hp-tertiary-rgb: 160, 137, 102;
@@ -102,6 +111,7 @@
   --hp-secondary: #c24b5c; /* garnet */
   --hp-tertiary: #e3b577; /* antique gold */
   --hp-gold: #e3b577;
+  --hp-notify: #ff5c5c;
   --hp-primary-rgb: 63, 174, 131;
   --hp-secondary-rgb: 194, 75, 92;
   --hp-tertiary-rgb: 227, 181, 119;
@@ -1858,9 +1868,17 @@ button.hp-list-row:active {
   white-space: nowrap;
 }
 
-/* A small count pill — e.g. how many requests an offer has received
-   (see pages/Activity.tsx) — same visual family as .hp-chip but smaller
-   and meant to sit right next to a title, not wrap in a row of its own. */
+/* A small count pill — e.g. how many requests an offer/segment has
+   unseen (see pages/Activity.tsx) — same visual family as .hp-chip but
+   smaller and meant to sit right next to a title, not wrap in a row of
+   its own. Solid --hp-notify (not the primary gradient) — same "this
+   means something's new/unread" color used everywhere else in the app
+   (see .hp-nav-unseen-dot), so a provider-side "new request" badge and
+   a buyer-side "your request got a response" badge read as the SAME
+   kind of signal — the button's own label already says which is
+   which, so the color doesn't need to. vertical-align keeps it
+   centered against the label's text line instead of sitting low like
+   a stuck-on sticker (inline-flex defaults to baseline alignment). */
 .hp-badge {
   display: inline-flex;
   align-items: center;
@@ -1869,20 +1887,11 @@ button.hp-list-row:active {
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--hp-grad);
+  background: var(--hp-notify);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
-}
-
-/* A visually distinct color for a DIFFERENT kind of unseen event — see
-   pages/Activity.tsx's Requests-segment badge (a sent request got a
-   response) vs. the default .hp-badge (a new incoming request). Solid
-   gold rather than the primary gradient, so the two are never
-   confusable at a glance. */
-.hp-badge-alt {
-  background: var(--hp-gold);
-  color: var(--hp-bg);
+  vertical-align: middle;
 }
 
 /* Sent (↗) vs received (↘) marker on one row of the Activity tab's
@@ -2010,9 +2019,17 @@ button.hp-list-row:active {
 }
 
 /* A plain "something's new" marker — no number, see lib/types.ts's
-   Me.has_unseen_requests and App.tsx's own comment on why this is a
-   dot, not a count. Positioned at the icon's top-inline-end corner so
-   it reads correctly in both text directions. */
+   Me.has_unseen_requests / unseen_sent_request_updates_count and
+   App.tsx's own comment on why this is a dot, not a count. ONE dot for
+   either kind of unseen event (provider-side new request, or
+   buyer-side response-to-your-request) — not two colored dots, since
+   which kind it is isn't something this tiny icon needs to answer
+   (the segment badges on the Activity page itself, see .hp-badge,
+   already do). Standard top-outer-corner placement (same spot every
+   mobile app's own unread badge uses), --hp-notify so it's always the
+   same "something's new" color as .hp-badge, defined per-theme (see
+   :root/[data-hp-theme=...] above) so it stays legible in every theme
+   without being tied to a color token used for something else. */
 .hp-nav-unseen-dot {
   position: absolute;
   top: -1px;
@@ -2020,23 +2037,8 @@ button.hp-list-row:active {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--hp-secondary);
+  background: var(--hp-notify);
   box-shadow: 0 0 0 2px rgba(18, 13, 27, 0.92);
-}
-
-/* The buyer-side "one of my sent requests got a response" dot — gold,
-   matching .hp-badge-alt, so it never looks like the same kind of
-   notification as the default (provider-side) dot above. */
-.hp-nav-unseen-dot-alt {
-  background: var(--hp-gold);
-}
-
-/* When BOTH dots are showing at once, shift this second one further
-   along so they sit side by side instead of exactly overlapping —
-   .hp-nav-unseen-dot-alt alone (only this one kind of unseen event)
-   stays in the default corner position. */
-.hp-nav-unseen-dot-secondary {
-  inset-inline-end: 7px;
 }
 
 /* The Profile tab's "icon" is a small live thumbnail of the user's own

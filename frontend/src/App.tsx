@@ -143,26 +143,21 @@ function AppShell() {
                 {tab.key === 'activity' && <IconActivity size={22} />}
                 {tab.key === 'chats' && <IconChat size={22} />}
                 {tab.key === 'discover' && <IconDiscover size={22} />}
-                {/* Two independent dots, each its own color, since these
-                    are two different kinds of "something's new": a new
+                {/* ONE dot for either kind of "something's new" — a new
                     incoming request on one of your own offers (cleared
-                    per-offer, see pages/OfferDetail.tsx), vs. one of
-                    YOUR OWN sent requests getting a response (cleared by
+                    per-offer, see pages/OfferDetail.tsx), or one of YOUR
+                    OWN sent requests getting a response (cleared by
                     opening the Requests segment, see pages/Activity.tsx)
                     — see lib/types.ts's Me.has_unseen_requests /
-                    unseen_sent_request_updates_count. Neither is cleared
-                    by merely opening this tab itself. */}
-                {tab.key === 'activity' && me?.has_unseen_requests && (
-                  <span className="hp-nav-unseen-dot" aria-hidden="true" />
-                )}
-                {tab.key === 'activity' && (me?.unseen_sent_request_updates_count ?? 0) > 0 && (
-                  <span
-                    className={`hp-nav-unseen-dot hp-nav-unseen-dot-alt ${
-                      me?.has_unseen_requests ? 'hp-nav-unseen-dot-secondary' : ''
-                    }`}
-                    aria-hidden="true"
-                  />
-                )}
+                    unseen_sent_request_updates_count. Which kind it is
+                    isn't answered here — the Activity page's own segment
+                    badges (see .hp-badge) already do that; this icon
+                    only needs to say "go check". Neither is cleared by
+                    merely opening this tab itself. */}
+                {tab.key === 'activity' &&
+                  (me?.has_unseen_requests || (me?.unseen_sent_request_updates_count ?? 0) > 0) && (
+                    <span className="hp-nav-unseen-dot" aria-hidden="true" />
+                  )}
               </span>
               {t(`tabs.${tab.key}`)}
             </button>
