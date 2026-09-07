@@ -16,6 +16,7 @@ from app.auth.telegram import TelegramAuthError, TelegramUser, validate_init_dat
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.admin_grant import AdminGrant
+from app.models.role import Role
 from app.models.user import User
 
 # FastAPI's `Depends` mechanism supports nesting: this dependency itself
@@ -108,11 +109,33 @@ def require_owner(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+def effective_admin_scopes(db: Session, user_id: int) -> set[str]:
+    """
+    The union of scopes from every ACTIVE role `user_id` currently
+    holds (see app/models/role.py — a deactivated role contributes
+    nothing, even though the AdminGrant assignment row to it still
+    exists). This is the one place that turns "which roles does this
+    person have" into "what can they actually do", so both
+    require_admin() below and GET /admin/me (app/admin/router.py) stay
+    in sync automatically.
+    """
+    role_scope_lists = (
+        db.query(Role.scopes)
+        .join(AdminGrant, AdminGrant.role_id == Role.id)
+        .filter(AdminGrant.user_id == user_id, Role.is_active.is_(True))
+        .all()
+    )
+    scopes: set[str] = set()
+    for (scopes_for_one_role,) in role_scope_lists:
+        scopes.update(scopes_for_one_role)
+    return scopes
+
+
 def require_admin(scope: str):
     """
     Returns a FastAPI dependency that only lets a request through if
-    the caller is either the owner (unrestricted) or holds an
-    AdminGrant that includes `scope` (see app/models/admin_grant.py).
+    the caller is either the owner (unrestricted) or holds an active
+    role that includes `scope` (see effective_admin_scopes above).
     Anyone else gets a 403 — same "don't even hint this exists further
     than necessary" instinct as the rest of this app's access checks,
     though here a plain 403 is fine since admin routes are already only
@@ -127,8 +150,7 @@ def require_admin(scope: str):
         if is_owner(current_user):
             return current_user
 
-        grant = db.query(AdminGrant).filter(AdminGrant.user_id == current_user.id).first()
-        if grant is not None and scope in grant.scopes:
+        if scope in effective_admin_scopes(db, current_user.id):
             return current_user
 
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized.")

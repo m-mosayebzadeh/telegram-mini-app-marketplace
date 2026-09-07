@@ -1,16 +1,22 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMe } from '../lib/MeContext'
-import { IconCoin, IconShieldLock } from '../components/icons'
+import { IconCoin, IconShieldLock, IconUsers } from '../components/icons'
 
 /**
  * The admin panel's own "home" — a list of top-level sections (see the
  * discussion in the chat that led here: as admin functionality grows,
  * it needs real sections/subsections, not one flat settings row).
- * Each section has its own sub-page with its own subsections; access is
- * granted per SUBSECTION (e.g. "finance.topups"), namespaced as
- * "section.subsection" — see backend/app/models/admin_grant.py. Only
- * sections the current user actually has something in are listed.
+ * Each section has its own sub-page with its own subsections.
+ *
+ * "دسترسی" (the old flat per-user scope grant page) is gone — replaced
+ * by "دستیاران", which manages the same kind of access but through
+ * reusable Roles instead of one flat scope list copy-pasted per person
+ * (see backend/app/models/role.py). "کاربران" is new: browsing and
+ * moderating any user's own account. Both of those, like role
+ * management itself, are owner-only for now (see
+ * TECHNICAL_REQUIREMENTS.md) — "مالی" stays scoped per-subsection, same
+ * as before.
  */
 export default function AdminHub() {
   const { t } = useTranslation()
@@ -32,9 +38,16 @@ export default function AdminHub() {
           </button>
         )}
         {adminAccess.is_owner && (
-          <button className="hp-list-row" onClick={() => navigate('/admin/access')}>
+          <button className="hp-list-row" onClick={() => navigate('/admin/users')}>
             <span className="hp-list-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconShieldLock size={18} /> {t('admin.sectionAccess')}
+              <IconUsers size={18} /> {t('admin.sectionUsers')}
+            </span>
+          </button>
+        )}
+        {adminAccess.is_owner && (
+          <button className="hp-list-row" onClick={() => navigate('/admin/assistants')}>
+            <span className="hp-list-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <IconShieldLock size={18} /> {t('admin.sectionAssistants')}
             </span>
           </button>
         )}

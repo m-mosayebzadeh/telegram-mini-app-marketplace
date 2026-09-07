@@ -317,16 +317,64 @@ export interface MyAdminAccess {
   scopes: string[]
 }
 
-/** One row of GET /admin/grants — see backend/app/admin/schemas.py's
- * AdminGrantOut. */
-export interface AdminGrant {
+/** A named, reusable bundle of admin scopes — see
+ * backend/app/models/role.py and backend/app/admin/schemas.py's
+ * RoleOut. `member_count` is denormalized so the roles list and its
+ * delete/deactivate confirm popups ("N assistants have this role")
+ * never need a second round trip. */
+export interface Role {
   id: number
+  name: string
+  scopes: string[]
+  is_active: boolean
+  created_at: string
+  member_count: number
+}
+
+/** One row in a user-picker list — both the Assistants search box and
+ * the plain Users browse list return this shape. See
+ * backend/app/admin/schemas.py's AdminUserSummaryOut. */
+export interface AdminUserSummary {
   user_id: number
   display_name: string
   username: string | null
-  scopes: string[]
-  granted_by_user_id: number
-  created_at: string
+  avatar_url: string | null
+  is_assistant: boolean
+}
+
+/** One row of a specific user's own role list — see
+ * backend/app/admin/schemas.py's UserRoleOut. */
+export interface UserRole {
+  role_id: number
+  role_name: string
+  is_active: boolean
+}
+
+/** The "کاربران" section's per-user detail header — see
+ * backend/app/admin/schemas.py's AdminUserDetailOut. */
+export interface AdminUserDetail {
+  user_id: number
+  display_name: string
+  username: string | null
+  avatar_url: string | null
+  telegram_id: number
+  joined_at: string
+  status: 'active' | 'blocked'
+  balance_toman: number
+  pending_toman: number
+}
+
+/** A lighter, admin-relative view of one chat session for the
+ * "کاربران" detail page — see backend/app/admin/schemas.py's
+ * AdminChatSessionOut. */
+export interface AdminChatSession {
+  id: number
+  offer_title: string
+  other_user_id: number
+  other_display_name: string
+  status: 'open' | 'closed'
+  opened_at: string
+  closed_at: string | null
 }
 
 /** GET/PUT /admin/rates (scope "finance.rates") — see

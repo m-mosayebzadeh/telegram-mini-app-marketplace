@@ -23,7 +23,14 @@ import AdminHub from './pages/AdminHub'
 import AdminFinance from './pages/AdminFinance'
 import AdminTopUps from './pages/AdminTopUps'
 import AdminRates from './pages/AdminRates'
-import AdminAccess from './pages/AdminAccess'
+import AdminUsers from './pages/AdminUsers'
+import AdminUserDetail from './pages/AdminUserDetail'
+import AdminAssistantsHub from './pages/AdminAssistantsHub'
+import AdminAssistantSearch from './pages/AdminAssistantSearch'
+import AdminUserRoles from './pages/AdminUserRoles'
+import AdminRoles from './pages/AdminRoles'
+import AdminRoleDetail from './pages/AdminRoleDetail'
+import AdminRoleMembers from './pages/AdminRoleMembers'
 
 /**
  * The four bottom-tab sections and which URLs belong to each. Listed in
@@ -107,7 +114,15 @@ function AppShell() {
         <Route path="/admin/finance" element={<AdminFinance />} />
         <Route path="/admin/topups" element={<AdminTopUps />} />
         <Route path="/admin/rates" element={<AdminRates />} />
-        <Route path="/admin/access" element={<AdminAccess />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/users/:id" element={<AdminUserDetail />} />
+        <Route path="/admin/assistants" element={<AdminAssistantsHub />} />
+        <Route path="/admin/assistants/search" element={<AdminAssistantSearch />} />
+        <Route path="/admin/assistants/users/:id/roles" element={<AdminUserRoles />} />
+        <Route path="/admin/assistants/roles" element={<AdminRoles />} />
+        <Route path="/admin/assistants/roles/new" element={<AdminRoleDetail />} />
+        <Route path="/admin/assistants/roles/:id" element={<AdminRoleDetail />} />
+        <Route path="/admin/assistants/roles/:id/members" element={<AdminRoleMembers />} />
         <Route path="/profile" element={<ProfileTab />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
