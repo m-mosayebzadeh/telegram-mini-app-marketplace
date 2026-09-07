@@ -396,3 +396,28 @@ def test_my_request_status_is_null_for_the_owner_themselves(client):
     response = client.get(f"/offers/{offer['id']}", headers=provider)
 
     assert response.json()["my_request_status"] is None
+
+
+def test_my_request_status_is_null_on_a_different_offer_from_the_same_provider(client):
+    """
+    Regression test for the reported bug: requesting offer A must NOT
+    make offer B (same provider) wrongly show "request sent" too —
+    my_request_status is scoped to the exact offer being viewed, not
+    the whole provider (see app/offer/router.py's
+    _my_live_request_status_for_offer). The broader "one live request
+    per provider" rule still exists, but is only enforced when the
+    buyer actually tries to request offer B (POST /requests), not
+    reflected here.
+    """
+    provider = _auth_header(205, "Provider")
+    _login(client, 205, "Provider")
+    offer1 = _create_offer(client, provider).json()
+    offer2 = _create_offer(client, provider).json()
+
+    buyer = _auth_header(206, "Buyer")
+    _login(client, 206, "Buyer")
+    client.post("/requests", headers=buyer, json={"offer_id": offer1["id"]})
+
+    response = client.get(f"/offers/{offer2['id']}", headers=buyer)
+
+    assert response.json()["my_request_status"] is None

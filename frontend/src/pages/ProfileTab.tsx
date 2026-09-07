@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Cell, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
 import { formatApiError, apiFetch } from '../lib/api'
@@ -10,6 +10,7 @@ import { ProfileHeader } from '../components/ProfileHeader'
 import { Sheet } from '../components/Sheet'
 import { ThemeSwitcher } from '../components/ThemeSwitcher'
 import { useMe } from '../lib/MeContext'
+import type { BackNavState } from '../lib/navState'
 import { clearDevUserChoice, isRealTelegramLaunch } from '../lib/session'
 import type { PublicProfile } from '../lib/types'
 
@@ -35,8 +36,23 @@ export default function ProfileTab() {
   const { t, i18n } = useTranslation()
   const { id: paramId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { me } = useMe()
   const targetId = paramId ? Number(paramId) : me?.id
+
+  // Where the "←" back button should actually go — plain history-back
+  // by default, but explicitly back to Activity's Requests segment when
+  // that's genuinely where this profile was opened from (see
+  // lib/navState.ts's own docstring for why navigate(-1) alone isn't
+  // reliable enough for that one specific origin).
+  const backState = location.state as BackNavState | null
+  function goBack() {
+    if (backState?.backTo === 'activity-requests') {
+      navigate('/activity', { state: { segment: 'requests' } })
+    } else {
+      navigate(-1)
+    }
+  }
 
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -112,7 +128,7 @@ export default function ProfileTab() {
     <div className="hp-page">
       {paramId && (
         <div className="hp-page-back-header">
-          <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
+          <button className="hp-chat-back" onClick={goBack} aria-label={t('common.back')}>
             <IconArrowNarrowLeft size={20} />
           </button>
           <span className="hp-page-back-title">{profile.display_name}</span>

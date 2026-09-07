@@ -26,13 +26,11 @@
     "offersTab": "پیشنهادها",
     "requestsTab": "درخواست‌ها",
     "requestCount": "{{count}} درخواست",
-    "filterAll": "همه",
-    "filterSent": "فرستاده‌شده",
-    "filterReceived": "دریافت‌شده",
     "sentTo": "به {{name}}",
     "receivedFrom": "از {{name}}",
     "offersEmpty": "فعلاً پیشنهادی نیست",
-    "requestsEmpty": "فعلاً چیزی اینجا نیست"
+    "requestsEmpty": "فعلاً چیزی اینجا نیست",
+    "quotaResetHint": "سقف روزانه‌ی درخواست‌های شما ساعت {{time}} رفرش می‌شود"
   },
   "chatsPage": {
     "activeTab": "فعال",
@@ -294,7 +292,12 @@
     "quickTopUpButton": "خرید سریع",
     "ownOffer": "این پیشنهاد خودتونه",
     "incomingRequestsTitle": "درخواست‌های ورودی",
-    "noIncomingRequests": "فعلاً درخواستی نیومده"
+    "noIncomingRequests": "فعلاً درخواستی نیومده",
+    "dailyCapTitle": "سقف روزانه پر شده",
+    "dailyCapMessage": "شما امروز {{limit}} درخواست فرستاده‌اید و سقف روزانه‌تان پر شده. می‌توانید با ارتقای عضویت (membership) این سقف را افزایش دهید.",
+    "liveConflictTitle": "درخواست فعال با این کاربر",
+    "liveConflictMessage": "شما همین الان یک درخواستِ فعال با این ارائه‌دهنده دارید. اول باید تعیین تکلیفش کنید یا لغوش کنید.",
+    "viewMyRequestsButton": "نمایش درخواست‌ها"
   },
   "requests": {
     "mineTitle": "درخواست‌های من",
@@ -309,7 +312,11 @@
     "openSession": "ورود به نشست چت",
     "acceptButton": "پذیرش",
     "rejectButton": "رد",
-    "rejectReasonPlaceholder": "دلیل رد کردن را بنویسید"
+    "rejectReasonPlaceholder": "دلیل رد کردن را بنویسید",
+    "cancelButton": "لغو درخواست",
+    "cancelConfirmBody": "آیا مطمئنید می‌خواید این درخواست را لغو کنید؟",
+    "viewOfferButton": "نمایش پیشنهاد",
+    "statusAccepted": "پذیرفته شده"
   },
   "content": {
     "uploadButton": "افزودن مدیا",

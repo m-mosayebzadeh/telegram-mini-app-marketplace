@@ -67,11 +67,16 @@ export interface Offer {
 }
 
 /** One row in the Activity tab's unified Requests feed — see
- * backend/app/request/schemas.py's RequestActivityOut. */
+ * backend/app/request/schemas.py's RequestActivityOut. The frontend
+ * only ever actually renders the "sent" rows (see Activity.tsx) as a
+ * one-line avatar+offer row, hence needing the counterpart's
+ * username/avatar alongside their display name, and the offer's own
+ * price alongside its title. */
 export interface RequestActivity {
   id: number
   offer_id: number
   offer_title: string
+  offer_price_stars: number
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
   reason: string | null
   created_at: string
@@ -79,6 +84,8 @@ export interface RequestActivity {
   direction: 'sent' | 'received'
   counterpart_user_id: number
   counterpart_display_name: string
+  counterpart_username: string | null
+  counterpart_avatar_url: string | null
 }
 
 export interface Request {

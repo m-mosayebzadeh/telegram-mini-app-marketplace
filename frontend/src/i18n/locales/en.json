@@ -26,13 +26,11 @@
     "offersTab": "Offers",
     "requestsTab": "Requests",
     "requestCount": "{{count}} requests",
-    "filterAll": "All",
-    "filterSent": "Sent",
-    "filterReceived": "Received",
     "sentTo": "To {{name}}",
     "receivedFrom": "From {{name}}",
     "offersEmpty": "No offers yet",
-    "requestsEmpty": "Nothing here yet"
+    "requestsEmpty": "Nothing here yet",
+    "quotaResetHint": "Your daily request cap refreshes at {{time}}"
   },
   "chatsPage": {
     "activeTab": "Active",
@@ -294,7 +292,12 @@
     "quickTopUpButton": "Quick top-up",
     "ownOffer": "This is your own offer",
     "incomingRequestsTitle": "Incoming requests",
-    "noIncomingRequests": "No requests yet"
+    "noIncomingRequests": "No requests yet",
+    "dailyCapTitle": "Daily cap reached",
+    "dailyCapMessage": "You've sent {{limit}} requests today and your daily cap is full. You can raise this cap by upgrading your membership.",
+    "liveConflictTitle": "Active request with this user",
+    "liveConflictMessage": "You already have an active request with this provider. Resolve or cancel it first.",
+    "viewMyRequestsButton": "View my requests"
   },
   "requests": {
     "mineTitle": "My requests",
@@ -309,7 +312,11 @@
     "openSession": "Open chat session",
     "acceptButton": "Accept",
     "rejectButton": "Reject",
-    "rejectReasonPlaceholder": "Write a reason for rejecting"
+    "rejectReasonPlaceholder": "Write a reason for rejecting",
+    "cancelButton": "Cancel request",
+    "cancelConfirmBody": "Are you sure you want to cancel this request?",
+    "viewOfferButton": "View offer",
+    "statusAccepted": "Accepted"
   },
   "content": {
     "uploadButton": "Add content",

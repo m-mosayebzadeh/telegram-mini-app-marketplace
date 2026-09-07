@@ -19,6 +19,12 @@ from app.core.time import UTCDateTime, utcnow
 # and any test checking for it use the exact same text.
 OFFER_DELETED_REASON = "Offer was deleted by the provider."
 
+# The auto-filled reason for a request CANCELLED directly by the buyer
+# themselves (see app/request/router.py's cancel_request) — distinct
+# from OFFER_DELETED_REASON so the two causes stay tellable apart in the
+# Activity feed and anywhere else `reason` is shown.
+CANCELLED_BY_BUYER_REASON = "Cancelled by the buyer."
+
 
 class RequestStatus(str, enum.Enum):
     PENDING = "pending"

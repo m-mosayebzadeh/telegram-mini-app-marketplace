@@ -458,6 +458,7 @@ def list_user_requests_admin(
                 id=request.id,
                 offer_id=offer.id,
                 offer_title=offer.title,
+                offer_price_stars=offer.price_stars,
                 status=request.status.value,
                 reason=request.reason,
                 created_at=request.created_at,
@@ -465,6 +466,8 @@ def list_user_requests_admin(
                 direction="sent" if sent else "received",
                 counterpart_user_id=counterpart_id,
                 counterpart_display_name=counterpart.display_name if counterpart else "",
+                counterpart_username=counterpart.username if counterpart else None,
+                counterpart_avatar_url=get_current_avatar_url(db, counterpart_id) if counterpart else None,
             )
         )
     return out

@@ -8,6 +8,16 @@ export type RequestAction =
   | { type: 'session'; session: ChatSession }
 
 /**
+ * Only the fields this branching actually looks at — deliberately
+ * narrower than the full `Request` shape so both `Request` (MyRequests-
+ * style screens) and `RequestActivity` (the Activity tab's own unified
+ * feed, which denormalizes more onto each row but has the same core
+ * status/reason/id) satisfy it without either needing to fake fields
+ * the other doesn't have.
+ */
+type RequestLike = Pick<Request, 'id' | 'status' | 'reason'>
+
+/**
  * What a buyer should be able to DO about one of their own requests,
  * given its status and the chat sessions they're part of. Kept as a
  * plain function — not inline conditionals inside a screen component —
@@ -16,7 +26,7 @@ export type RequestAction =
  * display logic, so it's worth testing on its own (see
  * requestActions.test.ts) without needing to render any UI at all.
  */
-export function getRequestAction(request: Request, sessions: ChatSession[]): RequestAction {
+export function getRequestAction(request: RequestLike, sessions: ChatSession[]): RequestAction {
   if (request.status === 'pending') return { type: 'waiting' }
   if (request.status === 'rejected') return { type: 'rejected', reason: request.reason }
   if (request.status === 'cancelled') return { type: 'cancelled', reason: request.reason }

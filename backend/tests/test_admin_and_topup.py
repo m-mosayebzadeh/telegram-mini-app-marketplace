@@ -562,3 +562,4 @@ def test_admin_requests_list_includes_both_sent_and_received(client):
     assert len(rows) == 1
     assert rows[0]["direction"] == "received"
     assert rows[0]["counterpart_user_id"] == client.get("/me", headers=OTHER_HEADER).json()["id"]
+    assert rows[0]["offer_price_stars"] == 10

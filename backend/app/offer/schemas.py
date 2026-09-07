@@ -43,11 +43,13 @@ class OfferOut(BaseModel):
 
     # Only populated by GET /offers/{id} for a non-owner viewer — the
     # status ('pending' | 'accepted') of the CALLER's own live request
-    # against this offer's provider, if any (see app/offer/router.py's
-    # _my_live_request_status, reusing the same "live request" rule
-    # app/request/router.py already enforces server-side). Lets the
-    # frontend disable "Request this offer" and show why, instead of
-    # only finding out after a rejected POST.
+    # specifically against THIS offer, if any (see app/offer/router.py's
+    # _my_live_request_status_for_offer). Scoped to just this offer on
+    # purpose: it only answers "would tapping Request be a no-op here",
+    # not the broader "one live request per provider" rule, which is
+    # enforced at request-creation time instead (POST /requests) via a
+    # structured error the frontend uses to show the right message for
+    # THAT case.
     my_request_status: str | None = None
 
     model_config = {"from_attributes": True}

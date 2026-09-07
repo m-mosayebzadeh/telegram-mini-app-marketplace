@@ -1,11 +1,14 @@
 import { Fragment, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Avatar, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
+import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { PriceBreakdown } from '../components/PriceBreakdown'
-import { apiFetch, formatApiError } from '../lib/api'
+import { IdentityAvatar } from '../components/IdentityAvatar'
+import { apiFetch, ApiError, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
 import { getPricingConfig } from '../lib/pricing'
+import { IconArrowNarrowLeft } from '../components/icons'
+import type { BackNavState } from '../lib/navState'
 import type { Balance, ChatSession, IncomingRequest, Offer } from '../lib/types'
 
 /**
@@ -21,7 +24,22 @@ export default function OfferDetail() {
   const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { me, refreshMe } = useMe()
+
+  // Where the "←" back button should actually go — plain history-back
+  // by default, but explicitly back to Activity's Requests segment when
+  // that's genuinely where this page was opened from (see
+  // lib/navState.ts's own docstring for why navigate(-1) alone isn't
+  // reliable enough for that one specific origin).
+  const backState = location.state as BackNavState | null
+  function goBack() {
+    if (backState?.backTo === 'activity-requests') {
+      navigate('/activity', { state: { segment: 'requests' } })
+    } else {
+      navigate(-1)
+    }
+  }
 
   const [offer, setOffer] = useState<Offer | null>(null)
   const [requests, setRequests] = useState<IncomingRequest[] | null>(null)
@@ -32,6 +50,12 @@ export default function OfferDetail() {
   const [balance, setBalance] = useState<Balance | null>(null)
   const [starToTomanRate, setStarToTomanRate] = useState<number | null>(null)
   const [insufficientOpen, setInsufficientOpen] = useState(false)
+  // The two "can't send this request" cases POST /requests reports with
+  // a structured error body (see backend/app/request/router.py's
+  // create_request) instead of a plain message — each gets its own
+  // dedicated modal rather than just showing the raw error text.
+  const [dailyCapInfo, setDailyCapInfo] = useState<{ limit: number } | null>(null)
+  const [liveConflictOpen, setLiveConflictOpen] = useState(false)
 
   useEffect(() => {
     if (toast == null) return
@@ -93,6 +117,17 @@ export default function OfferDetail() {
       // request instead of staying enabled until the next full reload.
       apiFetch<Offer>(`/offers/${id}`).then(setOffer)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        const detail = (err.body as { detail?: { reason?: string; limit?: number } } | null)?.detail
+        if (detail?.reason === 'daily_cap_reached') {
+          setDailyCapInfo({ limit: detail.limit ?? 10 })
+          return
+        }
+        if (detail?.reason === 'live_request_with_provider') {
+          setLiveConflictOpen(true)
+          return
+        }
+      }
       setActionMessage(formatApiError(err))
     }
   }
@@ -147,7 +182,12 @@ export default function OfferDetail() {
 
   return (
     <div className="hp-page">
-      <div className="hp-page-header">{offer.title}</div>
+      <div className="hp-page-back-header">
+        <button className="hp-chat-back" onClick={goBack} aria-label={t('common.back')}>
+          <IconArrowNarrowLeft size={20} />
+        </button>
+        <span className="hp-page-back-title">{offer.title}</span>
+      </div>
 
       <div className="hp-card">
         <div className="hp-kv-row">
@@ -244,18 +284,15 @@ export default function OfferDetail() {
                         className="hp-list-row-main hp-list-row-identity"
                         onClick={() => navigate(`/profiles/${request.buyer_id}`)}
                       >
-                        <Avatar
-                          size={40}
-                          src={request.buyer_avatar_url ?? undefined}
-                          acronym={request.buyer_display_name.slice(0, 1).toUpperCase()}
+                        <IdentityAvatar
+                          avatarUrl={request.buyer_avatar_url}
+                          displayName={request.buyer_display_name}
+                          username={request.buyer_username}
                         />
                         <span className="hp-list-row-text">
                           <span className="hp-list-title" dir="auto">
                             {request.buyer_display_name}
                           </span>
-                          {request.buyer_username && (
-                            <span className="hp-list-subtitle">@{request.buyer_username}</span>
-                          )}
                         </span>
                       </button>
                       <div className="hp-list-row-actions">
@@ -312,6 +349,44 @@ export default function OfferDetail() {
               </button>
               <button className="hp-confirm-btn" onClick={goToTopUp}>
                 {t('offers.quickTopUpButton')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dailyCapInfo && (
+        <div className="hp-confirm-backdrop" onClick={() => setDailyCapInfo(null)}>
+          <div className="hp-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <p className="hp-confirm-title">{t('offers.dailyCapTitle')}</p>
+            <p className="hp-confirm-message">
+              {t('offers.dailyCapMessage', { limit: dailyCapInfo.limit })}
+            </p>
+            <div className="hp-confirm-actions">
+              <button className="hp-confirm-btn" onClick={() => setDailyCapInfo(null)}>
+                {t('common.close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {liveConflictOpen && (
+        <div className="hp-confirm-backdrop" onClick={() => setLiveConflictOpen(false)}>
+          <div className="hp-confirm-box" onClick={(e) => e.stopPropagation()}>
+            <p className="hp-confirm-title">{t('offers.liveConflictTitle')}</p>
+            <p className="hp-confirm-message">{t('offers.liveConflictMessage')}</p>
+            <div className="hp-confirm-actions">
+              <button className="hp-confirm-btn" onClick={() => setLiveConflictOpen(false)}>
+                {t('common.cancel')}
+              </button>
+              <button
+                className="hp-confirm-btn"
+                onClick={() =>
+                  navigate('/activity', { state: { segment: 'requests' } })
+                }
+              >
+                {t('offers.viewMyRequestsButton')}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 """
 Request endpoints: create, list (buyer's own / incoming for an offer),
-accept, reject.
+accept, reject, cancel.
 
 Business rules from TECHNICAL_REQUIREMENTS.md section 4:
   - a buyer can't request their own offer
@@ -8,10 +8,17 @@ Business rules from TECHNICAL_REQUIREMENTS.md section 4:
     PROVIDER at a time — across every offer that provider has, not per
     offer. Re-requesting the exact same offer while it's still live is
     idempotent (returns the existing one); requesting a DIFFERENT offer
-    from the same provider while one is already live is rejected.
+    from the same provider while one is already live is rejected (with a
+    structured error body — see create_request).
+  - a buyer can also send at most MAX_DAILY_REQUESTS_PER_BUYER NEW
+    requests per UTC calendar day — see _todays_request_count for
+    exactly which requests count toward this.
   - a provider can have at most ONE open accepted request in total,
     across every offer they have — not per offer
   - rejecting always requires a reason
+  - a buyer can cancel their own request, but only while it's still
+    PENDING (see cancel_request) — cancelling an already-ACCEPTED
+    request needs its own anti-abuse mechanism and isn't built yet.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -21,10 +28,10 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.core.rates import get_rates
-from app.core.time import utcnow
+from app.core.time import start_of_utc_day, utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer, OfferStatus
-from app.models.request import Request, RequestStatus
+from app.models.request import CANCELLED_BY_BUYER_REASON, Request, RequestStatus
 from app.models.transaction import Transaction, TransactionKind
 from app.models.user import User
 from app.profile.photos import get_current_avatar_url
@@ -33,6 +40,12 @@ from app.wallet.schemas import TransactionOut
 from app.wallet.service import InsufficientBalanceError, pay_for_item
 
 router = APIRouter(prefix="/requests", tags=["requests"])
+
+# How many NEW requests a buyer can send in one UTC calendar day (see
+# _todays_request_count) — a flat anti-spam quota for now, not yet tied
+# to any membership tier (see TECHNICAL_REQUIREMENTS.md's open item on
+# this).
+MAX_DAILY_REQUESTS_PER_BUYER = 10
 
 
 def _is_request_still_live(db: Session, request: Request) -> bool:
@@ -99,11 +112,35 @@ def _get_incoming_request(db: Session, request_id: int, provider_id: int) -> Req
 
 def _get_buyers_request(db: Session, request_id: int, buyer_id: int) -> Request:
     """Loads a request and confirms `buyer_id` is the one who made it —
-    used by pay, so only the actual buyer can pay for their own request."""
+    used by pay/cancel, so only the actual buyer can act on their own
+    request."""
     req = db.get(Request, request_id)
     if req is None or req.buyer_id != buyer_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found.")
     return req
+
+
+def _todays_request_count(db: Session, buyer_id: int) -> int:
+    """
+    How many requests `buyer_id` has already created since the start of
+    today's UTC calendar day (see MAX_DAILY_REQUESTS_PER_BUYER).
+
+    Every request created today counts toward the quota EXCEPT ones the
+    PROVIDER has since rejected — a rejection wasn't the buyer's doing,
+    so it frees the slot back up. A request the buyer cancelled
+    THEMSELVES still counts (the slot stays spent, it doesn't come
+    back), and so does one that reached ACCEPTED, no matter what happens
+    to it afterwards.
+    """
+    return (
+        db.query(Request)
+        .filter(
+            Request.buyer_id == buyer_id,
+            Request.created_at >= start_of_utc_day(),
+            Request.status != RequestStatus.REJECTED,
+        )
+        .count()
+    )
 
 
 @router.post("", response_model=RequestOut, status_code=status.HTTP_201_CREATED)
@@ -121,17 +158,29 @@ def create_request(
         )
 
     existing = _live_request_with_provider(db, current_user.id, offer.provider_id)
-    if existing is not None:
-        if existing.offer_id == offer.id:
-            # Re-requesting the exact same offer: idempotent, no duplicate.
-            return existing
-        # A live request on a DIFFERENT offer from the same provider:
-        # blocked, not silently redirected — a buyer only gets one live
-        # conversation-in-progress per provider.
+    if existing is not None and existing.offer_id == offer.id:
+        # Re-requesting the exact same offer: idempotent, no duplicate —
+        # and doesn't spend a slot of the daily quota checked below.
+        return existing
+
+    if _todays_request_count(db, current_user.id) >= MAX_DAILY_REQUESTS_PER_BUYER:
+        # Structured, not a plain string — lets the frontend show its own
+        # dedicated "daily cap reached" message instead of a generic
+        # error (see OfferDetail.tsx).
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You already have a pending or accepted request with this provider "
-            "(on a different offer). Wait for it to be resolved before requesting another.",
+            detail={"reason": "daily_cap_reached", "limit": MAX_DAILY_REQUESTS_PER_BUYER},
+        )
+
+    if existing is not None:
+        # A live request on a DIFFERENT offer from the same provider:
+        # blocked, not silently redirected — a buyer only gets one live
+        # conversation-in-progress per provider. Structured for the same
+        # reason as above; existing_request_id lets the frontend deep-link
+        # straight to it.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"reason": "live_request_with_provider", "existing_request_id": existing.id},
         )
 
     new_request = Request(buyer_id=current_user.id, offer_id=offer.id)
@@ -187,6 +236,7 @@ def list_activity_requests(
                 id=request.id,
                 offer_id=offer.id,
                 offer_title=offer.title,
+                offer_price_stars=offer.price_stars,
                 status=request.status.value,
                 reason=request.reason,
                 created_at=request.created_at,
@@ -194,6 +244,8 @@ def list_activity_requests(
                 direction="sent" if sent else "received",
                 counterpart_user_id=counterpart_id,
                 counterpart_display_name=counterpart.display_name if counterpart else "",
+                counterpart_username=counterpart.username if counterpart else None,
+                counterpart_avatar_url=get_current_avatar_url(db, counterpart_id) if counterpart else None,
             )
         )
 
@@ -290,6 +342,39 @@ def reject_request(
 
     req.status = RequestStatus.REJECTED
     req.reason = payload.reason
+    req.responded_at = utcnow()
+    db.commit()
+    db.refresh(req)
+    return req
+
+
+@router.post("/{request_id}/cancel", response_model=RequestOut)
+def cancel_request(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Request:
+    """
+    The buyer withdrawing their own request — only while it's still
+    PENDING (nothing has happened yet: no payment, no chat session, no
+    provider decision). Cancelling an already-ACCEPTED request needs its
+    own anti-abuse mechanism (so neither party can use it to dodge a
+    deal already in motion) and isn't built yet — see
+    TECHNICAL_REQUIREMENTS.md.
+
+    This still counts against the buyer's daily request quota (see
+    MAX_DAILY_REQUESTS_PER_BUYER) — cancelling doesn't refund the slot,
+    only a provider's rejection does.
+    """
+    req = _get_buyers_request(db, request_id, current_user.id)
+    if req.status != RequestStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only a pending request can be cancelled.",
+        )
+
+    req.status = RequestStatus.CANCELLED
+    req.reason = CANCELLED_BY_BUYER_REASON
     req.responded_at = utcnow()
     db.commit()
     db.refresh(req)

@@ -28,6 +28,23 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def start_of_utc_day(moment: datetime | None = None) -> datetime:
+    """
+    Midnight UTC of the day `moment` falls on (defaults to right now) —
+    the fixed, once-a-day reset boundary used by the buyer's daily
+    request quota (see app/request/router.py's
+    MAX_DAILY_REQUESTS_PER_BUYER). Deliberately a fixed UTC clock
+    moment, not each buyer's own local midnight: this app never collects
+    a user's timezone, so there's no per-user boundary to use instead —
+    everyone still gets exactly one reset every 24 hours, just at a
+    different point in their own local day (the frontend renders this
+    same instant in the viewer's own local time, so it reads correctly
+    for them regardless).
+    """
+    moment = moment or utcnow()
+    return moment.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 class UTCDateTime(TypeDecorator):
     impl = DateTime(timezone=True)
     cache_ok = True

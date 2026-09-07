@@ -71,22 +71,33 @@ def _has_unfinished_accepted_request(db: Session, offer_id: int) -> bool:
     return False
 
 
-def _my_live_request_status(db: Session, buyer_id: int, provider_id: int) -> str | None:
+def _my_live_request_status_for_offer(db: Session, buyer_id: int, offer_id: int) -> str | None:
     """
     The status of `buyer_id`'s own live (pending/accepted-and-not-yet-
-    finished) request against ANY of `provider_id`'s offers, if any —
-    same "one live request per provider" rule
-    app/request/router.py's _live_request_with_provider enforces at
-    creation time, duplicated here (this project's established pattern
-    for this exact check — see that function's own docstring) rather
-    than imported, so this router doesn't reach into request's.
+    finished) request specifically on THIS offer, if any — scoped to
+    the exact offer being viewed.
+
+    This is deliberately narrower than the "one live request per
+    provider" rule itself (app/request/router.py's
+    _live_request_with_provider), which blocks requesting ANY offer
+    from the same provider while a live request against a DIFFERENT
+    one of their offers exists. That broader rule is only enforced at
+    request-creation time (POST /requests), which now returns a
+    structured error body the frontend uses to show the right message
+    instead — this field only ever answers "would tapping Request on
+    THIS offer be a no-op", so the button here is disabled exactly when
+    re-tapping it would just return the same request, not whenever some
+    other blocking condition exists elsewhere. (Earlier, this checked
+    across every offer from the provider, which meant a second offer
+    from the same provider wrongly showed "request sent" even though it
+    had never actually been requested — see the bug report that led to
+    this split.)
     """
     candidates = (
         db.query(Request)
-        .join(Offer, Request.offer_id == Offer.id)
         .filter(
             Request.buyer_id == buyer_id,
-            Offer.provider_id == provider_id,
+            Request.offer_id == offer_id,
             Request.status.in_([RequestStatus.PENDING, RequestStatus.ACCEPTED]),
         )
         .all()
@@ -147,7 +158,7 @@ def get_offer(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
 
     my_request_status = (
-        None if is_owner else _my_live_request_status(db, current_user.id, offer.provider_id)
+        None if is_owner else _my_live_request_status_for_offer(db, current_user.id, offer.id)
     )
     return OfferOut.model_validate(offer).model_copy(update={"my_request_status": my_request_status})
 

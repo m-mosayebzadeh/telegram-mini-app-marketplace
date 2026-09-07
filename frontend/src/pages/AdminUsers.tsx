@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Avatar, Input, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
+import { Input, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { searchUsers } from '../lib/adminApi'
 import { formatApiError } from '../lib/api'
 import { IconArrowNarrowLeft } from '../components/icons'
+import { IdentityAvatar } from '../components/IdentityAvatar'
 import type { AdminUserSummary } from '../lib/types'
 
 const USERS_LIST_LIMIT = 20
@@ -69,16 +70,11 @@ export default function AdminUsers() {
               className="hp-list-row hp-list-row-identity"
               onClick={() => navigate(`/admin/users/${user.user_id}`)}
             >
-              <Avatar
-                size={40}
-                src={user.avatar_url ?? undefined}
-                acronym={user.display_name.slice(0, 1).toUpperCase()}
-              />
+              <IdentityAvatar avatarUrl={user.avatar_url} displayName={user.display_name} username={user.username} />
               <span className="hp-list-row-text">
                 <span className="hp-list-title" dir="auto">
                   {user.display_name}
                 </span>
-                {user.username && <span className="hp-list-subtitle">@{user.username}</span>}
               </span>
             </button>
           ))}
