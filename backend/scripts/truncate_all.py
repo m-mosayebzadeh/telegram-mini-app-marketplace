@@ -38,6 +38,7 @@ TABLES_IN_DELETE_ORDER = [
     "credit_ledger_entries",
     "transactions",
     "admin_grants",
+    "roles",
     "profile_photos",
     "profiles",
     "users",
