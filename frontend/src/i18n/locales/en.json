@@ -297,7 +297,8 @@
     "dailyCapMessage": "You've sent {{limit}} requests today and your daily cap is full. You can raise this cap by upgrading your membership.",
     "liveConflictTitle": "Active request with this user",
     "liveConflictMessage": "You already have an active request with this provider. Resolve or cancel it first.",
-    "viewMyRequestsButton": "View my requests"
+    "viewMyRequestsButton": "View my requests",
+    "openAcceptedRequestError": "You already have an open accepted request — finish it before accepting this one."
   },
   "requests": {
     "mineTitle": "My requests",

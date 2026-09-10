@@ -167,6 +167,13 @@ export default function OfferDetail() {
       const refreshed = await apiFetch<IncomingRequest[]>(`/requests?offer_id=${id}`)
       setRequests(refreshed)
     } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        const reason = (err.body as { detail?: { reason?: string } } | null)?.detail?.reason
+        if (reason === 'provider_has_open_accepted_request') {
+          setActionMessage(t('offers.openAcceptedRequestError'))
+          return
+        }
+      }
       setActionMessage(formatApiError(err))
     }
   }

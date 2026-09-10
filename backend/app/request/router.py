@@ -315,9 +315,12 @@ def accept_request(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Only a pending request can be accepted."
         )
     if _has_open_accepted_request(db, current_user.id):
+        # Structured, not a plain string — see create_request's identical
+        # reasoning; lets the frontend show its own translated message
+        # instead of the raw English text (see OfferDetail.tsx).
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You already have an open accepted request — finish it before accepting another.",
+            detail={"reason": "provider_has_open_accepted_request"},
         )
 
     req.status = RequestStatus.ACCEPTED

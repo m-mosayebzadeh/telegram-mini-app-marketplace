@@ -307,6 +307,7 @@ def test_provider_cannot_accept_a_second_request_while_one_is_already_open(clien
 
     second_accept = client.post(f"/requests/{req2['id']}/accept", headers=auth_a)
     assert second_accept.status_code == 400
+    assert second_accept.json()["detail"]["reason"] == "provider_has_open_accepted_request"
 
 
 # --- daily request cap (MAX_DAILY_REQUESTS_PER_BUYER) -----------------
