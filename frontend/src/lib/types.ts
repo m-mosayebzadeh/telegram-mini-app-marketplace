@@ -292,6 +292,11 @@ export interface TopUpCardInfo {
   card_holder_name: string
 }
 
+/** POST /topup/stars/invoice — see lib/topupApi.ts's createStarInvoice. */
+export interface StarInvoice {
+  invoice_link: string
+}
+
 /** One card-to-card top-up request, from the requester's own point of
  * view — see backend/app/topup/schemas.py's TopUpRequestOut. */
 export interface TopUpRequest {

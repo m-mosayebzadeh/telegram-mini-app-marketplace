@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
+import { openInvoice } from '@telegram-apps/sdk-react'
 import { formatApiError } from '../lib/api'
+import { useMe } from '../lib/MeContext'
 import { getPricingConfig } from '../lib/pricing'
 import {
+  createStarInvoice,
   createTopUpRequest,
   getTopUpCardInfo,
   listMyTopUpRequests,
@@ -26,12 +29,13 @@ function statusLabel(status: TopUpRequest['status']): string {
 
 /**
  * The three ways to add wallet balance — see
- * TECHNICAL_REQUIREMENTS.md, "شارژ کارت‌به‌کارت". Only "direct"
- * (manual card-to-card, reviewed by an admin — see
- * backend/app/topup/router.py + app/admin/router.py) and
- * "intermediaries" (plain external links) are real; "stars" (paying
- * with real Telegram Stars) is a placeholder until that separate,
- * bigger integration exists.
+ * TECHNICAL_REQUIREMENTS.md, "شارژ کارت‌به‌کارت". "direct" (manual
+ * card-to-card, reviewed by an admin — see backend/app/topup/router.py
+ * + app/admin/router.py) and "intermediaries" (plain external links)
+ * never touch the wallet themselves; "stars" (real Telegram Stars, paid
+ * through Telegram's own native invoice sheet) credits the wallet
+ * automatically the instant Telegram confirms payment — see
+ * backend/app/telegram_webhook/router.py.
  */
 export default function TopUp() {
   const { t } = useTranslation()
@@ -56,6 +60,11 @@ export default function TopUp() {
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { refreshMe } = useMe()
+  const [starsToBuyText, setStarsToBuyText] = useState('')
+  const [buyingStars, setBuyingStars] = useState(false)
+  const [buyStarsError, setBuyStarsError] = useState<string | null>(null)
 
   function loadHistory() {
     listMyTopUpRequests()
@@ -113,6 +122,44 @@ export default function TopUp() {
     const digits = raw.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '')
     setStarsText(digits)
     setTomanText(rate && digits ? String(Number(digits) * rate) : '')
+  }
+
+  function onStarsToBuyChange(raw: string) {
+    setStarsToBuyText(raw.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''))
+  }
+
+  /**
+   * Real Telegram Stars purchase: gets a one-time invoice link from the
+   * backend (see lib/topupApi.ts's createStarInvoice), then hands it to
+   * Telegram's own native payment sheet via openInvoice() — this app
+   * never sees any payment details itself. Only a 'paid' result means
+   * the wallet actually got credited (by app/telegram_webhook/router.py,
+   * server-side, once Telegram confirms it) — refreshMe() picks that up
+   * immediately instead of waiting for the next full reload.
+   */
+  async function buyStars() {
+    const stars = Number(starsToBuyText)
+    if (!stars || stars <= 0) return
+    setBuyingStars(true)
+    setBuyStarsError(null)
+    try {
+      const { invoice_link } = await createStarInvoice(stars)
+      const result = await openInvoice(invoice_link, 'url')
+      if (result === 'paid') {
+        setToast(t('topup.starsPurchaseSuccess'))
+        setStarsToBuyText('')
+        refreshMe()
+      } else if (result !== 'cancelled') {
+        setBuyStarsError(t('topup.starsPurchaseFailed'))
+      }
+    } catch (err) {
+      // openInvoice() itself throws when this isn't running inside a
+      // real Telegram client (e.g. a plain dev browser) — same
+      // "explain it, don't crash" handling as elsewhere in this file.
+      setBuyStarsError(formatApiError(err))
+    } finally {
+      setBuyingStars(false)
+    }
   }
 
   async function copyCardNumber() {
@@ -314,7 +361,33 @@ export default function TopUp() {
               <span>{t('topup.starsCon1')}</span>
             </div>
           </div>
-          <p className="hp-empty">{t('topup.starsComingSoon')}</p>
+
+          <div className="hp-tab-body">
+            <div className="hp-converter">
+              <span className="hp-field-label">{t('topup.converterStarsLabel')}</span>
+              <input
+                className="hp-segmented-btn hp-converter-input"
+                type="text"
+                inputMode="numeric"
+                value={starsToBuyText}
+                onChange={(e) => onStarsToBuyChange(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+
+            {buyStarsError && <p className="hp-error">{buyStarsError}</p>}
+
+            <div className="hp-field">
+              <button
+                className="hp-btn hp-btn-gradient"
+                style={{ width: '100%' }}
+                disabled={!Number(starsToBuyText) || buyingStars}
+                onClick={buyStars}
+              >
+                {buyingStars ? t('common.loading') : t('topup.buyStarsButton')}
+              </button>
+            </div>
+          </div>
         </>
       )}
 

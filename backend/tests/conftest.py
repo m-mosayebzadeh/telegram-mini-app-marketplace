@@ -17,6 +17,7 @@ import os
 
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-bot-token-for-pytest-only")
 os.environ.setdefault("ENABLE_DEV_TOOLS", "false")
+os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-webhook-secret-for-pytest-only")
 
 import pytest
 from fastapi.testclient import TestClient

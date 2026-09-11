@@ -17,9 +17,13 @@ alembic==1.19.1
 # --- required by FastAPI to parse multipart/form-data (file uploads) ---
 python-multipart==0.0.12
 
+# --- outbound HTTP calls to the Telegram Bot API (app/telegram_bot.py) ---
+# Also what FastAPI's own TestClient (used by every test) runs on under
+# the hood, so this was already an effective dependency either way.
+httpx==0.27.2
+
 # --- testing ---
 pytest==8.3.3
-httpx==0.27.2
 # Not used by the app itself — only by tests/helpers.py, to generate a
 # throwaway JPEG in memory to upload in photo endpoint tests.
 pillow==12.3.0

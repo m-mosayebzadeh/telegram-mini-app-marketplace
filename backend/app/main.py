@@ -33,6 +33,7 @@ from app.profile.photos import get_current_avatar_url
 from app.profile.router import public_router as public_profile_router
 from app.profile.router import router as profile_router
 from app.request.router import router as request_router
+from app.telegram_webhook.router import router as telegram_webhook_router
 from app.topup.router import router as topup_router
 from app.wallet.router import router as wallet_router
 
@@ -80,6 +81,7 @@ app.include_router(chat_session_router)
 app.include_router(chat_message_router)
 app.include_router(topup_router)
 app.include_router(admin_router)
+app.include_router(telegram_webhook_router)
 
 # Only wire up developer-only routes (see app/dev/router.py) when the
 # flag is explicitly turned on. Since it defaults to False, forgetting to
