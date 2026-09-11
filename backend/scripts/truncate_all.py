@@ -35,6 +35,7 @@ TABLES_IN_DELETE_ORDER = [
     "requests",
     "offers",
     "topup_requests",
+    "star_purchases",
     "credit_ledger_entries",
     "transactions",
     "admin_grants",

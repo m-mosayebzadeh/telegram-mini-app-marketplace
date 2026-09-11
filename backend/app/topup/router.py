@@ -10,19 +10,22 @@ already used elsewhere (e.g. app/profile/router.py's router vs
 public_router split).
 """
 
+import secrets
+
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, is_owner
+from app.auth.dependencies import effective_admin_scopes, get_current_user, is_owner
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.rates import get_rates
 from app.core.storage import save_receipt_file
-from app.models.admin_grant import AdminGrant
+from app.models.star_purchase import StarPurchase
 from app.models.topup_request import TopUpRequest
 from app.models.user import User
-from app.topup.schemas import TopUpCardInfoOut, TopUpRequestOut
+from app.telegram_bot import create_star_invoice_link
+from app.topup.schemas import StarInvoiceCreate, StarInvoiceOut, TopUpCardInfoOut, TopUpRequestOut
 
 router = APIRouter(prefix="/topup", tags=["topup"])
 
@@ -35,6 +38,41 @@ def get_card_info(
         card_number=settings.topup_card_number,
         card_holder_name=settings.topup_card_holder_name,
     )
+
+
+@router.post("/stars/invoice", response_model=StarInvoiceOut, status_code=status.HTTP_201_CREATED)
+def create_star_invoice(
+    payload: StarInvoiceCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StarInvoiceOut:
+    """
+    Starts a real Telegram Stars purchase: records a PENDING
+    StarPurchase row, asks Telegram for a one-time invoice link for it,
+    and hands that link back to the frontend to open with
+    Telegram.WebApp.openInvoice(). Nothing is credited yet — that only
+    happens once app/telegram_webhook/router.py sees Telegram's own
+    successful_payment confirmation for this exact invoice_payload.
+    """
+    if payload.stars <= 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "stars must be positive.")
+
+    # Random and unguessable — this is the one thing tying an incoming
+    # webhook payment back to this specific purchase/user, so it must
+    # never be something an attacker could predict or reuse.
+    invoice_payload = secrets.token_urlsafe(24)
+
+    purchase = StarPurchase(user_id=current_user.id, stars=payload.stars, invoice_payload=invoice_payload)
+    db.add(purchase)
+    db.commit()
+
+    invoice_link = create_star_invoice_link(
+        title="Wallet top-up",
+        description=f"{payload.stars} Telegram Stars",
+        payload=invoice_payload,
+        stars=payload.stars,
+    )
+    return StarInvoiceOut(invoice_link=invoice_link)
 
 
 @router.post("/requests", response_model=TopUpRequestOut, status_code=status.HTTP_201_CREATED)
@@ -87,8 +125,7 @@ def _can_view_receipt(db: Session, viewer: User, topup_request: TopUpRequest) ->
         return True
     if is_owner(viewer):
         return True
-    grant = db.query(AdminGrant).filter(AdminGrant.user_id == viewer.id).first()
-    return grant is not None and "finance.topups" in grant.scopes
+    return "finance.topups" in effective_admin_scopes(db, viewer.id)
 
 
 @router.get("/requests/{request_id}/receipt")

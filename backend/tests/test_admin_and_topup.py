@@ -217,6 +217,21 @@ def test_receipt_only_visible_to_requester_and_admins(client):
     assert client.get(f"/topup/requests/{request_id}/receipt", headers=OTHER_HEADER).status_code == 404
 
 
+def test_receipt_visible_to_a_scoped_finance_topups_role_holder(client):
+    """Regression test: _can_view_receipt used to query AdminGrant.scopes
+    directly, which stopped existing once the role-based redesign moved
+    scopes onto Role instead (see app/topup/router.py)."""
+    create = client.post(
+        "/topup/requests", headers=BUYER_HEADER, data={"requested_stars": "10"}, files=_receipt_file()
+    )
+    request_id = create.json()["id"]
+
+    client.get("/me", headers=OTHER_HEADER)
+    _grant_scope(client, OTHER_HEADER, ["finance.topups"])
+
+    assert client.get(f"/topup/requests/{request_id}/receipt", headers=OTHER_HEADER).status_code == 200
+
+
 # --- /admin/me (never 403s, see app/admin/router.py) ------------------
 
 

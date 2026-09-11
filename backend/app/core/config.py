@@ -100,6 +100,19 @@ class Settings(BaseSettings):
     topup_card_number: str = ""
     topup_card_holder_name: str = ""
 
+    # --- real Telegram Stars top-up (see app/telegram_bot.py, app/topup/router.py) ---
+    #
+    # A secret WE make up (any random string), given to Telegram once
+    # via scripts/set_telegram_webhook.py's setWebhook call. Telegram
+    # then echoes it back on the "X-Telegram-Bot-Api-Secret-Token"
+    # header of every single webhook request it ever sends us — see
+    # app/telegram_webhook/router.py's verification. This is what makes
+    # the webhook URL safe to be public knowledge: anyone can find/guess
+    # the URL, but a request without this exact header gets rejected
+    # before anything in it is trusted, so it can't be used to fake a
+    # payment or credit a wallet that was never actually paid into.
+    telegram_webhook_secret: str = ""
+
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 
 
