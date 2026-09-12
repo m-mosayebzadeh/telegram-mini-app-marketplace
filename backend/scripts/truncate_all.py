@@ -23,6 +23,10 @@ from app.core.config import settings  # noqa: E402
 
 # Children first, parents last.
 TABLES_IN_DELETE_ORDER = [
+    "withdrawal_events",
+    "credit_ledger_entries",
+    "withdrawals",
+    "bank_accounts",
     "chat_messages",
     "chat_sessions",
     "content_open_logs",
@@ -36,7 +40,6 @@ TABLES_IN_DELETE_ORDER = [
     "offers",
     "topup_requests",
     "star_purchases",
-    "credit_ledger_entries",
     "transactions",
     "admin_grants",
     "roles",

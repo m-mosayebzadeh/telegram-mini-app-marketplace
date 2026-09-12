@@ -61,14 +61,7 @@ class Settings(BaseSettings):
     # Toman per Star. Used to convert a Star-denominated offer/content
     # price into the Toman amount actually charged against the wallet
     # ledger (which is Toman-denominated — see the ledger entity docs).
-    star_to_toman_rate: int = 4000
-
-    # Platform commission, as a whole-number percentage, per kind of
-    # purchase. Applied to the STAR price (not the Toman amount) — see
-    # split_commission() in app/wallet/service.py for why, and for the
-    # rounding rule (always rounds in the provider's favor).
-    chat_commission_percent: int = 10
-    content_commission_percent: int = 5
+    star_to_toman_rate: int = 2500
 
     # How long after a chat session closes before its transaction
     # auto-releases to the provider, if nobody disputes it (see

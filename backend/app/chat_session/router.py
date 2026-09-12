@@ -15,6 +15,7 @@ Closing and disputing are governed by TECHNICAL_REQUIREMENTS.md's "مدل
     still within the grace period, only once
 """
 
+from app.core.rates import lock_finances
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -174,6 +175,7 @@ def dispute_session(
     isn't built yet; that's the same deferred report/complaint system
     TECHNICAL_REQUIREMENTS.md section 7 already flags as an open decision.
     """
+    lock_finances(db)
     chat_session = get_participant_session(db, session_id, current_user.id)
     if chat_session.status != ChatSessionStatus.CLOSED:
         raise HTTPException(

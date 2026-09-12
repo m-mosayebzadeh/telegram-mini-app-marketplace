@@ -149,7 +149,7 @@ export default function OfferDetail() {
   }
 
   function goToTopUp() {
-    navigate('/wallet/topup', { state: { prefillStars: missingStars } })
+    navigate('/wallet/topup', { state: { prefillStars: missingStars, from: `/offers/${id}` } })
   }
 
   async function respond(requestId: number, action: 'accept' | 'reject') {
@@ -201,14 +201,9 @@ export default function OfferDetail() {
           <span className="hp-kv-label">{t('offers.priceStarsLabel')}</span>
           <span className="hp-kv-value">{offer.price_stars}</span>
         </div>
-        {/* The provider (owner) sees the full breakdown, including their
-            own commission/net earnings — a buyer only needs to know
-            what THEY pay (Stars + Toman equivalent), never the
-            provider's commission or take-home numbers. */}
+        {/* Purchases use the full price; withdrawal fees are shown in the wallet. */}
         <PriceBreakdown
           priceStars={offer.price_stars}
-          commissionKind="chat"
-          variant={isOwner ? 'full' : 'grossOnly'}
         />
         <div className="hp-kv-row">
           <span className="hp-kv-label">{t('offers.durationLabel')}</span>

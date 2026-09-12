@@ -9,6 +9,7 @@ Admin-only endpoints:
     TECHNICAL_REQUIREMENTS.md)
 """
 
+from app.core.rates import lock_finances
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -573,6 +574,7 @@ def approve_topup_request(
     if payload.final_toman_amount <= 0:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "final_toman_amount must be positive.")
 
+    lock_finances(db)
     topup_request = _get_pending_request(db, request_id)
 
     credit_topup(db, user_id=topup_request.user_id, amount_toman=payload.final_toman_amount)
@@ -595,6 +597,7 @@ def reject_topup_request(
     current_user: User = Depends(require_admin("finance.topups")),
     db: Session = Depends(get_db),
 ) -> AdminTopUpRequestOut:
+    lock_finances(db)
     topup_request = _get_pending_request(db, request_id)
 
     topup_request.status = TopUpStatus.REJECTED
@@ -627,10 +630,12 @@ def update_platform_rates(
     its own frozen rate/commission at the time it was created, and
     that never changes retroactively (see PlatformRates' docstring).
     """
+    lock_finances(db)
     rates = get_rates(db)
     rates.star_to_toman_rate = payload.star_to_toman_rate
-    rates.chat_commission_percent = payload.chat_commission_percent
-    rates.content_commission_percent = payload.content_commission_percent
+    rates.withdrawal_commission_percent = payload.withdrawal_commission_percent
+    rates.complaint_commission_percent = payload.complaint_commission_percent
+    rates.minimum_withdrawal_toman = payload.minimum_withdrawal_toman
     db.commit()
     db.refresh(rates)
     return rates

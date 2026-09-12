@@ -49,11 +49,8 @@ export default function CreateOffer() {
         <div className="hp-field">
           <NumberField header={t('offers.priceStarsLabel')} value={priceStars} onChange={setPriceStars} />
         </div>
-        {/* Live preview — updates as the price above changes. Offers are
-            chat-only for now, so commissionKind is always 'chat' here;
-            see components/PriceBreakdown.tsx for why it still takes the
-            kind explicitly rather than hardcoding it internally. */}
-        <PriceBreakdown priceStars={Number(priceStars) || 0} commissionKind="chat" />
+        {/* Purchases use the full price; withdrawal fees are shown in the wallet. */}
+        <PriceBreakdown priceStars={Number(priceStars) || 0} />
         <div className="hp-field">
           <Input
             header={t('offers.durationLabel')}

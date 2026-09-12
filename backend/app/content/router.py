@@ -21,6 +21,7 @@ mean nobody could post until they'd separately created a profile. Upload
 therefore has no "create a profile first" gate.
 """
 
+from app.core.rates import lock_finances
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -284,6 +285,7 @@ def purchase_content(
     "مدل مالی و اعتبار". Calling this again for an item already
     purchased is idempotent: it just confirms access, no second charge.
     """
+    lock_finances(db)
     content = _get_visible_content(db, content_id, current_user)
     if not content.is_paid:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "This item isn't for sale.")
@@ -307,7 +309,6 @@ def purchase_content(
             buyer_id=current_user.id,
             provider_id=provider_id,
             gross_price_stars=content.price_stars,
-            commission_rate_percent=get_rates(db).content_commission_percent,
             content_id=content.id,
         )
     except InsufficientBalanceError as exc:

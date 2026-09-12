@@ -13,11 +13,14 @@ import { useMe } from '../lib/MeContext'
 export default function AdminRates() {
   const { t } = useTranslation()
   const { adminAccess } = useMe()
-  const hasAccess = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.includes('finance.rates'))
+  const hasAccess =
+    !!adminAccess &&
+    (adminAccess.is_owner || adminAccess.scopes.includes('finance.rates'))
 
   const [starRate, setStarRate] = useState('')
-  const [chatPercent, setChatPercent] = useState('')
-  const [contentPercent, setContentPercent] = useState('')
+  const [withdrawalPercent, setWithdrawalPercent] = useState('')
+  const [complaintPercent, setComplaintPercent] = useState('')
+  const [minimum, setMinimum] = useState('')
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -28,8 +31,9 @@ export default function AdminRates() {
     getPlatformRates()
       .then((r) => {
         setStarRate(String(r.star_to_toman_rate))
-        setChatPercent(String(r.chat_commission_percent))
-        setContentPercent(String(r.content_commission_percent))
+        setWithdrawalPercent(String(r.withdrawal_commission_percent))
+        setComplaintPercent(String(r.complaint_commission_percent))
+        setMinimum(String(r.minimum_withdrawal_toman))
         setLoaded(true)
       })
       .catch((err) => setError(formatApiError(err)))
@@ -47,8 +51,9 @@ export default function AdminRates() {
     try {
       await updatePlatformRates({
         star_to_toman_rate: Number(starRate),
-        chat_commission_percent: Number(chatPercent),
-        content_commission_percent: Number(contentPercent),
+        minimum_withdrawal_toman: Number(minimum),
+        withdrawal_commission_percent: Number(withdrawalPercent),
+        complaint_commission_percent: Number(complaintPercent),
       })
       setToast(t('admin.ratesSaved'))
     } catch (err) {
@@ -68,16 +73,21 @@ export default function AdminRates() {
   if (!hasAccess) return <Placeholder header={t('admin.noAccess')} />
 
   const valid =
+    minimum !== '' &&
+    Number(minimum) > 0 &&
+    withdrawalPercent !== '' &&
+    complaintPercent !== '' &&
     Number(starRate) > 0 &&
-    Number(chatPercent) >= 0 &&
-    Number(chatPercent) <= 100 &&
-    Number(contentPercent) >= 0 &&
-    Number(contentPercent) <= 100
+    Number(withdrawalPercent) >= 0 &&
+    Number(withdrawalPercent) <= 100 &&
+    Number(complaintPercent) >= 0 &&
+    Number(complaintPercent) <= 100
 
   return (
     <div className="hp-page">
       <div className="hp-page-header">{t('admin.ratesTitle')}</div>
 
+      {error && !loaded && <p className="hp-error">{error}</p>}
       {!loaded ? (
         <Placeholder>
           <Spinner size="m" />
@@ -85,19 +95,38 @@ export default function AdminRates() {
       ) : (
         <>
           <div className="hp-field">
-            <NumberField header={t('admin.ratesStarLabel')} value={starRate} onChange={setStarRate} />
-          </div>
-          <div className="hp-field">
-            <NumberField header={t('admin.ratesChatCommissionLabel')} value={chatPercent} onChange={setChatPercent} />
+            <NumberField
+              header={t('admin.ratesStarLabel')}
+              value={starRate}
+              onChange={setStarRate}
+            />
           </div>
           <div className="hp-field">
             <NumberField
-              header={t('admin.ratesContentCommissionLabel')}
-              value={contentPercent}
-              onChange={setContentPercent}
+              header={t('finance.withdrawalFee')}
+              value={withdrawalPercent}
+              onChange={setWithdrawalPercent}
             />
           </div>
-          {error && <p className="hp-error" style={{ margin: '0 12px' }}>{error}</p>}
+          <div className="hp-field">
+            <NumberField
+              header={t('finance.complaintFee')}
+              value={complaintPercent}
+              onChange={setComplaintPercent}
+            />
+          </div>
+          <div className="hp-field">
+            <NumberField
+              header={t('finance.minimumSetting')}
+              value={minimum}
+              onChange={setMinimum}
+            />
+          </div>
+          {error && (
+            <p className="hp-error" style={{ margin: '0 12px' }}>
+              {error}
+            </p>
+          )}
           <div className="hp-field">
             <button
               className="hp-btn hp-btn-gradient"

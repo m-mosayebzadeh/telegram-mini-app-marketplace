@@ -280,8 +280,9 @@ def test_rates_default_from_settings(client):
     assert response.status_code == 200
     body = response.json()
     assert body["star_to_toman_rate"] == settings.star_to_toman_rate
-    assert body["chat_commission_percent"] == settings.chat_commission_percent
-    assert body["content_commission_percent"] == settings.content_commission_percent
+    assert body["withdrawal_commission_percent"] == 10
+    assert body["complaint_commission_percent"] == 0
+    assert body["minimum_withdrawal_toman"] == 500_000
 
 
 def test_rates_forbidden_without_scope(client):
@@ -293,7 +294,7 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
     update = client.put(
         "/admin/rates",
         headers=OWNER_HEADER,
-        json={"star_to_toman_rate": 5000, "chat_commission_percent": 12, "content_commission_percent": 7},
+        json={"star_to_toman_rate": 5000, "withdrawal_commission_percent": 12, "complaint_commission_percent": 7, "minimum_withdrawal_toman": 500000},
     )
     assert update.status_code == 200
     assert update.json()["star_to_toman_rate"] == 5000
@@ -301,8 +302,9 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
     pricing = client.get("/pricing", headers=BUYER_HEADER)
     assert pricing.json() == {
         "star_to_toman_rate": 5000,
-        "chat_commission_percent": 12,
-        "content_commission_percent": 7,
+        "withdrawal_commission_percent": 12,
+        "complaint_commission_percent": 7,
+        "minimum_withdrawal_toman": 500000,
     }
 
 

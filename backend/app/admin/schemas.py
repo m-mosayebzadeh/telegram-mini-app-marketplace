@@ -129,16 +129,14 @@ class AdminChatSessionOut(BaseModel):
 
 class PlatformRatesOut(BaseModel):
     star_to_toman_rate: int
-    chat_commission_percent: int
-    content_commission_percent: int
+    withdrawal_commission_percent: int
+    complaint_commission_percent: int
+    minimum_withdrawal_toman: int
     updated_at: datetime
 
-
 class PlatformRatesUpdate(BaseModel):
-    # Percentages are 0-100 (whole numbers, see split_commission() in
-    # app/wallet/service.py); the rate just has to stay positive — a
-    # zero or negative Toman-per-Star rate would make every price
-    # nonsensical.
-    star_to_toman_rate: int = Field(gt=0)
-    chat_commission_percent: int = Field(ge=0, le=100)
-    content_commission_percent: int = Field(ge=0, le=100)
+    model_config = {"extra": "forbid"}
+    star_to_toman_rate: int = Field(gt=0, le=1_000_000_000, strict=True)
+    withdrawal_commission_percent: int = Field(ge=0, le=100, strict=True)
+    complaint_commission_percent: int = Field(ge=0, le=100, strict=True)
+    minimum_withdrawal_toman: int = Field(gt=0, le=1_000_000_000_000, strict=True)

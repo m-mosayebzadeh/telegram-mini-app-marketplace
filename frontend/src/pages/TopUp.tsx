@@ -3,8 +3,8 @@ import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { openInvoice } from '@telegram-apps/sdk-react'
-import { formatApiError } from '../lib/api'
-import { useMe } from '../lib/MeContext'
+import { apiFetch, formatApiError } from '../lib/api'
+import { FinanceHeader } from '../components/Finance'
 import { getPricingConfig } from '../lib/pricing'
 import {
   createStarInvoice,
@@ -18,13 +18,23 @@ import type { TopUpCardInfo, TopUpRequest } from '../lib/types'
 type Tab = 'direct' | 'stars' | 'intermediaries'
 
 const INTERMEDIARY_SITES = [
-  { key: 'intermediarySiteIranicard', url: 'https://www.iranicard.ir/payments/foreign-services/telegram-stars/' },
-  { key: 'intermediarySiteNumberland', url: 'https://numberland.ir/account/telegram-stars' },
+  {
+    key: 'intermediarySiteIranicard',
+    url: 'https://www.iranicard.ir/payments/foreign-services/telegram-stars/',
+  },
+  {
+    key: 'intermediarySiteNumberland',
+    url: 'https://numberland.ir/account/telegram-stars',
+  },
   { key: 'intermediarySiteSubtg', url: 'https://subtg.com/telegram-stars' },
 ] as const
 
 function statusLabel(status: TopUpRequest['status']): string {
-  return status === 'pending' ? 'statusPending' : status === 'approved' ? 'statusApproved' : 'statusRejected'
+  return status === 'pending'
+    ? 'statusPending'
+    : status === 'approved'
+      ? 'statusApproved'
+      : 'statusRejected'
 }
 
 /**
@@ -44,7 +54,8 @@ export default function TopUp() {
   // with that amount already typed in instead of making someone go
   // work it out and re-type it themselves.
   const location = useLocation()
-  const prefillStars = (location.state as { prefillStars?: number } | null)?.prefillStars ?? null
+  const prefillStars =
+    (location.state as { prefillStars?: number } | null)?.prefillStars ?? null
 
   const [tab, setTab] = useState<Tab>('direct')
   const [rate, setRate] = useState<number | null>(null)
@@ -55,13 +66,49 @@ export default function TopUp() {
 
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [starsText, setStarsText] = useState(prefillStars ? String(prefillStars) : '')
+  const [starsText, setStarsText] = useState(
+    prefillStars ? String(prefillStars) : '',
+  )
   const [tomanText, setTomanText] = useState('')
   const [busy, setBusy] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { refreshMe } = useMe()
+  const from = (location.state as { from?: string } | null)?.from
+  const back = from && /^\/offers\/\d+$/.test(from) ? from : '/wallet'
+  const [pendingPurchase, setPendingPurchase] = useState<number | null>(
+    () => Number(sessionStorage.getItem('pending-star-purchase')) || null,
+  )
+  const [checking, setChecking] = useState(false)
+  useEffect(() => {
+    if (!pendingPurchase) return
+    let active = true
+    let timer: ReturnType<typeof setTimeout>
+    let attempts = 0
+    async function check() {
+      try {
+        const purchase = await apiFetch<{ status: string }>(
+          `/topup/stars/purchases/${pendingPurchase}`,
+        )
+        if (!active) return
+        if (purchase.status === 'paid') {
+          sessionStorage.removeItem('pending-star-purchase')
+          setPendingPurchase(null)
+          setToast(t('topup.starsPurchaseSuccess'))
+          setStarsToBuyText('')
+          return
+        }
+      } catch (err) {
+        if (active) setBuyStarsError(formatApiError(err))
+      }
+      if (active && ++attempts < 15) timer = setTimeout(check, 2000)
+    }
+    void check()
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [pendingPurchase, checking, t])
   const [starsToBuyText, setStarsToBuyText] = useState('')
   const [buyingStars, setBuyingStars] = useState(false)
   const [buyStarsError, setBuyStarsError] = useState<string | null>(null)
@@ -80,7 +127,8 @@ export default function TopUp() {
         // only relevant when starsText was pre-filled (see prefillStars
         // above); a normal manual edit already goes through
         // onStarsChange, which sets both at once.
-        if (prefillStars) setTomanText(String(prefillStars * config.star_to_toman_rate))
+        if (prefillStars)
+          setTomanText(String(prefillStars * config.star_to_toman_rate))
       })
       .catch((err) => setError(formatApiError(err)))
     getTopUpCardInfo()
@@ -128,27 +176,18 @@ export default function TopUp() {
     setStarsToBuyText(raw.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''))
   }
 
-  /**
-   * Real Telegram Stars purchase: gets a one-time invoice link from the
-   * backend (see lib/topupApi.ts's createStarInvoice), then hands it to
-   * Telegram's own native payment sheet via openInvoice() — this app
-   * never sees any payment details itself. Only a 'paid' result means
-   * the wallet actually got credited (by app/telegram_webhook/router.py,
-   * server-side, once Telegram confirms it) — refreshMe() picks that up
-   * immediately instead of waiting for the next full reload.
-   */
+  // A payment-sheet result starts verification; only the backend confirms credit.
   async function buyStars() {
     const stars = Number(starsToBuyText)
     if (!stars || stars <= 0) return
     setBuyingStars(true)
     setBuyStarsError(null)
     try {
-      const { invoice_link } = await createStarInvoice(stars)
+      const { invoice_link, purchase_id } = await createStarInvoice(stars)
       const result = await openInvoice(invoice_link, 'url')
-      if (result === 'paid') {
-        setToast(t('topup.starsPurchaseSuccess'))
-        setStarsToBuyText('')
-        refreshMe()
+      if (result === 'paid' || result === 'pending') {
+        sessionStorage.setItem('pending-star-purchase', String(purchase_id))
+        setPendingPurchase(purchase_id)
       } else if (result !== 'cancelled') {
         setBuyStarsError(t('topup.starsPurchaseFailed'))
       }
@@ -194,7 +233,8 @@ export default function TopUp() {
     }
   }
 
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
+  if (error)
+    return <Placeholder header={t('common.error')}>{error}</Placeholder>
   if (rate == null || cardInfo == null || history == null) {
     return (
       <Placeholder>
@@ -205,13 +245,19 @@ export default function TopUp() {
 
   return (
     <div className="hp-page">
-      <div className="hp-page-header">{t('topup.pageTitle')}</div>
+      <FinanceHeader title={t('topup.pageTitle')} back={back} />
 
       <div className="hp-tabs">
-        <button className={`hp-tab ${tab === 'direct' ? 'hp-tab-active' : ''}`} onClick={() => setTab('direct')}>
+        <button
+          className={`hp-tab ${tab === 'direct' ? 'hp-tab-active' : ''}`}
+          onClick={() => setTab('direct')}
+        >
           {t('topup.tabDirect')}
         </button>
-        <button className={`hp-tab ${tab === 'stars' ? 'hp-tab-active' : ''}`} onClick={() => setTab('stars')}>
+        <button
+          className={`hp-tab ${tab === 'stars' ? 'hp-tab-active' : ''}`}
+          onClick={() => setTab('stars')}
+        >
           {t('topup.tabStars')}
         </button>
         <button
@@ -247,8 +293,12 @@ export default function TopUp() {
             <div className="hp-bank-card">
               <div className="hp-bank-card-chip" />
               <div>
-                <div className="hp-bank-card-number">{cardInfo.card_number || '—'}</div>
-                <div className="hp-bank-card-holder">{cardInfo.card_holder_name || '—'}</div>
+                <div className="hp-bank-card-number">
+                  {cardInfo.card_number || '—'}
+                </div>
+                <div className="hp-bank-card-holder">
+                  {cardInfo.card_holder_name || '—'}
+                </div>
               </div>
               <button className="hp-bank-card-copy" onClick={copyCardNumber}>
                 {t('topup.cardCopy')}
@@ -256,7 +306,9 @@ export default function TopUp() {
             </div>
 
             <div className="hp-converter">
-              <span className="hp-field-label">{t('topup.converterStarsLabel')}</span>
+              <span className="hp-field-label">
+                {t('topup.converterStarsLabel')}
+              </span>
               <input
                 className="hp-segmented-btn hp-converter-input"
                 type="text"
@@ -267,11 +319,14 @@ export default function TopUp() {
               />
               {tomanText && (
                 <p className="hp-converter-toman-line">
-                  ≈ {Number(tomanText).toLocaleString('en-US')} {t('topup.converterTomanLabel')}
+                  ≈ {Number(tomanText).toLocaleString('en-US')}{' '}
+                  {t('topup.converterTomanLabel')}
                 </p>
               )}
               <p className="hp-converter-rate-hint">
-                {t('topup.converterRateHint', { rate: rate.toLocaleString('en-US') })}
+                {t('topup.converterRateHint', {
+                  rate: rate.toLocaleString('en-US'),
+                })}
               </p>
             </div>
 
@@ -284,8 +339,14 @@ export default function TopUp() {
               >
                 {previewUrl ? (
                   <>
-                    <img className="hp-dropzone-preview" src={previewUrl} alt="" />
-                    <span className="hp-dropzone-preview-overlay">{t('topup.changeReceiptFile')}</span>
+                    <img
+                      className="hp-dropzone-preview"
+                      src={previewUrl}
+                      alt=""
+                    />
+                    <span className="hp-dropzone-preview-overlay">
+                      {t('topup.changeReceiptFile')}
+                    </span>
                   </>
                 ) : (
                   <>
@@ -298,7 +359,13 @@ export default function TopUp() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-                  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                  style={{
+                    position: 'absolute',
+                    width: 1,
+                    height: 1,
+                    opacity: 0,
+                    pointerEvents: 'none',
+                  }}
                 />
               </label>
             </div>
@@ -328,20 +395,25 @@ export default function TopUp() {
                 <div key={r.id} className="hp-list-row">
                   <div className="hp-list-row-main">
                     <span className="hp-list-title">
-                      {r.requested_stars} ⭐ · {r.requested_toman_amount.toLocaleString('en-US')} تومان
+                      {r.requested_stars} ⭐ ·{' '}
+                      {r.requested_toman_amount.toLocaleString('en-US')} تومان
                     </span>
-                    {r.status === 'approved' && r.final_toman_amount != null && (
-                      <span className="hp-list-subtitle">
-                        {t('topup.finalAmountLabel')}: {r.final_toman_amount.toLocaleString('en-US')}
-                      </span>
-                    )}
+                    {r.status === 'approved' &&
+                      r.final_toman_amount != null && (
+                        <span className="hp-list-subtitle">
+                          {t('topup.finalAmountLabel')}:{' '}
+                          {r.final_toman_amount.toLocaleString('en-US')}
+                        </span>
+                      )}
                     {r.status === 'rejected' && r.rejection_reason && (
                       <span className="hp-list-subtitle">
                         {t('topup.rejectionReasonLabel')}: {r.rejection_reason}
                       </span>
                     )}
                   </div>
-                  <span className={`hp-status-pill hp-status-${r.status}`}>{t(`topup.${statusLabel(r.status)}`)}</span>
+                  <span className={`hp-status-pill hp-status-${r.status}`}>
+                    {t(`topup.${statusLabel(r.status)}`)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -364,7 +436,9 @@ export default function TopUp() {
 
           <div className="hp-tab-body">
             <div className="hp-converter">
-              <span className="hp-field-label">{t('topup.converterStarsLabel')}</span>
+              <span className="hp-field-label">
+                {t('topup.converterStarsLabel')}
+              </span>
               <input
                 className="hp-segmented-btn hp-converter-input"
                 type="text"
@@ -375,13 +449,26 @@ export default function TopUp() {
               />
             </div>
 
+            {pendingPurchase && (
+              <p role="status">
+                {t('finance.awaitingCredit')}{' '}
+                <button
+                  className="hp-btn-sm"
+                  onClick={() => setChecking((v) => !v)}
+                >
+                  {t('finance.checkPayment')}
+                </button>
+              </p>
+            )}
             {buyStarsError && <p className="hp-error">{buyStarsError}</p>}
 
             <div className="hp-field">
               <button
                 className="hp-btn hp-btn-gradient"
                 style={{ width: '100%' }}
-                disabled={!Number(starsToBuyText) || buyingStars}
+                disabled={
+                  !Number(starsToBuyText) || buyingStars || !!pendingPurchase
+                }
                 onClick={buyStars}
               >
                 {buyingStars ? t('common.loading') : t('topup.buyStarsButton')}

@@ -16,7 +16,7 @@ deliberately use different units.
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -41,6 +41,8 @@ class LedgerEntryType(str, enum.Enum):
     # The platform's commission cut. Not tied to any particular user's
     # spendable balance — see user_id below.
     COMMISSION = "commission"
+    WITHDRAWAL = "withdrawal"
+    WITHDRAWAL_REFUND = "withdrawal_refund"
 
 
 class CreditLedgerEntry(Base):
@@ -70,6 +72,9 @@ class CreditLedgerEntry(Base):
         ForeignKey("transactions.id"), nullable=True
     )
 
+    withdrawal_id: Mapped[int | None] = mapped_column(ForeignKey('withdrawals.id'), nullable=True)
+    star_purchase_id: Mapped[int | None] = mapped_column(ForeignKey('star_purchases.id'), nullable=True, unique=True)
+
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     __table_args__ = (
@@ -79,8 +84,11 @@ class CreditLedgerEntry(Base):
             name="ck_commission_entries_have_no_user",
         ),
         CheckConstraint(
-            "(type IN ('topup_dev_stub', 'topup') AND transaction_id IS NULL) OR "
-            "(type NOT IN ('topup_dev_stub', 'topup') AND transaction_id IS NOT NULL)",
-            name="ck_topup_entries_have_no_transaction",
+            "(type IN ('topup_dev_stub', 'topup') AND transaction_id IS NULL AND withdrawal_id IS NULL) OR "
+            "(type IN ('withdrawal', 'withdrawal_refund') AND transaction_id IS NULL AND withdrawal_id IS NOT NULL) OR "
+            "(type = 'commission' AND ((transaction_id IS NOT NULL AND withdrawal_id IS NULL) OR (transaction_id IS NULL AND withdrawal_id IS NOT NULL))) OR "
+            "(type IN ('spend', 'receive') AND transaction_id IS NOT NULL AND withdrawal_id IS NULL)",
+            name="ck_ledger_source",
         ),
+        UniqueConstraint('withdrawal_id', 'type', name='uq_withdrawal_ledger_type'),
     )

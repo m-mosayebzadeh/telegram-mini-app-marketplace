@@ -22,6 +22,12 @@ OK, so Telegram doesn't keep retrying) and ignored:
     Stars purchase.
 """
 
+import logging
+from starlette.concurrency import run_in_threadpool
+from app.models.user import User
+from app.core.rates import lock_finances
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
@@ -56,12 +62,12 @@ async def telegram_webhook(
 
     pre_checkout_query = update.get("pre_checkout_query")
     if pre_checkout_query is not None:
-        _handle_pre_checkout_query(db, pre_checkout_query)
+        await run_in_threadpool(_handle_pre_checkout_query, db, pre_checkout_query)
         return {"ok": True}
 
     successful_payment = (update.get("message") or {}).get("successful_payment")
     if successful_payment is not None:
-        _handle_successful_payment(db, successful_payment)
+        await run_in_threadpool(_handle_successful_payment, db, successful_payment, (update.get("message") or {}).get("from", {}).get("id"))
         return {"ok": True}
 
     # Any other update type (a plain text message, an edited message,
@@ -87,7 +93,8 @@ def _handle_pre_checkout_query(db: Session, query: dict) -> None:
     # this invoice — a mismatch here would mean something is very wrong
     # (a payload collision, a tampered client, ...), not something to
     # silently accept.
-    if query.get("total_amount") != purchase.stars:
+    if (query.get("total_amount") != purchase.stars or query.get("currency") != "XTR"
+            or query.get("from", {}).get("id") != db.get(User, purchase.user_id).telegram_id):
         answer_pre_checkout_query(
             pre_checkout_query_id=query_id, ok=False, error_message="Amount mismatch — please try again."
         )
@@ -96,7 +103,8 @@ def _handle_pre_checkout_query(db: Session, query: dict) -> None:
     answer_pre_checkout_query(pre_checkout_query_id=query_id, ok=True)
 
 
-def _handle_successful_payment(db: Session, payment: dict) -> None:
+def _handle_successful_payment(db: Session, payment: dict, payer_id: int | None) -> None:
+    lock_finances(db)
     charge_id = payment["telegram_payment_charge_id"]
     invoice_payload = payment.get("invoice_payload", "")
 
@@ -112,10 +120,13 @@ def _handle_successful_payment(db: Session, payment: dict) -> None:
 
     purchase = db.query(StarPurchase).filter(StarPurchase.invoice_payload == invoice_payload).first()
     if purchase is None or purchase.status != StarPurchaseStatus.PENDING:
-        # Nothing sane to do with a payment we have no matching pending
-        # row for — still acknowledged (200) above so Telegram stops
-        # retrying, but there's no purchase here to mark paid.
-        return
+        logger.error("Unmatched Stars payment: charge_id=%s", charge_id)
+        raise HTTPException(409, "Unmatched Stars payment; reconciliation required.")
+
+    if (payment.get("currency") != "XTR" or payment.get("total_amount") != purchase.stars
+            or payer_id != db.get(User, purchase.user_id).telegram_id):
+        logger.error("Mismatched Stars payment: charge_id=%s", charge_id)
+        raise HTTPException(409, "Payment mismatch; reconciliation required.")
 
     purchase.status = StarPurchaseStatus.PAID
     purchase.telegram_payment_charge_id = charge_id
@@ -127,6 +138,7 @@ def _handle_successful_payment(db: Session, payment: dict) -> None:
     # manually-approved one are indistinguishable in the wallet
     # afterwards, only their own request row remembers which was which.
     rate = get_rates(db).star_to_toman_rate
-    credit_topup(db, user_id=purchase.user_id, amount_toman=purchase.stars * rate)
+    entry = credit_topup(db, user_id=purchase.user_id, amount_toman=purchase.stars * rate)
+    entry.star_purchase_id = purchase.id
 
     db.commit()

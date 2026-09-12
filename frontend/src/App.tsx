@@ -1,3 +1,7 @@
+import BankAccounts from './pages/BankAccounts'
+import Withdraw from './pages/Withdraw'
+import AdminWithdrawals from './pages/AdminWithdrawals'
+import WalletHistory from './pages/WalletHistory'
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { IconActivity, IconChat, IconDashboard, IconDiscover, IconPersonFallback } from './components/icons'
@@ -110,6 +114,10 @@ function AppShell() {
         <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/wallet/topup" element={<TopUp />} />
+        <Route path="/wallet/banks" element={<BankAccounts />} />
+        <Route path="/wallet/withdraw" element={<Withdraw />} />
+        <Route path="/wallet/history" element={<WalletHistory />} />
+        <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
         <Route path="/admin" element={<AdminHub />} />
         <Route path="/admin/finance" element={<AdminFinance />} />
         <Route path="/admin/topups" element={<AdminTopUps />} />

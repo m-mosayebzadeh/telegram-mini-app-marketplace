@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TopUpCardInfoOut(BaseModel):
@@ -38,7 +38,7 @@ class TopUpRejectIn(BaseModel):
 
 
 class StarInvoiceCreate(BaseModel):
-    stars: int
+    stars: int = Field(strict=True, le=1_000_000_000)
 
 
 class StarInvoiceOut(BaseModel):
@@ -46,3 +46,4 @@ class StarInvoiceOut(BaseModel):
     the frontend — see app/topup/router.py's create_star_invoice."""
 
     invoice_link: str
+    purchase_id: int

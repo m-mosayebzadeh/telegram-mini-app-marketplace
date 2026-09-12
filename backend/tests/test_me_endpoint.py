@@ -251,5 +251,6 @@ def test_pricing_config_matches_current_settings(client):
     assert response.status_code == 200
     body = response.json()
     assert body["star_to_toman_rate"] == settings.star_to_toman_rate
-    assert body["chat_commission_percent"] == settings.chat_commission_percent
-    assert body["content_commission_percent"] == settings.content_commission_percent
+    assert body["withdrawal_commission_percent"] == 10
+    assert body["complaint_commission_percent"] == 0
+    assert body["minimum_withdrawal_toman"] == 500_000

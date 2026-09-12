@@ -3,6 +3,7 @@ Application entry point. Run locally with:
     uvicorn app.main:app --reload
 """
 
+from app.withdrawal.router import router as withdrawal_router, admin_router as admin_withdrawal_router
 import re
 from contextlib import asynccontextmanager
 
@@ -77,6 +78,8 @@ app.include_router(content_router)
 app.include_router(offer_router)
 app.include_router(request_router)
 app.include_router(wallet_router)
+app.include_router(withdrawal_router)
+app.include_router(admin_withdrawal_router)
 app.include_router(chat_session_router)
 app.include_router(chat_message_router)
 app.include_router(topup_router)
@@ -103,21 +106,13 @@ def read_pricing_config(
     current_user: User = Depends(get_current_user),  # requires auth; not otherwise used
     db: Session = Depends(get_db),
 ) -> dict:
-    """
-    The current Star-to-Toman rate and commission percentages (see
-    TECHNICAL_REQUIREMENTS.md section 10 and app/models/platform_rates.py)
-    — a provider setting an offer's price needs these client-side, to show
-    "X Stars = Y Toman, Z commission, W net" as they type, without a
-    round trip per keystroke. Database-backed and admin-editable (see
-    GET/PUT /admin/rates) — every screen already reads it from here
-    instead of hardcoding the numbers, so an admin changing a rate takes
-    effect everywhere immediately.
-    """
+    """Current conversion, withdrawal and complaint settings; purchases have no fee."""
     rates = get_rates(db)
     return {
         "star_to_toman_rate": rates.star_to_toman_rate,
-        "chat_commission_percent": rates.chat_commission_percent,
-        "content_commission_percent": rates.content_commission_percent,
+        "withdrawal_commission_percent": rates.withdrawal_commission_percent,
+        "complaint_commission_percent": rates.complaint_commission_percent,
+        "minimum_withdrawal_toman": rates.minimum_withdrawal_toman,
     }
 
 

@@ -19,7 +19,8 @@ export default function WalletPage() {
 
   useEffect(load, [load])
 
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
+  if (error)
+    return <Placeholder header={t('common.error')}>{error}</Placeholder>
   if (!balance) {
     return (
       <Placeholder>
@@ -45,11 +46,23 @@ export default function WalletPage() {
         <div className="hp-kv-row">
           <span className="hp-kv-label">{t('wallet.pending')}</span>
           <span className="hp-kv-value">
-            {t('wallet.pendingValue', { toman: balance.pending_toman.toLocaleString('en-US') })}
+            {t('wallet.pendingValue', {
+              toman: balance.pending_toman.toLocaleString('en-US'),
+            })}
           </span>
         </div>
       </div>
 
+      {balance.withdrawal_pending_toman > 0 && (
+        <div className="hp-card">
+          <span>{t('finance.withdrawalHeld')}: </span>
+          <span>
+            {t('finance.toman', {
+              amount: balance.withdrawal_pending_toman.toLocaleString(),
+            })}
+          </span>
+        </div>
+      )}
       <div className="hp-field">
         <button
           className="hp-btn hp-btn-gradient"
@@ -57,6 +70,23 @@ export default function WalletPage() {
           onClick={() => navigate('/wallet/topup')}
         >
           {t('wallet.topUpButton')}
+        </button>
+      </div>
+      <div className="finance-page finance-form">
+        <button
+          className="hp-btn-sm"
+          onClick={() => navigate('/wallet/withdraw')}
+        >
+          {t('finance.withdraw')}
+        </button>
+        <button className="hp-btn-sm" onClick={() => navigate('/wallet/banks')}>
+          {t('finance.banks')}
+        </button>
+        <button
+          className="hp-btn-sm"
+          onClick={() => navigate('/wallet/history')}
+        >
+          {t('finance.history')}
         </button>
       </div>
     </div>

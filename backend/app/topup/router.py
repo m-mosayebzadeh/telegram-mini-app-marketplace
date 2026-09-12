@@ -72,7 +72,7 @@ def create_star_invoice(
         payload=invoice_payload,
         stars=payload.stars,
     )
-    return StarInvoiceOut(invoice_link=invoice_link)
+    return StarInvoiceOut(invoice_link=invoice_link, purchase_id=purchase.id)
 
 
 @router.post("/requests", response_model=TopUpRequestOut, status_code=status.HTTP_201_CREATED)
@@ -141,3 +141,13 @@ def get_topup_receipt(
         # (see app/content/router.py's _get_visible_content).
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Top-up request not found.")
     return FileResponse(topup_request.receipt_file_path)
+
+
+@router.get('/stars/purchases/{purchase_id}')
+def star_purchase_status(purchase_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.models.credit_ledger import CreditLedgerEntry
+    purchase = db.get(StarPurchase, purchase_id)
+    if not purchase or purchase.user_id != current_user.id:
+        raise HTTPException(404, 'Purchase not found.')
+    entry = db.query(CreditLedgerEntry).filter_by(star_purchase_id=purchase.id).first()
+    return {'id': purchase.id, 'status': purchase.status.value, 'credited_toman': entry.amount_toman if entry else None}

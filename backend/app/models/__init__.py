@@ -28,3 +28,5 @@ from app.models.star_purchase import StarPurchase  # noqa: F401
 from app.models.topup_request import TopUpRequest  # noqa: F401
 from app.models.transaction import Transaction  # noqa: F401
 from app.models.user import User  # noqa: F401
+
+from app.models.withdrawal import BankAccount, Withdrawal, WithdrawalEvent  # noqa: F401

@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 
 class BalanceOut(BaseModel):
+    withdrawal_pending_toman: int = 0
     # Spendable right now — the sum of this user's own ledger entries.
     balance_toman: int
     # A display-only estimate ("about how many Stars can I spend right

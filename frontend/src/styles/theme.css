@@ -2397,3 +2397,29 @@ button.hp-list-row:active {
   font-size: 18px;
   color: var(--hp-text-muted);
 }
+
+/* Wallet forms use the current theme and remain readable on narrow screens. */
+.finance-page { padding-inline: 12px; }
+.finance-page h1 { font-size: 1.3rem; }
+.finance-page h2 { font-size: 1.1rem; margin-top: 24px; }
+.finance-form { display: grid; gap: 14px; }
+.finance-form label { display: grid; gap: 8px; }
+.finance-form input, .finance-form select, .finance-form textarea {
+  box-sizing: border-box; width: 100%; min-height: 44px; padding: 10px 12px;
+  font: inherit; color: inherit; background: rgba(var(--hp-primary-rgb), .08);
+  border: 1px solid rgba(var(--hp-primary-rgb), .3); border-radius: 12px;
+}
+.finance-form input:focus-visible, .finance-form select:focus-visible, .finance-form textarea:focus-visible { outline: 2px solid var(--hp-primary); outline-offset: 2px; }
+.finance-card { margin: 14px 0; overflow-wrap: anywhere; }
+.finance-card p { margin: 8px 0; }
+.finance-row, .finance-summary > div { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.finance-summary { display: grid; gap: 10px; margin: 10px 0; }
+.finance-summary dd { margin: 0; font-variant-numeric: tabular-nums; }
+.finance-summary > div:last-child { font-weight: 700; }
+.finance-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.finance-page button, .finance-form button { min-height: 44px; }
+.finance-note { font-size: .85rem; line-height: 1.9; opacity: .8; }
+.finance-status-paid { color: var(--hp-primary); }
+.finance-status-bank_pending { color: var(--hp-gold); }
+.finance-status-failed, .finance-status-rejected { color: var(--hp-notify); }
+.finance-page button:disabled, .finance-form button:disabled { opacity: .5; cursor: not-allowed; }

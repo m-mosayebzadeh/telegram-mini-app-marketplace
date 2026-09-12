@@ -205,7 +205,7 @@ def test_closing_does_not_release_funds_immediately(client, db_session):
 
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.star_to_toman_rate  # 40 - 10% commission
+    assert alice_wallet["pending_toman"] == 40 * settings.star_to_toman_rate  # New purchases have no chat commission
 
 
 # --- grace-period auto-release ------------------------------------------
@@ -224,7 +224,7 @@ def test_balance_check_before_grace_period_keeps_funds_pending(client, db_sessio
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.star_to_toman_rate
+    assert alice_wallet["pending_toman"] == 40 * settings.star_to_toman_rate
 
 
 def test_balance_check_after_grace_period_releases_funds(client, db_session):
@@ -239,7 +239,7 @@ def test_balance_check_after_grace_period_releases_funds(client, db_session):
 
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
-    assert alice_wallet["balance_toman"] == 36 * settings.star_to_toman_rate
+    assert alice_wallet["balance_toman"] == 40 * settings.star_to_toman_rate
     assert alice_wallet["pending_toman"] == 0
 
 
@@ -291,7 +291,7 @@ def test_disputing_prevents_the_grace_period_release(client, db_session):
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.star_to_toman_rate
+    assert alice_wallet["pending_toman"] == 40 * settings.star_to_toman_rate
 
 
 def test_cannot_dispute_the_same_session_twice(client, db_session):

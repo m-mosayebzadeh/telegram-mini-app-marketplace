@@ -46,7 +46,8 @@ def test_create_star_invoice_records_a_pending_purchase(client, db_session, monk
     response = client.post("/topup/stars/invoice", headers=_auth_header(1), json={"stars": 50})
 
     assert response.status_code == 201
-    assert response.json() == {"invoice_link": "https://t.me/fake-invoice-link"}
+    assert response.json()["invoice_link"] == "https://t.me/fake-invoice-link"
+    assert response.json()["purchase_id"] > 0
     purchase = db_session.query(StarPurchase).one()
     assert purchase.stars == 50
     assert purchase.status == StarPurchaseStatus.PENDING
@@ -97,6 +98,7 @@ def test_pre_checkout_approves_a_matching_pending_purchase(client, db_session, m
         json={
             "pre_checkout_query": {
                 "id": "query-1",
+                "currency": "XTR", "from": {"id": 2},
                 "invoice_payload": purchase.invoice_payload,
                 "total_amount": 30,
             }
@@ -158,8 +160,10 @@ def test_successful_payment_credits_the_wallet_and_marks_purchase_paid(client, d
         "/telegram/webhook",
         json={
             "message": {
+                "from": {"id": 4},
                 "successful_payment": {
                     "telegram_payment_charge_id": "charge-1",
+                    "currency": "XTR",
                     "invoice_payload": purchase.invoice_payload,
                     "total_amount": 25,
                 }
@@ -180,8 +184,10 @@ def test_successful_payment_is_idempotent_on_replay(client, db_session):
     purchase = _create_pending_purchase(client, db_session, telegram_id=5, stars=10)
     payload = {
         "message": {
+            "from": {"id": 5},
             "successful_payment": {
                 "telegram_payment_charge_id": "charge-2",
+                "currency": "XTR",
                 "invoice_payload": purchase.invoice_payload,
                 "total_amount": 10,
             }
@@ -210,4 +216,15 @@ def test_successful_payment_for_unknown_purchase_does_not_crash(client):
         },
         headers=WEBHOOK_HEADERS,
     )
-    assert response.status_code == 200
+    assert response.status_code == 409
+
+
+def test_successful_payment_rechecks_amount_currency_and_payer(client,db_session):
+    purchase=_create_pending_purchase(client,db_session,telegram_id=77,stars=10)
+    for currency,amount,payer in [('USD',10,77),('XTR',1,77),('XTR',10,88)]:
+        response=client.post('/telegram/webhook',headers=WEBHOOK_HEADERS,json={'message':{'from':{'id':payer},'successful_payment':{
+            'telegram_payment_charge_id':'invalid-charge','invoice_payload':purchase.invoice_payload,'currency':currency,'total_amount':amount}}})
+        assert response.status_code==409
+        assert get_balance_toman(db_session,purchase.user_id)==0
+    db_session.refresh(purchase)
+    assert purchase.status==StarPurchaseStatus.PENDING

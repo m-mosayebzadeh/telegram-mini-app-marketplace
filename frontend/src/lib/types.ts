@@ -42,6 +42,7 @@ export interface Me {
 }
 
 export interface Balance {
+  withdrawal_pending_toman: number
   balance_toman: number
   balance_stars_equivalent: number
   pending_toman: number
@@ -237,8 +238,9 @@ export interface MyProfile {
  * keystroke (see lib/priceBreakdown.ts). */
 export interface PricingConfig {
   star_to_toman_rate: number
-  chat_commission_percent: number
-  content_commission_percent: number
+  withdrawal_commission_percent: number
+  complaint_commission_percent: number
+  minimum_withdrawal_toman: number
 }
 
 /** One row in a followers/following list — GET /follow/{id}/followers or
@@ -295,6 +297,7 @@ export interface TopUpCardInfo {
 /** POST /topup/stars/invoice — see lib/topupApi.ts's createStarInvoice. */
 export interface StarInvoice {
   invoice_link: string
+  purchase_id: number
 }
 
 /** One card-to-card top-up request, from the requester's own point of
@@ -395,7 +398,8 @@ export interface AdminChatSession {
  * rate/commission and never change retroactively. */
 export interface PlatformRates {
   star_to_toman_rate: number
-  chat_commission_percent: number
-  content_commission_percent: number
+  withdrawal_commission_percent: number
+  complaint_commission_percent: number
+  minimum_withdrawal_toman: number
   updated_at: string
 }

@@ -62,6 +62,7 @@ def test_balance_is_zero_for_a_brand_new_user(client):
         "balance_toman": 0,
         "balance_stars_equivalent": 0,
         "pending_toman": 0,
+        "withdrawal_pending_toman": 0,
     }
 
 

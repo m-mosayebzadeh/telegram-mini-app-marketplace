@@ -10,20 +10,39 @@ export default function AdminFinance() {
   const { adminAccess } = useMe()
 
   if (!adminAccess) return null
-  const hasTopups = adminAccess.is_owner || adminAccess.scopes.includes('finance.topups')
-  const hasRates = adminAccess.is_owner || adminAccess.scopes.includes('finance.rates')
+  const hasTopups =
+    adminAccess.is_owner || adminAccess.scopes.includes('finance.topups')
+  const hasRates =
+    adminAccess.is_owner || adminAccess.scopes.includes('finance.rates')
 
   return (
     <div className="hp-page">
       <div className="hp-page-header">{t('admin.sectionFinance')}</div>
       <div className="hp-list">
+        {(adminAccess.is_owner ||
+          adminAccess.scopes.includes('finance.withdrawals')) && (
+          <button
+            className="hp-list-row"
+            onClick={() => navigate('/admin/withdrawals')}
+          >
+            <span className="hp-list-title">
+              {t('finance.adminWithdrawals')}
+            </span>
+          </button>
+        )}
         {hasTopups && (
-          <button className="hp-list-row" onClick={() => navigate('/admin/topups')}>
+          <button
+            className="hp-list-row"
+            onClick={() => navigate('/admin/topups')}
+          >
             <span className="hp-list-title">{t('admin.topupsTitle')}</span>
           </button>
         )}
         {hasRates && (
-          <button className="hp-list-row" onClick={() => navigate('/admin/rates')}>
+          <button
+            className="hp-list-row"
+            onClick={() => navigate('/admin/rates')}
+          >
             <span className="hp-list-title">{t('admin.ratesTitle')}</span>
           </button>
         )}

@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.rates import get_rates
+from app.core.rates import get_rates, lock_finances
 from app.core.time import utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
@@ -76,7 +76,6 @@ def pay_for_item(
     buyer_id: int,
     provider_id: int,
     gross_price_stars: int,
-    commission_rate_percent: int,
     request_id: int | None = None,
     content_id: int | None = None,
 ) -> Transaction:
@@ -110,9 +109,9 @@ def pay_for_item(
     returned Transaction afterwards), so this can take part in a larger
     unit of work later without an awkward nested transaction.
     """
-    commission_stars, net_provider_stars = split_commission(
-        gross_price_stars, commission_rate_percent
-    )
+    lock_finances(db)
+    commission_rate_percent = 0
+    commission_stars, net_provider_stars = 0, gross_price_stars
     rate = get_rates(db).star_to_toman_rate
     gross_toman = gross_price_stars * rate
     commission_toman = commission_stars * rate
@@ -177,17 +176,18 @@ def _credit_provider_and_commission(db: Session, transaction: Transaction) -> No
             transaction_id=transaction.id,
         )
     )
-    db.add(
-        CreditLedgerEntry(
-            # No user: this entry is platform commission revenue, not
-            # money owed to anyone's spendable wallet (see
-            # ck_commission_entries_have_no_user on CreditLedgerEntry).
-            user_id=None,
-            amount_toman=transaction.commission_toman,
-            type=LedgerEntryType.COMMISSION,
-            transaction_id=transaction.id,
+    if transaction.commission_toman > 0:
+        db.add(
+            CreditLedgerEntry(
+                # No user: this entry is platform commission revenue, not
+                # money owed to anyone's spendable wallet (see
+                # ck_commission_entries_have_no_user on CreditLedgerEntry).
+                user_id=None,
+                amount_toman=transaction.commission_toman,
+                type=LedgerEntryType.COMMISSION,
+                transaction_id=transaction.id,
+            )
         )
-    )
 
 
 def release_transaction(db: Session, transaction: Transaction) -> None:
@@ -198,15 +198,16 @@ def release_transaction(db: Session, transaction: Transaction) -> None:
     _credit_provider_and_commission() a CONTENT_PURCHASE gets immediately.
 
     Does NOT commit (same convention as pay_for_item — caller commits).
-    Callers must check transaction.status == PENDING themselves before
-    calling this; calling it twice on an already-released transaction
-    would double-pay the provider, since there's no guard here against
-    that (deliberately — this is an internal building block, not a route
-    handler with its own validation). See release_due_chat_transactions()
-    below for the actual policy of WHEN a transaction becomes releasable.
+    The database lock and refreshed status make repeated releases harmless.
+    Historical transactions retain their frozen commission; new ones have zero.
     """
+    lock_finances(db)
+    db.refresh(transaction)
+    if transaction.status != TransactionStatus.PENDING or transaction.disputed_at is not None:
+        return
     transaction.status = TransactionStatus.SUCCEEDED
     _credit_provider_and_commission(db, transaction)
+    db.flush()
 
 
 def release_due_chat_transactions(db: Session, provider_id: int) -> None:
@@ -232,6 +233,7 @@ def release_due_chat_transactions(db: Session, provider_id: int) -> None:
     this is a self-contained sweep, not a step inside a larger unit of
     work the caller is assembling.
     """
+    lock_finances(db)
     cutoff = utcnow() - timedelta(hours=settings.chat_release_grace_hours)
 
     due_transactions = (

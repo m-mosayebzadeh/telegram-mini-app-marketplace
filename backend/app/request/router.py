@@ -21,6 +21,7 @@ Business rules from TECHNICAL_REQUIREMENTS.md section 4:
     request needs its own anti-abuse mechanism and isn't built yet.
 """
 
+from app.core.rates import lock_finances
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -402,6 +403,7 @@ def pay_for_request(
     separate action, so a paid request can never end up without one (see
     app/models/chat_session.py).
     """
+    lock_finances(db)
     req = _get_buyers_request(db, request_id, current_user.id)
     if req.status != RequestStatus.ACCEPTED:
         raise HTTPException(
@@ -430,7 +432,6 @@ def pay_for_request(
             buyer_id=current_user.id,
             provider_id=req.offer.provider_id,
             gross_price_stars=req.offer.price_stars,
-            commission_rate_percent=get_rates(db).chat_commission_percent,
             request_id=req.id,
         )
     except InsufficientBalanceError as exc:

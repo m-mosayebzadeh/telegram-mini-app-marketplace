@@ -12,6 +12,7 @@ import { IconArrowNarrowLeft } from '../components/icons'
 // instead of building the key from the scope string itself) — add a row
 // here whenever a new admin subsection becomes independently grantable.
 const AVAILABLE_SCOPES: { scope: string; labelKey: string }[] = [
+  { scope: 'finance.withdrawals', labelKey: 'finance.adminWithdrawals' },
   { scope: 'finance.topups', labelKey: 'admin.scopeFinanceTopups' },
   { scope: 'finance.rates', labelKey: 'admin.scopeFinanceRates' },
 ]
@@ -27,7 +28,7 @@ export default function AdminRoleDetail() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { id } = useParams()
-  const isNew = id === 'new'
+  const isNew = id == null || id === 'new'
   const roleId = isNew ? null : Number(id)
 
   const [name, setName] = useState('')
