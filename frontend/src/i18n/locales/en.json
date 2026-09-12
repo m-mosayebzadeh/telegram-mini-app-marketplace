@@ -122,7 +122,9 @@
     "birthdayCountdown": "{{count}} days left",
     "themeLabel": "Theme",
     "themeDark": "Dark",
-    "themeLight": "Light"
+    "themeLight": "Light",
+    "followersEmptyHint": "Nobody is following yet.",
+    "followingEmptyHint": "Nobody followed yet."
   },
   "settings": {
     "title": "Settings",
@@ -136,7 +138,8 @@
     "linkWithCount": "Follow requests ({{count}} pending)",
     "title": "Follow requests",
     "none": "No follow requests yet",
-    "followBack": "Follow back"
+    "followBack": "Follow back",
+    "noneHint": "When someone asks to follow you, their request lands here."
   },
   "providerSummary": {
     "title": "Provider summary",
@@ -334,7 +337,12 @@
     "liveConflictMessage": "You already have an active request with this provider. Resolve or cancel it first.",
     "viewMyRequestsButton": "View my requests",
     "openAcceptedRequestError": "You already have an open accepted request — finish it before accepting this one.",
-    "noIncomingRequestsHint": "When someone requests this offer, they show up here."
+    "noIncomingRequestsHint": "When someone requests this offer, they show up here.",
+    "createSuccess": "Your offer is live",
+    "titlePlaceholder": "e.g. A chat about books and film",
+    "descriptionPlaceholder": "Say exactly what you offer and what to expect.",
+    "minutesUnit": "min",
+    "durationHint": "For the buyer's information only — no timer closes a session."
   },
   "requests": {
     "mineTitle": "My requests",
@@ -386,7 +394,8 @@
     "purchaseSuccess": "Unlocked",
     "insufficientBalance": "Insufficient balance — top up your wallet first",
     "videoBadge": "Video",
-    "pinnedBadge": "Pinned"
+    "pinnedBadge": "Pinned",
+    "title": "Content"
   },
   "chatSession": {
     "title": "Chat session",
@@ -540,6 +549,9 @@
     },
     "awaitingCredit": "Waiting for server confirmation of your top-up",
     "checkPayment": "Check payment status",
-    "withdrawableCeiling": "Available to withdraw: {{amount}} Toman"
+    "withdrawableCeiling": "Available to withdraw: {{amount}} Toman",
+    "emptyHistoryHint": "Every top-up, purchase and withdrawal is recorded here.",
+    "noBanksHint": "To withdraw, first add a bank account in your own name.",
+    "emptyWithdrawalsHint": "Once you request a withdrawal, you follow it here."
   }
 }

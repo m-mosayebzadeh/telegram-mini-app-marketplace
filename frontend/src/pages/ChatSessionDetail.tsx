@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, formatApiError } from '../lib/api'
+import { ErrorState, PageHeader, SkeletonRows, useToast } from '../components/ui'
 import { composeMessage, deliverMessage, listMessages } from '../lib/chatMessageApi'
 import { mergeMessages } from '../lib/chatMessageMerge'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
@@ -37,10 +37,10 @@ export default function ChatSessionDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { me } = useMe()
+  const toast = useToast()
 
   const [session, setSession] = useState<ChatSession | null>(null)
   const [sessionError, setSessionError] = useState<string | null>(null)
-  const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
@@ -54,6 +54,7 @@ export default function ChatSessionDetail() {
   const [messagesError, setMessagesError] = useState<string | null>(null)
 
   const loadSession = useCallback(() => {
+    setSessionError(null)
     apiFetch<ChatSession>(`/chat-sessions/${id}`)
       .then(setSession)
       .catch((err) => setSessionError(formatApiError(err)))
@@ -99,7 +100,7 @@ export default function ChatSessionDetail() {
       setConfirmCloseOpen(false)
       loadSession()
     } catch (err) {
-      setActionMessage(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setClosingSession(false)
     }
@@ -108,10 +109,10 @@ export default function ChatSessionDetail() {
   async function disputeSession() {
     try {
       await apiFetch(`/chat-sessions/${id}/dispute`, { method: 'POST' })
-      setActionMessage(t('chatSession.disputeSuccess'))
+      toast.success(t('chatSession.disputeSuccess'))
       loadSession()
     } catch (err) {
-      setActionMessage(formatApiError(err))
+      toast.error(formatApiError(err))
     }
   }
 
@@ -141,12 +142,24 @@ export default function ChatSessionDetail() {
     })
   }
 
-  if (sessionError) return <Placeholder header={t('common.error')}>{sessionError}</Placeholder>
+  if (sessionError) {
+    return (
+      <div className="ui-page">
+        <PageHeader title={t('chatSession.title')} onBack={() => navigate(-1)} />
+        <div className="ui-page-body">
+          <ErrorState text={sessionError} onRetry={loadSession} />
+        </div>
+      </div>
+    )
+  }
   if (!session || !me) {
     return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
+      <div className="ui-page">
+        <PageHeader title={t('chatSession.title')} onBack={() => navigate(-1)} />
+        <div className="ui-page-body">
+          <SkeletonRows count={4} />
+        </div>
+      </div>
     )
   }
 
@@ -174,10 +187,10 @@ export default function ChatSessionDetail() {
         onBlockClick={() => {
           setMoreMenuOpen(false)
           // No real blocking system exists anywhere in this app yet
-          // (see ProfileHeader.tsx's identical placeholder) — reusing
-          // the same "not available yet" message rather than inventing
-          // a second, differently-worded stub.
-          setActionMessage(t('profilePage.moreComingSoon'))
+          // (see ProfileTab.tsx's identical placeholder) — reusing the
+          // same "not available yet" message rather than inventing a
+          // second, differently-worded stub.
+          toast.error(t('profilePage.moreComingSoon'))
         }}
       />
 
@@ -188,7 +201,6 @@ export default function ChatSessionDetail() {
         onRequestClose={() => setConfirmCloseOpen(true)}
         onDispute={disputeSession}
         canDispute={canDispute}
-        actionMessage={actionMessage}
       />
 
       <MessageList

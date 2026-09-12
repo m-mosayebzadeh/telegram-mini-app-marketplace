@@ -186,3 +186,81 @@
 [dir='rtl'] .ui-switch[aria-checked='true']::after {
   transform: translateX(-20px);
 }
+
+/* A stack of fields. One gap, set once, instead of every field carrying
+   its own margin — which is how forms end up with uneven spacing that
+   nobody can find the source of. */
+.co-form {
+  display: grid;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+}
+
+/* ---------- grouped rows ---------- */
+
+/* Two or more fields that are halves of ONE answer — a first and last
+   name — share a block with a divider between them, rather than each
+   getting its own bordered box. Two boxes say "two questions". */
+.ep-group {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.ep-group-input {
+  min-height: 48px;
+  padding: var(--space-3) var(--space-4);
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font: var(--text-body);
+}
+
+.ep-group-input + .ep-group-input {
+  border-top: 1px solid var(--color-border);
+}
+
+.ep-group-input:focus {
+  outline: none;
+  background: var(--color-surface-2);
+}
+
+/* The interests as they will actually render, under the field that
+   produced them. */
+.ep-interest-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* Save sits in the header on a page of small edits. Accent, because it
+   is still the page's primary action even at 44×44. */
+.ep-save:not(:disabled) {
+  color: var(--color-accent-ink);
+}
+
+/* ---------- birthday ---------- */
+
+/* Year, month, day. The month name is the longest, so it takes the
+   slack; the two numeric columns stay the width of their digits. */
+.ep-birthday {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.ep-birthday-select {
+  min-height: 48px;
+  /* A select renders its own arrow; the padding has to leave room for
+     it on the side the page actually ends on. */
+  padding-inline-end: var(--space-6);
+}
+
+.ep-birthday-hint {
+  margin-top: var(--space-3);
+}

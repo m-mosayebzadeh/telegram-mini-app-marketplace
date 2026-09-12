@@ -1,0 +1,110 @@
+/**
+ * One content item, full view.
+ *
+ * The locked state is the one moment in the product whose job is to make
+ * unlocking feel inviting rather than punitive — but it does that with
+ * an inviting OFFER, not with decoration. It is a plain surface with a
+ * mark, a line of copy, and the button.
+ */
+
+.cd-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin-top: var(--space-4);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+
+.cd-media img,
+.cd-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Letterbox bars for anything that is not square. Black, not a theme
+     colour: a photo sits on black in every viewer ever built. */
+  background: #000;
+}
+
+.cd-media-loading,
+.cd-skeleton {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-lg);
+}
+
+.cd-skeleton {
+  margin-top: var(--space-4);
+}
+
+.cd-lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  text-align: center;
+  background: var(--color-surface-2);
+}
+
+.cd-lock-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-accent-ink);
+}
+
+.cd-lock-copy {
+  max-width: 30ch;
+  font: var(--text-body);
+  color: var(--color-text-2);
+}
+
+/* ---------- actions ---------- */
+
+.cd-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.cd-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-min);
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  font: var(--text-label);
+  transition: color var(--motion-fast) var(--ease);
+}
+
+/* On is the accent on the icon and the label — no fill. A filled pill
+   would make "I liked this" the loudest thing on the screen, above the
+   photo it is about. */
+.cd-action-on {
+  color: var(--color-accent-ink);
+}
+
+.cd-action:active {
+  transform: scale(0.97);
+}
+
+.cd-action:disabled {
+  opacity: 0.45;
+}
+
+/* Delete sits in the header, deliberately away from the thumb. */
+.cd-delete {
+  color: var(--color-danger);
+}

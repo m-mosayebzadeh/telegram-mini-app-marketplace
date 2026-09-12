@@ -336,41 +336,6 @@
 
 /* ---------- tabs ---------- */
 
-.hp-tab {
-  flex: 1;
-  background: none;
-  border: none;
-  padding: 13px 0;
-  font-size: 14.5px;
-  font-weight: 700;
-  font-family: var(--hp-font);
-  color: var(--hp-text-muted);
-  cursor: pointer;
-  position: relative;
-}
-
-.hp-tab.hp-tab-active {
-  color: var(--hp-text);
-}
-
-.hp-tab.hp-tab-active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  inset-inline-start: 28%;
-  inset-inline-end: 28%;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--hp-grad);
-}
-
-.hp-tab:disabled {
-  cursor: default;
-  opacity: 0.45;
-}
-
-/* ---------- content grid ---------- */
-
 .hp-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -527,30 +492,6 @@
   margin-bottom: 7px;
 }
 
-.hp-birthday-edit-row {
-  display: flex;
-  gap: 8px;
-}
-
-.hp-birthday-select {
-  flex: 2;
-  border: 1px solid var(--hp-hairline);
-  background: var(--hp-glass);
-  color: var(--hp-text);
-  border-radius: 12px;
-  padding: 10px 8px;
-  font-size: 13.5px;
-  font-family: var(--hp-font);
-}
-
-.hp-birthday-select-day {
-  flex: 1;
-}
-
-.hp-birthday-select:disabled {
-  opacity: 0.5;
-}
-
 .hp-segmented {
   display: flex;
   gap: 7px;
@@ -644,109 +585,13 @@
 
 /* ---------- theme switcher (components/ThemeSwitcher.tsx) ---------- */
 
-.hp-detail-hero {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 24px;
-  overflow: hidden;
-  background: var(--hp-glass);
-  border: 1px solid var(--hp-hairline);
-}
-
-.hp-detail-media {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  background: #000;
-}
-
-.hp-detail-lock {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 24px;
-  text-align: center;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--hp-primary) 45%, transparent),
-    color-mix(in srgb, var(--hp-secondary) 40%, transparent) 50%,
-    color-mix(in srgb, var(--hp-tertiary) 45%, transparent)
-  );
-  background-size: 200% 200%;
-  animation: hp-shimmer 6s ease-in-out infinite;
-}
-
-.hp-detail-lock-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--color-scrim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-}
-
-.hp-detail-lock-copy {
-  color: var(--color-on-scrim);
-  font-size: 14px;
-  font-weight: 500;
-  max-width: 260px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-}
-
-.hp-icon-row {
-  display: flex;
-  gap: 9px;
-  margin-top: 14px;
-}
-
-.hp-icon-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  background: var(--hp-glass);
-  border: 1px solid var(--hp-hairline);
-  border-radius: 16px;
-  padding: 12px;
-  color: var(--hp-text);
-  font-size: 13.5px;
-  font-weight: 700;
-  font-family: var(--hp-font);
-  cursor: pointer;
-  transition: transform 0.12s ease;
-}
-
-.hp-icon-btn:active {
-  transform: scale(0.96);
-}
-
-.hp-icon-btn.hp-icon-btn-active {
-  background: var(--hp-grad-soft);
-  border-color: color-mix(in srgb, var(--hp-secondary) 40%, transparent);
-}
-
-.hp-icon-btn:disabled {
-  opacity: 0.5;
-}
-
-/* ---------- chat session (TECHNICAL_REQUIREMENTS.md section 12) ---------- */
-
 .hp-chat-page {
   display: flex;
   flex-direction: column;
-  /* The page shell already reserves room for the app's own bottom tab
-     bar; this just makes sure the chat column itself never grows taller
-     than the viewport, so the message list — not the whole page — is
-     what scrolls. */
-  min-height: 100vh;
+  padding-bottom: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .hp-chat-header {
@@ -1257,44 +1102,6 @@
    with a hairline divider between the two rows, rather than two
    separate boxed fields — this is that pattern, kept generic enough to
    reuse anywhere a couple of related plain-text fields belong together. */
-.hp-grouped-card {
-  margin: 12px 12px 0;
-  background: var(--hp-glass);
-  border: 1px solid var(--hp-hairline);
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.hp-grouped-row {
-  padding: 12px 14px;
-}
-
-.hp-grouped-row:not(:last-child) {
-  border-bottom: 1px solid var(--hp-hairline);
-}
-
-.hp-grouped-input {
-  width: 100%;
-  border: none;
-  background: none;
-  outline: none;
-  padding: 0;
-  font-size: 15px;
-  font-family: var(--hp-font);
-  color: var(--hp-text);
-}
-
-.hp-grouped-input::placeholder {
-  color: var(--hp-text-muted);
-}
-
-/* A small trailing character count, e.g. Bio's Input `after` slot. */
-.hp-char-count {
-  font-size: 12.5px;
-  color: var(--hp-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
 .hp-page-header {
   padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 10px;
   font-size: 20px;
@@ -1444,12 +1251,6 @@ button.hp-list-row:active {
   white-space: nowrap;
 }
 
-.hp-btn-sm-filled {
-  background: var(--hp-grad);
-  color: var(--color-on-accent);
-  border-color: transparent;
-}
-
 .hp-btn-sm:disabled {
   opacity: 0.5;
   cursor: default;
@@ -1502,17 +1303,6 @@ button.hp-list-row:active {
 /* A single consistently-padded wrapper for a whole tab's worth of
    content — every child lines up on the exact same left/right edge
    without each one needing its own margin (see pages/TopUp.tsx). */
-.hp-tab-body {
-  padding: 0 12px;
-}
-
-/* ---------- top-up: pros/cons list ---------- */
-
-/* No horizontal margin of its own — these three (.hp-proscons,
-   .hp-bank-card, .hp-converter) are always used together inside one
-   consistently-padded wrapper (see pages/TopUp.tsx's `.hp-tab-body`),
-   so every element on the tab shares the exact same left/right edge
-   instead of each one guessing its own margin number. */
 .hp-status-pill {
   display: inline-flex;
   align-items: center;

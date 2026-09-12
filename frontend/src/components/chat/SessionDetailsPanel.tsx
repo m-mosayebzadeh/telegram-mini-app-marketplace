@@ -16,7 +16,6 @@ interface SessionDetailsPanelProps {
   onRequestClose: () => void
   onDispute: () => void
   canDispute: boolean
-  actionMessage: string | null
 }
 
 /**
@@ -39,7 +38,6 @@ export function SessionDetailsPanel({
   onRequestClose,
   onDispute,
   canDispute,
-  actionMessage,
 }: SessionDetailsPanelProps) {
   const { t } = useTranslation()
 
@@ -102,7 +100,6 @@ export function SessionDetailsPanel({
         </p>
       )}
 
-      {actionMessage && <p className="hp-hint">{actionMessage}</p>}
     </div>
   )
 }

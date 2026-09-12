@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PageHeader } from '../components/ui'
+import {
+  PageHeader,
+  Button,
+  EmptyState,
+  SkeletonRows,
+  StatList,
+} from '../components/ui'
+import { DropAmount } from '../components/ui/Drop'
 import { apiFetch, ApiError } from '../lib/api'
 import {
   bankAccounts,
@@ -14,7 +21,6 @@ import {
   type WithdrawalQuote,
 } from '../lib/withdrawalApi'
 import {
-  MoneySummary,
   WithdrawalCard,
 } from '../components/Finance'
 
@@ -130,14 +136,16 @@ export default function Withdraw() {
     Number(stars) <= 1_000_000_000 &&
     !!selected
   return (
-    <div className="ui-page finance-page">
+    <div className="ui-page">
       <PageHeader title={t('finance.withdraw')} onBack={() => navigate('/wallet')} />
-      <div className="hp-card finance-card">
-        <div className="finance-form">
-          <label>
-            {t('finance.stars')}
+
+      <div className="ui-page-body">
+        <div className="co-form">
+          <label className="ui-field" htmlFor="withdraw-amount">
+            <span className="ui-field-label">{t('finance.stars')}</span>
             <input
-              dir="ltr"
+              id="withdraw-amount"
+              className="ui-input ui-input-numeric wd-amount"
               inputMode="numeric"
               disabled={busy}
               value={stars}
@@ -147,9 +155,14 @@ export default function Withdraw() {
               }}
             />
           </label>
-          <label>
-            {t('finance.destination')}
+
+          <div className="ui-field">
+            <label className="ui-field-label" htmlFor="withdraw-bank">
+              {t('finance.destination')}
+            </label>
             <select
+              id="withdraw-bank"
+              className="ui-input wd-select"
               disabled={busy}
               value={bankId}
               onChange={(e) => {
@@ -164,96 +177,145 @@ export default function Withdraw() {
                 </option>
               ))}
             </select>
-          </label>
-          <button
-            className="hp-btn-sm"
-            disabled={busy}
-            onClick={() =>
-              navigate('/wallet/banks', { state: { from: '/wallet/withdraw' } })
-            }
-          >
-            {t('finance.manageBanks')}
-          </button>
-          {!quote && (
             <button
-              className="hp-btn hp-btn-gradient"
-              disabled={!valid || busy}
-              onClick={preview}
-            >
-              {t(busy ? 'common.loading' : 'finance.preview')}
-            </button>
-          )}
-          {quote && (
-            <>
-              <p>
-                {quote.stars} ⭐ ·{' '}
-                {t('finance.rate', {
-                  amount: quote.star_rate.toLocaleString(i18n.language),
-                })}
-              </p>
-              <MoneySummary quote={quote} />
-              <p className="finance-note">
-                {t('finance.minimum', {
-                  amount: quote.minimum_toman.toLocaleString(i18n.language),
-                })}
-              </p>
-              {/* Only money earned on the platform can be withdrawn, so the
-                  ceiling is usually lower than the wallet balance. Saying it
-                  here, before the confirm button, is the difference between a
-                  clear limit and a rejected request. */}
-              <p className="finance-note">
-                {t('finance.withdrawableCeiling', {
-                  amount: quote.withdrawable_toman.toLocaleString(i18n.language),
-                })}
-              </p>
-              {selected && (
-                <p>
-                  {selected.holder_name}
-                  <br />
-                  <bdi dir="ltr">{selected.card_number}</bdi>
-                  <br />
-                  <bdi dir="ltr">{selected.iban}</bdi>
-                </p>
-              )}
-              <button
-                className="hp-btn hp-btn-gradient"
-                disabled={
-                  busy ||
-                  !valid ||
-                  quote.gross_toman < quote.minimum_toman ||
-                  quote.net_toman <= 0
-                }
-                onClick={submit}
-              >
-                {t(busy ? 'common.loading' : 'finance.confirmWithdrawal')}
-              </button>
-            </>
-          )}
-          <p className="finance-note">{t('finance.transferTime')}</p>
-          {error && (
-            <p role="alert" className="hp-error">
-              {error}
-            </p>
-          )}
-          {notice && <p role="status">{notice}</p>}
-        </div>
-      </div>
-      <h2>{t('finance.withdrawHistory')}</h2>
-      {loading && <p>{t('common.loading')}</p>}
-      {!loading && !rows.length && <p>{t('finance.emptyHistory')}</p>}
-      {rows.map((row) => (
-        <WithdrawalCard key={row.id} row={row}>
-          {row.status === 'pending' && (
-            <button
-              className="hp-btn-sm"
+              type="button"
+              className="wd-manage"
               disabled={busy}
-              onClick={() => cancel(row.id)}
+              onClick={() => navigate('/wallet/banks', { state: { from: '/wallet/withdraw' } })}
             >
-              {t('finance.cancel')}
+              {t('finance.manageBanks')}
             </button>
+          </div>
+        </div>
+
+        {/* Two steps on purpose: nothing is requested until the exact
+            figures have been shown and confirmed. The fee comes out of
+            the amount, so "how much do I actually receive" has to be
+            answered before the decision, not after it. */}
+        {quote && (
+          <section className="wd-quote">
+            <StatList
+              stats={[
+                {
+                  label: t('finance.stars'),
+                  value: <DropAmount amount={quote.stars} locale={i18n.language} size={16} />,
+                  note: t('finance.rate', {
+                    amount: quote.star_rate.toLocaleString(i18n.language),
+                  }),
+                },
+                {
+                  label: t('finance.gross_toman'),
+                  value: t('finance.toman', {
+                    amount: quote.gross_toman.toLocaleString(i18n.language),
+                  }),
+                },
+                {
+                  label: `${t('finance.fee_toman')} (${quote.fee_percent}%)`,
+                  value: t('finance.toman', {
+                    amount: quote.fee_toman.toLocaleString(i18n.language),
+                  }),
+                },
+                {
+                  label: t('finance.net_toman'),
+                  value: t('finance.toman', {
+                    amount: quote.net_toman.toLocaleString(i18n.language),
+                  }),
+                },
+              ]}
+            />
+
+            <p className="wd-note">
+              {t('finance.minimum', {
+                amount: quote.minimum_toman.toLocaleString(i18n.language),
+              })}
+            </p>
+            {/* Only money EARNED on the platform can be withdrawn, so the
+                ceiling is usually lower than the wallet balance. Said
+                before the confirm button, this is the difference between
+                a clear limit and a rejected request. */}
+            <p className="wd-note">
+              {t('finance.withdrawableCeiling', {
+                amount: quote.withdrawable_toman.toLocaleString(i18n.language),
+              })}
+            </p>
+
+            {selected && (
+              <div className="wd-destination">
+                <span className="wd-destination-name" dir="auto">
+                  {selected.holder_name}
+                </span>
+                <span className="ba-number tabular">
+                  <bdi dir="ltr">{selected.card_number.replace(/(.{4})/g, '$1 ').trim()}</bdi>
+                </span>
+                <span className="ba-number tabular">
+                  <bdi dir="ltr">{selected.iban}</bdi>
+                </span>
+              </div>
+            )}
+          </section>
+        )}
+
+        <p className="wd-note wd-transfer-time">{t('finance.transferTime')}</p>
+
+        {error && (
+          <p className="ui-field-error" role="alert">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p className="wd-notice" role="status">
+            {notice}
+          </p>
+        )}
+
+        <section className="ui-section">
+          <h2 className="ui-section-title">{t('finance.withdrawHistory')}</h2>
+          {loading ? (
+            <SkeletonRows count={2} />
+          ) : rows.length === 0 ? (
+            <EmptyState title={t('finance.emptyHistory')} text={t('finance.emptyWithdrawalsHint')} />
+          ) : (
+            rows.map((row) => (
+              <WithdrawalCard key={row.id} row={row}>
+                {row.status === 'pending' && (
+                  <Button variant="danger" size="sm" disabled={busy} onClick={() => cancel(row.id)}>
+                    {t('finance.cancel')}
+                  </Button>
+                )}
+              </WithdrawalCard>
+            ))
           )}
-        </WithdrawalCard>
-      ))}
+        </section>
+      </div>
+
+      {/* One pinned action that changes what it does: preview first,
+          then confirm. Two buttons would offer a confirm before there is
+          anything to confirm. */}
+      <div className="ui-action-bar">
+        {quote ? (
+          <Button
+            variant="primary"
+            size="lg"
+            block
+            loading={busy}
+            disabled={!valid || quote.gross_toman < quote.minimum_toman || quote.net_toman <= 0}
+            onClick={submit}
+          >
+            {t('finance.confirmWithdrawal')}
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            size="lg"
+            block
+            loading={busy}
+            disabled={!valid}
+            onClick={preview}
+          >
+            {t('finance.preview')}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

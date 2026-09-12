@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { setDevUserChoice } from '../lib/session'
+import { PageHeader, ErrorState } from '../components/ui'
+import { IconChevron, IconPersonFallback } from '../components/icons'
 
 /**
  * Shown instead of the whole app whenever there's no real Telegram
@@ -56,21 +58,38 @@ export default function Login() {
   }
 
   return (
-    <div className="hp-page">
-      <div className="hp-page-header">{t('login.title')}</div>
+    <div className="ui-page">
+      {/* No back: this replaces the whole app until a user is chosen. */}
+      <PageHeader title={t('login.title')} />
 
-      <div className="hp-list">
-        {TEST_USERS.map((user) => (
-          <button key={user.telegramId} className="hp-list-row" onClick={() => loginAs(user)}>
-            <div className="hp-list-row-main">
-              <span className="hp-list-title">{user.firstName}</span>
-              <span className="hp-list-subtitle">{t('login.noPassword')}</span>
-            </div>
-          </button>
-        ))}
+      <div className="ui-page-body">
+        {error ? (
+          <ErrorState text={error} onRetry={() => setError(null)} />
+        ) : (
+          <div className="ui-list">
+            {TEST_USERS.map((user) => (
+              <button
+                type="button"
+                className="ui-row ui-row-avatar"
+                key={user.telegramId}
+                onClick={() => loginAs(user)}
+              >
+                <span className="ui-row-media">
+                  <IconPersonFallback size={22} />
+                </span>
+                <span className="ui-row-main">
+                  <span className="ui-row-title">{user.firstName}</span>
+                  <span className="ui-row-subtitle">@{user.username}</span>
+                </span>
+                <span className="ui-row-trailing">
+                  {t('login.noPassword')}
+                  <IconChevron size={20} className="ui-row-chevron" />
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
-
-      {error && <p className="hp-error" style={{ padding: '0 16px' }}>{error}</p>}
     </div>
   )
 }

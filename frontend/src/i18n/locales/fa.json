@@ -122,7 +122,9 @@
     "birthdayCountdown": "{{count}} روز مانده",
     "themeLabel": "تم",
     "themeDark": "تاریک",
-    "themeLight": "روشن"
+    "themeLight": "روشن",
+    "followersEmptyHint": "هنوز کسی اینجا رو دنبال نمی‌کنه.",
+    "followingEmptyHint": "هنوز کسی دنبال نشده."
   },
   "settings": {
     "title": "تنظیمات",
@@ -136,7 +138,8 @@
     "linkWithCount": "درخواست‌های دنبال کردن ({{count}} در انتظار)",
     "title": "درخواست‌های دنبال کردن",
     "none": "فعلاً درخواستی نداشتید",
-    "followBack": "فالو بک"
+    "followBack": "فالو بک",
+    "noneHint": "وقتی کسی بخواد دنبالت کنه، درخواستش همین‌جا میاد."
   },
   "providerSummary": {
     "title": "خلاصه ارائه‌دهنده",
@@ -334,7 +337,12 @@
     "liveConflictMessage": "شما همین الان یک درخواستِ فعال با این ارائه‌دهنده دارید. اول باید تعیین تکلیفش کنید یا لغوش کنید.",
     "viewMyRequestsButton": "نمایش درخواست‌ها",
     "openAcceptedRequestError": "شما همین الان یک درخواستِ پذیرفته‌شده و ناتمام دارید — قبل از پذیرشِ این یکی، اول اون رو تمام کنید.",
-    "noIncomingRequestsHint": "وقتی کسی این پیشنهاد رو درخواست کنه، همین‌جا می‌بینیش."
+    "noIncomingRequestsHint": "وقتی کسی این پیشنهاد رو درخواست کنه، همین‌جا می‌بینیش.",
+    "createSuccess": "پیشنهادت ساخته شد",
+    "titlePlaceholder": "مثلاً: گپ درباره‌ی کتاب و فیلم",
+    "descriptionPlaceholder": "بگو دقیقاً چی ارائه می‌دی و طرف مقابل چه انتظاری داشته باشه.",
+    "minutesUnit": "دقیقه",
+    "durationHint": "فقط برای اطلاع خریدار — هیچ تایمری نشست رو نمی‌بنده."
   },
   "requests": {
     "mineTitle": "درخواست‌های من",
@@ -386,7 +394,8 @@
     "purchaseSuccess": "باز شد",
     "insufficientBalance": "موجودی کافی نیست — اول کیف پول رو شارژ کنید",
     "videoBadge": "ویدیو",
-    "pinnedBadge": "سنجاق‌شده"
+    "pinnedBadge": "سنجاق‌شده",
+    "title": "محتوا"
   },
   "chatSession": {
     "title": "نشست چت",
@@ -540,6 +549,9 @@
     },
     "awaitingCredit": "در انتظار تأیید شارژ توسط سامانه",
     "checkPayment": "بررسی وضعیت پرداخت",
-    "withdrawableCeiling": "قابل برداشت شما: {{amount}} تومان"
+    "withdrawableCeiling": "قابل برداشت شما: {{amount}} تومان",
+    "emptyHistoryHint": "هر شارژ، خرید و برداشتی که انجام بدی اینجا ثبت می‌شه.",
+    "noBanksHint": "برای برداشت، اول باید یک حساب بانکی به نام خودت اضافه کنی.",
+    "emptyWithdrawalsHint": "وقتی برداشتی ثبت کنی، وضعیتش اینجا دنبال می‌شه."
   }
 }

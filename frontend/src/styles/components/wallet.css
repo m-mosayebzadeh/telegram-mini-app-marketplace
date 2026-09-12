@@ -66,3 +66,139 @@
 .wl-links {
   margin-top: var(--space-6);
 }
+
+/* ---------- history ---------- */
+
+.wh-trailing {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+/* Money out is the default: most entries are spending, and colouring
+   every one of them would make the colour meaningless. Only money IN
+   takes the success colour. */
+.wh-amount {
+  font: var(--text-body-md);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.wh-amount-credit {
+  color: var(--color-success);
+}
+
+.wh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-caption);
+  color: var(--color-accent-ink);
+  white-space: nowrap;
+}
+
+/* ---------- bank accounts ---------- */
+
+/* Stated before anyone enters an account, not under the list where it
+   would read as a footnote to accounts already saved. */
+.ba-warning {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 2px solid var(--color-warning);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  font: var(--text-caption);
+  line-height: 20px;
+  color: var(--color-text-2);
+}
+
+[dir='rtl'] .ba-warning {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.ba-row {
+  display: flex;
+  align-items: center;
+}
+
+.ba-row + .ba-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.ba-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ba-manage {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+
+.ba-number {
+  letter-spacing: 0.04em;
+}
+
+/* ---------- withdraw ---------- */
+
+.wd-amount {
+  font: var(--text-title);
+}
+
+.wd-select {
+  min-height: 48px;
+  padding-inline-end: var(--space-6);
+}
+
+/* A link out to the bank list, under the field it is about. */
+.wd-manage {
+  align-self: flex-start;
+  min-height: var(--touch-min);
+  font: var(--text-label);
+  color: var(--color-accent-ink);
+}
+
+.wd-quote {
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* The quote's own last line is the one the eye should land on. */
+.wd-quote .ui-stat-row:last-child .ui-stat-value {
+  font: var(--text-heading);
+  color: var(--color-accent-ink);
+}
+
+.wd-note {
+  margin-top: var(--space-2);
+  font: var(--text-caption);
+  line-height: 20px;
+  color: var(--color-text-2);
+}
+
+.wd-transfer-time {
+  margin-top: var(--space-4);
+}
+
+.wd-notice {
+  margin-top: var(--space-3);
+  font: var(--text-caption);
+  color: var(--color-success);
+}
+
+.wd-destination {
+  display: grid;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+.wd-destination-name {
+  font: var(--text-body-md);
+  color: var(--color-text);
+}

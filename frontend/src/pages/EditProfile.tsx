@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Input, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { ApiError, apiFetch, formatApiError } from '../lib/api'
 import {
   daysInJalaliMonth,
@@ -12,7 +11,8 @@ import {
   toPersianDigits,
 } from '../lib/jalali'
 import { Sheet } from '../components/ui/Sheet'
-import { IconArrowNarrowLeft, IconCheck } from '../components/icons'
+import { Button, ErrorState, PageHeader, SkeletonRows, useToast } from '../components/ui'
+import { IconCheck, IconChevron } from '../components/icons'
 import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'
 
@@ -47,6 +47,7 @@ export default function EditProfile() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { me, refreshMe } = useMe()
+  const toast = useToast()
 
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -69,7 +70,6 @@ export default function EditProfile() {
   const [jm, setJm] = useState<number | null>(null)
   const [jd, setJd] = useState<number | null>(null)
 
-  const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -114,14 +114,13 @@ export default function EditProfile() {
       })
       return true
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
       return false
     }
   }
 
   async function saveProfile(nextJy: number | null, nextJm: number | null, nextJd: number | null): Promise<boolean> {
     setBusy(true)
-    setError(null)
     try {
       const gregorian = nextJm != null && nextJd != null ? jalaliToGregorian(nextJy ?? CURRENT_JALALI_YEAR, nextJm, nextJd) : null
       await apiFetch<MyProfile>('/profile/me', {
@@ -137,7 +136,7 @@ export default function EditProfile() {
       })
       return true
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
       return false
     } finally {
       setBusy(false)
@@ -147,7 +146,6 @@ export default function EditProfile() {
   async function submitMain() {
     if (firstNameEmpty || tooManyInterests || busy) return
     setBusy(true)
-    setError(null)
     // Name is its own backend resource (PUT /me/name), saved alongside
     // the rest here since the header checkmark is one combined "save
     // everything on this page" action — only proceed to the bio/
@@ -201,12 +199,14 @@ export default function EditProfile() {
     setBirthdaySheetOpen(true)
   }
 
-  if (loadError) return <Placeholder header={t('common.error')}>{loadError}</Placeholder>
-  if (!profile) {
+  if (loadError || !profile) {
     return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
+      <div className="ui-page">
+        <PageHeader title={t('profilePage.editTitle')} onBack={() => navigate(-1)} />
+        <div className="ui-page-body">
+          {loadError ? <ErrorState text={loadError} /> : <SkeletonRows count={4} />}
+        </div>
+      </div>
     )
   }
 
@@ -218,118 +218,207 @@ export default function EditProfile() {
     : t('profilePage.addBirthday')
 
   return (
-    <div className="hp-page">
-      <div className="hp-page-back-header">
-        <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-          <IconArrowNarrowLeft size={20} />
-        </button>
-        <span className="hp-page-back-title">{t('profilePage.editTitle')}</span>
-        <button
-          className="hp-page-confirm-btn"
-          disabled={firstNameEmpty || tooManyInterests || busy}
-          onClick={submitMain}
-          aria-label={t('profilePage.saveButton')}
-        >
-          <IconCheck size={22} />
-        </button>
-      </div>
-
-      <div className="hp-tab-body">
-        {/* "Your name" — one grouped card, two rows, no separate boxed
-            fields (matches Telegram's own Account screen). First name
-            is required; the checkmark above stays disabled while it's
-            empty instead of erroring only after a tap. */}
-        <div className="hp-grouped-card">
-          <div className="hp-grouped-row">
-            <input
-              className="hp-grouped-input"
-              placeholder={t('profilePage.firstNamePlaceholder')}
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-            />
-          </div>
-          <div className="hp-grouped-row">
-            <input
-              className="hp-grouped-input"
-              placeholder={t('profilePage.lastNamePlaceholder')}
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="hp-field">
-          <Input
-            header={t('profilePage.bioLabel')}
-            value={bio}
-            maxLength={MAX_BIO}
-            onChange={(e) => setBio(e.target.value)}
-            after={<span className="hp-char-count">{bio.length}/{MAX_BIO}</span>}
-          />
-          <p className="hp-hint">{t('profilePage.bioHint')}</p>
-        </div>
-        <div className="hp-field">
-          <Input header={t('profilePage.locationLabel')} value={location} onChange={(e) => setLocation(e.target.value)} />
-        </div>
-        <div className="hp-field">
-          <Input
-            header={t('profilePage.interestsLabel')}
-            placeholder={t('profilePage.interestsPlaceholder', { max: MAX_INTERESTS })}
-            value={interestsText}
-            onChange={(e) => setInterestsText(e.target.value)}
-            status={tooManyInterests ? 'error' : undefined}
-          />
-          {tooManyInterests && <p className="hp-error">{t('profilePage.interestsTooMany', { max: MAX_INTERESTS })}</p>}
-        </div>
-
-        <p className="hp-field-label" style={{ margin: '18px 12px 0' }}>
-          {t('profilePage.yourInfoLabel')}
-        </p>
-        <div className="hp-list">
-          <button className="hp-list-row" onClick={openUsernameSheet}>
-            <span className="hp-list-title">{username ? `@${username}` : t('profilePage.addUsername')}</span>
+    <div className="ui-page">
+      <PageHeader
+        title={t('profilePage.editTitle')}
+        onBack={() => navigate(-1)}
+        action={
+          /* Save lives in the header rather than at the bottom because
+             this page is a list of small edits, not one form with one
+             outcome — the shape Telegram's own Account screen uses. It
+             stays disabled until the page is actually saveable, instead
+             of erroring after the tap. */
+          <button
+            className="ui-btn ui-btn-icon ep-save"
+            disabled={firstNameEmpty || tooManyInterests || busy}
+            onClick={submitMain}
+            aria-label={t('profilePage.saveButton')}
+          >
+            <IconCheck size={22} />
           </button>
-          <button className="hp-list-row" onClick={openBirthdaySheet}>
-            <span className="hp-list-title">{hasBirthday ? birthdayValueLabel : t('profilePage.addBirthday')}</span>
-          </button>
+        }
+      />
+
+      <div className="ui-page-body">
+        {/* Name is two rows of one block, not two boxed fields — they
+            are halves of one answer. First name is required, which is
+            why the header's save stays disabled while it is empty. */}
+        <div className="ep-group">
+          <input
+            className="ep-group-input"
+            placeholder={t('profilePage.firstNamePlaceholder')}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            aria-label={t('profilePage.firstNamePlaceholder')}
+          />
+          <input
+            className="ep-group-input"
+            placeholder={t('profilePage.lastNamePlaceholder')}
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            aria-label={t('profilePage.lastNamePlaceholder')}
+          />
         </div>
 
-        {error && <p className="hp-error" style={{ margin: '12px 12px 0' }}>{error}</p>}
+        <div className="co-form">
+          <label className="ui-field" htmlFor="profile-bio">
+            <span className="ui-field-label">
+              {t('profilePage.bioLabel')}
+              <span className="ui-field-counter">
+                {bio.length.toLocaleString(i18n.language)} / {MAX_BIO.toLocaleString(i18n.language)}
+              </span>
+            </span>
+            <textarea
+              id="profile-bio"
+              className="ui-textarea"
+              value={bio}
+              maxLength={MAX_BIO}
+              onChange={(e) => setBio(e.target.value)}
+            />
+            <span className="ui-field-help">{t('profilePage.bioHint')}</span>
+          </label>
+
+          <label className="ui-field" htmlFor="profile-location">
+            <span className="ui-field-label">{t('profilePage.locationLabel')}</span>
+            <input
+              id="profile-location"
+              className="ui-input"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </label>
+
+          <div className={`ui-field${tooManyInterests ? ' ui-field-invalid' : ''}`}>
+            <label className="ui-field-label" htmlFor="profile-interests">
+              {t('profilePage.interestsLabel')}
+              <span className="ui-field-counter">
+                {interests.length.toLocaleString(i18n.language)} /{' '}
+                {MAX_INTERESTS.toLocaleString(i18n.language)}
+              </span>
+            </label>
+            <input
+              id="profile-interests"
+              className="ui-input"
+              placeholder={t('profilePage.interestsPlaceholder', { max: MAX_INTERESTS })}
+              value={interestsText}
+              onChange={(e) => setInterestsText(e.target.value)}
+              aria-invalid={tooManyInterests || undefined}
+            />
+            {tooManyInterests ? (
+              <span className="ui-field-error">
+                {t('profilePage.interestsTooMany', { max: MAX_INTERESTS })}
+              </span>
+            ) : (
+              interests.length > 0 && (
+                /* The tags as they will actually appear, so a comma in
+                   the wrong place is visible before saving, not after. */
+                <span className="ep-interest-preview">
+                  {interests.map((tag) => (
+                    <span className="ui-tag" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
+                </span>
+              )
+            )}
+          </div>
+        </div>
+
+        <section className="ui-section">
+          <h2 className="ui-section-title">{t('profilePage.yourInfoLabel')}</h2>
+          {/* Both of these are their own backend save, so both are a row
+              that opens a sheet rather than a field on this page. */}
+          <div className="ui-list">
+            <button className="ui-row" onClick={openUsernameSheet}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('profilePage.usernameLabel')}</span>
+              </span>
+              <span className="ui-row-trailing">
+                {username ? `@${username}` : t('profilePage.addUsername')}
+                <IconChevron size={20} className="ui-row-chevron" />
+              </span>
+            </button>
+            <button className="ui-row" onClick={openBirthdaySheet}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('profilePage.birthdayLabel')}</span>
+              </span>
+              <span className="ui-row-trailing">
+                {hasBirthday ? birthdayValueLabel : t('profilePage.addBirthday')}
+                <IconChevron size={20} className="ui-row-chevron" />
+              </span>
+            </button>
+          </div>
+        </section>
       </div>
 
       {usernameSheetOpen && (
-        <Sheet title={t('profilePage.usernameLabel')} onClose={() => setUsernameSheetOpen(false)}>
-          <div className="hp-field">
-            <Input
-              value={usernameDraft}
-              onChange={(e) => {
-                setUsernameDraft(e.target.value)
-                setUsernameError(null)
-              }}
-              status={usernameInvalid ? 'error' : undefined}
-            />
-            <p className="hp-hint">{t('profilePage.usernameHint')}</p>
-            {usernameInvalid && <p className="hp-error">{t('profilePage.usernameInvalidChars')}</p>}
-            {usernameError && <p className="hp-error">{usernameError}</p>}
-          </div>
-          <div className="hp-field">
-            <button
-              className="hp-btn hp-btn-gradient"
-              style={{ width: '100%' }}
-              disabled={usernameInvalid || !usernameDraft || usernameBusy}
+        <Sheet
+          title={t('profilePage.usernameLabel')}
+          onClose={() => setUsernameSheetOpen(false)}
+          footer={
+            <Button
+              variant="primary"
+              size="lg"
+              block
+              disabled={usernameInvalid || !usernameDraft}
+              loading={usernameBusy}
               onClick={submitUsername}
             >
-              {usernameBusy ? t('common.loading') : t('profilePage.saveButton')}
-            </button>
+              {t('profilePage.saveButton')}
+            </Button>
+          }
+        >
+          <div className={`ui-field${usernameInvalid || usernameError ? ' ui-field-invalid' : ''}`}>
+            <label className="ui-field-label" htmlFor="profile-username">
+              {t('profilePage.usernameLabel')}
+            </label>
+            <div className="ui-input-group">
+              <span className="ui-input-group-addon">@</span>
+              <input
+                id="profile-username"
+                className="ui-input"
+                value={usernameDraft}
+                onChange={(e) => {
+                  setUsernameDraft(e.target.value)
+                  setUsernameError(null)
+                }}
+                aria-invalid={usernameInvalid || undefined}
+                autoFocus
+              />
+            </div>
+            {usernameInvalid ? (
+              <span className="ui-field-error">{t('profilePage.usernameInvalidChars')}</span>
+            ) : usernameError ? (
+              <span className="ui-field-error">{usernameError}</span>
+            ) : (
+              <span className="ui-field-help">{t('profilePage.usernameHint')}</span>
+            )}
           </div>
         </Sheet>
       )}
 
       {birthdaySheetOpen && (
-        <Sheet title={t('profilePage.birthdayLabel')} onClose={() => setBirthdaySheetOpen(false)}>
-          <div className="hp-birthday-edit-row">
-            <select className="hp-birthday-select" value={jy ?? ''} onChange={(e) => setJy(e.target.value ? Number(e.target.value) : null)}>
-              <option value="">—</option>
+        <Sheet
+          title={t('profilePage.birthdayLabel')}
+          onClose={() => setBirthdaySheetOpen(false)}
+          footer={
+            <Button variant="primary" size="lg" block loading={busy} onClick={submitBirthday}>
+              {t('profilePage.saveButton')}
+            </Button>
+          }
+        >
+          {/* Year, month, day — Jalali, because that is the calendar the
+              people using this app have their birthday in. The year is
+              optional and comes first, so leaving it blank is a visible
+              choice rather than a field nobody noticed. */}
+          <div className="ep-birthday">
+            <select
+              className="ui-input ep-birthday-select"
+              aria-label={t('profilePage.birthdayLabel')}
+              value={jy ?? ''}
+              onChange={(e) => setJy(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">-</option>
               {Array.from({ length: 100 }, (_, i) => CURRENT_JALALI_YEAR - i).map((y) => (
                 <option key={y} value={y}>
                   {toPersianDigits(y)}
@@ -337,11 +426,13 @@ export default function EditProfile() {
               ))}
             </select>
             <select
-              className="hp-birthday-select"
+              className="ui-input ep-birthday-select"
               value={jm ?? ''}
               onChange={(e) => {
                 const nextMonth = e.target.value ? Number(e.target.value) : null
                 setJm(nextMonth)
+                // A day that does not exist in the newly chosen month
+                // would otherwise silently become an invalid date.
                 if (nextMonth != null && jd != null) {
                   const maxDay = daysInJalaliMonth(jy ?? CURRENT_JALALI_YEAR, nextMonth)
                   if (jd > maxDay) setJd(maxDay)
@@ -354,21 +445,22 @@ export default function EditProfile() {
                 </option>
               ))}
             </select>
-            <select className="hp-birthday-select hp-birthday-select-day" value={jd ?? ''} onChange={(e) => setJd(e.target.value ? Number(e.target.value) : null)}>
-              {Array.from({ length: jm != null ? daysInJalaliMonth(jy ?? CURRENT_JALALI_YEAR, jm) : 31 }, (_, i) => i + 1).map((day) => (
+            <select
+              className="ui-input ep-birthday-select"
+              value={jd ?? ''}
+              onChange={(e) => setJd(e.target.value ? Number(e.target.value) : null)}
+            >
+              {Array.from(
+                { length: jm != null ? daysInJalaliMonth(jy ?? CURRENT_JALALI_YEAR, jm) : 31 },
+                (_, i) => i + 1,
+              ).map((day) => (
                 <option key={day} value={day}>
                   {toPersianDigits(day)}
                 </option>
               ))}
             </select>
           </div>
-          <p className="hp-hint">{t('profilePage.birthdayHint')}</p>
-          {error && <p className="hp-error">{error}</p>}
-          <div className="hp-field">
-            <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} disabled={busy} onClick={submitBirthday}>
-              {busy ? t('common.loading') : t('profilePage.saveButton')}
-            </button>
-          </div>
+          <p className="ui-field-help ep-birthday-hint">{t('profilePage.birthdayHint')}</p>
         </Sheet>
       )}
     </div>

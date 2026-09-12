@@ -358,3 +358,13 @@ export function IconPlus({ size = 24, className }: IconProps) {
     </svg>
   )
 }
+
+/** The spoiler cover's own mark. */
+export function IconLock({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.4" />
+      <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7" />
+    </svg>
+  )
+}

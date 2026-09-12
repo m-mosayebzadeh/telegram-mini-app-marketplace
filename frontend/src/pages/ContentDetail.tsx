@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { ApiError, formatApiError } from '../lib/api'
 import {
   deleteContent,
@@ -14,7 +13,14 @@ import {
   unpinContent,
 } from '../lib/contentApi'
 import { useMe } from '../lib/MeContext'
-import { IconHeart, IconPin, IconTrash } from '../components/icons'
+import {
+  PageHeader,
+  Button,
+  ConfirmDialog,
+  ErrorState,
+  useToast,
+} from '../components/ui'
+import { IconDrop, IconHeart, IconLock, IconPin, IconTrash } from '../components/icons'
 import type { Content } from '../lib/types'
 
 /**
@@ -23,23 +29,24 @@ import type { Content } from '../lib/types'
  * can be in: locked (free tap-to-reveal or paid unlock), unlocked, and
  * (for the owner) pin/unpin + delete.
  *
- * The locked state (see .hp-detail-lock in styles/theme.css) is
- * deliberately styled as a soft, animated gradient blur rather than a
- * flat "denied" overlay — this is the one moment in the app whose whole
- * job is to make paying to unlock feel inviting, not punitive. It's
- * still a generic cover, never the real file: nothing here changes the
- * access rule that an unauthorized viewer is never sent the actual
- * bytes (see app/content/access.py).
+ * The locked state (see .cd-lock in styles/components/content.css) is
+ * the one moment in the app whose job is to make unlocking feel
+ * inviting rather than punitive — but it does that with an inviting
+ * OFFER, not with decoration: a surface, a mark, a line, and the button.
+ * It is still a generic cover, never the real file; nothing here changes
+ * the rule that an unauthorized viewer is never sent the actual bytes
+ * (see app/content/access.py).
  */
 export default function ContentDetail() {
   const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
   const { me } = useMe()
+  const toast = useToast()
   const [content, setContent] = useState<Content | null>(null)
   const [fileUrl, setFileUrl] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [busy, setBusy] = useState(false)
   // Whether THIS view has already revealed the file (tapped past the
   // spoiler cover). Kept separate from can_see_original: a free spoiler
@@ -100,12 +107,12 @@ export default function ContentDetail() {
       setBusy(true)
       try {
         await purchaseContent(content.id)
-        setMessage(t('content.purchaseSuccess'))
+        toast.success(t('content.purchaseSuccess'))
         load()
         setRevealed(true)
       } catch (err) {
         if (err instanceof ApiError && err.status === 402) {
-          setMessage(t('content.insufficientBalance'))
+          toast.error(t('content.insufficientBalance'))
         } else {
           setError(formatApiError(err))
         }
@@ -124,7 +131,7 @@ export default function ContentDetail() {
       const updated = content.liked_by_me ? await unlikeContent(content.id) : await likeContent(content.id)
       setContent(updated)
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setBusy(false)
     }
@@ -138,9 +145,9 @@ export default function ContentDetail() {
       setContent(updated)
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
-        setMessage(t('content.pinLimitReached', { max: 3 }))
+        toast.error(t('content.pinLimitReached', { max: 3 }))
       } else {
-        setError(formatApiError(err))
+        toast.error(formatApiError(err))
       }
     } finally {
       setBusy(false)
@@ -149,86 +156,131 @@ export default function ContentDetail() {
 
   async function remove() {
     if (!content) return
-    if (!window.confirm(t('content.deleteConfirm'))) return
     setBusy(true)
     try {
       await deleteContent(content.id)
       navigate(-1)
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
       setBusy(false)
+      setDeleting(false)
     }
   }
 
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
-  if (!content) {
+  const isOwner = !!me && me.id === content?.user_id
+  const locked = !revealed
+  // Only an unpurchased paid item needs a real charge. Every other
+  // locked case — a free spoiler, or a paid one already owned — is a
+  // cover waiting for a tap, not a payment.
+  const needsPurchase = !!content?.is_paid && !content?.can_see_original
+
+  if (error || !content) {
     return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
+      <div className="ui-page">
+        <PageHeader title={t('content.title')} onBack={() => navigate(-1)} />
+        <div className="ui-page-body">
+          {error ? <ErrorState text={error} onRetry={load} /> : <div className="ui-skeleton cd-skeleton" />}
+        </div>
+      </div>
     )
   }
 
-  const isOwner = !!me && me.id === content.user_id
-  const locked = !revealed
-  // Only an unpurchased paid item actually needs a real charge — every
-  // other locked case (a free spoiler, or a paid one already owned) is
-  // just a cover waiting for a tap, not a payment.
-  const needsPurchase = content.is_paid && !content.can_see_original
-
   return (
-    <div className="hp-page" style={{ padding: '14px' }}>
-      <div className="hp-detail-hero">
-        {!locked && fileUrl && content.content_type === 'photo' && (
-          <img className="hp-detail-media" src={fileUrl} alt="" />
-        )}
-        {!locked && fileUrl && content.content_type === 'short_video' && (
-          <video className="hp-detail-media" src={fileUrl} controls playsInline />
-        )}
-
-        {locked && (
-          <div className="hp-detail-lock">
-            <span className="hp-detail-lock-icon">🔒</span>
-            <p className="hp-detail-lock-copy">{t('content.lockedTeaser')}</p>
-            <button className="hp-btn hp-btn-gradient" style={{ flex: 'none', padding: '13px 28px' }} disabled={busy} onClick={reveal}>
-              {needsPurchase
-                ? t('content.lockedPayToUnlock', { price: content.price_stars })
-                : t('content.lockedTapToUnlock')}
+    <div className="ui-page">
+      <PageHeader
+        title={t('content.title')}
+        onBack={() => navigate(-1)}
+        action={
+          isOwner ? (
+            <button
+              className="ui-btn ui-btn-icon cd-delete"
+              onClick={() => setDeleting(true)}
+              disabled={busy}
+              aria-label={t('content.deleteButton')}
+            >
+              <IconTrash size={20} />
             </button>
-          </div>
-        )}
-      </div>
+          ) : undefined
+        }
+      />
 
-      {message && <p className="hp-hint" style={{ textAlign: 'center', marginTop: 12 }}>{message}</p>}
+      <div className="ui-page-body">
+        <div className="cd-media">
+          {!locked && fileUrl && content.content_type === 'photo' && (
+            <img src={fileUrl} alt="" />
+          )}
+          {!locked && fileUrl && content.content_type === 'short_video' && (
+            <video src={fileUrl} controls playsInline />
+          )}
+          {/* Waiting on the file itself, with the frame already at its
+              final size so nothing jumps when the bytes land. */}
+          {!locked && !fileUrl && <div className="ui-skeleton cd-media-loading" />}
 
-      <div className="hp-icon-row">
-        <button
-          className={`hp-icon-btn ${content.liked_by_me ? 'hp-icon-btn-active' : ''}`}
-          onClick={toggleLike}
-          disabled={busy}
-        >
-          <IconHeart size={17} filled={content.liked_by_me} />
-          <span>{t('content.likeCount', { count: content.like_count })}</span>
-        </button>
-        {isOwner && (
-          <button
-            className={`hp-icon-btn ${content.is_pinned ? 'hp-icon-btn-active' : ''}`}
-            onClick={togglePin}
-            disabled={busy}
-          >
-            <IconPin size={17} filled={content.is_pinned} />
-            {content.is_pinned ? t('content.unpinButton') : t('content.pinButton')}
-          </button>
-        )}
-      </div>
-
-      {isOwner && (
-        <div className="hp-icon-row">
-          <button className="hp-icon-btn" onClick={remove} disabled={busy}>
-            <IconTrash size={17} />
-            {t('content.deleteButton')}
-          </button>
+          {locked && (
+            <div className="cd-lock">
+              <span className="cd-lock-icon">
+                <IconLock size={26} />
+              </span>
+              <p className="cd-lock-copy">{t('content.lockedTeaser')}</p>
+              <Button variant="primary" size="md" loading={busy} onClick={reveal}>
+                {needsPurchase ? (
+                  <>
+                    <IconDrop size={18} />
+                    {t('content.lockedPayToUnlock', { price: content.price_stars })}
+                  </>
+                ) : (
+                  t('content.lockedTapToUnlock')
+                )}
+              </Button>
+            </div>
+          )}
         </div>
+
+        {/* Like and pin are the two things you can do TO this item, so
+            they sit together under it. Delete is not among them — it is
+            irreversible, and it belongs in the header, away from where
+            the thumb naturally lands. */}
+        <div className="cd-actions">
+          <button
+            type="button"
+            className={`cd-action${content.liked_by_me ? ' cd-action-on' : ''}`}
+            onClick={toggleLike}
+            disabled={busy}
+            aria-pressed={content.liked_by_me}
+          >
+            <IconHeart size={20} filled={content.liked_by_me} />
+            <span className="tabular">
+              {t('content.likeCount', { count: content.like_count })}
+            </span>
+          </button>
+
+          {isOwner && (
+            <button
+              type="button"
+              className={`cd-action${content.is_pinned ? ' cd-action-on' : ''}`}
+              onClick={togglePin}
+              disabled={busy}
+              aria-pressed={content.is_pinned}
+            >
+              <IconPin size={20} filled={content.is_pinned} />
+              {content.is_pinned ? t('content.unpinButton') : t('content.pinButton')}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Deleting a photo cannot be undone, so it asks — and it used to
+          ask through window.confirm, the browser's own dialog. */}
+      {deleting && (
+        <ConfirmDialog
+          title={t('content.deleteButton')}
+          text={t('content.deleteConfirm')}
+          confirmLabel={t('content.deleteButton')}
+          destructive
+          loading={busy}
+          onCancel={() => setDeleting(false)}
+          onConfirm={remove}
+        />
       )}
     </div>
   )

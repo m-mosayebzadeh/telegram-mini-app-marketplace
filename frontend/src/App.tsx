@@ -105,6 +105,13 @@ function AppShell() {
   // MeContext.tsx), never re-checked per page/navigation.
   const isAdmin = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.length > 0)
 
+  // A chat session is an immersive screen, not a destination: it is
+  // pushed onto a tab, it fills the viewport, and its composer needs the
+  // bottom of the screen. Showing the tab bar over it would offer four
+  // ways to leave a conversation the user is in the middle of, and cost
+  // a row of messages to do it.
+  const immersive = location.pathname.startsWith('/chat-sessions/')
+
   return (
     // Each page reserves its own room for the nav bar through
     // .ui-page-body, which also accounts for the safe area — a single
@@ -149,6 +156,7 @@ function AppShell() {
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
+      {!immersive && (
       <nav className="ui-nav">
         {TABS.map((tab) => {
           const active = tab.isActive(location.pathname)
@@ -198,6 +206,7 @@ function AppShell() {
           </button>
         )}
       </nav>
+      )}
     </>
   )
 }

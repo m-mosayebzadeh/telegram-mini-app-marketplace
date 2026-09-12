@@ -16,9 +16,9 @@ SHELL = os.path.join(ROOT, 'design', 'gallery-shell.html')
 OUT = os.path.join(ROOT, 'design', 'ember-ui-kit.html')
 
 COMPONENTS = ('activity.css', 'button.css', 'chats.css', 'chip.css',
-              'discover.css', 'header.css', 'input.css', 'list.css', 'nav.css',
-              'offer.css', 'profile.css', 'sheet.css', 'states.css',
-              'topup.css', 'wallet.css')
+              'content.css', 'discover.css', 'header.css', 'input.css',
+              'list.css', 'nav.css', 'offer.css', 'profile.css', 'sheet.css',
+              'states.css', 'topup.css', 'wallet.css')
 
 # The Telegram kit bridge is app-only plumbing with nothing to show.
 KIT_BRIDGE = '/* ---------------------------------------------------------------------\n   Telegram UI kit bridge'
