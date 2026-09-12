@@ -18,6 +18,17 @@ class BalanceOut(BaseModel):
     # today, since nothing releases a transaction yet; shown anyway so
     # the field exists ahead of chat sessions landing.
     pending_toman: int
+    # Everything that exists but is not available right now, as one number:
+    # a buyer's payment for a chat still in progress, a provider's earnings
+    # inside the release grace period, and any withdrawal already queued.
+    # The wallet screen deliberately shows this instead of four separate
+    # figures — the distinctions matter to us, not to the person looking.
+    in_flight_toman: int = 0
+    # The part of the balance that may be paid out to a bank account: only
+    # what was earned here, never what was topped up (see
+    # get_withdrawable_toman() for the full rule). Surfaced for the withdraw
+    # screen, which is the only place the number is actionable.
+    withdrawable_toman: int = 0
 
 
 class TransactionOut(BaseModel):

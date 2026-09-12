@@ -138,7 +138,10 @@
     "spendableValue": "{{toman}} Toman (~{{stars}} Stars)",
     "pending": "Pending (earned, not yet released)",
     "pendingValue": "{{toman}} Toman",
-    "topUpButton": "Top up wallet"
+    "topUpButton": "Top up wallet",
+    "tomanAmount": "{{amount}} Toman",
+    "starsApprox": "about {{stars}} Stars",
+    "inFlight": "{{amount}} Toman in progress"
   },
   "topup": {
     "pageTitle": "Top Up Wallet",
@@ -277,6 +280,7 @@
     "titleLabel": "Title",
     "priceStarsLabel": "Price (Stars)",
     "priceInToman": "Toman equivalent",
+    "providerNetEarnings": "Your net earnings",
     "commission": "Commission",
     "netEarnings": "Provider's net earnings",
     "starsAndToman": "{{stars}} Stars ({{toman}} Toman)",
@@ -500,9 +504,11 @@
       "assigned_to_other_staff": "Another staff member is handling this withdrawal.",
       "reference_required": "Bank reference is required.",
       "reason_required": "Enter a reason or explanation.",
-      "amount_too_large": "Amount exceeds the supported range."
+      "amount_too_large": "Amount exceeds the supported range.",
+      "exceeds_withdrawable": "Only money you earned here can be withdrawn; topped-up funds can be spent in the app but not cashed out."
     },
     "awaitingCredit": "Waiting for server confirmation of your top-up",
-    "checkPayment": "Check payment status"
+    "checkPayment": "Check payment status",
+    "withdrawableCeiling": "Available to withdraw: {{amount}} Toman"
   }
 }

@@ -25,10 +25,44 @@ def auth(id):
 def owner(monkeypatch):
     monkeypatch.setattr(settings,'owner_telegram_id',99)
 
+def set_rates(client, **changes):
+    """Change platform rates through the real admin endpoint.
+
+    Reads the current values first so a caller only has to name what it wants
+    different — the update endpoint takes the whole set.
+    """
+    current = client.get('/admin/rates', headers=auth(99)).json()
+    current.pop('updated_at', None)  # read-only on the way back in
+    response = client.put('/admin/rates', headers=auth(99), json={**current, **changes})
+    assert response.status_code == 200, response.text
+
+
+def give_earnings(client, db, stars):
+    """Make user 1 genuinely EARN `stars`, by running a real sale.
+
+    Withdrawals are capped at what a user earned on the platform — money they
+    merely topped up can be spent here but never cashed out to a bank card —
+    so a withdrawal test cannot simply credit a wallet. The chat commission is
+    switched off first so these tests keep round numbers; the commission split
+    itself is covered by the payment tests.
+    """
+    from app.wallet.service import release_transaction
+
+    set_rates(client, chat_commission_percent=0)
+    buyer = client.get('/me', headers=auth(2)).json()
+    give_wallet_balance(db, buyer['id'], stars * settings.star_to_toman_rate)
+    offer = _create_offer(client, auth(1), price_stars=stars)
+    request = _create_accepted_request(client, auth(1), auth(2), offer)
+    assert client.post(f"/requests/{request['id']}/pay", headers=auth(2)).status_code == 201
+    transaction = db.query(Transaction).filter_by(request_id=request['id']).one()
+    release_transaction(db, transaction)
+    db.commit()
+
+
 def setup(client, db, amount=1_000_000):
     user = client.get('/me',headers=auth(1)).json()
     client.get('/me',headers=auth(99))
-    give_wallet_balance(db,user['id'],amount)
+    give_earnings(client, db, amount // settings.star_to_toman_rate)
     bank = client.post('/wallet/bank-accounts',headers=auth(1),json=BANK)
     assert bank.status_code == 201
     return user['id'], bank.json()['id']
@@ -48,6 +82,7 @@ def review(client, id, action, **kwargs):
 
 def test_snapshot_fee_hold_cancel_and_replay(client,db_session):
     user,bank=setup(client,db_session)
+    set_rates(client, withdrawal_commission_percent=10)
     body=payload(client,bank)
     first=create(client,body)
     assert first.status_code==201, first.text
@@ -85,7 +120,8 @@ def test_owner_checks_and_minimum(client,db_session):
 def test_stale_quote_reconfirmation_and_historical_rates(client,db_session):
     _,bank=setup(client,db_session)
     body=payload(client,bank)
-    update={'star_to_toman_rate':3000,'withdrawal_commission_percent':11,'complaint_commission_percent':0,'minimum_withdrawal_toman':500000}
+    update={'star_to_toman_rate':3000,'chat_commission_percent':10,'content_commission_percent':5,
+            'withdrawal_commission_percent':11,'complaint_commission_percent':0,'minimum_withdrawal_toman':500000}
     assert client.put('/admin/rates',headers=auth(99),json=update).status_code==200
     response=create(client,body)
     assert response.status_code==409
@@ -99,6 +135,7 @@ def test_stale_quote_reconfirmation_and_historical_rates(client,db_session):
 
 def test_processing_unknown_paid_exactly_once(client,db_session):
     _,bank=setup(client,db_session)
+    set_rates(client, withdrawal_commission_percent=10)
     row=create(client,payload(client,bank)).json();id=row['id']
     assert review(client,id,'processing').status_code==200
     assert client.post(f'/wallet/withdrawals/{id}/cancel',headers=auth(1)).status_code==409
@@ -182,14 +219,19 @@ def test_staff_claim_and_customer_cancel_are_exclusive(concurrent_client):
     row=client.get('/wallet/withdrawals',headers=auth(1)).json()[0]
     assert balance(client)==(1000000 if row['status']=='cancelled' else 500000)
 
-def test_new_content_has_no_fee(client,db_session):
+def test_content_purchase_takes_its_commission_immediately(client,db_session):
+    """Content is delivered the moment it is paid for, so there is nothing to
+    wait on: the platform's cut is taken in the same breath as the charge.
+    25 stars at the default 5% is 1.25, floored to 1 in the provider's favour."""
     setup(client,db_session)
     client.get('/me',headers=auth(2))
     item=_upload(client,auth(2),is_paid=True,price_stars=25).json()
     assert client.post(f"/content/{item['id']}/purchase",headers=auth(1)).status_code==201
-    tx=db_session.query(Transaction).one()
-    assert tx.commission_stars==tx.commission_toman==tx.commission_rate_percent==0
-    assert tx.net_provider_stars==25
+    tx=db_session.query(Transaction).filter_by(kind='content_purchase').one()
+    assert tx.commission_rate_percent==settings.content_commission_percent
+    assert tx.commission_stars==1
+    assert tx.net_provider_stars==24
+    assert tx.commission_toman==1*tx.star_to_toman_rate
 
 
 def test_historical_pending_transaction_keeps_its_original_fee(client,db_session):
@@ -199,7 +241,7 @@ def test_historical_pending_transaction_keeps_its_original_fee(client,db_session
     offer=_create_offer(client,auth(2),price_stars=40)
     req=_create_accepted_request(client,auth(2),auth(1),offer)
     client.post(f"/requests/{req['id']}/pay",headers=auth(1))
-    tx=db_session.query(Transaction).one()
+    tx=db_session.query(Transaction).filter_by(request_id=req['id']).one()
     tx.commission_rate_percent=10
     tx.commission_stars=4
     tx.net_provider_stars=36
@@ -264,3 +306,30 @@ def test_bank_accepts_localized_digits(client):
     assert row.status_code==201
     assert row.json()['card_number']==BANK['card_number']
     assert row.json()['iban']==BANK['iban']
+
+
+def test_topped_up_money_cannot_be_withdrawn(client, db_session):
+    """The whole point of the ceiling: someone who only ever topped up can
+    spend inside the app but cannot route that money to a bank card."""
+    user = client.get('/me', headers=auth(1)).json()
+    client.get('/me', headers=auth(99))
+    give_wallet_balance(db_session, user['id'], 1_000_000)
+    bank = client.post('/wallet/bank-accounts', headers=auth(1), json=BANK).json()['id']
+
+    response = create(client, payload(client, bank))
+
+    assert response.status_code == 400
+    detail = response.json()['detail']
+    assert detail['reason'] == 'exceeds_withdrawable'
+    # The error carries the ceiling itself, so the UI can say how much is
+    # actually available instead of only "not allowed".
+    assert detail['withdrawable_toman'] == 0
+    assert balance(client) == 1_000_000  # nothing was held
+
+
+def test_the_quote_reports_the_ceiling(client, db_session):
+    _, bank = setup(client, db_session)
+
+    quoted = client.post('/wallet/withdrawals/quote', headers=auth(1), json={'stars': 200}).json()
+
+    assert quoted['withdrawable_toman'] == 1_000_000

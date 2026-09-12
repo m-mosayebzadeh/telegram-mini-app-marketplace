@@ -16,6 +16,10 @@ export interface WithdrawalQuote {
   fee_toman: number
   net_toman: number
   quote_token: string
+  /** How much this user may cash out right now — earnings only, never
+   * topped-up money. Advisory: the server re-checks it when the withdrawal
+   * is actually created. */
+  withdrawable_toman: number
 }
 export type WithdrawalStatus =
   | 'pending'

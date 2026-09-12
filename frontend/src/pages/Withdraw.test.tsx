@@ -44,6 +44,8 @@ const quote = {
   fee_toman: 50000,
   net_toman: 450000,
   quote_token: 'a'.repeat(64),
+  // Earnings only: the ceiling is what this user may actually cash out.
+  withdrawable_toman: 500000,
 }
 let root: Root
 let host: HTMLDivElement

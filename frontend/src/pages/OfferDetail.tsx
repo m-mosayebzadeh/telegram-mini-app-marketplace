@@ -201,9 +201,10 @@ export default function OfferDetail() {
           <span className="hp-kv-label">{t('offers.priceStarsLabel')}</span>
           <span className="hp-kv-value">{offer.price_stars}</span>
         </div>
-        {/* Purchases use the full price; withdrawal fees are shown in the wallet. */}
+        {/* The owner is shown what they earn; a buyer, what they pay. */}
         <PriceBreakdown
           priceStars={offer.price_stars}
+          audience={isOwner ? 'provider' : 'buyer'}
         />
         <div className="hp-kv-row">
           <span className="hp-kv-label">{t('offers.durationLabel')}</span>

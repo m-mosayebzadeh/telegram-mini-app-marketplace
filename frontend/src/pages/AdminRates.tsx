@@ -6,8 +6,8 @@ import { formatApiError } from '../lib/api'
 import { NumberField } from '../components/NumberField'
 import { useMe } from '../lib/MeContext'
 
-/** "مالی → کارمزدها" — edit the platform's Star-to-Toman rate and the
- * two commission percentages (see backend/app/models/platform_rates.py).
+/** "مالی → کارمزدها" — edit the platform's Star-to-Toman rate and every
+ * commission percentage (see backend/app/models/platform_rates.py).
  * Access (owner or "finance.rates") comes from the session-wide check
  * in MeContext, not a fetch of its own. */
 export default function AdminRates() {
@@ -18,6 +18,8 @@ export default function AdminRates() {
     (adminAccess.is_owner || adminAccess.scopes.includes('finance.rates'))
 
   const [starRate, setStarRate] = useState('')
+  const [chatPercent, setChatPercent] = useState('')
+  const [contentPercent, setContentPercent] = useState('')
   const [withdrawalPercent, setWithdrawalPercent] = useState('')
   const [complaintPercent, setComplaintPercent] = useState('')
   const [minimum, setMinimum] = useState('')
@@ -31,6 +33,8 @@ export default function AdminRates() {
     getPlatformRates()
       .then((r) => {
         setStarRate(String(r.star_to_toman_rate))
+        setChatPercent(String(r.chat_commission_percent))
+        setContentPercent(String(r.content_commission_percent))
         setWithdrawalPercent(String(r.withdrawal_commission_percent))
         setComplaintPercent(String(r.complaint_commission_percent))
         setMinimum(String(r.minimum_withdrawal_toman))
@@ -51,6 +55,8 @@ export default function AdminRates() {
     try {
       await updatePlatformRates({
         star_to_toman_rate: Number(starRate),
+        chat_commission_percent: Number(chatPercent),
+        content_commission_percent: Number(contentPercent),
         minimum_withdrawal_toman: Number(minimum),
         withdrawal_commission_percent: Number(withdrawalPercent),
         complaint_commission_percent: Number(complaintPercent),
@@ -72,7 +78,12 @@ export default function AdminRates() {
   }
   if (!hasAccess) return <Placeholder header={t('admin.noAccess')} />
 
+  const percentInRange = (value: string) =>
+    value !== '' && Number(value) >= 0 && Number(value) <= 100
+
   const valid =
+    percentInRange(chatPercent) &&
+    percentInRange(contentPercent) &&
     minimum !== '' &&
     Number(minimum) > 0 &&
     withdrawalPercent !== '' &&
@@ -101,6 +112,26 @@ export default function AdminRates() {
               onChange={setStarRate}
             />
           </div>
+          {/* Commission on a purchase — the platform's actual revenue. A chat's
+              cut is taken only when its transaction is released, after the
+              session closed cleanly; content is delivered instantly, so its cut
+              is taken at purchase time. */}
+          <div className="hp-field">
+            <NumberField
+              header={t('admin.ratesChatCommissionLabel')}
+              value={chatPercent}
+              onChange={setChatPercent}
+            />
+          </div>
+          <div className="hp-field">
+            <NumberField
+              header={t('admin.ratesContentCommissionLabel')}
+              value={contentPercent}
+              onChange={setContentPercent}
+            />
+          </div>
+          {/* Kept at 0 deliberately: a provider is not charged for collecting
+              money they already earned. The lever stays here for later. */}
           <div className="hp-field">
             <NumberField
               header={t('finance.withdrawalFee')}

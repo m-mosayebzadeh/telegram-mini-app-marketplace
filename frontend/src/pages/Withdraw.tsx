@@ -197,6 +197,15 @@ export default function Withdraw() {
                   amount: quote.minimum_toman.toLocaleString(i18n.language),
                 })}
               </p>
+              {/* Only money earned on the platform can be withdrawn, so the
+                  ceiling is usually lower than the wallet balance. Saying it
+                  here, before the confirm button, is the difference between a
+                  clear limit and a rejected request. */}
+              <p className="finance-note">
+                {t('finance.withdrawableCeiling', {
+                  amount: quote.withdrawable_toman.toLocaleString(i18n.language),
+                })}
+              </p>
               {selected && (
                 <p>
                   {selected.holder_name}

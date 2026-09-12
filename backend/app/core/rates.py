@@ -8,8 +8,16 @@ from app.models.platform_rates import PlatformRates
 SINGLETON_ID = 1
 
 def _defaults():
+    """Seed values for the singleton row, used only when it does not exist yet.
+
+    Purchase commissions come from Settings so a fresh database starts with the
+    same numbers the app was configured with; the withdrawal commission starts
+    at zero on purpose (see PlatformRates' docstring).
+    """
     return dict(id=1, star_to_toman_rate=settings.star_to_toman_rate,
-                withdrawal_commission_percent=10, complaint_commission_percent=0,
+                chat_commission_percent=settings.chat_commission_percent,
+                content_commission_percent=settings.content_commission_percent,
+                withdrawal_commission_percent=0, complaint_commission_percent=0,
                 minimum_withdrawal_toman=500_000)
 
 def get_rates(db: Session) -> PlatformRates:

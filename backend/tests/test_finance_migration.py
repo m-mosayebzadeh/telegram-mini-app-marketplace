@@ -26,7 +26,10 @@ def test_upgrade_preserves_old_money_and_matches_new_columns(tmp_path, monkeypat
     with sqlite3.connect(path) as db:
         assert db.execute('SELECT * FROM transactions').fetchall() == old_tx
         assert db.execute('SELECT id,user_id,amount_toman,type,transaction_id,created_at FROM credit_ledger_entries').fetchall() == old_ledger
-        assert db.execute('SELECT star_to_toman_rate, withdrawal_commission_percent, complaint_commission_percent, minimum_withdrawal_toman FROM platform_rates').fetchone() == (2500,10,0,500000)
+        # The purchase commissions were dropped by 7d2c18a40e91 and restored by
+        # a3e7c41b8d92, which also switches the withdrawal fee off on an
+        # already-deployed row — the lever stays, its value does not.
+        assert db.execute('SELECT star_to_toman_rate, chat_commission_percent, content_commission_percent, withdrawal_commission_percent, complaint_commission_percent, minimum_withdrawal_toman FROM platform_rates').fetchone() == (2500,10,5,0,0,500000)
         assert db.execute('PRAGMA foreign_key_check').fetchall() == []
     engine = create_engine('sqlite:///' + str(path))
     inspector = inspect(engine)

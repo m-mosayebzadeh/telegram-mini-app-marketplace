@@ -2423,3 +2423,65 @@ button.hp-list-row:active {
 .finance-status-bank_pending { color: var(--hp-gold); }
 .finance-status-failed, .finance-status-rejected { color: var(--hp-notify); }
 .finance-page button:disabled, .finance-form button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* --- Wallet card -----------------------------------------------------------
+   The balance is the one thing a person opens this screen for, so it gets a
+   card of its own rather than a labelled row among other labelled rows. Built
+   from the same tokens as .hp-card, so it follows all three colour themes. */
+.hp-wallet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 12px 14px;
+  padding: 22px 18px 20px;
+  background: var(--hp-grad-soft, var(--hp-glass));
+  border: 1px solid var(--hp-hairline);
+  border-radius: 22px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.hp-wallet-card-label {
+  font-size: 13px;
+  color: var(--hp-text-muted);
+}
+
+.hp-wallet-card-amount {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.25;
+  /* Digits keep a fixed width so a changing balance does not make the whole
+     line jitter. */
+  font-variant-numeric: tabular-nums;
+}
+
+.hp-wallet-card-secondary {
+  font-size: 13px;
+  color: var(--hp-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The single "not available right now" line. Deliberately quiet: it is
+   context, not a call to action. */
+.hp-wallet-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 14px 14px;
+  font-size: 13.5px;
+  color: var(--hp-text-muted);
+}
+
+.hp-wallet-note-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hp-gold);
+}
+
+.hp-wallet-actions {
+  display: flex;
+  gap: 10px;
+  margin: 0 12px 16px;
+}

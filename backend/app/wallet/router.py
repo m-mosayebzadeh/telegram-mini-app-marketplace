@@ -22,7 +22,9 @@ from app.models.user import User
 from app.wallet.schemas import BalanceOut
 from app.wallet.service import (
     get_balance_toman,
+    get_buyer_in_flight_toman,
     get_pending_provider_toman,
+    get_withdrawable_toman,
     release_due_chat_transactions,
 )
 
@@ -45,11 +47,18 @@ def get_my_balance(
     release_due_chat_transactions(db, current_user.id)
 
     balance_toman = get_balance_toman(db, current_user.id)
+    # The three kinds of "not available right now" are summed into one figure
+    # for the UI; each is still individually visible in the wallet history.
+    earned_but_held = get_pending_provider_toman(db, current_user.id)
+    queued_withdrawals = pending_withdrawals(db, current_user.id)
+    paid_but_unsettled = get_buyer_in_flight_toman(db, current_user.id)
     return BalanceOut(
         balance_toman=balance_toman,
         balance_stars_equivalent=balance_toman // get_rates(db).star_to_toman_rate,
-        pending_toman=get_pending_provider_toman(db, current_user.id),
-        withdrawal_pending_toman=pending_withdrawals(db, current_user.id),
+        pending_toman=earned_but_held,
+        withdrawal_pending_toman=queued_withdrawals,
+        in_flight_toman=earned_but_held + queued_withdrawals + paid_but_unsettled,
+        withdrawable_toman=get_withdrawable_toman(db, current_user.id),
     )
 
 

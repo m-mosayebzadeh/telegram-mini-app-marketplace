@@ -46,6 +46,13 @@ export interface Balance {
   balance_toman: number
   balance_stars_equivalent: number
   pending_toman: number
+  /** Everything that exists but is not available right now, as one figure —
+   * a chat still running, earnings inside the release grace period, and any
+   * queued withdrawal. The wallet screen shows this instead of the parts. */
+  in_flight_toman: number
+  /** How much may be paid out to a bank account: earnings only, never
+   * topped-up money. Shown on the withdraw screen, not in the wallet. */
+  withdrawable_toman: number
 }
 
 export interface Offer {
@@ -238,6 +245,8 @@ export interface MyProfile {
  * keystroke (see lib/priceBreakdown.ts). */
 export interface PricingConfig {
   star_to_toman_rate: number
+  chat_commission_percent: number
+  content_commission_percent: number
   withdrawal_commission_percent: number
   complaint_commission_percent: number
   minimum_withdrawal_toman: number
@@ -398,6 +407,8 @@ export interface AdminChatSession {
  * rate/commission and never change retroactively. */
 export interface PlatformRates {
   star_to_toman_rate: number
+  chat_commission_percent: number
+  content_commission_percent: number
   withdrawal_commission_percent: number
   complaint_commission_percent: number
   minimum_withdrawal_toman: number

@@ -633,6 +633,8 @@ def update_platform_rates(
     lock_finances(db)
     rates = get_rates(db)
     rates.star_to_toman_rate = payload.star_to_toman_rate
+    rates.chat_commission_percent = payload.chat_commission_percent
+    rates.content_commission_percent = payload.content_commission_percent
     rates.withdrawal_commission_percent = payload.withdrawal_commission_percent
     rates.complaint_commission_percent = payload.complaint_commission_percent
     rates.minimum_withdrawal_toman = payload.minimum_withdrawal_toman

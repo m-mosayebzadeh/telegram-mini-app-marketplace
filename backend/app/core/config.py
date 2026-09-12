@@ -63,6 +63,18 @@ class Settings(BaseSettings):
     # ledger (which is Toman-denominated — see the ledger entity docs).
     star_to_toman_rate: int = 2500
 
+    # Platform commission on a purchase, as a whole percent of the price.
+    # These are only the SEED values for a brand-new database: once the
+    # singleton rates row exists, the admin panel (finance.rates scope) is
+    # the source of truth and these are never read again.
+    #
+    # Charged at different moments by design: a chat's commission is taken
+    # when the transaction is released (after the session closed cleanly and
+    # the grace period passed), never before the service happened; content is
+    # delivered instantly, so its commission is taken at purchase time.
+    chat_commission_percent: int = 10
+    content_commission_percent: int = 5
+
     # How long after a chat session closes before its transaction
     # auto-releases to the provider, if nobody disputes it (see
     # app/wallet/service.py's release_due_chat_transactions() and

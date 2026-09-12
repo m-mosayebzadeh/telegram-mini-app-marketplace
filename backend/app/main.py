@@ -106,10 +106,12 @@ def read_pricing_config(
     current_user: User = Depends(get_current_user),  # requires auth; not otherwise used
     db: Session = Depends(get_db),
 ) -> dict:
-    """Current conversion, withdrawal and complaint settings; purchases have no fee."""
+    """Current conversion and commission settings, for price previews in the UI."""
     rates = get_rates(db)
     return {
         "star_to_toman_rate": rates.star_to_toman_rate,
+        "chat_commission_percent": rates.chat_commission_percent,
+        "content_commission_percent": rates.content_commission_percent,
         "withdrawal_commission_percent": rates.withdrawal_commission_percent,
         "complaint_commission_percent": rates.complaint_commission_percent,
         "minimum_withdrawal_toman": rates.minimum_withdrawal_toman,

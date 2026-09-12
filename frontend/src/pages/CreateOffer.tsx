@@ -50,7 +50,7 @@ export default function CreateOffer() {
           <NumberField header={t('offers.priceStarsLabel')} value={priceStars} onChange={setPriceStars} />
         </div>
         {/* Purchases use the full price; withdrawal fees are shown in the wallet. */}
-        <PriceBreakdown priceStars={Number(priceStars) || 0} />
+        <PriceBreakdown priceStars={Number(priceStars) || 0} audience="provider" />
         <div className="hp-field">
           <Input
             header={t('offers.durationLabel')}

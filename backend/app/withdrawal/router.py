@@ -11,7 +11,7 @@ from app.core.rates import get_rates, lock_finances
 from app.models.user import User
 from app.models.withdrawal import BankAccount, Withdrawal, WithdrawalEvent
 from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
-from app.wallet.service import get_balance_toman
+from app.wallet.service import get_balance_toman, get_withdrawable_toman
 from app.withdrawal.schemas import BankInput, BankOut, QuoteInput, WithdrawalInput, WithdrawalOut, ReviewInput
 
 router = APIRouter(prefix='/wallet', tags=['withdrawals'])
@@ -21,6 +21,13 @@ def fail(reason, code=409, **extra):
     raise HTTPException(code, {'reason': reason, **extra})
 
 def quote(db, stars, user_id):
+    """Price one withdrawal, and sign it so the rates cannot drift underneath.
+
+    `withdrawable_toman` rides along purely for display: it is what this user
+    may cash out right now (earnings only — see get_withdrawable_toman), and
+    it is deliberately NOT part of the signed snapshot, because the ceiling
+    moves as money is earned or spent and is re-checked at creation time.
+    """
     rates = get_rates(db)
     gross = stars * rates.star_to_toman_rate
     if gross > 9_007_199_254_740_991:
@@ -32,7 +39,7 @@ def quote(db, stars, user_id):
                   gross_toman=gross, fee_toman=fee, net_toman=gross-fee)
     message = json.dumps([user_id, values], sort_keys=True).encode()
     token = hmac.new(settings.telegram_bot_token.encode(), message, hashlib.sha256).hexdigest()
-    return {**values, 'quote_token': token}
+    return {**values, 'quote_token': token, 'withdrawable_toman': get_withdrawable_toman(db, user_id)}
 
 @router.get('/bank-accounts', response_model=list[BankOut])
 def banks(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -86,12 +93,17 @@ def create_withdrawal(payload: WithdrawalInput, user: User = Depends(get_current
     if not hmac.compare_digest(values['quote_token'], payload.quote_token):
         fail('quote_changed', quote=values)
     values.pop('quote_token')
+    withdrawable = values.pop('withdrawable_toman')
     if values['gross_toman'] < values['minimum_toman']:
         fail('below_minimum', 400)
     if values['net_toman'] <= 0:
         fail('invalid_net_amount', 400)
     if get_balance_toman(db, user.id) < values['gross_toman']:
         fail('insufficient_balance', 402)
+    # Only earned money leaves the platform. The ceiling is re-read here, under
+    # the finance lock, rather than trusted from the quote the client sent.
+    if values['gross_toman'] > withdrawable:
+        fail('exceeds_withdrawable', 400, withdrawable_toman=withdrawable)
     withdrawal = Withdrawal(user_id=user.id, bank_account_id=bank.id,
         idempotency_key=payload.idempotency_key, holder_name=bank.holder_name,
         card_number=bank.card_number, iban=bank.iban, status='pending', **values)

@@ -138,7 +138,10 @@
     "spendableValue": "{{toman}} تومان (~{{stars}} استارز)",
     "pending": "در انتظار (کسب‌شده، هنوز آزاد نشده)",
     "pendingValue": "{{toman}} تومان",
-    "topUpButton": "شارژ کیف پول"
+    "topUpButton": "شارژ کیف پول",
+    "tomanAmount": "{{amount}} تومان",
+    "starsApprox": "حدود {{stars}} استارز",
+    "inFlight": "{{amount}} تومان در جریان"
   },
   "topup": {
     "pageTitle": "شارژ کیف پول",
@@ -277,6 +280,7 @@
     "titleLabel": "عنوان",
     "priceStarsLabel": "قیمت (استارز)",
     "priceInToman": "معادل تومانی",
+    "providerNetEarnings": "درآمد خالص شما",
     "commission": "کارمزد",
     "netEarnings": "مبلغ نهایی ارائه‌دهنده",
     "starsAndToman": "{{stars}} استارز ({{toman}} تومان)",
@@ -500,9 +504,11 @@
       "assigned_to_other_staff": "پشتیبان دیگری مسئول رسیدگی به این درخواست است.",
       "reference_required": "شماره پیگیری بانک الزامی است.",
       "reason_required": "دلیل یا توضیح را وارد کنید.",
-      "amount_too_large": "مبلغ واردشده بیش از محدودهٔ مجاز است."
+      "amount_too_large": "مبلغ واردشده بیش از محدودهٔ مجاز است.",
+      "exceeds_withdrawable": "فقط درآمدی که در اپ کسب کرده‌اید قابل برداشت است؛ پول شارژشده فقط داخل اپ قابل خرج کردن است."
     },
     "awaitingCredit": "در انتظار تأیید شارژ توسط سامانه",
-    "checkPayment": "بررسی وضعیت پرداخت"
+    "checkPayment": "بررسی وضعیت پرداخت",
+    "withdrawableCeiling": "قابل برداشت شما: {{amount}} تومان"
   }
 }

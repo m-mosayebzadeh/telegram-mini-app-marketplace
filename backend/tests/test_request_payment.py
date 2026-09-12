@@ -113,8 +113,8 @@ def test_pay_charges_buyer_immediately_but_holds_the_providers_share(client, db_
     # 36 stars to the provider (see test_wallet.py for the rounding rule
     # itself).
     assert body["gross_price_stars"] == 40
-    assert body["commission_stars"] == 0
-    assert body["net_provider_stars"] == 40
+    assert body["commission_stars"] == 4
+    assert body["net_provider_stars"] == 36
     assert body["status"] == "pending"
     assert body["request_id"] == req["id"]
 
@@ -127,7 +127,7 @@ def test_pay_charges_buyer_immediately_but_holds_the_providers_share(client, db_
     # instead, not as spendable balance.
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 40 * settings.star_to_toman_rate
+    assert alice_wallet["pending_toman"] == 36 * settings.star_to_toman_rate
     assert alice  # just to use the variable
 
 
@@ -155,7 +155,7 @@ def test_release_transaction_moves_pending_share_to_provider(client, db_session)
 
     assert transaction.status.value == "succeeded"
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
-    assert alice_wallet["balance_toman"] == 40 * settings.star_to_toman_rate
+    assert alice_wallet["balance_toman"] == 36 * settings.star_to_toman_rate
     assert alice_wallet["pending_toman"] == 0
 
 

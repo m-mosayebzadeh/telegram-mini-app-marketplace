@@ -110,9 +110,20 @@ def pay_for_item(
     unit of work later without an awkward nested transaction.
     """
     lock_finances(db)
-    commission_rate_percent = 0
-    commission_stars, net_provider_stars = 0, gross_price_stars
-    rate = get_rates(db).star_to_toman_rate
+    rates = get_rates(db)
+    # The commission percentage is chosen HERE, from `kind`, rather than being
+    # passed in by the caller: a route handler has no business deciding what
+    # the platform charges, and every extra parameter is one more place a
+    # wrong rate could enter the ledger.
+    commission_rate_percent = (
+        rates.content_commission_percent
+        if kind == TransactionKind.CONTENT_PURCHASE
+        else rates.chat_commission_percent
+    )
+    commission_stars, net_provider_stars = split_commission(
+        gross_price_stars, commission_rate_percent
+    )
+    rate = rates.star_to_toman_rate
     gross_toman = gross_price_stars * rate
     commission_toman = commission_stars * rate
     net_toman = net_provider_stars * rate
@@ -199,7 +210,8 @@ def release_transaction(db: Session, transaction: Transaction) -> None:
 
     Does NOT commit (same convention as pay_for_item — caller commits).
     The database lock and refreshed status make repeated releases harmless.
-    Historical transactions retain their frozen commission; new ones have zero.
+    Every transaction pays out the commission frozen onto it when it was
+    created, so a later rate change never rewrites an already-agreed split.
     """
     lock_finances(db)
     db.refresh(transaction)
@@ -277,6 +289,77 @@ def credit_topup(db: Session, *, user_id: int, amount_toman: int) -> CreditLedge
     )
     db.add(entry)
     return entry
+
+
+def get_buyer_in_flight_toman(db: Session, buyer_id: int) -> int:
+    """
+    What this user has already paid for a chat that has not settled yet.
+
+    The buyer is charged in full the moment they pay, so from their side the
+    money has simply left the wallet — without this, a paid-for chat looks
+    like money that vanished. It is not spendable and it is not lost: it
+    either reaches the provider when the session closes cleanly, or comes back
+    if the transaction is resolved in the buyer's favour.
+    """
+    total = (
+        db.query(func.coalesce(func.sum(Transaction.gross_price_toman), 0))
+        .filter(
+            Transaction.buyer_id == buyer_id,
+            Transaction.status == TransactionStatus.PENDING,
+        )
+        .scalar()
+    )
+    return int(total)
+
+
+def _ledger_total(db: Session, user_id: int, *types: LedgerEntryType) -> int:
+    """Signed sum of this user's ledger entries of the given types, in Toman."""
+    total = (
+        db.query(func.coalesce(func.sum(CreditLedgerEntry.amount_toman), 0))
+        .filter(
+            CreditLedgerEntry.user_id == user_id,
+            CreditLedgerEntry.type.in_(types),
+        )
+        .scalar()
+    )
+    return int(total)
+
+
+def get_withdrawable_toman(db: Session, user_id: int) -> int:
+    """
+    How much of this user's balance may leave the platform for a bank account.
+
+    Only money EARNED here can be withdrawn. Money the user topped up is
+    theirs to spend inside the app, but paying it back out to a bank card
+    would turn the marketplace into a currency-exchange route — someone could
+    buy Stars, top up, and cash out — which is both a legal exposure and an
+    obvious laundering path.
+
+    The rule that makes this computable is a deliberate product decision:
+    SPENDING DRAINS TOPPED-UP MONEY FIRST, and only reaches earnings once the
+    top-ups are exhausted. It favours the user (their earnings stay
+    withdrawable for as long as possible) and it is one sentence to explain.
+
+    So: everything earned, minus whatever spending had to dip into those
+    earnings, minus what has already been withdrawn or is being withdrawn
+    right now. Derived entirely from the ledger — there is no second balance
+    to keep in sync, and no schema change behind this.
+    """
+    earned = _ledger_total(db, user_id, LedgerEntryType.RECEIVE)
+    topped_up = _ledger_total(
+        db, user_id, LedgerEntryType.TOPUP, LedgerEntryType.TOPUP_DEV_STUB
+    )
+    # SPEND rows are negative; flip them so the arithmetic below reads plainly.
+    spent = -_ledger_total(db, user_id, LedgerEntryType.SPEND)
+    # A withdrawal debits the ledger the moment it is requested (the hold), and
+    # a rejected or cancelled one credits it back, so this nets out to "money
+    # already on its way out".
+    withdrawn = -_ledger_total(
+        db, user_id, LedgerEntryType.WITHDRAWAL, LedgerEntryType.WITHDRAWAL_REFUND
+    )
+
+    spent_from_earnings = max(0, spent - topped_up)
+    return max(0, earned - spent_from_earnings - withdrawn)
 
 
 def get_pending_provider_toman(db: Session, provider_id: int) -> int:
