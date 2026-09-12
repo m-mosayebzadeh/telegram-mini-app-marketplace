@@ -1,26 +1,8 @@
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { DropAmount } from './ui/Drop'
 import type { Withdrawal, WithdrawalQuote } from '../lib/withdrawalApi'
 
-export function FinanceHeader({
-  title,
-  back = '/wallet',
-}: {
-  title: string
-  back?: string
-}) {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  return (
-    <div className="hp-page-back-header">
-      <button className="hp-btn-sm" onClick={() => navigate(back)}>
-        {t('common.back')}
-      </button>
-      <h1 className="hp-page-header">{title}</h1>
-    </div>
-  )
-}
 export function MoneySummary({
   quote,
 }: {
@@ -62,7 +44,8 @@ export function WithdrawalCard({
         </span>
       </div>
       <p>
-        {new Date(row.created_at).toLocaleString(i18n.language)} · {row.stars} ⭐
+        {new Date(row.created_at).toLocaleString(i18n.language)} ·{' '}
+        <DropAmount amount={row.stars} locale={i18n.language} size={16} />
       </p>
       <p>{row.holder_name}</p>
       <p>

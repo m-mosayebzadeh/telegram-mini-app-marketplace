@@ -3,7 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch, ApiError, formatApiError } from '../lib/api'
 import { useMe } from '../lib/MeContext'
-import { PageHeader, ConfirmDialog, ErrorState, SkeletonRows, useToast } from '../components/ui'
+import {
+  PageHeader,
+  ConfirmDialog,
+  ErrorState,
+  Segments,
+  SkeletonRows,
+  useToast,
+} from '../components/ui'
 import { DropChip } from '../components/ui/Drop'
 import { MyOffersView } from '../components/activity/MyOffersView'
 import { MyRequestsView } from '../components/activity/MyRequestsView'
@@ -177,20 +184,15 @@ export default function Activity() {
           segment === 'offers' && offers && offers.length > 0 ? ' ui-page-body-action' : ''
         }`}
       >
-        <div className="ac-segments" role="tablist">
-          <SegmentButton
-            label={t('activityPage.offersTab')}
-            count={unseenOffers}
-            active={segment === 'offers'}
-            onClick={() => setSegment('offers')}
-          />
-          <SegmentButton
-            label={t('activityPage.requestsTab')}
-            count={unseenRequests}
-            active={segment === 'requests'}
-            onClick={() => setSegment('requests')}
-          />
-        </div>
+        <Segments
+          label={t('tabs.activity')}
+          value={segment}
+          onChange={setSegment}
+          options={[
+            { id: 'offers', label: t('activityPage.offersTab'), count: unseenOffers },
+            { id: 'requests', label: t('activityPage.requestsTab'), count: unseenRequests },
+          ]}
+        />
 
         {error ? (
           <ErrorState text={error} onRetry={reload} />
@@ -228,30 +230,5 @@ export default function Activity() {
         />
       )}
     </div>
-  )
-}
-
-interface SegmentButtonProps {
-  label: string
-  /** Unseen items behind this segment. Zero renders nothing at all —
-   *  never a "0" badge, which is a number with nothing to say. */
-  count: number
-  active: boolean
-  onClick: () => void
-}
-
-function SegmentButton({ label, count, active, onClick }: SegmentButtonProps) {
-  const { i18n } = useTranslation()
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      className={`ac-segment${active ? ' ac-segment-active' : ''}`}
-      onClick={onClick}
-    >
-      {label}
-      {count > 0 && <span className="ui-badge">{count.toLocaleString(i18n.language)}</span>}
-    </button>
   )
 }

@@ -55,7 +55,12 @@
     "activeEmpty": "فعلاً گفتگویی نیست",
     "archivedEmpty": "چیزی توی بایگانی نیست",
     "roleBuyer": "شما خریدید",
-    "roleProvider": "شما ارائه می‌دید"
+    "roleProvider": "شما ارائه می‌دید",
+    "manageChat": "مدیریت گفتگو",
+    "activeEmptyHint": "وقتی پیشنهادی رو درخواست بدی و پرداخت کنی، گفتگو همین‌جا باز می‌شه.",
+    "archivedEmptyHint": "گفتگوهایی که بایگانی کنی اینجا می‌مونن و هر وقت خواستی برمی‌گردونی‌شون.",
+    "archiveHint": "از لیست تو برداشته می‌شه. طرف مقابل چیزی نمی‌بینه.",
+    "unarchiveHint": "برمی‌گرده به لیست فعال."
   },
   "account": {
     "title": "حساب شما",
@@ -202,7 +207,10 @@
     "intermediarySiteIranicard": "ایرانی‌کارت",
     "intermediarySiteNumberland": "نامبرلند",
     "intermediarySiteSubtg": "ساب‌تی‌جی",
-    "starsAmountMustBePositive": "تعداد دراپ باید بزرگ‌تر از صفر باشه"
+    "starsAmountMustBePositive": "تعداد دراپ باید بزرگ‌تر از صفر باشه",
+    "dropUnit": "دراپ",
+    "cardNumberLabel": "شماره کارت مقصد",
+    "historyEmptyHint": "رسیدهایی که می‌فرستی و نتیجه‌شون اینجا میاد."
   },
   "admin": {
     "hubTitle": "پنل مدیریت",

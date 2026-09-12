@@ -79,4 +79,28 @@ describe('wallet screen', () => {
 
     expect(container.textContent).not.toContain('120,000')
   })
+
+  it('offers a retry when the balance fails to load', async () => {
+    mocks.api.mockRejectedValue(new Error('offline'))
+    await render()
+
+    const retry = container.querySelector<HTMLButtonElement>('.ui-state-action button')
+    expect(retry?.textContent).toBe('common.retry')
+
+    mocks.api.mockResolvedValue(emptyBalance)
+    await act(async () => retry!.click())
+
+    expect(container.textContent).toContain('wallet.spendable')
+  })
+
+  it('stands the figure in with a skeleton rather than a spinner', async () => {
+    // Never resolves: this is what the screen looks like while waiting.
+    mocks.api.mockReturnValue(new Promise(() => {}))
+
+    await render()
+
+    expect(container.querySelector('.wl-skeleton-amount')).toBeTruthy()
+    // The label is already correct while the number is still coming.
+    expect(container.textContent).toContain('wallet.spendable')
+  })
 })

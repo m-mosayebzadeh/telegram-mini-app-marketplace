@@ -1,0 +1,61 @@
+/**
+ * The Chats tab. One list, two segments (see .ui-segments in nav.css).
+ */
+
+/* The row and its overflow button are siblings — a button inside a
+   button is invalid markup, and the row's tap target should not swallow
+   the one control deliberately kept apart from it. */
+.ch-row {
+  display: flex;
+  align-items: center;
+}
+
+.ch-row + .ch-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.ch-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ch-manage {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+
+.ch-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The offer title can be any length; the price cannot be split, so the
+   title truncates and the price keeps its place at the end of the line. */
+.ch-offer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ch-offer-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Status above, role below: the status is what changes and what you
+   scan for; which side you are on never changes for a given chat. */
+.ch-trailing {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+}
+
+.ch-role {
+  font: var(--text-caption);
+  color: var(--color-text-3);
+  white-space: nowrap;
+}

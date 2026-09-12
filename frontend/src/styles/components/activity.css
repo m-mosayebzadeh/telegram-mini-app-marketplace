@@ -1,46 +1,7 @@
 /**
- * The Activity tab. Two segments over one list surface.
+ * The Activity tab. Two segments (see .ui-segments in nav.css) over one
+ * list surface.
  */
-
-/* An underline, not a pill: these are two views of the same page, and a
-   filled pill would say they are two different modes. The rule sits on
-   the container so the inactive tab still has a baseline to sit on. */
-.ac-segments {
-  display: flex;
-  gap: var(--space-5);
-  margin-inline: calc(var(--page-gutter) * -1);
-  padding-inline: var(--page-gutter);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.ac-segment {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--touch-min);
-  padding-block: var(--space-3);
-  color: var(--color-text-2);
-  font: var(--text-body-md);
-  transition: color var(--motion-fast) var(--ease);
-}
-
-.ac-segment-active {
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-/* Overlaps the container's own rule by exactly its own height, so the
-   active marker replaces the hairline rather than sitting above it. */
-.ac-segment-active::after {
-  content: '';
-  position: absolute;
-  inset-inline: 0;
-  bottom: -1px;
-  height: 2px;
-  border-radius: var(--radius-full);
-  background: var(--color-accent);
-}
 
 /* ---------- offers ---------- */
 

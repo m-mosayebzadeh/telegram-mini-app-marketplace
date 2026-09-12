@@ -104,3 +104,49 @@
 .ui-nav-item-active .ui-nav-avatar {
   box-shadow: 0 0 0 2px var(--color-accent-ink);
 }
+
+/* ---------- in-page segments ---------- */
+
+/* Two or three views of the SAME page — Offers/Requests, Active/Archived.
+   An underline, not a filled pill: a pill would say these are separate
+   modes, and they are not; you are on one page, looking at part of it.
+   Not to be confused with the bottom nav above, which moves between
+   destinations, or with a filter chip, which narrows one list. */
+.ui-segments {
+  display: flex;
+  gap: var(--space-5);
+  /* Bleeds to the screen edge so the rule underneath spans the full
+     width, while the labels still start at the page gutter. */
+  margin-inline: calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ui-segment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-min);
+  padding-block: var(--space-3);
+  color: var(--color-text-2);
+  font: var(--text-body-md);
+  transition: color var(--motion-fast) var(--ease);
+}
+
+.ui-segment-active {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* Overlaps the container's own rule by exactly its height, so the marker
+   replaces the hairline rather than sitting on top of it. */
+.ui-segment-active::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}

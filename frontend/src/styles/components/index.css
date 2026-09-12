@@ -9,6 +9,7 @@
 
 @import './activity.css';
 @import './button.css';
+@import './chats.css';
 @import './chip.css';
 @import './discover.css';
 @import './header.css';
@@ -19,3 +20,5 @@
 @import './profile.css';
 @import './sheet.css';
 @import './states.css';
+@import './topup.css';
+@import './wallet.css';

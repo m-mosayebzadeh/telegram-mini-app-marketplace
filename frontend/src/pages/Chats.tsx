@@ -1,31 +1,43 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { apiFetch, formatApiError } from '../lib/api'
+import {
+  PageHeader,
+  EmptyState,
+  ErrorState,
+  Segments,
+  SkeletonRows,
+  useToast,
+} from '../components/ui'
+import { Sheet } from '../components/ui/Sheet'
+import { DropAmount } from '../components/ui/Drop'
+import { IconChat, IconMore, IconPersonFallback } from '../components/icons'
 import type { ChatSession } from '../lib/types'
 
 type Segment = 'active' | 'archived'
 
 /**
- * The Chats tab: every chat session the current user is part of, as
- * either buyer or provider — GET /chat-sessions/mine already returns
- * both directions in one call (see backend/app/chat_session/router.py).
- * Archiving (see ChatSession.archived_by_buyer/archived_by_provider) is
- * purely a per-viewer "get it out of my main list" action, the same
- * Post/Archived-Post pattern the Profile and Activity tabs use — it
- * never deletes anything, and never affects the other participant's
- * own view of the same session.
+ * The Chats tab: every chat session the user is part of, as buyer or as
+ * provider — GET /chat-sessions/mine returns both directions at once.
+ *
+ * Archiving is per-viewer and reversible: it takes a session out of YOUR
+ * main list and does nothing to the other person's view of it, and
+ * nothing to the session itself.
  */
 export default function Chats() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const toast = useToast()
+
   const [segment, setSegment] = useState<Segment>('active')
   const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [managing, setManaging] = useState<ChatSession | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
 
   const load = useCallback(() => {
+    setError(null)
     apiFetch<ChatSession[]>('/chat-sessions/mine')
       .then(setSessions)
       .catch((err) => setError(formatApiError(err)))
@@ -36,76 +48,160 @@ export default function Chats() {
   async function toggleArchive(session: ChatSession) {
     setBusyId(session.id)
     try {
-      const action = session.archived ? 'unarchive' : 'archive'
-      await apiFetch(`/chat-sessions/${session.id}/${action}`, { method: 'POST' })
+      await apiFetch(`/chat-sessions/${session.id}/${session.archived ? 'unarchive' : 'archive'}`, {
+        method: 'POST',
+      })
       load()
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setBusyId(null)
     }
   }
 
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
-  if (!sessions) {
-    return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
-    )
-  }
-
-  const shown = sessions
+  const shown = (sessions ?? [])
     .filter((s) => (segment === 'archived' ? s.archived : !s.archived))
+    // Newest first — a chat you opened today is the one you are looking
+    // for, not the one from three weeks ago.
     .sort((a, b) => (a.opened_at < b.opened_at ? 1 : -1))
 
-  return (
-    <div className="hp-page">
-      <div className="hp-segmented" style={{ margin: '14px 12px 0' }}>
-        <button
-          className={`hp-segmented-btn ${segment === 'active' ? 'hp-segmented-active' : ''}`}
-          onClick={() => setSegment('active')}
-        >
-          {t('chatsPage.activeTab')}
-        </button>
-        <button
-          className={`hp-segmented-btn ${segment === 'archived' ? 'hp-segmented-active' : ''}`}
-          onClick={() => setSegment('archived')}
-        >
-          {t('chatsPage.archivedTab')}
-        </button>
-      </div>
+  const activeCount = (sessions ?? []).filter((s) => !s.archived && s.status === 'open').length
 
-      {shown.length === 0 ? (
-        <p className="hp-empty">
-          {segment === 'active' ? t('chatsPage.activeEmpty') : t('chatsPage.archivedEmpty')}
-        </p>
-      ) : (
-        <div className="hp-list" style={{ marginTop: 14 }}>
-          {shown.map((session) => (
-            <div key={session.id} className="hp-list-row">
-              <div
-                className="hp-list-row-main"
-                onClick={() => navigate(`/chat-sessions/${session.id}`)}
-                style={{ cursor: 'pointer' }}
-              >
-                <span className="hp-list-title" dir="auto">
-                  {session.other_participant.display_name}
-                </span>
-                <span className="hp-list-subtitle">
-                  {session.offer_title} —{' '}
-                  {session.my_role === 'buyer' ? t('chatsPage.roleBuyer') : t('chatsPage.roleProvider')} —{' '}
-                  {session.status === 'open' ? t('chatSession.statusOpen') : t('chatSession.statusClosed')}
-                </span>
-              </div>
-              <div className="hp-list-row-actions">
-                <button className="hp-btn-sm" disabled={busyId === session.id} onClick={() => toggleArchive(session)}>
-                  {session.archived ? t('chatsPage.unarchiveButton') : t('chatsPage.archiveButton')}
+  return (
+    <div className="ui-page">
+      <PageHeader title={t('tabs.chats')} />
+
+      <div className="ui-page-body">
+        <Segments
+          label={t('tabs.chats')}
+          value={segment}
+          onChange={setSegment}
+          options={[
+            { id: 'active', label: t('chatsPage.activeTab'), count: activeCount },
+            { id: 'archived', label: t('chatsPage.archivedTab') },
+          ]}
+        />
+
+        {error ? (
+          <ErrorState text={error} onRetry={load} />
+        ) : sessions === null ? (
+          <SkeletonRows count={4} />
+        ) : shown.length === 0 ? (
+          segment === 'active' ? (
+            <EmptyState
+              icon={<IconChat size={24} />}
+              title={t('chatsPage.activeEmpty')}
+              text={t('chatsPage.activeEmptyHint')}
+              actionLabel={t('activityPage.browseShowcase')}
+              onAction={() => navigate('/offers')}
+            />
+          ) : (
+            <EmptyState
+              icon={<IconChat size={24} />}
+              title={t('chatsPage.archivedEmpty')}
+              text={t('chatsPage.archivedEmptyHint')}
+            />
+          )
+        ) : (
+          <div className="ui-list">
+            {shown.map((session) => (
+              <div className="ch-row" key={session.id}>
+                <button
+                  type="button"
+                  className="ui-row ui-row-avatar ch-row-main"
+                  onClick={() => navigate(`/chat-sessions/${session.id}`)}
+                >
+                  <span className="ui-row-media ch-avatar">
+                    {session.other_participant.avatar_url ? (
+                      <img src={session.other_participant.avatar_url} alt="" />
+                    ) : (
+                      <IconPersonFallback size={22} />
+                    )}
+                  </span>
+
+                  <span className="ui-row-main">
+                    <span className="ui-row-title" dir="auto">
+                      {session.other_participant.display_name}
+                    </span>
+                    {/* The offer is what this conversation is FOR, so it
+                        is the subtitle. Which side you are on is a chip
+                        rather than a third clause in a run-on line. */}
+                    <span className="ui-row-subtitle ch-offer">
+                      <span className="ch-offer-title" dir="auto">
+                        {session.offer_title}
+                      </span>
+                      <DropAmount amount={session.price_stars} locale={i18n.language} size={16} />
+                    </span>
+                  </span>
+
+                  <span className="ui-row-trailing ch-trailing">
+                    {session.disputed ? (
+                      <span className="ui-status ui-status-warning">
+                        {t('chatSession.statusDisputed')}
+                      </span>
+                    ) : session.status === 'open' ? (
+                      <span className="ui-status ui-status-success">
+                        {t('chatSession.statusOpen')}
+                      </span>
+                    ) : (
+                      <span className="ui-status ui-status-neutral">
+                        {t('chatSession.statusClosed')}
+                      </span>
+                    )}
+                    <span className="ch-role">
+                      {session.my_role === 'buyer'
+                        ? t('chatsPage.roleBuyer')
+                        : t('chatsPage.roleProvider')}
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="ui-btn ui-btn-icon ch-manage"
+                  onClick={() => setManaging(session)}
+                  aria-label={t('chatsPage.manageChat')}
+                >
+                  <IconMore size={20} />
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {managing && (
+        <Sheet
+          title={managing.other_participant.display_name}
+          onClose={() => setManaging(null)}
+        >
+          <div className="ui-list">
+            <button
+              className="ui-row"
+              onClick={() => {
+                toggleArchive(managing)
+                setManaging(null)
+              }}
+              disabled={busyId === managing.id}
+            >
+              <span className="ui-row-main">
+                <span className="ui-row-title">
+                  {managing.archived
+                    ? t('chatsPage.unarchiveButton')
+                    : t('chatsPage.archiveButton')}
+                </span>
+                {/* Archiving reads as deleting unless the row says
+                    otherwise — and it is neither destructive nor visible
+                    to the other person. */}
+                <span className="ui-row-subtitle">
+                  {managing.archived
+                    ? t('chatsPage.unarchiveHint')
+                    : t('chatsPage.archiveHint')}
+                </span>
+              </span>
+            </button>
+          </div>
+        </Sheet>
       )}
     </div>
   )

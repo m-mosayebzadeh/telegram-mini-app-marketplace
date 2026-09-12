@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { financeError } from '../lib/withdrawalApi'
-import { FinanceHeader } from '../components/Finance'
+import { PageHeader } from '../components/ui'
 interface Entry {
   id: number
   type: string
@@ -22,8 +22,8 @@ export default function WalletHistory() {
       .catch((e) => setError(financeError(e, t)))
   }, [t])
   return (
-    <div className="hp-page finance-page">
-      <FinanceHeader title={t('finance.history')} />
+    <div className="ui-page finance-page">
+      <PageHeader title={t('finance.history')} onBack={() => navigate('/wallet')} />
       {error && (
         <p role="alert" className="hp-error">
           {error}

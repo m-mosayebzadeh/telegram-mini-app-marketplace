@@ -55,7 +55,12 @@
     "activeEmpty": "No chats yet",
     "archivedEmpty": "Nothing archived",
     "roleBuyer": "You bought",
-    "roleProvider": "You're providing"
+    "roleProvider": "You're providing",
+    "manageChat": "Manage chat",
+    "activeEmptyHint": "Request an offer and pay for it, and the chat opens here.",
+    "archivedEmptyHint": "Chats you archive stay here, and you can bring them back any time.",
+    "archiveHint": "Removed from your list. The other person sees nothing.",
+    "unarchiveHint": "Back to your active list."
   },
   "account": {
     "title": "Your account",
@@ -202,7 +207,10 @@
     "intermediarySiteIranicard": "IraniCard",
     "intermediarySiteNumberland": "Numberland",
     "intermediarySiteSubtg": "SubTG",
-    "starsAmountMustBePositive": "Enter a Drop amount greater than zero"
+    "starsAmountMustBePositive": "Enter a Drop amount greater than zero",
+    "dropUnit": "Drop",
+    "cardNumberLabel": "Transfer to this card",
+    "historyEmptyHint": "Receipts you send, and what came of them, show up here."
   },
   "admin": {
     "hubTitle": "Admin Panel",

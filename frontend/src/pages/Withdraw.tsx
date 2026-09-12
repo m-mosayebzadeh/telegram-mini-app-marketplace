@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { PageHeader } from '../components/ui'
 import { apiFetch, ApiError } from '../lib/api'
 import {
   bankAccounts,
@@ -13,7 +14,6 @@ import {
   type WithdrawalQuote,
 } from '../lib/withdrawalApi'
 import {
-  FinanceHeader,
   MoneySummary,
   WithdrawalCard,
 } from '../components/Finance'
@@ -130,8 +130,8 @@ export default function Withdraw() {
     Number(stars) <= 1_000_000_000 &&
     !!selected
   return (
-    <div className="hp-page finance-page">
-      <FinanceHeader title={t('finance.withdraw')} />
+    <div className="ui-page finance-page">
+      <PageHeader title={t('finance.withdraw')} onBack={() => navigate('/wallet')} />
       <div className="hp-card finance-card">
         <div className="finance-form">
           <label>

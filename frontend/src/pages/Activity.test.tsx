@@ -134,7 +134,7 @@ describe('Activity — offers', () => {
 
     await render()
 
-    expect(container.querySelector('.ac-segment-active')?.textContent).toContain(
+    expect(container.querySelector('.ui-segment-active')?.textContent).toContain(
       'activityPage.offersTab',
     )
     expect(container.querySelector('.ui-row-title')?.textContent).toBe('Chat with me')
@@ -143,13 +143,13 @@ describe('Activity — offers', () => {
   it('shows no badge when nothing is unseen', async () => {
     respond()
     await render()
-    expect(container.querySelector('.ac-segments .ui-badge')).toBeNull()
+    expect(container.querySelector('.ui-segments .ui-badge')).toBeNull()
 
     await act(async () => root.unmount())
     root = createRoot(container)
     respond({ '/offers?provider_id=1': [offer({ request_count: 4 })] })
     await render()
-    expect(container.querySelector('.ac-segments .ui-badge')?.textContent).toBe('4')
+    expect(container.querySelector('.ui-segments .ui-badge')?.textContent).toBe('4')
   })
 
   it('puts activate and delete behind one overflow, not on the row', async () => {

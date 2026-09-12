@@ -1,0 +1,68 @@
+/**
+ * Wallet. One figure, the two moves you can make with it, and the way
+ * into the detail.
+ */
+
+/* The balance is the reason this screen exists, so it is the largest
+   thing on it — a row in a list of equals would bury it. Centred,
+   because it is a single subject with nothing to align against. */
+.wl-balance {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-10) var(--space-6);
+}
+
+.wl-balance-label {
+  font: var(--text-label);
+  color: var(--color-text-2);
+}
+
+.wl-balance-amount {
+  font: var(--text-display);
+  color: var(--color-text);
+}
+
+/* The same money in the unit the app prices things in. Second, and
+   quieter: Toman is what the user thinks in, Drop is what they spend. */
+.wl-balance-drop {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-body-md);
+  color: var(--color-text-2);
+}
+
+/* Placeholders shaped like the two lines they stand in for, so the page
+   does not jump when the figure arrives. */
+.wl-skeleton-amount {
+  width: 180px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+}
+
+.wl-skeleton-drop {
+  width: 84px;
+  height: 20px;
+  border-radius: var(--radius-full);
+}
+
+/* Money that exists but is not available. A quiet line, never a warning
+   colour: nothing has gone wrong, it is simply not spendable yet. */
+.wl-inflight {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: var(--text-caption);
+  color: var(--color-text-2);
+  text-align: center;
+}
+
+.wl-actions {
+  margin-top: var(--space-6);
+}
+
+.wl-links {
+  margin-top: var(--space-6);
+}

@@ -48,11 +48,17 @@
   --hp-font: var(--font);
 }
 
+/* The not-yet-migrated pages' scaffold. .ui-page + .ui-page-body is what
+   replaces it; until a page moves over, this has to reserve the same
+   room at the bottom, because the app shell no longer adds a blanket
+   padding of its own (see App.tsx). Without this the last row of every
+   un-migrated screen sits under the nav bar. */
 .hp-page {
-  padding-bottom: 12px;
+  padding-bottom: calc(var(--nav-clearance) + var(--space-4));
   background: var(--hp-bg);
   color: var(--hp-text);
   min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--hp-font);
 }
 
@@ -329,13 +335,6 @@
 }
 
 /* ---------- tabs ---------- */
-
-.hp-tabs {
-  display: flex;
-  margin: 20px 12px 0;
-  border-bottom: 1px solid var(--hp-hairline);
-  padding: 0 4px;
-}
 
 .hp-tab {
   flex: 1;
@@ -1514,146 +1513,6 @@ button.hp-list-row:active {
    consistently-padded wrapper (see pages/TopUp.tsx's `.hp-tab-body`),
    so every element on the tab shares the exact same left/right edge
    instead of each one guessing its own margin number. */
-.hp-proscons {
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.hp-proscons-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.hp-proscons-icon {
-  flex: none;
-  font-size: 13px;
-  margin-top: 1px;
-}
-
-.hp-proscons-row-pro .hp-proscons-icon {
-  color: var(--color-success);
-}
-
-.hp-proscons-row-con .hp-proscons-icon {
-  color: var(--color-danger);
-}
-
-.hp-proscons-row-pro {
-  color: var(--hp-text);
-}
-
-.hp-proscons-row-con {
-  color: var(--hp-text-muted);
-}
-
-/* ---------- top-up: bank card visual ---------- */
-
-.hp-bank-card {
-  margin-top: 16px;
-  border-radius: 16px;
-  padding: 14px 16px;
-  background: var(--hp-grad);
-  color: var(--color-on-accent);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  font-family: var(--hp-font);
-}
-
-
-.hp-bank-card-chip {
-  width: 28px;
-  height: 20px;
-  border-radius: 5px;
-  background: color-mix(in srgb, var(--color-on-accent) 28%, transparent);
-  position: relative;
-  z-index: 1;
-}
-
-.hp-bank-card-number {
-  position: relative;
-  z-index: 1;
-  font-size: 16.5px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  direction: ltr;
-  text-align: start;
-  unicode-bidi: isolate;
-}
-
-.hp-bank-card-holder {
-  position: relative;
-  z-index: 1;
-  font-size: 12px;
-  font-weight: 600;
-  opacity: 0.92;
-  margin-top: 4px;
-}
-
-.hp-bank-card-copy {
-  position: relative;
-  z-index: 1;
-  align-self: flex-end;
-  background: color-mix(in srgb, var(--color-on-accent) 14%, transparent);
-  border: none;
-  color: var(--color-on-accent);
-  font-size: 11px;
-  font-weight: 700;
-  font-family: var(--hp-font);
-  padding: 6px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-/* ---------- top-up: converter ----------
-   Stars is the only real, editable field (it's the one field the
-   backend actually stores — see TopUpRequest.requested_stars); Toman
-   is shown as a plain read-only line computed from it, never a second
-   input a person could type into separately. Two independently-typable
-   fields invited exactly the confusion this replaced: someone typing a
-   Toman amount that doesn't divide evenly by the rate got a
-   silently-rounded Star count that didn't match what they thought
-   they were asking for. */
-
-.hp-converter {
-  margin-top: 16px;
-  background: var(--hp-glass);
-  border: 1px solid var(--hp-hairline);
-  border-radius: 18px;
-  padding: 14px 16px;
-}
-
-.hp-converter-input {
-  width: 100%;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-.hp-converter-toman-line {
-  margin-top: 10px;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--hp-text);
-}
-
-.hp-converter-rate-hint {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--hp-text-muted);
-  text-align: center;
-}
-
-/* ---------- top-up: status pill (also usable anywhere else a plain
-   pending/approved/rejected-style state needs a colored badge) ---------- */
-
 .hp-status-pill {
   display: inline-flex;
   align-items: center;
@@ -1684,14 +1543,13 @@ button.hp-list-row:active {
 
 /* ---------- top-up: external intermediary site links ---------- */
 
-.hp-external-link-icon {
-  flex: none;
-  font-size: 18px;
-  color: var(--hp-text-muted);
+.finance-page {
+  padding-inline: var(--page-gutter);
+  /* Same reason as .hp-page above: these pages carry their own body
+     padding rather than using .ui-page-body, so the nav clearance has to
+     come from here. */
+  padding-bottom: calc(var(--nav-clearance) + var(--space-4));
 }
-
-/* Wallet forms use the current theme and remain readable on narrow screens. */
-.finance-page { padding-inline: 12px; }
 .finance-page h1 { font-size: 1.3rem; }
 .finance-page h2 { font-size: 1.1rem; margin-top: 24px; }
 .finance-form { display: grid; gap: 14px; }
@@ -1720,58 +1578,3 @@ button.hp-list-row:active {
    The balance is the one thing a person opens this screen for, so it gets a
    card of its own rather than a labelled row among other labelled rows. Built
    from the same tokens as .hp-card, so it follows all three colour themes. */
-.hp-wallet-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin: 12px 12px 14px;
-  padding: 22px 18px 20px;
-  background: var(--hp-grad-soft, var(--hp-glass));
-  border: 1px solid var(--hp-hairline);
-  border-radius: 22px;
-}
-
-.hp-wallet-card-label {
-  font-size: 13px;
-  color: var(--hp-text-muted);
-}
-
-.hp-wallet-card-amount {
-  font-size: 30px;
-  font-weight: 800;
-  line-height: 1.25;
-  /* Digits keep a fixed width so a changing balance does not make the whole
-     line jitter. */
-  font-variant-numeric: tabular-nums;
-}
-
-.hp-wallet-card-secondary {
-  font-size: 13px;
-  color: var(--hp-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* The single "not available right now" line. Deliberately quiet: it is
-   context, not a call to action. */
-.hp-wallet-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 14px 14px;
-  font-size: 13.5px;
-  color: var(--hp-text-muted);
-}
-
-.hp-wallet-note-dot {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--hp-gold);
-}
-
-.hp-wallet-actions {
-  display: flex;
-  gap: 10px;
-  margin: 0 12px 16px;
-}

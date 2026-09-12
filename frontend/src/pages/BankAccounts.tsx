@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { PageHeader } from '../components/ui'
 import { apiFetch } from '../lib/api'
 import {
   bankAccounts,
@@ -8,7 +9,6 @@ import {
   financeError,
   type BankAccount,
 } from '../lib/withdrawalApi'
-import { FinanceHeader } from '../components/Finance'
 import { Sheet } from '../components/ui/Sheet'
 
 export default function BankAccounts() {
@@ -69,8 +69,8 @@ export default function BankAccounts() {
     }
   }
   return (
-    <div className="hp-page finance-page">
-      <FinanceHeader title={t('finance.banks')} back={back} />
+    <div className="ui-page finance-page">
+      <PageHeader title={t('finance.banks')} onBack={() => navigate(back)} />
       {error && !editing && (
         <p className="hp-error" role="alert">
           {error}

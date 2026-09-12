@@ -1,10 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { openInvoice } from '@telegram-apps/sdk-react'
 import { apiFetch, formatApiError } from '../lib/api'
-import { FinanceHeader } from '../components/Finance'
 import { getPricingConfig } from '../lib/pricing'
 import {
   createStarInvoice,
@@ -12,106 +10,77 @@ import {
   getTopUpCardInfo,
   listMyTopUpRequests,
 } from '../lib/topupApi'
-import { IconExternalLink } from '../components/icons'
+import { PageHeader, ErrorState, Segments, useToast } from '../components/ui'
+import { TopUpDirect } from '../components/topup/TopUpDirect'
+import { TopUpStars } from '../components/topup/TopUpStars'
+import { TopUpIntermediaries } from '../components/topup/TopUpIntermediaries'
 import type { TopUpCardInfo, TopUpRequest } from '../lib/types'
 
 type Tab = 'direct' | 'stars' | 'intermediaries'
 
-const INTERMEDIARY_SITES = [
-  {
-    key: 'intermediarySiteIranicard',
-    url: 'https://www.iranicard.ir/payments/foreign-services/telegram-stars/',
-  },
-  {
-    key: 'intermediarySiteNumberland',
-    url: 'https://numberland.ir/account/telegram-stars',
-  },
-  { key: 'intermediarySiteSubtg', url: 'https://subtg.com/telegram-stars' },
-] as const
-
-function statusLabel(status: TopUpRequest['status']): string {
-  return status === 'pending'
-    ? 'statusPending'
-    : status === 'approved'
-      ? 'statusApproved'
-      : 'statusRejected'
-}
+/** Survives a reload: the Telegram payment sheet can take the app out of
+ *  the foreground, and coming back must not lose track of money already
+ *  paid. */
+const PENDING_KEY = 'pending-star-purchase'
 
 /**
- * The three ways to add wallet balance — see
- * TECHNICAL_REQUIREMENTS.md, "شارژ کارت‌به‌کارت". "direct" (manual
- * card-to-card, reviewed by an admin — see backend/app/topup/router.py
- * + app/admin/router.py) and "intermediaries" (plain external links)
- * never touch the wallet themselves; "stars" (real Telegram Stars, paid
- * through Telegram's own native invoice sheet) credits the wallet
- * automatically the instant Telegram confirms payment — see
- * backend/app/telegram_webhook/router.py.
+ * The three ways to add wallet balance.
+ *
+ * "direct" (card-to-card, reviewed by an admin) and "intermediaries"
+ * (outbound links to third-party sellers) never touch the wallet
+ * themselves. "stars" — real Telegram Stars through Telegram's own
+ * invoice sheet — credits it automatically the instant Telegram
+ * confirms (see backend/app/telegram_webhook/router.py).
+ *
+ * This file owns the data and the money; each tab's rendering lives in
+ * components/topup/.
  */
 export default function TopUp() {
   const { t } = useTranslation()
-  // Arriving from OfferDetail.tsx's "insufficient balance" dialog
-  // passes exactly how many Stars are missing, so this screen opens
-  // with that amount already typed in instead of making someone go
-  // work it out and re-type it themselves.
+  const navigate = useNavigate()
   const location = useLocation()
-  const prefillStars =
-    (location.state as { prefillStars?: number } | null)?.prefillStars ?? null
+  const toast = useToast()
+
+  // Arriving from the offer page's "insufficient balance" dialog carries
+  // exactly how much is missing, so this screen opens with the amount
+  // already filled in rather than making someone work it out again.
+  const navState = location.state as { prefillStars?: number; from?: string } | null
+  const prefillStars = navState?.prefillStars ?? null
+  const from = navState?.from
+  const back = from && /^\/offers\/\d+$/.test(from) ? from : '/wallet'
 
   const [tab, setTab] = useState<Tab>('direct')
   const [rate, setRate] = useState<number | null>(null)
   const [cardInfo, setCardInfo] = useState<TopUpCardInfo | null>(null)
   const [history, setHistory] = useState<TopUpRequest[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
 
-  const [file, setFile] = useState<File | null>(null)
+  // --- card-to-card ---
+  const [receipt, setReceipt] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [starsText, setStarsText] = useState(
-    prefillStars ? String(prefillStars) : '',
-  )
-  const [tomanText, setTomanText] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [directAmount, setDirectAmount] = useState(prefillStars ? String(prefillStars) : '')
+  const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const from = (location.state as { from?: string } | null)?.from
-  const back = from && /^\/offers\/\d+$/.test(from) ? from : '/wallet'
+  // --- Telegram Stars ---
+  const [starsAmount, setStarsAmount] = useState('')
+  const [buying, setBuying] = useState(false)
+  const [buyError, setBuyError] = useState<string | null>(null)
   const [pendingPurchase, setPendingPurchase] = useState<number | null>(
-    () => Number(sessionStorage.getItem('pending-star-purchase')) || null,
+    () => Number(sessionStorage.getItem(PENDING_KEY)) || null,
   )
-  const [checking, setChecking] = useState(false)
-  useEffect(() => {
-    if (!pendingPurchase) return
-    let active = true
-    let timer: ReturnType<typeof setTimeout>
-    let attempts = 0
-    async function check() {
-      try {
-        const purchase = await apiFetch<{ status: string }>(
-          `/topup/stars/purchases/${pendingPurchase}`,
-        )
-        if (!active) return
-        if (purchase.status === 'paid') {
-          sessionStorage.removeItem('pending-star-purchase')
-          setPendingPurchase(null)
-          setToast(t('topup.starsPurchaseSuccess'))
-          setStarsToBuyText('')
-          return
-        }
-      } catch (err) {
-        if (active) setBuyStarsError(formatApiError(err))
-      }
-      if (active && ++attempts < 15) timer = setTimeout(check, 2000)
-    }
-    void check()
-    return () => {
-      active = false
-      clearTimeout(timer)
-    }
-  }, [pendingPurchase, checking, t])
-  const [starsToBuyText, setStarsToBuyText] = useState('')
-  const [buyingStars, setBuyingStars] = useState(false)
-  const [buyStarsError, setBuyStarsError] = useState<string | null>(null)
+  const [recheck, setRecheck] = useState(0)
+
+  function load() {
+    setError(null)
+    getPricingConfig()
+      .then((config) => setRate(config.star_to_toman_rate))
+      .catch((err) => setError(formatApiError(err)))
+    getTopUpCardInfo()
+      .then(setCardInfo)
+      .catch((err) => setError(formatApiError(err)))
+    loadHistory()
+  }
 
   function loadHistory() {
     listMyTopUpRequests()
@@ -119,398 +88,163 @@ export default function TopUp() {
       .catch((err) => setError(formatApiError(err)))
   }
 
-  useEffect(() => {
-    getPricingConfig()
-      .then((config) => {
-        setRate(config.star_to_toman_rate)
-        // The Toman line couldn't be computed until the rate arrived —
-        // only relevant when starsText was pre-filled (see prefillStars
-        // above); a normal manual edit already goes through
-        // onStarsChange, which sets both at once.
-        if (prefillStars)
-          setTomanText(String(prefillStars * config.star_to_toman_rate))
-      })
-      .catch((err) => setError(formatApiError(err)))
-    getTopUpCardInfo()
-      .then(setCardInfo)
-      .catch((err) => setError(formatApiError(err)))
-    loadHistory()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- prefillStars only matters on the initial mount (it's how this screen was navigated to), not a live dependency
-  }, [])
+  useEffect(load, [])
 
   useEffect(() => {
+    // Object URLs are held by the browser until revoked; without this a
+    // few receipt previews leak the images themselves.
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl)
     }
   }, [previewUrl])
 
+  // Telegram has taken the payment; the wallet is credited by a webhook,
+  // so the only way to know it landed is to ask. Polls for about 30
+  // seconds, then stops rather than hammering forever.
   useEffect(() => {
-    if (toast == null) return
-    const timer = setTimeout(() => setToast(null), 3500)
-    return () => clearTimeout(timer)
-  }, [toast])
+    if (!pendingPurchase) return
+    let active = true
+    let timer: ReturnType<typeof setTimeout>
+    let attempts = 0
 
-  function pickFile(picked: File | null) {
+    async function check() {
+      try {
+        const purchase = await apiFetch<{ status: string }>(
+          `/topup/stars/purchases/${pendingPurchase}`,
+        )
+        if (!active) return
+        if (purchase.status === 'paid') {
+          sessionStorage.removeItem(PENDING_KEY)
+          setPendingPurchase(null)
+          setStarsAmount('')
+          toast.success(t('topup.starsPurchaseSuccess'))
+          return
+        }
+      } catch (err) {
+        if (active) setBuyError(formatApiError(err))
+      }
+      if (active && ++attempts < 15) timer = setTimeout(check, 2000)
+    }
+
+    void check()
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `recheck` is the manual "check now" trigger; toast/t are stable enough not to restart polling
+  }, [pendingPurchase, recheck])
+
+  function pickReceipt(picked: File | null) {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
-    setFile(picked)
+    setReceipt(picked)
     setPreviewUrl(picked ? URL.createObjectURL(picked) : null)
   }
 
-  // Stars is the only field the backend actually stores
-  // (TopUpRequest.requested_stars) — Toman is purely a computed,
-  // read-only display, never a second thing to type into (see
-  // .hp-converter's comment in theme.css for why: a typed Toman amount
-  // that doesn't divide evenly by the rate used to silently round to a
-  // Star count that didn't match what the user thought they entered).
-  function onStarsChange(raw: string) {
-    // Leading zeros stripped too ("00100" -> "100") — not just non-digit
-    // characters — so the field never holds a value that LOOKS like a
-    // different, smaller number than what Number(digits) below actually
-    // parses it as.
-    const digits = raw.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '')
-    setStarsText(digits)
-    setTomanText(rate && digits ? String(Number(digits) * rate) : '')
-  }
-
-  function onStarsToBuyChange(raw: string) {
-    setStarsToBuyText(raw.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''))
-  }
-
-  // A payment-sheet result starts verification; only the backend confirms credit.
-  async function buyStars() {
-    const stars = Number(starsToBuyText)
-    if (!stars || stars <= 0) return
-    setBuyingStars(true)
-    setBuyStarsError(null)
-    try {
-      const { invoice_link, purchase_id } = await createStarInvoice(stars)
-      const result = await openInvoice(invoice_link, 'url')
-      if (result === 'paid' || result === 'pending') {
-        sessionStorage.setItem('pending-star-purchase', String(purchase_id))
-        setPendingPurchase(purchase_id)
-      } else if (result !== 'cancelled') {
-        setBuyStarsError(t('topup.starsPurchaseFailed'))
-      }
-    } catch (err) {
-      // openInvoice() itself throws when this isn't running inside a
-      // real Telegram client (e.g. a plain dev browser) — same
-      // "explain it, don't crash" handling as elsewhere in this file.
-      setBuyStarsError(formatApiError(err))
-    } finally {
-      setBuyingStars(false)
-    }
-  }
-
-  async function copyCardNumber() {
-    if (!cardInfo?.card_number) return
-    try {
-      await navigator.clipboard.writeText(cardInfo.card_number)
-      setToast(t('topup.cardCopied'))
-    } catch {
-      // Clipboard access can be denied — not worth surfacing as an error.
-    }
-  }
-
-  async function submit() {
-    const stars = Number(starsText)
-    if (!file || !stars || stars <= 0) {
+  async function submitReceipt() {
+    const amount = Number(directAmount)
+    if (!receipt || !amount) {
       setSubmitError(t('topup.starsAmountMustBePositive'))
       return
     }
-    setBusy(true)
+    setSubmitting(true)
     setSubmitError(null)
     try {
-      await createTopUpRequest(file, stars)
-      setToast(t('topup.submitSuccessBody'))
-      pickFile(null)
-      setStarsText('')
-      setTomanText('')
+      await createTopUpRequest(receipt, amount)
+      toast.success(t('topup.submitSuccessBody'))
+      pickReceipt(null)
+      setDirectAmount('')
       loadHistory()
     } catch (err) {
       setSubmitError(formatApiError(err))
     } finally {
-      setBusy(false)
+      setSubmitting(false)
     }
   }
 
-  if (error)
-    return <Placeholder header={t('common.error')}>{error}</Placeholder>
-  if (rate == null || cardInfo == null || history == null) {
-    return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
-    )
+  async function buyStars() {
+    const amount = Number(starsAmount)
+    if (!amount) return
+    setBuying(true)
+    setBuyError(null)
+    try {
+      const { invoice_link, purchase_id } = await createStarInvoice(amount)
+      const result = await openInvoice(invoice_link, 'url')
+      if (result === 'paid' || result === 'pending') {
+        // Recorded before anything else: from here on the wallet may be
+        // credited whether or not this screen is still open.
+        sessionStorage.setItem(PENDING_KEY, String(purchase_id))
+        setPendingPurchase(purchase_id)
+      } else if (result !== 'cancelled') {
+        setBuyError(t('topup.starsPurchaseFailed'))
+      }
+    } catch (err) {
+      // openInvoice() throws outside a real Telegram client — e.g. a
+      // plain dev browser. Explain it rather than crashing.
+      setBuyError(formatApiError(err))
+    } finally {
+      setBuying(false)
+    }
+  }
+
+  async function copyCard() {
+    if (!cardInfo?.card_number) return
+    try {
+      await navigator.clipboard.writeText(cardInfo.card_number)
+      toast.success(t('topup.cardCopied'))
+    } catch {
+      // Clipboard access can be denied; copying is a convenience.
+    }
   }
 
   return (
-    <div className="hp-page">
-      <FinanceHeader title={t('topup.pageTitle')} back={back} />
+    <div className="ui-page">
+      <PageHeader title={t('topup.pageTitle')} onBack={() => navigate(back)} />
 
-      <div className="hp-tabs">
-        <button
-          className={`hp-tab ${tab === 'direct' ? 'hp-tab-active' : ''}`}
-          onClick={() => setTab('direct')}
-        >
-          {t('topup.tabDirect')}
-        </button>
-        <button
-          className={`hp-tab ${tab === 'stars' ? 'hp-tab-active' : ''}`}
-          onClick={() => setTab('stars')}
-        >
-          {t('topup.tabStars')}
-        </button>
-        <button
-          className={`hp-tab ${tab === 'intermediaries' ? 'hp-tab-active' : ''}`}
-          onClick={() => setTab('intermediaries')}
-        >
-          {t('topup.tabIntermediaries')}
-        </button>
+      {/* Every tab ends in a pinned action except the third, which is
+          only links out. */}
+      <div className={`ui-page-body${tab === 'intermediaries' ? '' : ' ui-page-body-action'}`}>
+        <Segments
+          label={t('topup.pageTitle')}
+          value={tab}
+          onChange={setTab}
+          options={[
+            { id: 'direct', label: t('topup.tabDirect') },
+            { id: 'stars', label: t('topup.tabStars') },
+            { id: 'intermediaries', label: t('topup.tabIntermediaries') },
+          ]}
+        />
+
+        {error ? (
+          <ErrorState text={error} onRetry={load} />
+        ) : tab === 'direct' ? (
+          <TopUpDirect
+            cardInfo={cardInfo}
+            rate={rate}
+            amount={directAmount}
+            onAmountChange={setDirectAmount}
+            receipt={receipt}
+            previewUrl={previewUrl}
+            onPickReceipt={pickReceipt}
+            onCopyCard={copyCard}
+            onSubmit={submitReceipt}
+            submitting={submitting}
+            submitError={submitError}
+            history={history}
+          />
+        ) : tab === 'stars' ? (
+          <TopUpStars
+            amount={starsAmount}
+            onAmountChange={setStarsAmount}
+            onBuy={buyStars}
+            buying={buying}
+            error={buyError}
+            awaitingCredit={pendingPurchase != null}
+            onCheckNow={() => setRecheck((n) => n + 1)}
+          />
+        ) : (
+          <TopUpIntermediaries />
+        )}
       </div>
-
-      {tab === 'direct' && (
-        <>
-          <div className="hp-tab-body">
-            <div className="hp-proscons">
-              <div className="hp-proscons-row hp-proscons-row-pro">
-                <span className="hp-proscons-icon">✓</span>
-                <span>{t('topup.directPro1')}</span>
-              </div>
-              <div className="hp-proscons-row hp-proscons-row-pro">
-                <span className="hp-proscons-icon">✓</span>
-                <span>{t('topup.directPro2')}</span>
-              </div>
-              <div className="hp-proscons-row hp-proscons-row-pro">
-                <span className="hp-proscons-icon">✓</span>
-                <span>{t('topup.directPro3')}</span>
-              </div>
-              <div className="hp-proscons-row hp-proscons-row-con">
-                <span className="hp-proscons-icon">✕</span>
-                <span>{t('topup.directCon1')}</span>
-              </div>
-            </div>
-
-            <div className="hp-bank-card">
-              <div className="hp-bank-card-chip" />
-              <div>
-                <div className="hp-bank-card-number">
-                  {cardInfo.card_number || '—'}
-                </div>
-                <div className="hp-bank-card-holder">
-                  {cardInfo.card_holder_name || '—'}
-                </div>
-              </div>
-              <button className="hp-bank-card-copy" onClick={copyCardNumber}>
-                {t('topup.cardCopy')}
-              </button>
-            </div>
-
-            <div className="hp-converter">
-              <span className="hp-field-label">
-                {t('topup.converterStarsLabel')}
-              </span>
-              <input
-                className="hp-segmented-btn hp-converter-input"
-                type="text"
-                inputMode="numeric"
-                value={starsText}
-                onChange={(e) => onStarsChange(e.target.value)}
-                placeholder="0"
-              />
-              {tomanText && (
-                <p className="hp-converter-toman-line">
-                  ≈ {Number(tomanText).toLocaleString('en-US')}{' '}
-                  {t('topup.converterTomanLabel')}
-                </p>
-              )}
-              <p className="hp-converter-rate-hint">
-                {t('topup.converterRateHint', {
-                  rate: rate.toLocaleString('en-US'),
-                })}
-              </p>
-            </div>
-
-            <div className="hp-field">
-              <span className="hp-field-label">{t('topup.receiptLabel')}</span>
-              <label
-                className="hp-dropzone"
-                onClick={() => fileInputRef.current?.click()}
-                style={previewUrl ? { padding: 0 } : undefined}
-              >
-                {previewUrl ? (
-                  <>
-                    <img
-                      className="hp-dropzone-preview"
-                      src={previewUrl}
-                      alt=""
-                    />
-                    <span className="hp-dropzone-preview-overlay">
-                      {t('topup.changeReceiptFile')}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span style={{ fontSize: 26 }}>🧾</span>
-                    <span>{t('topup.chooseReceiptFile')}</span>
-                  </>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-                  style={{
-                    position: 'absolute',
-                    width: 1,
-                    height: 1,
-                    opacity: 0,
-                    pointerEvents: 'none',
-                  }}
-                />
-              </label>
-            </div>
-
-            {submitError && <p className="hp-error">{submitError}</p>}
-
-            <div className="hp-field">
-              <button
-                className="hp-btn hp-btn-gradient"
-                style={{ width: '100%' }}
-                disabled={!file || !starsText || busy}
-                onClick={submit}
-              >
-                {busy ? t('common.loading') : t('topup.submitButton')}
-              </button>
-            </div>
-          </div>
-
-          <div className="hp-page-header" style={{ marginTop: 24 }}>
-            {t('topup.historyTitle')}
-          </div>
-          {history.length === 0 ? (
-            <p className="hp-empty">{t('topup.historyEmpty')}</p>
-          ) : (
-            <div className="hp-list">
-              {history.map((r) => (
-                <div key={r.id} className="hp-list-row">
-                  <div className="hp-list-row-main">
-                    <span className="hp-list-title">
-                      {r.requested_stars} ⭐ ·{' '}
-                      {r.requested_toman_amount.toLocaleString('en-US')} تومان
-                    </span>
-                    {r.status === 'approved' &&
-                      r.final_toman_amount != null && (
-                        <span className="hp-list-subtitle">
-                          {t('topup.finalAmountLabel')}:{' '}
-                          {r.final_toman_amount.toLocaleString('en-US')}
-                        </span>
-                      )}
-                    {r.status === 'rejected' && r.rejection_reason && (
-                      <span className="hp-list-subtitle">
-                        {t('topup.rejectionReasonLabel')}: {r.rejection_reason}
-                      </span>
-                    )}
-                  </div>
-                  <span className={`hp-status-pill hp-status-${r.status}`}>
-                    {t(`topup.${statusLabel(r.status)}`)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {tab === 'stars' && (
-        <>
-          <div className="hp-tab-body hp-proscons">
-            <div className="hp-proscons-row hp-proscons-row-pro">
-              <span className="hp-proscons-icon">✓</span>
-              <span>{t('topup.starsPro1')}</span>
-            </div>
-            <div className="hp-proscons-row hp-proscons-row-con">
-              <span className="hp-proscons-icon">✕</span>
-              <span>{t('topup.starsCon1')}</span>
-            </div>
-          </div>
-
-          <div className="hp-tab-body">
-            <div className="hp-converter">
-              <span className="hp-field-label">
-                {t('topup.converterStarsLabel')}
-              </span>
-              <input
-                className="hp-segmented-btn hp-converter-input"
-                type="text"
-                inputMode="numeric"
-                value={starsToBuyText}
-                onChange={(e) => onStarsToBuyChange(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-
-            {pendingPurchase && (
-              <p role="status">
-                {t('finance.awaitingCredit')}{' '}
-                <button
-                  className="hp-btn-sm"
-                  onClick={() => setChecking((v) => !v)}
-                >
-                  {t('finance.checkPayment')}
-                </button>
-              </p>
-            )}
-            {buyStarsError && <p className="hp-error">{buyStarsError}</p>}
-
-            <div className="hp-field">
-              <button
-                className="hp-btn hp-btn-gradient"
-                style={{ width: '100%' }}
-                disabled={
-                  !Number(starsToBuyText) || buyingStars || !!pendingPurchase
-                }
-                onClick={buyStars}
-              >
-                {buyingStars ? t('common.loading') : t('topup.buyStarsButton')}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {tab === 'intermediaries' && (
-        <>
-          <div className="hp-tab-body hp-proscons">
-            <div className="hp-proscons-row hp-proscons-row-con">
-              <span className="hp-proscons-icon">✕</span>
-              <span>{t('topup.intermediariesCon1')}</span>
-            </div>
-            <div className="hp-proscons-row hp-proscons-row-con">
-              <span className="hp-proscons-icon">✕</span>
-              <span>{t('topup.intermediariesCon2')}</span>
-            </div>
-          </div>
-          <div className="hp-list">
-            {INTERMEDIARY_SITES.map((site) => (
-              <a
-                key={site.key}
-                className="hp-list-row"
-                href={site.url}
-                target="_blank"
-                rel="noreferrer"
-                style={{ textDecoration: 'none', color: 'inherit' }}
-              >
-                <span className="hp-list-title">{t(`topup.${site.key}`)}</span>
-                <span className="hp-external-link-icon">
-                  <IconExternalLink size={18} />
-                </span>
-              </a>
-            ))}
-          </div>
-        </>
-      )}
-
-      {toast && <div className="hp-toast">{toast}</div>}
     </div>
   )
 }

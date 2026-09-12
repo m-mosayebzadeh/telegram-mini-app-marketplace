@@ -1,0 +1,155 @@
+/**
+ * Top up. Three methods, each one a trade the user should be able to see
+ * before they commit money to it.
+ */
+
+/* ---------- pros and cons ---------- */
+
+.tu-proscons {
+  display: grid;
+  gap: var(--space-2);
+  margin-block: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  list-style: none;
+}
+
+.tu-pro,
+.tu-con {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font: var(--text-caption);
+  line-height: 20px;
+  color: var(--color-text-2);
+}
+
+/* The mark carries the colour, not the sentence: a whole line of red
+   reads as an error, and "it takes an hour" is a trade-off, not one. */
+.tu-pro > svg {
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+
+.tu-con > svg {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+
+/* ---------- the card to transfer to ---------- */
+
+/* Not a picture of a bank card. The number is the only thing anyone
+   needs from this block, so the number is what is large. */
+.tu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.tu-card-label {
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+/* A card number is Latin digits and reads left-to-right whichever way
+   the page runs; isolate stops it dragging the words around it. */
+.tu-card-number {
+  font: var(--text-title);
+  letter-spacing: 0.08em;
+  color: var(--color-text);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.tu-card-holder {
+  margin-bottom: var(--space-2);
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+/* ---------- the amount field ---------- */
+
+/* The figure someone is about to pay deserves to be readable at arm's
+   length. */
+.tu-amount {
+  font: var(--text-title);
+}
+
+/* ---------- the receipt ---------- */
+
+.tu-receipt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 140px;
+  padding: var(--space-5);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  font: var(--text-label);
+  overflow: hidden;
+  position: relative;
+}
+
+.tu-receipt:active {
+  border-color: var(--color-accent);
+}
+
+/* Once a photo is chosen the photo IS the control — it fills the frame
+   and the padding goes, so the user is looking at their receipt rather
+   than at a box containing it. */
+.tu-receipt-filled {
+  padding: 0;
+  border-style: solid;
+  min-height: 180px;
+}
+
+.tu-receipt img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.tu-receipt-change {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: var(--space-2);
+  background: var(--color-scrim);
+  color: var(--color-on-scrim);
+  font: var(--text-caption);
+}
+
+.tu-submit-error {
+  margin-top: var(--space-3);
+}
+
+/* ---------- awaiting credit ---------- */
+
+.tu-awaiting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+/* ---------- history ---------- */
+
+.tu-history-amount {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

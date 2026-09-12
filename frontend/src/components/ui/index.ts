@@ -11,6 +11,7 @@
 export { Button, IconButton } from './Button'
 export { ConfirmDialog } from './ConfirmDialog'
 export { PageHeader } from './PageHeader'
+export { Segments, type SegmentOption } from './Segments'
 export { Sheet } from './Sheet'
 export { EmptyState, ErrorState, SkeletonRows, SkeletonCards } from './States'
 export { ToastProvider, useToast } from './Toast'

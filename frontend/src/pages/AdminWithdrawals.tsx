@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useMe } from '../lib/MeContext'
 import { apiFetch } from '../lib/api'
 import {
@@ -7,7 +8,8 @@ import {
   type Withdrawal,
   type WithdrawalStatus,
 } from '../lib/withdrawalApi'
-import { FinanceHeader, WithdrawalCard } from '../components/Finance'
+import { WithdrawalCard } from '../components/Finance'
+import { PageHeader } from '../components/ui'
 import { Sheet } from '../components/ui/Sheet'
 const states: WithdrawalStatus[] = [
   'pending',
@@ -20,6 +22,7 @@ const states: WithdrawalStatus[] = [
 ]
 export default function AdminWithdrawals() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { me, adminAccess } = useMe()
   const allowed =
     !!adminAccess &&
@@ -75,10 +78,10 @@ export default function AdminWithdrawals() {
   if (!adminAccess) return <p>{t('common.loading')}</p>
   if (!allowed) return <p>{t('admin.noAccess')}</p>
   return (
-    <div className="hp-page finance-page">
-      <FinanceHeader
+    <div className="ui-page finance-page">
+      <PageHeader
         title={t('finance.adminWithdrawals')}
-        back="/admin/finance"
+        onBack={() => navigate('/admin/finance')}
       />
       <label className="finance-form">
         {t('finance.statusFilter')}
