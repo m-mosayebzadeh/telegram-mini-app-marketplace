@@ -28,3 +28,12 @@ nginx/certs/
 
 # Deployment runbook — describes real VPS layout/domains, kept local-only
 docs/DEPLOYMENT_RUNBOOK.md
+# Generated design pages — both are built from files that ARE tracked,
+# so committing them would mean reviewing megabytes of generated markup
+# on every change:
+#   ember-ui-kit.html      <- design/build-gallery.py (gallery-shell.html
+#                             + frontend/src/styles/*)
+#   *-redesign.html        <- the Claude Design canvas payload, seeded
+#                             from the .dc.html artboards + canvas.json
+design/ember-ui-kit.html
+design/*-redesign.html

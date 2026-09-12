@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #ff6b3d; } a:hover { color: #ff8a64; }
+  </style>
+</helmet>
+
+<div dir="rtl" style="width: 390px; height: 844px; background: #151011; color: #faf6f4; font-family: Vazirmatn, system-ui, sans-serif; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 12px;">
+    <span style="font-size: 22px; font-weight: 800; letter-spacing: -0.3px;">گفتگوها</span>
+    <div style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 999px; background: #1f1918; border: 1px solid #342b29;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff6b3d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8C12 2.8 5.9 9.6 5.9 14a6.1 6.1 0 0 0 12.2 0c0-4.4-6.1-11.2-6.1-11.2Z"/></svg>
+      <span style="font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums;">۴۸۰</span>
+    </div>
+  </div>
+
+  <!-- segmented: underline, not filled pills — quieter than the old gradient tabs -->
+  <div style="display: flex; gap: 24px; padding: 0 20px; border-bottom: 1px solid #241d1c;">
+    <div style="padding-bottom: 12px; border-bottom: 2px solid #ff6b3d; font-size: 15px; font-weight: 700;">فعال</div>
+    <div style="padding-bottom: 12px; font-size: 15px; font-weight: 600; color: #6e635f;">بایگانی</div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
+
+    <!-- live session row: the only place a status color appears -->
+    <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; min-height: 72px;">
+      <div style="position: relative; flex-shrink: 0;">
+        <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(155deg, #5a2f25 0%, #8a4436 50%, #3b2420 100%);"></div>
+        <span style="position: absolute; bottom: 1px; inset-inline-start: 1px; width: 13px; height: 13px; border-radius: 50%; background: #3fbf7f; border: 2.5px solid #151011;"></span>
+      </div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 16px; font-weight: 700;">سارا</span>
+          <span style="font-size: 11px; font-weight: 700; color: #3fbf7f; background: rgba(63,191,127,0.13); padding: 2px 8px; border-radius: 999px; font-variant-numeric: tabular-nums;">۱۲:۴۰ باقی‌مانده</span>
+        </div>
+        <span style="font-size: 14px; color: #a89a95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">باشه پس فردا هم حرف می‌زنیم</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0;">
+        <span style="font-size: 12px; color: #6e635f;">۲ دقیقه</span>
+        <span style="display: flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: #ff6b3d; color: #fff; font-size: 11px; font-weight: 700;">۳</span>
+      </div>
+    </div>
+
+    <div style="height: 1px; background: #241d1c; margin-inline-start: 84px;"></div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; min-height: 72px;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(155deg, #3f3326 0%, #7a5f3a 50%, #2b241c 100%);"></div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+        <span style="font-size: 16px; font-weight: 600;">نیلوفر</span>
+        <span style="font-size: 14px; color: #a89a95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">شما: ممنون بابت وقتی که گذاشتی</span>
+      </div>
+      <span style="font-size: 12px; color: #6e635f; flex-shrink: 0;">دیروز</span>
+    </div>
+
+    <div style="height: 1px; background: #241d1c; margin-inline-start: 84px;"></div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; min-height: 72px;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(155deg, #33282e 0%, #614350 50%, #241c20 100%);"></div>
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+        <span style="font-size: 16px; font-weight: 600;">مهسا</span>
+        <span style="font-size: 14px; color: #a89a95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">گفتگو تمام شد · ۲۰ دقیقه</span>
+      </div>
+      <span style="font-size: 12px; color: #6e635f; flex-shrink: 0;">۳ روز پیش</span>
+    </div>
+
+  </div>
+
+  <div style="display: flex; align-items: stretch; padding: 8px 12px 22px; background: #151011; border-top: 1px solid #241d1c;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 0;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6e635f" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <span style="font-size: 11px; font-weight: 600; color: #6e635f;">ویترین</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 0;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6e635f" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c2.3-3.3.2-7.8-1-8.9 0 3.4-2.2 5.3-3.7 6.7S5 12.1 5 14.4c0 3.7 3.1 6.7 7 6.7s7-3 7-6.7c0-1.7-1.2-4.4-2.3-5.6-2.1 3.4-3.3 3.4-4.7 2.2"/></svg>
+      <span style="font-size: 11px; font-weight: 600; color: #6e635f;">تعاملات</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 0;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff6b3d" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 1 3.5 6.6L4 20l1.1-3.6A7.9 7.9 0 0 1 4 12z"/></svg>
+      <span style="font-size: 11px; font-weight: 700; color: #ff6b3d;">گفتگوها</span>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px 0;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6e635f" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20c1.4-3.6 4.4-5.5 7.5-5.5s6.1 1.9 7.5 5.5"/></svg>
+      <span style="font-size: 11px; font-weight: 600; color: #6e635f;">پروفایل</span>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
