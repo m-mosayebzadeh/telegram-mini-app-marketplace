@@ -257,6 +257,99 @@ def test_discovery_never_includes_inactive_offers_even_your_own(client):
     assert [o["id"] for o in response] == [active["id"]]
 
 
+def test_discovery_carries_the_provider_behind_each_offer(client):
+    """
+    The showcase is a list of PEOPLE, not of listings (see
+    docs/design-system/02-components.md) — so each row has to arrive with
+    enough of its provider to draw the card, without a second request per
+    row.
+    """
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    client.put(
+        "/profile/me",
+        headers=auth_a,
+        json={"bio": "Books and long walks", "interests": ["books", "cinema"]},
+    )
+    _create_offer(client, auth_a)
+
+    body = client.get("/offers", headers=auth_b).json()
+
+    assert len(body) == 1
+    provider = body[0]["provider"]
+    assert provider["display_name"] == "Alice"
+    assert provider["bio"] == "Books and long walks"
+    assert provider["interests"] == ["books", "cinema"]
+    assert provider["is_trusted"] is False
+
+
+def test_discovery_includes_a_provider_who_never_filled_in_a_profile(client):
+    """
+    Creating an offer does not require a profile, so dropping
+    profile-less providers from the showcase would make real listings
+    invisible.
+    """
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _create_offer(client, auth_a)
+
+    body = client.get("/offers", headers=auth_b).json()
+
+    provider = body[0]["provider"]
+    assert provider["display_name"] == "Alice"
+    assert provider["bio"] is None
+    assert provider["interests"] == []
+    assert provider["avatar_url"] is None
+
+
+def test_listing_one_providers_offers_does_not_repeat_the_provider(client):
+    """
+    On a provider's own page the caller already knows whose offers these
+    are; repeating the same blob on every row would be pure weight.
+    """
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    alice = _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    _create_offer(client, auth_a)
+
+    body = client.get(f"/offers?provider_id={alice['id']}", headers=auth_b).json()
+
+    assert body[0]["provider"] is None
+
+
+def test_offer_detail_carries_the_provider_for_a_buyer(client):
+    """The detail page leads with the person too, so it needs the same
+    blob the showcase card is built from."""
+    auth_a = _auth_header(1, "Alice")
+    auth_b = _auth_header(2, "Bob")
+    _login(client, 1, "Alice")
+    _login(client, 2, "Bob")
+    client.put("/profile/me", headers=auth_a, json={"bio": "Books", "interests": ["books"]})
+    offer = _create_offer(client, auth_a).json()
+
+    body = client.get(f"/offers/{offer['id']}", headers=auth_b).json()
+
+    assert body["provider"]["display_name"] == "Alice"
+    assert body["provider"]["bio"] == "Books"
+
+
+def test_offer_detail_omits_the_provider_for_its_owner(client):
+    """The owner is here to manage requests; a card of themselves would
+    be noise, and the query behind it a waste."""
+    auth_a = _auth_header(1, "Alice")
+    _login(client, 1, "Alice")
+    offer = _create_offer(client, auth_a).json()
+
+    body = client.get(f"/offers/{offer['id']}", headers=auth_a).json()
+
+    assert body["provider"] is None
+
+
 # --- editing lock ----------------------------------------------------------
 
 

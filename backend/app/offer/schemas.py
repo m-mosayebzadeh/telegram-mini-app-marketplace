@@ -24,6 +24,27 @@ class OfferUpdate(BaseModel):
     description: str | None = Field(default=None, min_length=1, max_length=2000)
 
 
+class OfferProviderOut(BaseModel):
+    """
+    Just enough about the person behind an offer to draw the showcase
+    card (docs/design-system/02-components.md: photo, name, trust badge,
+    one line of bio, interest tags).
+
+    Deliberately a SUBSET of PublicProfileOut: a browse list has no
+    business carrying follower counts, birthdays or the viewer's follow
+    status. Anyone who wants those taps through to the profile, which is
+    one request for one person rather than all of it for everyone.
+    """
+
+    user_id: int
+    display_name: str
+    username: str | None
+    avatar_url: str | None
+    bio: str | None
+    is_trusted: bool
+    interests: list[str]
+
+
 class OfferOut(BaseModel):
     id: int
     provider_id: int
@@ -51,5 +72,11 @@ class OfferOut(BaseModel):
     # structured error the frontend uses to show the right message for
     # THAT case.
     my_request_status: str | None = None
+
+    # Only populated by marketplace-wide discovery (GET /offers with no
+    # provider_id). Listing ONE provider's offers leaves it None, because
+    # the caller is already on that provider's page and repeating them on
+    # every row would be the same blob N times.
+    provider: OfferProviderOut | None = None
 
     model_config = {"from_attributes": True}

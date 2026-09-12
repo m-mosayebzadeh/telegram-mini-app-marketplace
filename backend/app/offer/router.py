@@ -21,8 +21,10 @@ from app.core.time import utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer, OfferStatus
 from app.models.request import OFFER_DELETED_REASON, Request, RequestStatus
+from app.models.profile import Profile
 from app.models.user import User
-from app.offer.schemas import OfferCreate, OfferOut, OfferUpdate
+from app.offer.schemas import OfferCreate, OfferOut, OfferProviderOut, OfferUpdate
+from app.profile.photos import get_current_avatar_url, get_current_avatar_urls
 
 router = APIRouter(prefix="/offers", tags=["offers"])
 
@@ -160,7 +162,21 @@ def get_offer(
     my_request_status = (
         None if is_owner else _my_live_request_status_for_offer(db, current_user.id, offer.id)
     )
-    return OfferOut.model_validate(offer).model_copy(update={"my_request_status": my_request_status})
+
+    # The detail page leads with the person, the same way the showcase
+    # card does -- so it needs the same blob. Skipped for the owner: they
+    # are looking at their own offer to manage the requests on it, and a
+    # card of themselves would be noise.
+    provider = None
+    if not is_owner:
+        user = db.get(User, offer.provider_id)
+        if user is not None:
+            profile = db.query(Profile).filter(Profile.user_id == user.id).first()
+            provider = _provider_out(user, profile, get_current_avatar_url(db, user.id))
+
+    return OfferOut.model_validate(offer).model_copy(
+        update={"my_request_status": my_request_status, "provider": provider}
+    )
 
 
 @router.get("", response_model=list[OfferOut])
@@ -168,7 +184,7 @@ def list_offers(
     provider_id: int | None = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[Offer]:
+) -> list[Offer] | list[OfferOut]:
     """
     Two modes, chosen by whether provider_id is given:
 
@@ -182,6 +198,9 @@ def list_offers(
       provider_id. Never includes INACTIVE offers here, even the
       caller's own — browse those via provider_id=<your own id> instead.
     """
+    if provider_id is None:
+        return _discovery_feed(db)
+
     query = db.query(Offer).filter(Offer.status == OfferStatus.ACTIVE)
     if provider_id is not None:
         query = query.filter(Offer.provider_id == provider_id)
@@ -226,6 +245,73 @@ def list_offers(
                 for o in offers
             ]
     return query.all()
+
+
+def _provider_out(
+    user: User, profile: Profile | None, avatar_url: str | None
+) -> OfferProviderOut:
+    """
+    Build the provider blob from whatever the caller already has loaded.
+
+    Deliberately takes plain objects rather than a Session: the feed has
+    them from one JOIN and the detail page from one relationship, and
+    neither should go back to the database here. Having ONE builder is
+    what stops the two screens describing the same person differently.
+    """
+    return OfferProviderOut(
+        user_id=user.id,
+        display_name=user.display_name,
+        username=user.username,
+        avatar_url=avatar_url,
+        # A user can create offers without ever filling in a profile, so
+        # every profile-backed field needs an answer for that case.
+        bio=profile.bio if profile else None,
+        is_trusted=profile.is_trusted if profile else False,
+        interests=profile.interests if profile else [],
+    )
+
+
+def _discovery_feed(db: Session) -> list[OfferOut]:
+    """
+    Every ACTIVE offer in the marketplace, each carrying the person
+    behind it.
+
+    The showcase is a list of PEOPLE, not a list of listings -- the card
+    leads with a face, a name and a line of bio, and the price is a chip
+    in the corner. So each row needs its provider's User and Profile.
+
+    Three queries total, no matter how many offers come back:
+
+    1. the offers joined to their provider's User and Profile at once,
+       so no row has to go back for its own author;
+    2. one batch lookup for the newest photo of every provider in the
+       result (see app/profile/photos.py);
+    3. nothing else -- the rest is assembled in Python.
+
+    The naive version of this is one extra query per offer for the user,
+    one more for the profile and one more for the avatar, which is 150
+    queries for a 50-row page.
+    """
+    # outerjoin on Profile, not join: a user who has not filled in a
+    # profile yet still has offers, and dropping them from the showcase
+    # would make their listings invisible for no good reason.
+    rows = (
+        db.query(Offer, User, Profile)
+        .join(User, Offer.provider_id == User.id)
+        .outerjoin(Profile, Profile.user_id == User.id)
+        .filter(Offer.status == OfferStatus.ACTIVE)
+        .order_by(Offer.created_at.desc())
+        .all()
+    )
+
+    avatars = get_current_avatar_urls(db, {user.id for _, user, _ in rows})
+
+    return [
+        OfferOut.model_validate(offer, from_attributes=True).model_copy(
+            update={"provider": _provider_out(user, profile, avatars.get(user.id))}
+        )
+        for offer, user, profile in rows
+    ]
 
 
 @router.patch("/{offer_id}", response_model=OfferOut)
