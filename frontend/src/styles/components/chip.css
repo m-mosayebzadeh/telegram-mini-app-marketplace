@@ -1,0 +1,174 @@
+/**
+ * Chip and badge — docs/design-system/02-components.md#چیپ-و-بج
+ */
+
+/* ---------- filter chip ---------- */
+
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 36px;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-2);
+  font: var(--text-label);
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+
+.ui-chip:active {
+  transform: scale(0.97);
+}
+
+.ui-chip-active {
+  background: var(--color-accent);
+  border-color: transparent;
+  color: var(--color-on-accent);
+}
+
+/* A horizontal filter rail. It scrolls rather than wraps, because a row
+   of filters that becomes two rows pushes the content down the page
+   every time a word gets longer. */
+.ui-chip-rail {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  /* Bleeds to the screen edge so the last chip can be scrolled fully
+     into view, while the first still lines up with the page gutter. */
+  margin-inline: calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ui-chip-rail::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- tag chip ---------- */
+
+/* An interest, a category — a label, not a control. Square-ish radius so
+   it does not read as something to press. */
+.ui-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-2);
+  color: var(--color-text-2);
+  font: var(--text-caption);
+  white-space: nowrap;
+}
+
+/* ---------- status chip ---------- */
+
+.ui-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font: var(--text-caption);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Tinted from its own text colour, so one rule covers every status and a
+   new status only has to pick a colour. */
+.ui-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.ui-status-success {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 13%, transparent);
+}
+
+.ui-status-warning {
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 13%, transparent);
+}
+
+.ui-status-danger {
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 13%, transparent);
+}
+
+.ui-status-neutral {
+  color: var(--color-text-2);
+  background: var(--color-surface-2);
+}
+
+/* ---------- count badge ---------- */
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-notify);
+  color: var(--color-on-accent);
+  font: var(--text-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- drop balance chip ---------- */
+
+/* Sits in the trailing slot of every tab root's header. The mark comes
+   beside the number, never instead of it. */
+.ui-drop {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 36px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ui-drop:active {
+  transform: scale(0.97);
+}
+
+/* Always filled, always accent — it is the product's own currency
+   symbol, not a decorative icon. */
+.ui-drop-icon {
+  flex-shrink: 0;
+  fill: var(--color-accent);
+}
+
+/* On an accent surface the mark takes that surface's ink instead. */
+.ui-chip-active .ui-drop-icon,
+.ui-btn-primary .ui-drop-icon {
+  fill: var(--color-on-accent);
+}
+
+/* Over a photo. */
+.ui-person-price .ui-drop {
+  height: 28px;
+  background: var(--color-scrim);
+  color: var(--color-on-scrim);
+  font: var(--text-caption);
+  font-weight: 700;
+}
+
+.ui-person-price .ui-drop-icon {
+  fill: var(--color-on-scrim);
+}

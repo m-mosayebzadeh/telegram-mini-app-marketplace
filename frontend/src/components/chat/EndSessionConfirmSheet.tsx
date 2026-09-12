@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Sheet } from '../Sheet'
+import { Sheet } from '../ui/Sheet'
 
 interface EndSessionConfirmSheetProps {
   onCancel: () => void

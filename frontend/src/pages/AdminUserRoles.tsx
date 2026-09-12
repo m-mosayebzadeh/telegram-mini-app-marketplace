@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { assignRole, getUserDetail, listRoles, listUserRoles, revokeRole } from '../lib/adminApi'
 import { formatApiError } from '../lib/api'
-import { Sheet } from '../components/Sheet'
+import { Sheet } from '../components/ui/Sheet'
 import { IconArrowNarrowLeft } from '../components/icons'
 import type { AdminUserDetail, Role, UserRole } from '../lib/types'
 

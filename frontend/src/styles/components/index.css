@@ -1,0 +1,20 @@
+/**
+ * The component layer. One import for the whole thing, so main.tsx does
+ * not grow a line every time a component is added.
+ *
+ * Order is alphabetical on purpose: no rule in here may depend on coming
+ * after another. A component that needs to beat a sibling is a component
+ * that is reaching outside itself.
+ */
+
+@import './button.css';
+@import './chip.css';
+@import './discover.css';
+@import './header.css';
+@import './input.css';
+@import './list.css';
+@import './nav.css';
+@import './offer.css';
+@import './profile.css';
+@import './sheet.css';
+@import './states.css';

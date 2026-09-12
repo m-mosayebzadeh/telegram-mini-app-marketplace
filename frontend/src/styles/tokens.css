@@ -1,0 +1,179 @@
+/**
+ * Design tokens — the single source of every visual value in the app.
+ * Written from docs/design-system/01-foundations.md; that document is the
+ * spec, this file is its implementation. Change them together.
+ *
+ * Two layers, and the distinction is load-bearing:
+ *
+ *   1. PRIMITIVE tokens (--ember-*, --neutral-*) are raw values with no
+ *      meaning attached. No component may read one directly.
+ *   2. SEMANTIC tokens (--color-*, --space-*, --radius-*, ...) express
+ *      meaning rather than appearance. This is the ONLY layer components
+ *      are allowed to read.
+ *
+ * Light and dark are not two themes — they are one identity in two
+ * environments: same token NAMES, different values. A component never
+ * branches on the theme; it reads the token and gets the right value.
+ *
+ * :root carries DARK, because this product is night-oriented and dark is
+ * its default surface. [data-theme='light'] overrides only what differs.
+ */
+
+:root {
+  /* ---------- primitives: ember ramp ---------- */
+  --ember-400: #ff8560;
+  --ember-500: #ff6b3d;
+  --ember-600: #e4552a;
+  --ember-700: #c43f15;
+  --ember-ink: #1a0e0a;
+
+  /* ---------- primitives: warm neutral ramp ---------- */
+  --neutral-1000: #151011;
+  --neutral-900: #1f1918;
+  --neutral-800: #2a2220;
+  --neutral-700: #342b29;
+  --neutral-500: #8a7d77;
+  --neutral-400: #a89a95;
+  --neutral-100: #faf6f4;
+  --neutral-50: #fffcfb;
+  --neutral-75: #f7f1ee;
+  --neutral-85: #f0e8e4;
+  --neutral-150: #e7dcd7;
+  --neutral-600: #93837d;
+  --neutral-650: #6b5c57;
+  --neutral-950: #191211;
+
+  /* ---------- primitives: status ---------- */
+  --green-400: #3fbf7f;
+  --green-700: #1e8a55;
+  --red-400: #ff5a5a;
+  --red-700: #c8342e;
+  --amber-400: #e8a33d;
+  --amber-700: #9a6708;
+
+  /* ================= semantic: color (dark) ================= */
+  --color-bg: var(--neutral-1000);
+  --color-surface: var(--neutral-900);
+  --color-surface-2: var(--neutral-800);
+  --color-border: var(--neutral-700);
+
+  --color-text: var(--neutral-100);
+  --color-text-2: var(--neutral-400);
+  --color-text-3: var(--neutral-500);
+
+  /* --color-accent FILLS a surface; --color-accent-ink is the accent used
+     AS text or an icon. They differ per theme because the contrast
+     requirement differs: a fill needs contrast against its own label, a
+     text color needs contrast against the page. */
+  --color-accent: var(--ember-500);
+  --color-accent-ink: var(--ember-500);
+  /* An accent surface ALWAYS carries dark ink, in both themes — white on
+     #ff6b3d is only 2.8:1 and fails; this is 6.6:1. System rule, not taste. */
+  --color-on-accent: var(--ember-ink);
+
+  --color-success: var(--green-400);
+  --color-danger: var(--red-400);
+  --color-warning: var(--amber-400);
+  --color-notify: var(--ember-500);
+
+  /* Scrim over a photo so overlaid text stays readable. */
+  --color-scrim: rgba(10, 7, 7, 0.92);
+  /* What goes ON a photo or a scrim. Deliberately NOT restated for light:
+     a photo is whatever it is in either theme, and a scrim is dark in
+     both, so this is one value for the whole product. */
+  --color-on-scrim: var(--neutral-100);
+  --color-backdrop: rgba(0, 0, 0, 0.5);
+
+  /* ================= semantic: elevation (dark) ================= */
+  /* Default is NO shadow. These exist only for genuinely floating UI. */
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.35);
+  --shadow-float: 0 6px 20px rgba(0, 0, 0, 0.3);
+
+  /* ================= theme-independent ================= */
+
+  /* ---------- spacing: base-4 scale, nothing between steps ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* The app's one horizontal page gutter. Every screen uses this, so a
+     page never has to invent its own edge. */
+  --page-gutter: var(--space-5);
+
+  /* ---------- radius: four steps; radius encodes element size ---------- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* ---------- typography ---------- */
+  --font: 'Vazirmatn', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  --text-display: 700 28px / 34px var(--font);
+  --text-title: 700 22px / 28px var(--font);
+  --text-heading: 600 18px / 24px var(--font);
+  --text-body: 400 15px / 26px var(--font);
+  --text-body-md: 500 15px / 26px var(--font);
+  --text-label: 600 13px / 18px var(--font);
+  --text-caption: 400 12px / 16px var(--font);
+
+  /* ---------- motion ---------- */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-sheet: 280ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ---------- fixed chrome ---------- */
+  /* The bottom nav's own height, without the safe area. Four places need
+     it -- the nav, every page's bottom padding, the toast, and the quota
+     hint -- and a magic 56 repeated in four files is exactly how a nav
+     ends up covering the last row of one screen and not another. */
+  --nav-height: 56px;
+  /* What a page must leave clear at the bottom: the nav, the phone's own
+     home indicator, and a little air. */
+  --nav-clearance: calc(var(--nav-height) + env(safe-area-inset-bottom));
+
+  /* ---------- touch ---------- */
+  /* Minimum hit area anywhere in the product. The visible element may be
+     smaller; the tappable box may not. */
+  --touch-min: 44px;
+}
+
+/* ================= semantic: color (light) =================
+   Only the values that actually differ are restated. Everything above —
+   spacing, radius, type, motion — is environment-independent and is NOT
+   repeated here. */
+[data-theme='light'] {
+  --color-bg: var(--neutral-50);
+  --color-surface: var(--neutral-75);
+  --color-surface-2: var(--neutral-85);
+  --color-border: var(--neutral-150);
+
+  --color-text: var(--neutral-950);
+  --color-text-2: var(--neutral-650);
+  --color-text-3: var(--neutral-600);
+
+  --color-accent: var(--ember-600);
+  /* Darker than the fill: as text on a near-white page, --ember-600 is
+     4.3:1 (short of 4.5) while --ember-700 is 5.2:1. */
+  --color-accent-ink: var(--ember-700);
+  --color-on-accent: var(--ember-ink);
+
+  --color-success: var(--green-700);
+  --color-danger: var(--red-700);
+  --color-warning: var(--amber-700);
+  --color-notify: var(--ember-600);
+
+  --color-backdrop: rgba(0, 0, 0, 0.35);
+
+  --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-float: 0 6px 20px rgba(0, 0, 0, 0.08);
+}

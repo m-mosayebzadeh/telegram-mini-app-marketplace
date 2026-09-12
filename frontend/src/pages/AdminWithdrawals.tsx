@@ -8,7 +8,7 @@ import {
   type WithdrawalStatus,
 } from '../lib/withdrawalApi'
 import { FinanceHeader, WithdrawalCard } from '../components/Finance'
-import { Sheet } from '../components/Sheet'
+import { Sheet } from '../components/ui/Sheet'
 const states: WithdrawalStatus[] = [
   'pending',
   'processing',

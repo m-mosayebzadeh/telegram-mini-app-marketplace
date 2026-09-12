@@ -1,0 +1,283 @@
+/**
+ * Profile and settings.
+ *
+ * The identity block is centred and the rest of the page is not. That is
+ * deliberate and it is the only centred block in the product: a person
+ * is a single subject, and centring says so. A list of anything is left
+ * (or right) aligned, because a ragged column of centred rows is
+ * unreadable.
+ */
+
+.pf-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-block: var(--space-6) var(--space-4);
+}
+
+.pf-avatar-wrap {
+  position: relative;
+}
+
+.pf-avatar {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface-2);
+}
+
+.pf-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pf-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-text-3);
+}
+
+/* Sits on the avatar's lower edge. Below the 44px floor as a visible
+   circle, so it carries a larger transparent hit area around itself. */
+.pf-avatar-camera {
+  position: absolute;
+  bottom: -2px;
+  inset-inline-end: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  /* A ring of the page ground separates it from the photo underneath. */
+  box-shadow: 0 0 0 3px var(--color-bg);
+}
+
+.pf-avatar-camera::after {
+  /* The 44px target, invisible, centred on the visible 32px circle. */
+  content: '';
+  position: absolute;
+  width: var(--touch-min);
+  height: var(--touch-min);
+}
+
+.pf-avatar-camera:active {
+  transform: scale(0.94);
+}
+
+.pf-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font: var(--text-title);
+  color: var(--color-text);
+}
+
+.pf-trusted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.pf-username {
+  margin-top: 2px;
+  font: var(--text-caption);
+  color: var(--color-text-3);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.pf-bio {
+  /* Running text stays near 40 characters a line even centred; wider
+     than that and the eye loses the start of the next line. */
+  max-width: 42ch;
+  margin-top: var(--space-3);
+  font: var(--text-body);
+  color: var(--color-text-2);
+}
+
+.pf-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.pf-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+.pf-meta-button {
+  min-height: var(--touch-min);
+  color: var(--color-accent-ink);
+}
+
+.pf-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* Two numbers, side by side, each one a way in. The divider between
+   them is what says they are a pair rather than two loose buttons. */
+.pf-stats {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-6);
+  margin-top: var(--space-5);
+}
+
+.pf-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: var(--touch-min);
+  padding-inline: var(--space-4);
+  color: var(--color-text);
+}
+
+.pf-stat + .pf-stat {
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.pf-stat:active {
+  opacity: 0.6;
+}
+
+.pf-stat-value {
+  font: var(--text-heading);
+}
+
+.pf-stat-label {
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+.pf-actions {
+  width: 100%;
+  max-width: 320px;
+  margin-top: var(--space-5);
+}
+
+/* ---------- upload FAB ---------- */
+
+/* The one floating button in the product. It sits above the nav bar, in
+   the thumb's own corner, because adding content is the single thing a
+   person does on their OWN profile — everything else here is reading. */
+.pf-fab {
+  position: fixed;
+  inset-inline-end: var(--page-gutter);
+  bottom: calc(var(--nav-clearance) + var(--space-4));
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  box-shadow: var(--shadow-float);
+}
+
+.pf-fab:active {
+  transform: scale(0.94);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+/* ---------- birthday sheet ---------- */
+
+.pf-birthday {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-4) var(--space-8);
+  text-align: center;
+}
+
+.pf-birthday-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent-ink);
+}
+
+.pf-birthday-date {
+  font: var(--text-heading);
+  color: var(--color-text);
+}
+
+.pf-birthday-countdown {
+  font: var(--text-body);
+  color: var(--color-text-2);
+}
+
+/* ---------- settings ---------- */
+
+/* A two-option control that applies on tap. Used for theme and for
+   language: both are instant, so neither is a row that leads anywhere. */
+.st-segment {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+.st-segment-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  /* Below the 44px floor on its own — the row it sits in supplies the
+     rest of the hit area, and the two options together span it. */
+  height: 34px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-full);
+  color: var(--color-text-2);
+  font: var(--text-label);
+  white-space: nowrap;
+  transition:
+    background var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease);
+}
+
+.st-segment-option-active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.st-segment-option:active {
+  transform: scale(0.97);
+}

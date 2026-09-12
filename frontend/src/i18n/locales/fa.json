@@ -7,7 +7,8 @@
     "submit": "ثبت",
     "close": "بستن",
     "cancel": "لغو",
-    "delete": "حذف"
+    "delete": "حذف",
+    "retry": "تلاش دوباره"
   },
   "login": {
     "title": "یک کاربر آزمایشی انتخاب کنید",
@@ -21,6 +22,14 @@
     "chats": "گفتگوها",
     "profile": "پروفایل",
     "admin": "مدیریت"
+  },
+  "discover": {
+    "sortNewest": "تازه‌ترین",
+    "sortCheapest": "ارزان‌ترین",
+    "minutes": "{{minutes}} دقیقه",
+    "trusted": "حساب تأییدشده",
+    "emptyTitle": "هنوز کسی پیشنهادی نذاشته",
+    "emptyText": "اولین نفر باش — وقتت رو پیشنهاد بده و بذار بقیه پیدات کنن."
   },
   "activityPage": {
     "offersTab": "پیشنهادها",
@@ -101,9 +110,15 @@
     "birthdayToday": "امروز تولدشه",
     "birthdayCountdown": "{{count}} روز مانده",
     "themeLabel": "تم",
-    "theme_velvet": "شب مخملی",
-    "theme_copper": "مسی مینیمال",
-    "theme_jade": "یشم شبانه"
+    "themeDark": "تاریک",
+    "themeLight": "روشن"
+  },
+  "settings": {
+    "title": "تنظیمات",
+    "accountGroup": "حساب",
+    "walletGroup": "مالی",
+    "appGroup": "اپ",
+    "devGroup": "توسعه"
   },
   "followRequests": {
     "link": "درخواست‌های دنبال کردن",
@@ -130,40 +145,40 @@
     "new": "حساب جدید",
     "joinedAt": "تاریخ عضویت",
     "completedTransactions": "تعاملات تکمیل‌شده",
-    "totalStarsSpent": "مجموع استارز خرج‌شده"
+    "totalStarsSpent": "مجموع دراپ خرج‌شده"
   },
   "wallet": {
     "title": "کیف پول",
     "spendable": "موجودی قابل‌خرج",
-    "spendableValue": "{{toman}} تومان (~{{stars}} استارز)",
+    "spendableValue": "{{toman}} تومان (~{{stars}} دراپ)",
     "pending": "در انتظار (کسب‌شده، هنوز آزاد نشده)",
     "pendingValue": "{{toman}} تومان",
     "topUpButton": "شارژ کیف پول",
     "tomanAmount": "{{amount}} تومان",
-    "starsApprox": "حدود {{stars}} استارز",
+    "starsApprox": "حدود {{stars}} دراپ",
     "inFlight": "{{amount}} تومان در جریان"
   },
   "topup": {
     "pageTitle": "شارژ کیف پول",
     "tabDirect": "مستقیم",
-    "tabStars": "استارز تلگرام",
+    "tabStars": "دراپ تلگرام",
     "tabIntermediaries": "واسطه‌ها",
     "directPro1": "شارژ حساب بدون کارمزد",
-    "directPro2": "شارژ معادل استارز بدون واسطه و با مبلغ پایین‌تر از سایر فروشنده‌ها",
-    "directPro3": "بدون فریز استار و استفاده آنی",
+    "directPro2": "شارژ معادل دراپ بدون واسطه و با مبلغ پایین‌تر از سایر فروشنده‌ها",
+    "directPro3": "بدون فریز دراپ و استفاده آنی",
     "directCon1": "بین ده دقیقه تا یک ساعت طول می‌کشه تا حساب شارژ بشه",
     "starsPro1": "شارژ آنی حساب",
-    "starsCon1": "فریز استار در کیف پول شما تا ۳ هفته طبق بروکراسی تلگرام",
-    "buyStarsButton": "خرید استارز",
-    "starsPurchaseSuccess": "استارزها به کیف‌پولتون اضافه شد!",
+    "starsCon1": "فریز دراپ در کیف پول شما تا ۳ هفته طبق بروکراسی تلگرام",
+    "buyStarsButton": "خرید دراپ",
+    "starsPurchaseSuccess": "دراپها به کیف‌پولتون اضافه شد!",
     "starsPurchaseFailed": "پرداخت انجام نشد. دوباره امتحان کنید.",
-    "intermediariesCon1": "گران‌تر بودن قیمت استارز نسبت به روش مستقیم",
-    "intermediariesCon2": "فریز استار در کیف پول شما تا ۳ هفته طبق بروکراسی تلگرام",
+    "intermediariesCon1": "گران‌تر بودن قیمت دراپ نسبت به روش مستقیم",
+    "intermediariesCon2": "فریز دراپ در کیف پول شما تا ۳ هفته طبق بروکراسی تلگرام",
     "cardCopy": "کپی شماره کارت",
     "cardCopied": "شماره کارت کپی شد",
-    "converterStarsLabel": "تعداد استارز",
+    "converterStarsLabel": "تعداد دراپ",
     "converterTomanLabel": "مبلغ (تومان)",
-    "converterRateHint": "نرخ فعلی: هر استارز {{rate}} تومان",
+    "converterRateHint": "نرخ فعلی: هر دراپ {{rate}} تومان",
     "receiptLabel": "رسید پرداخت",
     "chooseReceiptFile": "برای انتخاب عکس رسید ضربه بزنید",
     "changeReceiptFile": "برای تغییر عکس ضربه بزنید",
@@ -181,7 +196,7 @@
     "intermediarySiteIranicard": "ایرانی‌کارت",
     "intermediarySiteNumberland": "نامبرلند",
     "intermediarySiteSubtg": "ساب‌تی‌جی",
-    "starsAmountMustBePositive": "تعداد استارز باید بزرگ‌تر از صفر باشه"
+    "starsAmountMustBePositive": "تعداد دراپ باید بزرگ‌تر از صفر باشه"
   },
   "admin": {
     "hubTitle": "پنل مدیریت",
@@ -207,7 +222,7 @@
     "requesterLabel": "درخواست‌دهنده",
     "noAccess": "شما به این صفحه دسترسی ندارید.",
     "ratesTitle": "کارمزدها",
-    "ratesStarLabel": "نرخ هر استار (تومان)",
+    "ratesStarLabel": "نرخ هر دراپ (تومان)",
     "ratesChatCommissionLabel": "کارمزد چت (درصد)",
     "ratesContentCommissionLabel": "کارمزد محتوا (درصد)",
     "ratesSaveButton": "ذخیره",
@@ -266,8 +281,8 @@
   "offers": {
     "browseTitle": "پیشنهادهای فعال",
     "none": "فعلاً پیشنهادی نیست",
-    "priceLine": "{{price}} استارز · {{minutes}} دقیقه",
-    "priceLineWithToman": "{{price}} استارز (~{{toman}} تومان) · {{minutes}} دقیقه",
+    "priceLine": "{{price}} دراپ · {{minutes}} دقیقه",
+    "priceLineWithToman": "{{price}} دراپ (~{{toman}} تومان) · {{minutes}} دقیقه",
     "mineTitle": "پیشنهادهای من",
     "createNew": "ساخت پیشنهاد جدید",
     "status": "وضعیت",
@@ -278,12 +293,12 @@
     "delete": "حذف",
     "deleteConfirm": "این پیشنهاد حذف بشه؟",
     "titleLabel": "عنوان",
-    "priceStarsLabel": "قیمت (استارز)",
+    "priceStarsLabel": "قیمت (دراپ)",
     "priceInToman": "معادل تومانی",
     "providerNetEarnings": "درآمد خالص شما",
     "commission": "کارمزد",
     "netEarnings": "مبلغ نهایی ارائه‌دهنده",
-    "starsAndToman": "{{stars}} استارز ({{toman}} تومان)",
+    "starsAndToman": "{{stars}} دراپ ({{toman}} تومان)",
     "durationLabel": "مدت‌زمان نمایشی (دقیقه)",
     "descriptionLabel": "توضیحات",
     "createButton": "ساخت پیشنهاد",
@@ -294,7 +309,7 @@
     "viewBuyerSummary": "تاریخچه فعالیت",
     "requestSent": "درخواست فرستاده شد",
     "insufficientBalanceTitle": "اعتبار کافی نیست",
-    "insufficientBalanceMessage": "برای این پیشنهاد {{stars}} استار ({{toman}} تومان) کم دارید.",
+    "insufficientBalanceMessage": "برای این پیشنهاد {{stars}} دراپ ({{toman}} تومان) کم دارید.",
     "quickTopUpButton": "خرید سریع",
     "ownOffer": "این پیشنهاد خودتونه",
     "incomingRequestsTitle": "درخواست‌های ورودی",
@@ -304,7 +319,8 @@
     "liveConflictTitle": "درخواست فعال با این کاربر",
     "liveConflictMessage": "شما همین الان یک درخواستِ فعال با این ارائه‌دهنده دارید. اول باید تعیین تکلیفش کنید یا لغوش کنید.",
     "viewMyRequestsButton": "نمایش درخواست‌ها",
-    "openAcceptedRequestError": "شما همین الان یک درخواستِ پذیرفته‌شده و ناتمام دارید — قبل از پذیرشِ این یکی، اول اون رو تمام کنید."
+    "openAcceptedRequestError": "شما همین الان یک درخواستِ پذیرفته‌شده و ناتمام دارید — قبل از پذیرشِ این یکی، اول اون رو تمام کنید.",
+    "noIncomingRequestsHint": "وقتی کسی این پیشنهاد رو درخواست کنه، همین‌جا می‌بینیش."
   },
   "requests": {
     "mineTitle": "درخواست‌های من",
@@ -323,7 +339,8 @@
     "cancelButton": "لغو درخواست",
     "cancelConfirmBody": "آیا مطمئنید می‌خواید این درخواست را لغو کنید؟",
     "viewOfferButton": "نمایش پیشنهاد",
-    "statusAccepted": "پذیرفته شده"
+    "statusAccepted": "پذیرفته شده",
+    "rejectReasonHint": "این متن رو {{name}} می‌بینه."
   },
   "content": {
     "uploadButton": "افزودن مدیا",
@@ -336,7 +353,7 @@
     "typeShortVideo": "ویدیوی کوتاه",
     "durationLabel": "مدت‌زمان (ثانیه، حداکثر {{max}})",
     "isPaidLabel": "پولی",
-    "priceLabel": "قیمت (استارز)",
+    "priceLabel": "قیمت (دراپ)",
     "hasSpoilerLabel": "پشت اسپویل نمایش داده بشه",
     "audienceLabel": "مخاطب",
     "audiencePublic": "عمومی",
@@ -350,7 +367,7 @@
     "deleteConfirm": "این مورد حذف بشه؟",
     "likeCount": "{{count}} لایک",
     "lockedTapToUnlock": "برای دیدن ضربه بزنید",
-    "lockedPayToUnlock": "با {{price}} استارز باز کنید",
+    "lockedPayToUnlock": "با {{price}} دراپ باز کنید",
     "lockedTeaser": "یه چیز دیدنی پشت این یکی منتظرته",
     "purchaseSuccess": "باز شد",
     "insufficientBalance": "موجودی کافی نیست — اول کیف پول رو شارژ کنید",
@@ -370,7 +387,7 @@
     "alreadyDisputed": "قبلاً گزارش شده",
     "detailsToggle": "جزئیات نشست",
     "offerTitle": "پیشنهاد",
-    "priceLabel": "قیمت (استارز)",
+    "priceLabel": "قیمت (دراپ)",
     "expectedDuration": "مدت‌زمان مورد انتظار (دقیقه)",
     "myRoleLabel": "نقش شما",
     "roleBuyer": "خریدار",
@@ -434,7 +451,7 @@
     "remove": "حذف",
     "save": "ذخیره",
     "withdraw": "برداشت از کیف پول",
-    "stars": "تعداد استار برای برداشت",
+    "stars": "تعداد دراپ برای برداشت",
     "destination": "حساب مقصد",
     "selectBank": "انتخاب حساب",
     "manageBanks": "افزودن یا مدیریت حساب‌ها",
@@ -446,7 +463,7 @@
     "cancel": "لغو درخواست",
     "confirmCancel": "درخواست برداشت لغو و مبلغ آن آزاد شود؟",
     "submitted": "درخواست برداشت ثبت شد.",
-    "rate": "هر استار {{amount}} تومان",
+    "rate": "هر دراپ {{amount}} تومان",
     "minimum": "حداقل برداشت پیش از کارمزد: {{amount}} تومان",
     "toman": "{{amount}} تومان",
     "gross_toman": "مبلغ برداشت",

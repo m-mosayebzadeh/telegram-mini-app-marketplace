@@ -11,7 +11,7 @@ import {
   JALALI_MONTH_NAMES,
   toPersianDigits,
 } from '../lib/jalali'
-import { Sheet } from '../components/Sheet'
+import { Sheet } from '../components/ui/Sheet'
 import { IconArrowNarrowLeft, IconCheck } from '../components/icons'
 import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sheet } from '../Sheet'
+import { Sheet } from '../ui/Sheet'
 import { NumberField } from '../NumberField'
 
 interface AttachmentPreviewSheetProps {
@@ -18,7 +18,7 @@ interface AttachmentPreviewSheetProps {
 /**
  * The "preview before send" step for a picked photo/video attachment,
  * per the spec's explicit requirement that media isn't sent the instant
- * it's picked. Reuses the existing bottom-sheet modal (components/Sheet.tsx)
+ * it's picked. Reuses the existing bottom-sheet modal (components/ui/Sheet.tsx)
  * rather than a new modal primitive.
  *
  * A video's duration is self-reported by the sender (typed in here), the

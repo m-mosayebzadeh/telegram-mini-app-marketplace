@@ -14,6 +14,7 @@ import CreateOffer from './pages/CreateOffer'
 import ChatSessionDetail from './pages/ChatSessionDetail'
 import WalletPage from './pages/Wallet'
 import ProfileTab from './pages/ProfileTab'
+import Settings from './pages/Settings'
 import EditProfile from './pages/EditProfile'
 import ContentDetail from './pages/ContentDetail'
 import FollowList from './pages/FollowList'
@@ -37,33 +38,32 @@ import AdminRoleDetail from './pages/AdminRoleDetail'
 import AdminRoleMembers from './pages/AdminRoleMembers'
 
 /**
- * The four bottom-tab sections and which URLs belong to each. Listed in
- * ONE logical order — profile, activity, chats, discover — and left at
- * that; a plain `display:flex; flex-direction:row` nav mirrors its
- * child order automatically under `dir="rtl"` vs `dir="ltr"` (see
- * index.html's `dir` attribute, kept in sync with the active language
- * by i18n/config.ts), which is exactly why this one DOM order already
- * renders "Profile | Activity | Chats | Discover" left-to-right in
- * English and "پروفایل | تعاملات | گفتگوها | کشف" right-to-left in
- * Persian without any per-language branching here.
+ * The four bottom-tab sections and which URLs belong to each.
  *
- * "My offers"/"My requests"/"Wallet" no longer have their own bottom
- * tab — offer & request management moved into the Activity tab (see
- * pages/Activity.tsx), and Wallet moved into the settings list at the
- * bottom of the Profile tab. Their routes are kept below so existing
- * deep links/navigate() calls elsewhere don't break, just unlinked from
- * the nav bar itself.
+ * DOM order is discover, activity, chats, profile — and that single
+ * order is the whole implementation for both directions: a plain
+ * `display: flex` row mirrors its children under `dir="rtl"` (set on
+ * <html> by i18n/config.ts), so this renders
+ * "ویترین · تعاملات · گفتگوها · پروفایل" right-to-left in Persian and
+ * the same sequence left-to-right in English, with no per-language
+ * branching.
+ *
+ * Discover comes first now. The first tab is what a user lands on and
+ * what the app claims to be for, and this product is for finding people
+ * — opening on your own profile answered a question nobody had (see
+ * docs/design-system/03-patterns.md and docs/UI_REDESIGN_ANALYSIS.md).
+ *
+ * "My offers" / "My requests" / "Wallet" have no tab of their own: offer
+ * and request management live in the Activity tab, and the wallet is
+ * reached from the Drop chip in each tab root's header and from the
+ * profile. Their routes stay below so existing deep links keep working.
  */
 const TABS = [
   {
-    key: 'profile',
-    path: '/profile',
+    key: 'discover',
+    path: '/offers',
     isActive: (pathname: string) =>
-      pathname === '/' ||
-      pathname === '/profile' ||
-      pathname === '/follow-requests' ||
-      pathname.startsWith('/content/') ||
-      pathname.startsWith('/profiles/'),
+      pathname === '/' || pathname === '/offers' || /^\/offers\/\d+$/.test(pathname),
   },
   {
     key: 'activity',
@@ -76,9 +76,14 @@ const TABS = [
     isActive: (pathname: string) => pathname === '/chats' || pathname.startsWith('/chat-sessions/'),
   },
   {
-    key: 'discover',
-    path: '/offers',
-    isActive: (pathname: string) => pathname === '/offers' || /^\/offers\/\d+$/.test(pathname),
+    key: 'profile',
+    path: '/profile',
+    isActive: (pathname: string) =>
+      pathname === '/profile' ||
+      pathname === '/settings' ||
+      pathname === '/follow-requests' ||
+      pathname.startsWith('/content/') ||
+      pathname.startsWith('/profiles/'),
   },
 ] as const
 
@@ -101,11 +106,14 @@ function AppShell() {
   const isAdmin = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.length > 0)
 
   return (
-    // Bottom padding so the fixed bottom nav never covers the last row
-    // of whatever page is currently showing.
-    <div style={{ paddingBottom: 64 }}>
+    // Each page reserves its own room for the nav bar through
+    // .ui-page-body, which also accounts for the safe area — a single
+    // fixed number here could not.
+    <>
       <Routes>
-        <Route path="/" element={<ProfileTab />} />
+        {/* The app opens on the showcase, not on your own profile —
+            see TABS above. */}
+        <Route path="/" element={<Discover />} />
         <Route path="/offers" element={<Discover />} />
         <Route path="/offers/new" element={<CreateOffer />} />
         <Route path="/offers/:id" element={<OfferDetail />} />
@@ -133,6 +141,7 @@ function AppShell() {
         <Route path="/admin/assistants/roles/:id/members" element={<AdminRoleMembers />} />
         <Route path="/profile" element={<ProfileTab />} />
         <Route path="/profile/edit" element={<EditProfile />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/content/:id" element={<ContentDetail />} />
         <Route path="/profiles/:id" element={<ProfileTab />} />
@@ -140,58 +149,56 @@ function AppShell() {
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
-      <nav className="hp-bottom-nav">
+      <nav className="ui-nav">
         {TABS.map((tab) => {
           const active = tab.isActive(location.pathname)
           return (
             <button
               key={tab.path}
-              className={`hp-bottom-nav-item ${active ? 'hp-bottom-nav-item-active' : ''}`}
+              className={`ui-nav-item${active ? ' ui-nav-item-active' : ''}`}
               onClick={() => navigate(tab.path)}
+              aria-current={active ? 'page' : undefined}
             >
-              <span className="hp-bottom-nav-icon" aria-hidden="true">
+              <span className="ui-nav-icon" aria-hidden="true">
+                {tab.key === 'discover' && <IconDiscover size={22} />}
+                {tab.key === 'activity' && <IconActivity size={22} />}
+                {tab.key === 'chats' && <IconChat size={22} />}
                 {tab.key === 'profile' &&
                   (avatarUrl ? (
-                    <img className="hp-bottom-nav-avatar" src={avatarUrl} alt="" />
+                    <img className="ui-nav-avatar" src={avatarUrl} alt="" />
                   ) : (
                     <IconPersonFallback size={22} />
                   ))}
-                {tab.key === 'activity' && <IconActivity size={22} />}
-                {tab.key === 'chats' && <IconChat size={22} />}
-                {tab.key === 'discover' && <IconDiscover size={22} />}
-                {/* ONE dot for either kind of "something's new" — a new
-                    incoming request on one of your own offers (cleared
-                    per-offer, see pages/OfferDetail.tsx), or one of YOUR
-                    OWN sent requests getting a response (cleared by
-                    opening the Requests segment, see pages/Activity.tsx)
-                    — see lib/types.ts's Me.has_unseen_requests /
-                    unseen_sent_request_updates_count. Which kind it is
-                    isn't answered here — the Activity page's own segment
-                    badges (see .hp-badge) already do that; this icon
-                    only needs to say "go check". Neither is cleared by
-                    merely opening this tab itself. */}
-                {tab.key === 'activity' &&
-                  (me?.has_unseen_requests || (me?.unseen_sent_request_updates_count ?? 0) > 0) && (
-                    <span className="hp-nav-unseen-dot" aria-hidden="true" />
-                  )}
               </span>
               {t(`tabs.${tab.key}`)}
+              {/* ONE dot for either kind of "something's new" — a new
+                  incoming request on one of your own offers, or one of
+                  YOUR OWN sent requests getting a response (see
+                  lib/types.ts's Me.has_unseen_requests /
+                  unseen_sent_request_updates_count). Which kind it is is
+                  not answered here; the Activity page's own segment
+                  badges already do that, and this only has to say "go
+                  look". Neither is cleared by opening this tab. */}
+              {tab.key === 'activity' &&
+                (me?.has_unseen_requests || (me?.unseen_sent_request_updates_count ?? 0) > 0) && (
+                  <span className="ui-nav-dot" aria-hidden="true" />
+                )}
             </button>
           )
         })}
         {isAdmin && (
           <button
-            className={`hp-bottom-nav-item ${location.pathname.startsWith('/admin') ? 'hp-bottom-nav-item-active' : ''}`}
+            className={`ui-nav-item${location.pathname.startsWith('/admin') ? ' ui-nav-item-active' : ''}`}
             onClick={() => navigate('/admin')}
           >
-            <span className="hp-bottom-nav-icon" aria-hidden="true">
+            <span className="ui-nav-icon" aria-hidden="true">
               <IconDashboard size={22} />
             </span>
             {t('tabs.admin')}
           </button>
         )}
       </nav>
-    </div>
+    </>
   )
 }
 

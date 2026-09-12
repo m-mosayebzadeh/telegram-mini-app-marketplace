@@ -1,0 +1,187 @@
+/**
+ * Base layer — reset plus the few global defaults every screen inherits.
+ * Loaded after tokens.css (which it reads from) and before any component
+ * CSS. See docs/design-system/01-foundations.md.
+ *
+ * Everything here is either a reset or a value that genuinely belongs to
+ * the document rather than to a component. Nothing component-specific.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Browsers put margins on headings, paragraphs and lists that no design
+   in this system wants — spacing is decided by the layout, not inherited
+   from the user agent. */
+html,
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd {
+  margin: 0;
+}
+
+html {
+  /* Tells the browser which way its own native UI should lean: form
+     controls, scrollbars, and the default canvas behind the page. Without
+     it a dark app flashes a white scrollbar. */
+  color-scheme: dark;
+  /* Keeps a long page from sliding under the URL bar's collapse on iOS. */
+  -webkit-text-size-adjust: 100%;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: var(--text-body);
+  /* Dark backgrounds make stems look heavier than they are; this brings
+     Vazirmatn back to the weight it was drawn at. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* The mobile tap flash is the platform's own feedback; this app draws
+     its own pressed states instead (see docs/design-system/02-components.md). */
+  -webkit-tap-highlight-color: transparent;
+  /* A mini app is a single screen stack — the page itself never scrolls
+     horizontally, only specific containers opt in. */
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+}
+
+img,
+video {
+  display: block;
+  height: auto;
+}
+
+/* Form controls don't inherit typography on their own. */
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  /* Every button in this app is styled from scratch; the UA's own chrome
+     only gets in the way. Hit area and appearance come from the component. */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  /* Interactive text should not be selectable on a long-press — that
+     gesture belongs to the app, not to text selection. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Focus is shown for keyboard users only: a visible ring on every tap
+   would be noise on a touch device, but removing it entirely makes the
+   app unusable without a pointer. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Numbers that are compared down a column must not jitter as digits
+   change; the components that show money and counts opt in explicitly,
+   this just makes the intent available everywhere. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Telegram UI kit bridge — temporary.
+
+   A few kit components (Spinner, Placeholder, Input) are still in the
+   tree, and AppRoot paints its own ground over everything. Left alone
+   the kit reads --tg-theme-* straight from the Telegram client, so the
+   app wore the user's TELEGRAM theme under our own tokens: in light mode
+   that meant our near-black text on the client's dark ground.
+
+   Pointing the kit's own variables at our semantic tokens makes the
+   remaining kit components follow this app's identity instead. Every
+   line here disappears with the component that needed it; when the last
+   kit component is migrated, AppRoot and this block both come out.
+
+   Why the class as well as :root — the kit sets these variables on the
+   AppRoot ELEMENT (a hashed class), so a :root declaration never reaches
+   them: an element's own value wins for its own subtree. .app-kit-root
+   is the hook main.tsx puts on that same element, at equal specificity,
+   and this stylesheet is loaded after the kit's, so it wins on order.
+   :root is still here for anything the kit renders through a portal,
+   outside AppRoot.
+   --------------------------------------------------------------------- */
+:root,
+.app-kit-root {
+  --tgui--bg_color: var(--color-bg);
+  --tgui--secondary_bg_color: var(--color-surface);
+  --tgui--tertiary_bg_color: var(--color-surface-2);
+  --tgui--quartenary_bg_color: var(--color-surface-2);
+  --tgui--section_bg_color: var(--color-surface);
+  --tgui--card_bg_color: var(--color-surface);
+  --tgui--header_bg_color: var(--color-bg);
+  --tgui--surface_primary: var(--color-surface);
+  --tgui--surface_dark: var(--color-surface-2);
+
+  --tgui--text_color: var(--color-text);
+  --tgui--subtitle_text_color: var(--color-text-2);
+  --tgui--hint_color: var(--color-text-2);
+  --tgui--secondary_hint_color: var(--color-text-3);
+  --tgui--section_header_text_color: var(--color-text-2);
+
+  --tgui--accent_text_color: var(--color-accent-ink);
+  --tgui--link_color: var(--color-accent-ink);
+  --tgui--button_color: var(--color-accent);
+  --tgui--button_text_color: var(--color-on-accent);
+  --tgui--destructive_text_color: var(--color-danger);
+
+  --tgui--divider: var(--color-border);
+  --tgui--outline: var(--color-border);
+  --tgui--skeleton: var(--color-surface-2);
+  --tgui--secondary_fill: var(--color-surface-2);
+
+  /* The kit ships its own type scale; the app has one scale, and it is
+     ours. */
+  --tgui--font-family: var(--font);
+}
+
+/* AppRoot paints --tgui--bg_color across the whole tree. The page's
+   ground is body's job — one element owns the background, not two. */
+.app-kit-root {
+  background: transparent;
+}

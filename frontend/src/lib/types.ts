@@ -55,6 +55,20 @@ export interface Balance {
   withdrawable_toman: number
 }
 
+/** Just enough of the person behind an offer to draw the showcase card
+ *  — see backend/app/offer/schemas.py's OfferProviderOut. Only present
+ *  on marketplace-wide discovery; listing one provider's own offers
+ *  leaves it null, because the caller already knows whose they are. */
+export interface OfferProvider {
+  user_id: number
+  display_name: string
+  username: string | null
+  avatar_url: string | null
+  bio: string | null
+  is_trusted: boolean
+  interests: string[]
+}
+
 export interface Offer {
   id: number
   provider_id: number
@@ -72,6 +86,8 @@ export interface Offer {
   // Only populated by GET /offers/{id} for a non-owner viewer — see
   // backend/app/offer/schemas.py's OfferOut docstring.
   my_request_status: 'pending' | 'accepted' | null
+  // Only populated by GET /offers with no provider_id (the showcase).
+  provider: OfferProvider | null
 }
 
 /** One row in the Activity tab's unified Requests feed — see

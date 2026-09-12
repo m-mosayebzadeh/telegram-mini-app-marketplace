@@ -1,0 +1,146 @@
+/**
+ * Sheet and confirm dialog — 02-components.md#شیت / #دیالوگ-تأیید
+ *
+ * The sheet is the interface's workhorse: every short form, every
+ * choice, every confirmation. It keeps the page behind it visible, so
+ * the user never loses their place for a two-field form.
+ */
+
+.ui-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  background: var(--color-backdrop);
+  animation: ui-fade-in var(--motion-base) var(--ease);
+}
+
+.ui-scrim-sheet {
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.ui-scrim-dialog {
+  align-items: center;
+  justify-content: center;
+  padding: var(--page-gutter);
+}
+
+@keyframes ui-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.ui-sheet {
+  width: 100%;
+  /* Wider than this and a sheet stops reading as a sheet; on a tablet it
+     stays a phone-shaped panel rather than stretching. */
+  max-width: 500px;
+  /* Never full height — the strip of page left visible above it is what
+     says "you are still here, this is temporary". */
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-sheet);
+  /* It came from the bottom, so it goes back to the bottom. */
+  animation: ui-sheet-in var(--motion-sheet) var(--ease);
+}
+
+@keyframes ui-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* The grab handle is the affordance for drag-to-dismiss. It is also what
+   tells a first-time user this panel can be pushed away. */
+.ui-sheet-handle {
+  flex-shrink: 0;
+  width: 36px;
+  height: 4px;
+  margin: var(--space-2) auto 0;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+}
+
+.ui-sheet-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--page-gutter) var(--space-2);
+}
+
+.ui-sheet-title {
+  flex: 1;
+  min-width: 0;
+  font: var(--text-heading);
+  color: var(--color-text);
+}
+
+.ui-sheet-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-inline: var(--page-gutter);
+  padding-bottom: var(--space-4);
+  /* Momentum scrolling inside the sheet must not drag the page behind it. */
+  overscroll-behavior: contain;
+}
+
+/* The sheet's own action stays pinned to its bottom edge, inside the
+   sheet — a form whose submit button scrolls away is a form people
+   abandon. */
+.ui-sheet-footer {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--page-gutter);
+  padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---------- confirm dialog ---------- */
+
+/* Only for a decision with consequences: delete, cancel a request, pay.
+   Never for telling the user something — that is a toast. */
+.ui-dialog {
+  width: 100%;
+  max-width: 340px;
+  padding: var(--space-5);
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-float);
+  animation: ui-dialog-in var(--motion-base) var(--ease);
+}
+
+@keyframes ui-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.ui-dialog-title {
+  font: var(--text-heading);
+  color: var(--color-text);
+}
+
+/* One sentence saying what will happen. If it takes a paragraph, the
+   action needs a screen of its own, not a dialog. */
+.ui-dialog-text {
+  margin-top: var(--space-2);
+  font: var(--text-body);
+  color: var(--color-text-2);
+}
+
+.ui-dialog-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.ui-dialog-actions > .ui-btn {
+  flex: 1;
+}

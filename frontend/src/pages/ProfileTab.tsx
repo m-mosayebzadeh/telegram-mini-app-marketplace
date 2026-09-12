@@ -1,50 +1,48 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Cell, Placeholder, Section, Spinner } from '@telegram-apps/telegram-ui'
 import { formatApiError, apiFetch } from '../lib/api'
-import { IconArrowNarrowLeft } from '../components/icons'
 import { ContentGrid } from '../components/ContentGrid'
 import { ContentUploadForm } from '../components/ContentUploadForm'
 import { ProfileHeader } from '../components/ProfileHeader'
-import { Sheet } from '../components/Sheet'
-import { ThemeSwitcher } from '../components/ThemeSwitcher'
+import { PageHeader, ErrorState, SkeletonRows, useToast } from '../components/ui'
+import { Sheet } from '../components/ui/Sheet'
+import { IconMore, IconPlus, IconSettings, IconShare } from '../components/icons'
 import { useMe } from '../lib/MeContext'
 import type { BackNavState } from '../lib/navState'
-import { clearDevUserChoice, isRealTelegramLaunch } from '../lib/session'
 import type { PublicProfile } from '../lib/types'
 
 /**
- * The unified profile tab — replaces the old split between Profile.tsx
- * (your own account) and PublicProfile.tsx (anyone else's): both routes
- * (`/profile` and `/profiles/:id`) render this component, the only
- * difference being which user id it resolves to. This mirrors how
- * Instagram's own profile tab and a visited profile share one layout,
- * just with different actions available (Edit vs. Follow).
+ * The profile — one component for both `/profile` (your own, a tab root)
+ * and `/profiles/:id` (anyone else's, an inner page), the way a profile
+ * tab and a visited profile share one layout in every app that has both.
  *
- * Content/Offers tabs: Offers is a disabled placeholder for now — see
- * the product discussion in TECHNICAL_REQUIREMENTS.md's changelog for
- * why (an offer-mix view here was explicitly out of scope for this pass).
- *
- * Uploading is deliberately NOT a row inside the page's own content —
- * it opens as a floating-action-button-triggered bottom sheet (see
- * components/Sheet.tsx) instead, so the profile itself stays a clean
- * read surface and "add content" doesn't compete for space with the
- * things a visitor actually came here to look at.
+ * What the redesign moved out: the settings that used to hang off the
+ * bottom as a stack of loose sections now live in pages/Settings.tsx,
+ * one tap behind this page's own header. They only ever appeared on your
+ * own profile, which meant the page had two unrelated halves and a
+ * length that depended on whose profile you were looking at.
  */
 export default function ProfileTab() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { id: paramId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
   const { me } = useMe()
+  const toast = useToast()
   const targetId = paramId ? Number(paramId) : me?.id
 
-  // Where the "←" back button should actually go — plain history-back
-  // by default, but explicitly back to Activity's Requests segment when
-  // that's genuinely where this profile was opened from (see
-  // lib/navState.ts's own docstring for why navigate(-1) alone isn't
-  // reliable enough for that one specific origin).
+  const [profile, setProfile] = useState<PublicProfile | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [following, setFollowing] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [contentRefreshKey, setContentRefreshKey] = useState(0)
+
+  // Where "back" should actually go — plain history-back by default, but
+  // explicitly to Activity's Requests segment when that is genuinely
+  // where this profile was opened from (see lib/navState.ts for why
+  // navigate(-1) alone is not reliable enough for that one origin).
   const backState = location.state as BackNavState | null
   function goBack() {
     if (backState?.backTo === 'activity-requests') {
@@ -54,17 +52,9 @@ export default function ProfileTab() {
     }
   }
 
-  const [profile, setProfile] = useState<PublicProfile | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [following, setFollowing] = useState(false)
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'content' | 'offers'>('content')
-  const [contentRefreshKey, setContentRefreshKey] = useState(0)
-
   function load() {
     if (targetId == null) return
+    setError(null)
     apiFetch<PublicProfile>(`/profiles/${targetId}`)
       .then(setProfile)
       .catch((err) => setError(formatApiError(err)))
@@ -72,27 +62,16 @@ export default function ProfileTab() {
 
   useEffect(load, [targetId])
 
-  async function follow() {
+  async function setFollow(next: 'follow' | 'unfollow') {
     if (targetId == null) return
     setFollowing(true)
     try {
-      await apiFetch(`/follow/${targetId}`, { method: 'POST' })
+      await apiFetch(`/follow/${targetId}`, {
+        method: next === 'follow' ? 'POST' : 'DELETE',
+      })
       load()
     } catch (err) {
-      setError(formatApiError(err))
-    } finally {
-      setFollowing(false)
-    }
-  }
-
-  async function unfollow() {
-    if (targetId == null) return
-    setFollowing(true)
-    try {
-      await apiFetch(`/follow/${targetId}`, { method: 'DELETE' })
-      load()
-    } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setFollowing(false)
     }
@@ -102,71 +81,78 @@ export default function ProfileTab() {
     const url = `${window.location.origin}/profiles/${targetId}`
     try {
       await navigator.clipboard.writeText(url)
-      setMessage(t('profilePage.shareCopied'))
+      toast.success(t('profilePage.shareCopied'))
     } catch {
-      // Clipboard access can be denied (permissions, non-HTTPS context)
-      // — not worth surfacing as an error, sharing is a convenience.
+      // Clipboard access can be denied (permissions, a non-HTTPS
+      // context). Sharing is a convenience, not worth an error state.
     }
   }
 
-  function toggleLanguage() {
-    i18n.changeLanguage(i18n.language === 'fa' ? 'en' : 'fa')
-  }
-
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
-  if (!profile || !me) {
-    return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
-    )
-  }
-
-  const isOwn = me.id === profile.user_id
+  const isOwn = !!profile && !!me && me.id === profile.user_id
+  // A visited profile is an inner page and gets a back arrow; your own
+  // is a tab root and does not.
+  const isRoot = !paramId
 
   return (
-    <div className="hp-page">
-      {paramId && (
-        <div className="hp-page-back-header">
-          <button className="hp-chat-back" onClick={goBack} aria-label={t('common.back')}>
-            <IconArrowNarrowLeft size={20} />
-          </button>
-          <span className="hp-page-back-title">{profile.display_name}</span>
-        </div>
-      )}
-      <ProfileHeader
-        profile={profile}
-        isOwn={isOwn}
-        following={following}
-        onFollow={follow}
-        onUnfollow={unfollow}
-        onAvatarUploaded={load}
-        onShare={share}
-        moreMenuOpen={moreMenuOpen}
-        onToggleMoreMenu={() => setMoreMenuOpen(!moreMenuOpen)}
-        onMoreItemClick={() => setMessage(t('profilePage.moreComingSoon'))}
+    <div className="ui-page">
+      <PageHeader
+        title={isRoot ? t('tabs.profile') : (profile?.display_name ?? '')}
+        onBack={isRoot ? undefined : goBack}
+        action={
+          isRoot ? (
+            <button
+              className="ui-btn ui-btn-icon"
+              onClick={() => navigate('/settings')}
+              aria-label={t('settings.title')}
+            >
+              <IconSettings size={22} />
+            </button>
+          ) : (
+            profile && (
+              <button
+                className="ui-btn ui-btn-icon"
+                onClick={() => setMoreOpen(true)}
+                aria-label={t('profilePage.moreButton')}
+              >
+                <IconMore size={22} />
+              </button>
+            )
+          )
+        }
       />
 
-      {message && <Section>{message}</Section>}
+      <div className="ui-page-body">
+        {error ? (
+          <ErrorState text={error} onRetry={load} />
+        ) : !profile ? (
+          <SkeletonRows count={3} />
+        ) : (
+          <>
+            <ProfileHeader
+              profile={profile}
+              isOwn={isOwn}
+              following={following}
+              onFollow={() => setFollow('follow')}
+              onUnfollow={() => setFollow('unfollow')}
+              onAvatarUploaded={load}
+            />
 
-      <div className="hp-tabs">
-        <button
-          className={`hp-tab ${activeTab === 'content' ? 'hp-tab-active' : ''}`}
-          onClick={() => setActiveTab('content')}
-        >
-          {t('profilePage.tabContent')}
-        </button>
-        <button className="hp-tab" disabled>
-          {t('profilePage.tabOffers')}
-        </button>
+            {/* The Offers tab is not built yet, and a disabled tab
+                sitting next to a live one is a promise the product does
+                not keep. Until it exists there is simply one section
+                heading rather than a segmented control with one option
+                the user cannot pick. */}
+            <section className="ui-section">
+              <h2 className="ui-section-title">{t('profilePage.tabContent')}</h2>
+              <ContentGrid userId={profile.user_id} refreshKey={contentRefreshKey} />
+            </section>
+          </>
+        )}
       </div>
 
-      {activeTab === 'content' && <ContentGrid userId={profile.user_id} refreshKey={contentRefreshKey} />}
-      {activeTab === 'offers' && <div className="hp-empty">{t('profilePage.offersComingSoon')}</div>}
-
-      {isOwn && activeTab === 'content' && (
-        <button className="hp-fab" onClick={() => setUploading(true)} aria-label={t('content.uploadButton')}>
-          +
+      {isOwn && (
+        <button className="pf-fab" onClick={() => setUploading(true)} aria-label={t('content.uploadButton')}>
+          <IconPlus size={24} />
         </button>
       )}
 
@@ -175,49 +161,45 @@ export default function ProfileTab() {
           <ContentUploadForm
             onUploaded={() => {
               setUploading(false)
-              setMessage(t('content.uploadSuccess'))
+              toast.success(t('content.uploadSuccess'))
               setContentRefreshKey((k) => k + 1)
             }}
           />
         </Sheet>
       )}
 
-      {isOwn && (
-        <>
-          <Section>
-            {/* The badge is the only "notification" for a new follow
-                request right now — checked on every /me call (see
-                backend/app/main.py), since there's no push-notification
-                system yet (TECHNICAL_REQUIREMENTS.md section 9). */}
-            <Cell onClick={() => navigate('/follow-requests')}>
-              {me.pending_follow_requests_count > 0
-                ? t('followRequests.linkWithCount', { count: me.pending_follow_requests_count })
-                : t('followRequests.link')}
-            </Cell>
-          </Section>
-          <Section>
-            <Cell subtitle={t('common.language')} onClick={toggleLanguage}>
-              {i18n.language === 'fa' ? 'فارسی' : 'English'}
-            </Cell>
-          </Section>
-          <Section>
-            <div style={{ padding: '10px 16px' }}>
-              <ThemeSwitcher />
-            </div>
-          </Section>
-          {!isRealTelegramLaunch() && (
-            <Section>
-              <Cell
-                onClick={() => {
-                  clearDevUserChoice()
-                  window.location.reload()
-                }}
-              >
-                {t('login.switchUser')}
-              </Cell>
-            </Section>
-          )}
-        </>
+      {moreOpen && profile && (
+        <Sheet title={profile.display_name} onClose={() => setMoreOpen(false)}>
+          <div className="ui-list">
+            <button
+              className="ui-row"
+              onClick={() => {
+                setMoreOpen(false)
+                share()
+              }}
+            >
+              <span className="ui-row-media">
+                <IconShare size={20} />
+              </span>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('profilePage.shareButton')}</span>
+              </span>
+            </button>
+            {/* Report and block are deliberately inert: no report/block
+                system exists yet, and a row that silently does nothing
+                is worse than one that says so. */}
+            <button className="ui-row" onClick={() => toast.error(t('profilePage.moreComingSoon'))}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('profilePage.moreReport')}</span>
+              </span>
+            </button>
+            <button className="ui-row" onClick={() => toast.error(t('profilePage.moreComingSoon'))}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('profilePage.moreBlock')}</span>
+              </span>
+            </button>
+          </div>
+        </Sheet>
       )}
     </div>
   )

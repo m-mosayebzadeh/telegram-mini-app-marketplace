@@ -1,0 +1,188 @@
+/**
+ * Input — docs/design-system/02-components.md#ورودی
+ *
+ * Structure is always label → field → help or error. The label is not
+ * optional: a placeholder disappears the moment typing starts, and the
+ * user is then filling in a box with no name.
+ *
+ *   <label class="ui-field">
+ *     <span class="ui-field-label">…</span>
+ *     <input class="ui-input" />
+ *     <span class="ui-field-help">…</span>
+ *   </label>
+ */
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ui-field-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font: var(--text-label);
+  color: var(--color-text-2);
+}
+
+/* Only shown when there is a real ceiling. A counter on a field with no
+   limit is a number with nothing to say. */
+.ui-field-counter {
+  font: var(--text-caption);
+  color: var(--color-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-input,
+.ui-textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font: var(--text-body);
+  transition: border-color var(--motion-fast) var(--ease);
+}
+
+.ui-textarea {
+  min-height: 96px;
+  /* Vertical only: a textarea dragged wider breaks the page gutter. */
+  resize: vertical;
+  line-height: 26px;
+}
+
+.ui-input::placeholder,
+.ui-textarea::placeholder {
+  color: var(--color-text-3);
+}
+
+/* Focus moves the border to the accent. No glow, no shadow — the border
+   is already the thing the eye is following. */
+.ui-input:focus,
+.ui-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.ui-input:disabled,
+.ui-textarea:disabled {
+  opacity: 0.45;
+}
+
+/* Colour alone is not an error state — a colour-blind user, or anyone
+   glancing, learns nothing from it. The border marks WHERE, the message
+   below says WHAT. Both are required. */
+.ui-field-invalid .ui-input,
+.ui-field-invalid .ui-textarea,
+.ui-input[aria-invalid='true'],
+.ui-textarea[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.ui-field-help {
+  font: var(--text-caption);
+  color: var(--color-text-3);
+}
+
+.ui-field-error {
+  font: var(--text-caption);
+  color: var(--color-danger);
+}
+
+/* Numbers line up down a column and stop jittering as digits change.
+   Pair with inputMode="numeric" in the markup. */
+.ui-input-numeric {
+  font-variant-numeric: tabular-nums;
+  /* A number is read left-to-right whichever way the page runs. */
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
+}
+
+/* A field with something fixed attached — a unit, a prefix, a reveal
+   button. The affordance sits inside the field's own border so the two
+   read as one control. */
+.ui-input-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding-inline: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--motion-fast) var(--ease);
+}
+
+.ui-input-group:focus-within {
+  border-color: var(--color-accent);
+}
+
+.ui-field-invalid .ui-input-group {
+  border-color: var(--color-danger);
+}
+
+/* The inner field gives up its own chrome — the group is the control. */
+.ui-input-group .ui-input {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+.ui-input-group-addon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-2);
+  font: var(--text-label);
+  white-space: nowrap;
+}
+
+/* ---------- switch ---------- */
+
+/* For a setting that takes effect immediately. Anything that needs a
+   Save button is a checkbox, not a switch. */
+.ui-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  transition: background var(--motion-fast) var(--ease);
+}
+
+.ui-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-text);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.ui-switch[aria-checked='true'] {
+  background: var(--color-accent);
+  border-color: transparent;
+}
+
+.ui-switch[aria-checked='true']::after {
+  background: var(--color-on-accent);
+  /* Logical, so the knob travels the right way under dir="rtl". */
+  transform: translateX(20px);
+}
+
+[dir='rtl'] .ui-switch[aria-checked='true']::after {
+  transform: translateX(-20px);
+}

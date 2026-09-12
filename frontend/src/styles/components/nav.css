@@ -1,0 +1,106 @@
+/**
+ * Bottom navigation — docs/design-system/02-components.md#ناوبری-پایین
+ *
+ * Four fixed destinations, plus a conditional admin tab. Order, RTL:
+ * ویترین · تعاملات · گفتگوها · پروفایل — the first tab is the product's
+ * core value, and nothing that is an ACTION rather than a DESTINATION
+ * ever becomes a tab.
+ */
+
+.ui-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+  /* The home indicator's strip is the phone's, not ours to draw in. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ui-nav-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: var(--nav-height);
+  padding-block: var(--space-2);
+  color: var(--color-text-3);
+  font: var(--text-caption);
+  font-weight: 600;
+  transition: color var(--motion-fast) var(--ease);
+}
+
+/* Accent on the icon and the label, plus weight. No pill behind it and
+   no sliding indicator: the colour already answers "where am I", and a
+   travelling bar is motion that explains nothing. */
+.ui-nav-item-active {
+  color: var(--color-accent-ink);
+  font-weight: 700;
+}
+
+.ui-nav-item:active {
+  transform: scale(0.96);
+}
+
+.ui-nav-icon {
+  display: flex;
+  width: 22px;
+  height: 22px;
+}
+
+/* "Something happened here" — a dot, because the exact count of unread
+   things across a whole tab is not a number anyone acts on. */
+.ui-nav-dot {
+  position: absolute;
+  top: 6px;
+  /* Standard outer-corner placement, logical so it mirrors with the page. */
+  inset-inline-end: calc(50% - 16px);
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-notify);
+  /* A ring of the page ground keeps the dot legible against the icon
+     it overlaps. */
+  box-shadow: 0 0 0 2px var(--color-bg);
+}
+
+/* A count only when the count itself means something — unread messages,
+   pending offers. */
+.ui-nav-count {
+  position: absolute;
+  top: 2px;
+  inset-inline-end: calc(50% - 22px);
+  min-width: 20px;
+  height: 20px;
+  padding-inline: var(--space-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-notify);
+  color: var(--color-on-accent);
+  font: var(--text-caption);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px var(--color-bg);
+}
+
+/* The profile tab shows the user's own face rather than a generic
+   person glyph — the one place in the nav where the icon is content. */
+.ui-nav-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+/* Active, it takes a ring in the accent so it reads as selected the way
+   the other four icons do by changing colour. */
+.ui-nav-item-active .ui-nav-avatar {
+  box-shadow: 0 0 0 2px var(--color-accent-ink);
+}

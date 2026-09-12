@@ -1,0 +1,179 @@
+/**
+ * Button — docs/design-system/02-components.md#دکمه
+ *
+ * Four variants, three sizes, four mandatory states. A variant exists
+ * because it does a job no other variant does; there is no "just a bit
+ * different" button.
+ *
+ *   <button class="ui-btn ui-btn-primary ui-btn-lg">…</button>
+ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  /* Nothing in this product is tappable below the floor, so the base
+     class carries it rather than every size repeating it. */
+  min-height: var(--touch-min);
+  padding-inline: var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: var(--text-body-md);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  /* Only transform and opacity animate — see 01-foundations.md#حرکت. */
+  transition:
+    transform var(--motion-fast) var(--ease),
+    opacity var(--motion-fast) var(--ease);
+  /* A label that wraps to two lines turns a button into a paragraph. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Touch feedback has to land inside 100ms, so it is a transform on the
+   element itself rather than anything that repaints. */
+.ui-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Disabled dims the whole button rather than recolouring it: a greyed
+   primary button that keeps its shape still reads as the primary action,
+   which is the point — it is the same action, currently unavailable. */
+.ui-btn:disabled,
+.ui-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ui-btn:disabled:active,
+.ui-btn[aria-disabled='true']:active {
+  transform: none;
+}
+
+/* ---------- variants ---------- */
+
+/* One per screen. An accent surface always carries dark ink — white on
+   the ember fill is 2.8:1 and fails. See tokens.css. */
+.ui-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.ui-btn-secondary {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.ui-btn-ghost {
+  background: none;
+  color: var(--color-text);
+}
+
+.ui-btn-ghost:active:not(:disabled) {
+  background: var(--color-surface);
+}
+
+/* Destructive actions are never a filled button: a red block is the most
+   attention-grabbing thing on the screen, which is backwards for the one
+   action the user is least likely to want. */
+.ui-btn-danger {
+  background: none;
+  color: var(--color-danger);
+}
+
+.ui-btn-danger:active:not(:disabled) {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+/* ---------- sizes ---------- */
+
+.ui-btn-lg {
+  min-height: 52px;
+  border-radius: var(--radius-md);
+}
+
+.ui-btn-md {
+  min-height: 48px;
+}
+
+.ui-btn-sm {
+  min-height: var(--touch-min);
+  padding-inline: var(--space-4);
+  font: var(--text-label);
+}
+
+/* The page's primary action spans the content width — a centred pill
+   invites a miss, a full-width bar does not. */
+.ui-btn-block {
+  display: flex;
+  width: 100%;
+}
+
+/* An icon-only button still owes the user 44×44 even when the glyph is
+   18px. Square, so the hit area matches what the eye expects. */
+.ui-btn-icon {
+  width: var(--touch-min);
+  min-width: var(--touch-min);
+  padding-inline: 0;
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+}
+
+.ui-btn-icon:active:not(:disabled) {
+  background: var(--color-surface);
+}
+
+/* ---------- loading ---------- */
+
+/* The content is laid out as its own row so the icon and the label stay
+   on one line and share a single gap. */
+.ui-btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The label stays in the DOM and keeps its width, so the button does not
+   resize under the finger that just pressed it. */
+.ui-btn-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.ui-btn-loading .ui-btn-content {
+  visibility: hidden;
+}
+
+.ui-btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  /* One transparent quarter is what makes the rotation readable. */
+  border-top-color: transparent;
+  border-radius: var(--radius-full);
+  animation: ui-spin 700ms linear infinite;
+}
+
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* A row of actions: side by side, equal width, primary last so it sits
+   where the thumb ends up. */
+.ui-btn-row {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.ui-btn-row > .ui-btn {
+  flex: 1;
+}

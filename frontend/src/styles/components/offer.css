@@ -1,0 +1,213 @@
+/**
+ * Offer detail — the buyer's side and the owner's side.
+ *
+ * The buyer's page has one job, and the layout says so: the person, the
+ * deal, and a button that never leaves the screen.
+ */
+
+/* ---------- the person ---------- */
+
+/* Deliberately the same reading order as the card that was tapped to
+   get here — face, name, one line of bio — so arriving on this page
+   feels like the card opening rather than a different screen loading. */
+.of-person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 72px;
+  padding-block: var(--space-4);
+  color: var(--color-text);
+  text-align: start;
+}
+
+.of-person:active {
+  opacity: 0.7;
+}
+
+.of-person-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface-2);
+  color: var(--color-text-3);
+}
+
+.of-person-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.of-person-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.of-person-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-heading);
+}
+
+.of-person-bio {
+  font: var(--text-caption);
+  color: var(--color-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- the deal ---------- */
+
+/* Price and duration side by side, because neither number means
+   anything on its own — 250 Drop is only cheap or expensive against the
+   time it buys. */
+.of-deal {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-4);
+  align-items: start;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.of-deal-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* The duration column reads against the price, so it aligns to the far
+   edge rather than floating in the middle of the block. */
+.of-deal-cell:last-child {
+  align-items: flex-end;
+  text-align: end;
+}
+
+.of-deal-label {
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+.of-deal-value {
+  font: var(--text-title);
+  color: var(--color-text);
+}
+
+.of-description {
+  font: var(--text-body);
+  color: var(--color-text-2);
+  /* The one place in the product where a long free-text block is shown
+     in full. It used to sit in a fixed-height box with its own
+     scrollbar, which meant the most important thing the provider wrote
+     could be hidden behind a scroll nobody noticed. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- the pinned action ---------- */
+
+/* Above the nav bar, always reachable. The page scrolls underneath. */
+.of-action {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 26;
+  padding: var(--space-3) var(--page-gutter);
+  padding-bottom: calc(var(--nav-clearance) + var(--space-3));
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* The body has to clear the pinned bar as well as the nav bar, or the
+   last section sits underneath it. */
+.of-body-with-action {
+  padding-bottom: calc(var(--nav-clearance) + 76px);
+}
+
+/* ---------- the owner's side ---------- */
+
+/* One line, not a table: the owner wrote this offer and does not need
+   it read back to them. The requests are the page. */
+.of-own-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-block: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.of-own-title {
+  font: var(--text-heading);
+  color: var(--color-text);
+}
+
+.of-own-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+.of-own-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-text-3);
+}
+
+/* A request is a person plus a decision, so it is a small group rather
+   than a single row — the divider sits between GROUPS, not between a
+   person and their own buttons. */
+.of-request {
+  padding-bottom: var(--space-3);
+}
+
+.of-request + .of-request {
+  border-top: 1px solid var(--color-border);
+}
+
+.of-request-person .ui-row-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.of-request-actions {
+  padding-inline-start: calc(44px + var(--space-3));
+}
+
+.of-request-session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-inline-start: calc(44px + var(--space-3));
+  padding-top: var(--space-2);
+}
+
+.of-request-note {
+  display: block;
+  padding-inline-start: calc(44px + var(--space-3));
+  font: var(--text-caption);
+  color: var(--color-text-3);
+}
+
+/* The count of people still waiting, next to the heading it belongs to. */
+.ui-section-title .ui-badge {
+  margin-inline-start: var(--space-2);
+  vertical-align: -0.25em;
+}

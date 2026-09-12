@@ -1,0 +1,75 @@
+/**
+ * The showcase's own layout. Everything visual here comes from the
+ * component layer; what is left is the grid itself and three small
+ * pieces the card needs that no other surface does.
+ */
+
+.dc-grid {
+  display: grid;
+  /* Two columns at the base width, and it stays two on a narrow phone
+     rather than collapsing to one: a single column of 4:5 portraits
+     means one person per screen, which is the opposite of a showcase.
+     A wider viewport gets more columns instead of wider cards. */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.dc-rail {
+  padding-block: var(--space-2);
+}
+
+/* The whole photo is the target — 150×188 at the base width, far past
+   the 44px floor. The tags below stay outside it so an interest can
+   become tappable later without swallowing the card's own tap. */
+.dc-card-hit {
+  display: block;
+  width: 100%;
+  text-align: start;
+  color: inherit;
+}
+
+.dc-card-hit:active {
+  transform: scale(0.98);
+  transition: transform var(--motion-fast) var(--ease);
+}
+
+.dc-card-nophoto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--color-text-3);
+}
+
+/* The trust badge reads on top of an arbitrary photo, so it carries its
+   own ground rather than relying on the scrim underneath. */
+.dc-card-trusted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Duration is part of the deal, not a topic — it takes the accent tint
+   so it separates from the interest tags beside it. */
+.dc-card-duration {
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  color: var(--color-accent-ink);
+}
+
+/* A Drop figure inline in running text. */
+.ui-drop-amount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  /* The mark should sit on the number's own optical line, not the
+     baseline of the sentence around it. */
+  vertical-align: -0.15em;
+}

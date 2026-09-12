@@ -9,7 +9,7 @@ import {
   type BankAccount,
 } from '../lib/withdrawalApi'
 import { FinanceHeader } from '../components/Finance'
-import { Sheet } from '../components/Sheet'
+import { Sheet } from '../components/ui/Sheet'
 
 export default function BankAccounts() {
   const { t } = useTranslation()

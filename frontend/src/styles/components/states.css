@@ -1,0 +1,174 @@
+/**
+ * The four mandatory states — 02-components.md#حالت‌ها
+ *
+ * Every surface that fetches data owes the user all four. An undefined
+ * state is exactly where a product stops feeling finished, and it is the
+ * cheapest kind of polish there is.
+ */
+
+/* ---------- loading ---------- */
+
+/* A skeleton shaped like the content that is coming, in the place that
+   content will appear. Never a full-screen spinner: a spinner says "wait"
+   and nothing else, while a skeleton already shows the shape of the
+   answer and keeps the layout from jumping when it arrives. */
+.ui-skeleton {
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  /* Opacity only — no travelling highlight, no gradient sweep. */
+  animation: ui-pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes ui-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.ui-skeleton-text {
+  height: 12px;
+  border-radius: var(--radius-full);
+}
+
+.ui-skeleton-title {
+  height: 16px;
+  width: 45%;
+  border-radius: var(--radius-full);
+}
+
+.ui-skeleton-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+}
+
+.ui-skeleton-card {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-lg);
+}
+
+/* A skeleton row mirrors .ui-row's own geometry, so nothing shifts when
+   the real row replaces it. */
+.ui-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 72px;
+  padding-block: var(--space-3);
+}
+
+.ui-skeleton-row-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ---------- empty and error ---------- */
+
+/* Both are the same shape, because to the user they are the same moment:
+   "there is nothing here, and here is what to do about it". */
+.ui-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-12) var(--space-5);
+  text-align: center;
+}
+
+.ui-state-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-3);
+}
+
+.ui-state-title {
+  font: var(--text-heading);
+  color: var(--color-text);
+}
+
+/* Says WHY it is empty, not that it is empty — the user can already see
+   that. "فعلاً چیزی اینجا نیست" on its own is a dead end. */
+.ui-state-text {
+  max-width: 34ch;
+  font: var(--text-body);
+  color: var(--color-text-2);
+}
+
+/* The way forward. An empty state without one is a wall. */
+.ui-state-action {
+  margin-top: var(--space-2);
+}
+
+/* ---------- success ---------- */
+
+/* Floats above the nav bar, 3.5s, never blocks the page. An inverted
+   surface so it reads as a layer over the app rather than part of it. */
+.ui-toast {
+  position: fixed;
+  inset-inline: var(--page-gutter);
+  /* Clears the nav bar and its safe area — a toast the nav covers is a
+     toast nobody reads. */
+  bottom: calc(var(--nav-clearance) + var(--space-3));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-inline: auto;
+  max-width: 460px;
+  min-height: var(--touch-min);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font: var(--text-label);
+  box-shadow: var(--shadow-float);
+  text-align: center;
+  animation: ui-toast-in var(--motion-base) var(--ease);
+}
+
+@keyframes ui-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.ui-toast-leaving {
+  animation: ui-toast-out var(--motion-base) var(--ease) forwards;
+}
+
+@keyframes ui-toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* A failure keeps the inverted surface — the message is what carries the
+   meaning — and takes a colour only on its mark. */
+.ui-toast-error .ui-toast-mark {
+  color: var(--color-danger);
+}
+
+.ui-toast-success .ui-toast-mark {
+  color: var(--color-success);
+}
+
+.ui-toast-mark {
+  display: flex;
+  flex-shrink: 0;
+}

@@ -1,0 +1,119 @@
+/**
+ * Header — docs/design-system/02-components.md#هدر
+ *
+ * ONE pattern for the whole product. Three slots, each optional:
+ *
+ *   [ back 44×44 ]   [ title ]   [ action 44×44 ]
+ *
+ * No page goes without a header, and no second pattern gets invented.
+ * The audit that started this redesign found four different headers; the
+ * cost of that is that a user learns the app four times.
+ */
+
+.ui-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 56px;
+  /* The notch and the rounded corner belong to the phone, not the page. */
+  padding-top: env(safe-area-inset-top);
+  padding-inline: var(--space-3);
+  background: var(--color-bg);
+}
+
+/* Only once content has actually scrolled under it does the header need
+   to announce where it ends. A permanent rule is a line the user has to
+   look past on every screen. Toggle the class from the scroll position. */
+.ui-header-scrolled {
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* The centre slot takes the remaining room, so a long title truncates
+   instead of pushing the actions off the edge. */
+.ui-header-title {
+  flex: 1;
+  min-width: 0;
+  font: var(--text-heading);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A tab root is the top of its own stack: no back arrow, and the title
+   is the largest thing on the screen because it names where you are. */
+.ui-header-root .ui-header-title {
+  font: var(--text-title);
+  padding-inline-start: var(--space-2);
+}
+
+/* Both edge slots reserve the same width whether or not they hold
+   anything, so the title does not shift between screens. */
+.ui-header-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  color: var(--color-text);
+}
+
+/* Directional icons mirror under RTL. The arrow means "back", and back
+   is whichever way the language came from. */
+[dir='rtl'] .ui-header-back svg {
+  transform: scaleX(-1);
+}
+
+/* A page whose header sits over a photo rather than the page ground. */
+.ui-header-transparent {
+  background: transparent;
+  border-bottom: none;
+}
+
+/* ---------- page scaffold ---------- */
+
+/* Every screen is this shape: header, scrolling body, and enough bottom
+   room that the last row is not buried under the nav bar. */
+.ui-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.ui-page-body {
+  flex: 1;
+  padding-inline: var(--page-gutter);
+  /* Without this the last list row is unreachable behind the nav bar,
+     which is the single most common mobile bug in a layout designed on
+     a desktop. */
+  padding-bottom: calc(var(--nav-clearance) + var(--space-6));
+}
+
+/* Body content that runs edge to edge — a media grid, a full-bleed list
+   whose dividers should touch the screen. */
+.ui-page-body-flush {
+  padding-inline: 0;
+}
+
+/* A section is a titled group. Separation comes from the gap between
+   sections, not from a box drawn around each one. */
+.ui-section {
+  margin-top: var(--space-8);
+}
+
+.ui-section:first-child {
+  margin-top: var(--space-6);
+}
+
+.ui-section-title {
+  margin-bottom: var(--space-3);
+  font: var(--text-label);
+  color: var(--color-text-2);
+}

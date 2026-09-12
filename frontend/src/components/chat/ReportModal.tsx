@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sheet } from '../Sheet'
+import { Sheet } from '../ui/Sheet'
 
 const REPORT_REASONS = ['inappropriateContent', 'spamOrScam', 'harassment', 'other'] as const
 

@@ -71,13 +71,13 @@ export function ContentTile({ content, onClick }: ContentTileProps) {
         <div className={`hp-tile-veil ${premium ? 'hp-tile-veil-premium' : 'hp-tile-veil-spoiler'}`}>
           {premium ? (
             <div className="hp-tile-price-pill">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--hp-gold)" stroke="none">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--color-on-scrim)" stroke="none">
                 <path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3.5z" />
               </svg>
               <span>{content.price_stars}</span>
             </div>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="rgba(255,255,255,0.85)" stroke="none">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--color-text-2)" stroke="none">
               <path d="M12 3l1.7 6.8L20 11l-6.3 1.2L12 19l-1.7-6.8L4 11l6.3-1.2L12 3z" />
             </svg>
           )}
@@ -89,7 +89,7 @@ export function ContentTile({ content, onClick }: ContentTileProps) {
           a duplicate. */}
       {locked && content.content_type === 'short_video' && (
         <span className="hp-tile-badge hp-tile-badge-end" aria-label={t('content.videoBadge')}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" stroke="none">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--color-on-scrim)" stroke="none">
             <path d="M8 5l11 7-11 7V5z" />
           </svg>
         </span>

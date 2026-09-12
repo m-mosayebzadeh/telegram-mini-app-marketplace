@@ -1,0 +1,185 @@
+/**
+ * List and card — docs/design-system/02-components.md#لیست-و-کارت
+ *
+ * The default is a LIST. A card is for content that is genuinely a
+ * detachable object; everything else is a row. A screen of cards is a
+ * screen of boxes, and boxes cost vertical space the phone does not have.
+ */
+
+.ui-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* 64 plain, 72 with an avatar — the avatar sets the floor. */
+  min-height: 64px;
+  padding-block: var(--space-3);
+  color: var(--color-text);
+  text-align: start;
+  width: 100%;
+}
+
+.ui-row-avatar {
+  min-height: 72px;
+}
+
+.ui-row:active {
+  background: var(--color-surface);
+}
+
+/* The divider starts where the TEXT starts, not at the screen edge: it
+   groups the row's own content, and running it under the avatar would
+   cut the avatar column in half down the whole list. */
+.ui-row + .ui-row {
+  box-shadow: inset 0 1px 0 var(--color-border);
+}
+
+.ui-list-inset .ui-row + .ui-row {
+  box-shadow: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.ui-row-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface-2);
+  color: var(--color-text-2);
+}
+
+/* Takes the slack, so a long name truncates instead of shoving the
+   trailing value off the screen. */
+.ui-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ui-row-title {
+  font: var(--text-body-md);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-row-subtitle {
+  font: var(--text-caption);
+  color: var(--color-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-row-trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  color: var(--color-text-2);
+  font: var(--text-caption);
+}
+
+/* Chevrons point the way the page runs. */
+[dir='rtl'] .ui-row-chevron {
+  transform: scaleX(-1);
+}
+
+/* ---------- card ---------- */
+
+/* No shadow, and no border when the fill already separates it from the
+   page — an element with both is saying the same thing twice. */
+.ui-card {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.ui-card-flat {
+  background: none;
+  border: 1px solid var(--color-border);
+}
+
+.ui-card-body {
+  padding: var(--space-4);
+}
+
+/* A card inside a card is never correct. If it seems needed, the outer
+   one wanted to be a section. */
+
+/* ---------- person card (the showcase's one real card) ---------- */
+
+.ui-person-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.ui-person-photo {
+  position: relative;
+  width: 100%;
+  /* 5:4 — tall enough to read as a portrait, short enough that two fit
+     on one screen. */
+  aspect-ratio: 4 / 5;
+  background: var(--color-surface-2);
+}
+
+.ui-person-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The one gradient this system allows, because it is doing work: it is
+   what makes the name readable over an arbitrary photo. */
+.ui-person-scrim {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: var(--space-8) var(--space-3) var(--space-3);
+  background: linear-gradient(to top, var(--color-scrim), transparent);
+  color: var(--color-on-scrim);
+}
+
+.ui-person-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font: var(--text-body-md);
+}
+
+.ui-person-bio {
+  margin-top: 2px;
+  font: var(--text-caption);
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-person-price {
+  position: absolute;
+  top: var(--space-2);
+  inset-inline-end: var(--space-2);
+}
+
+.ui-person-tags {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  overflow: hidden;
+}

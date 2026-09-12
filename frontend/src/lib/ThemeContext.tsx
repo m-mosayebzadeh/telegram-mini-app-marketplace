@@ -1,76 +1,79 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 
 /**
- * The three "premium lounge" color themes the design pass in
- * docs/ (see the mockup exploration that preceded this) settled on —
- * velvet, copper, jade. Every one of styles/theme.css's --hp-* tokens
- * is redefined per theme under a `[data-hp-theme="…"]` selector, so
- * switching HP_THEMES only ever means picking one of these three ids;
- * a component should never reach for a raw color, only the tokens.
+ * Light and dark are NOT two themes — they are one visual identity in two
+ * environments (see docs/design-system/README.md). Every semantic token
+ * keeps its name across both; only its value changes, in
+ * styles/tokens.css. No component ever branches on the theme.
  *
- * This is deliberately a closed set (not a free-form color picker) —
- * per product decision, future pages are meant to be designed against
- * one of these three, not an arbitrary palette. Adding a fourth theme
- * later means adding one more id here plus its token block in
- * theme.css, nothing else.
+ * This replaces the previous velvet/copper/jade palette switcher: three
+ * differently-hued themes meant the app had no single visual identity at
+ * all, which is exactly what the redesign set out to fix.
  */
-export const HP_THEMES = ['velvet', 'copper', 'jade'] as const
+export const THEMES = ['dark', 'light'] as const
 
-export type HpTheme = (typeof HP_THEMES)[number]
+export type Theme = (typeof THEMES)[number]
 
-const DEFAULT_THEME: HpTheme = 'velvet'
-const STORAGE_KEY = 'hp-theme'
+/** Dark is the product's own default surface — this is a night-oriented
+ * product and the identity was designed on dark. It is only the fallback
+ * though: a stored choice always wins, and with no stored choice we
+ * follow whatever the device already prefers. */
+const DEFAULT_THEME: Theme = 'dark'
+const STORAGE_KEY = 'app-theme'
 
-function isHpTheme(value: string | null): value is HpTheme {
-  return value != null && (HP_THEMES as readonly string[]).includes(value)
+function isTheme(value: string | null): value is Theme {
+  return value != null && (THEMES as readonly string[]).includes(value)
 }
 
-function readStoredTheme(): HpTheme {
+function readInitialTheme(): Theme {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
-    return isHpTheme(stored) ? stored : DEFAULT_THEME
+    if (isTheme(stored)) return stored
   } catch {
-    // localStorage can throw (private browsing, disabled storage) —
-    // falling back to the default is fine, it just won't persist.
-    return DEFAULT_THEME
+    // localStorage throws in private browsing / when storage is blocked.
+    // Falling through to the system preference is fine — the only thing
+    // lost is persistence.
   }
+  try {
+    if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light'
+  } catch {
+    // matchMedia is missing in some embedded webviews.
+  }
+  return DEFAULT_THEME
 }
 
 interface ThemeState {
-  theme: HpTheme
-  setTheme: (theme: HpTheme) => void
+  theme: Theme
+  setTheme: (theme: Theme) => void
 }
 
 const ThemeContext = createContext<ThemeState>({ theme: DEFAULT_THEME, setTheme: () => {} })
 
 /**
- * Applies the active theme to `<html data-hp-theme="…">` — the root
- * element rather than `.hp-page` itself, so a theme choice also reaches
- * anything rendered outside the profile tab in the future (a modal, a
- * toast) without every such surface needing its own data attribute.
- * Persists the choice to localStorage so it survives a reload; when
- * themes are eventually gated behind a paid unlock, this is the single
- * place that would grow that check (see setTheme).
+ * Stamps the active theme onto `<html data-theme="…">` — the root element
+ * rather than a page wrapper, so the choice also reaches anything
+ * rendered outside the normal tree (sheets, toasts) and the native
+ * color-scheme hint in styles/base.css.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<HpTheme>(readStoredTheme)
+  const [theme, setThemeState] = useState<Theme>(readInitialTheme)
 
   useEffect(() => {
-    document.documentElement.dataset.hpTheme = theme
+    document.documentElement.dataset.theme = theme
     try {
       localStorage.setItem(STORAGE_KEY, theme)
     } catch {
-      // Best-effort persistence only — see readStoredTheme().
+      // Best-effort persistence only — see readInitialTheme().
     }
   }, [theme])
 
-  function setTheme(next: HpTheme) {
+  function setTheme(next: Theme) {
     setThemeState(next)
   }
 
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
 }
 
-export function useHpTheme(): ThemeState {
+export function useTheme(): ThemeState {
   return useContext(ThemeContext)
 }
