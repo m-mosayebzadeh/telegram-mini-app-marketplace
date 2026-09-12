@@ -27,8 +27,8 @@ interface OfferBuyerViewProps {
  * tapped to get here, and the numbers follow.
  *
  * The request button is pinned to the bottom of the screen by
- * .of-action, not placed inline — it is the one thing this page exists
- * for, and it belongs where the thumb already is.
+ * .ui-action-bar, not placed inline — it is the one thing this page
+ * exists for, and it belongs where the thumb already is.
  */
 export function OfferBuyerView({
   offer,
@@ -113,7 +113,7 @@ export function OfferBuyerView({
       {/* Pinned above the nav bar. The page scrolls underneath it, so
           the decision is always one tap away rather than something to
           scroll back to. */}
-      <div className="of-action">
+      <div className="ui-action-bar">
         <Button
           variant="primary"
           size="lg"

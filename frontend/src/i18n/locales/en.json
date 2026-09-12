@@ -39,7 +39,13 @@
     "receivedFrom": "From {{name}}",
     "offersEmpty": "No offers yet",
     "requestsEmpty": "Nothing here yet",
-    "quotaResetHint": "Your daily request cap refreshes at {{time}}"
+    "quotaResetHint": "Your daily request cap refreshes at {{time}}",
+    "offersEmptyHint": "Offer your time so people can find you.",
+    "requestsEmptyHint": "Anything you request shows up here to follow.",
+    "browseShowcase": "Browse the showcase",
+    "manageOffer": "Manage offer",
+    "activateHint": "Shows in the showcase again.",
+    "deactivateHint": "Taken off the showcase, not deleted."
   },
   "chatsPage": {
     "activeTab": "Active",

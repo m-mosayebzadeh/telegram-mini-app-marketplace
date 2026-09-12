@@ -117,3 +117,26 @@
   font: var(--text-label);
   color: var(--color-text-2);
 }
+
+/* ---------- pinned action bar ---------- */
+
+/* A screen whose whole purpose is one decision puts that decision here:
+   above the nav bar, never scrolling away, where the thumb already is.
+   Only one per screen — two pinned bars is two primary actions, which
+   means neither is primary. */
+.ui-action-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 26;
+  padding: var(--space-3) var(--page-gutter);
+  padding-bottom: calc(var(--nav-clearance) + var(--space-3));
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* The page body has to clear the bar as well as the nav, or its last
+   section sits underneath both. */
+.ui-page-body-action {
+  padding-bottom: calc(var(--nav-clearance) + 76px);
+}

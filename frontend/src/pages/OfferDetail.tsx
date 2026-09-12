@@ -172,7 +172,7 @@ export default function OfferDetail() {
         onBack={goBack}
       />
 
-      <div className={`ui-page-body${!isOwner && offer ? ' of-body-with-action' : ''}`}>
+      <div className={`ui-page-body${!isOwner && offer ? ' ui-page-body-action' : ''}`}>
         {error ? (
           <ErrorState text={error} onRetry={loadOffer} />
         ) : !offer ? (

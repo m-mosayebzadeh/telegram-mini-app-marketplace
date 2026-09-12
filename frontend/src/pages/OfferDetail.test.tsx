@@ -143,7 +143,7 @@ describe('OfferDetail — buyer', () => {
 
     expect(text('.of-person-name')).toContain('Alice')
     expect(text('.of-person-bio')).toBe('Books and long walks')
-    const action = container.querySelector('.of-action .ui-btn-primary')
+    const action = container.querySelector('.ui-action-bar .ui-btn-primary')
     expect(action?.textContent).toBe('offers.requestButton')
     expect(container.querySelectorAll('.ui-btn-primary')).toHaveLength(1)
   })
@@ -166,7 +166,7 @@ describe('OfferDetail — buyer', () => {
 
     await render()
 
-    const action = container.querySelector<HTMLButtonElement>('.of-action .ui-btn')
+    const action = container.querySelector<HTMLButtonElement>('.ui-action-bar .ui-btn')
     expect(action?.disabled).toBe(true)
     expect(action?.textContent).toBe('offers.requestSent')
   })
@@ -220,7 +220,7 @@ describe('OfferDetail — owner', () => {
 
     await render()
 
-    expect(container.querySelector('.of-action')).toBeNull()
+    expect(container.querySelector('.ui-action-bar')).toBeNull()
     expect(text('.ui-row-title')).toBe('Bob')
     expect(buttonWith('requests.acceptButton')).toBeTruthy()
   })

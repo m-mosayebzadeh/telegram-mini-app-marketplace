@@ -117,26 +117,6 @@
   overflow-wrap: anywhere;
 }
 
-/* ---------- the pinned action ---------- */
-
-/* Above the nav bar, always reachable. The page scrolls underneath. */
-.of-action {
-  position: fixed;
-  inset-inline: 0;
-  bottom: 0;
-  z-index: 26;
-  padding: var(--space-3) var(--page-gutter);
-  padding-bottom: calc(var(--nav-clearance) + var(--space-3));
-  background: var(--color-bg);
-  border-top: 1px solid var(--color-border);
-}
-
-/* The body has to clear the pinned bar as well as the nav bar, or the
-   last section sits underneath it. */
-.of-body-with-action {
-  padding-bottom: calc(var(--nav-clearance) + 76px);
-}
-
 /* ---------- the owner's side ---------- */
 
 /* One line, not a table: the owner wrote this offer and does not need

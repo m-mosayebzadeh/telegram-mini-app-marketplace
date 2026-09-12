@@ -1,0 +1,139 @@
+/**
+ * The Activity tab. Two segments over one list surface.
+ */
+
+/* An underline, not a pill: these are two views of the same page, and a
+   filled pill would say they are two different modes. The rule sits on
+   the container so the inactive tab still has a baseline to sit on. */
+.ac-segments {
+  display: flex;
+  gap: var(--space-5);
+  margin-inline: calc(var(--page-gutter) * -1);
+  padding-inline: var(--page-gutter);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ac-segment {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch-min);
+  padding-block: var(--space-3);
+  color: var(--color-text-2);
+  font: var(--text-body-md);
+  transition: color var(--motion-fast) var(--ease);
+}
+
+.ac-segment-active {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* Overlaps the container's own rule by exactly its own height, so the
+   active marker replaces the hairline rather than sitting above it. */
+.ac-segment-active::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+}
+
+/* ---------- offers ---------- */
+
+/* The row and its overflow button are siblings, not nested: a button
+   inside a button is invalid, and the row's own tap target should not
+   swallow the one thing that is deliberately separate from it. */
+.ac-offer {
+  display: flex;
+  align-items: center;
+}
+
+.ac-offer + .ac-offer {
+  border-top: 1px solid var(--color-border);
+}
+
+.ac-offer-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ac-offer-manage {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+
+.ac-offer-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* A destructive row inside a sheet. Colour on the label only — a filled
+   red row would be the loudest thing in the sheet, which is backwards
+   for the option most people do not want. */
+.ac-row-danger .ui-row-title {
+  color: var(--color-danger);
+}
+
+/* ---------- requests ---------- */
+
+/* A request is a row plus, sometimes, a reason and an action — so the
+   divider goes between GROUPS, not between a row and its own action. */
+.ac-request {
+  padding-bottom: var(--space-2);
+}
+
+.ac-request + .ac-request {
+  border-top: 1px solid var(--color-border);
+}
+
+.ac-request-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The offer's title can be any length; the price cannot be split, so the
+   title truncates and the price keeps its place at the end of the line. */
+.ac-request-offer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ac-request-offer-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Aligned under the text, not under the avatar — it belongs to what the
+   row says, not to the person. */
+.ac-request-reason {
+  padding-inline-start: calc(44px + var(--space-3));
+  padding-bottom: var(--space-2);
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+.ac-request-action {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: var(--space-2);
+}
+
+/* A footnote about when the daily quota resets. It used to be fixed
+   above the nav bar, floating over the list — which gave a passing
+   remark the same weight as a toast. */
+.ac-quota {
+  padding-block: var(--space-6) var(--space-2);
+  font: var(--text-caption);
+  color: var(--color-text-3);
+  text-align: center;
+}

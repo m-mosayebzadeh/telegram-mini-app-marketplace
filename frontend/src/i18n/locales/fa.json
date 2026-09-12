@@ -39,7 +39,13 @@
     "receivedFrom": "از {{name}}",
     "offersEmpty": "فعلاً پیشنهادی نیست",
     "requestsEmpty": "فعلاً چیزی اینجا نیست",
-    "quotaResetHint": "سقف روزانه‌ی درخواست‌های شما ساعت {{time}} رفرش می‌شود"
+    "quotaResetHint": "سقف روزانه‌ی درخواست‌های شما ساعت {{time}} رفرش می‌شود",
+    "offersEmptyHint": "وقتت رو پیشنهاد بده تا بقیه بتونن پیدات کنن.",
+    "requestsEmptyHint": "هر پیشنهادی که درخواست بدی، همین‌جا دنبالش می‌کنی.",
+    "browseShowcase": "رفتن به ویترین",
+    "manageOffer": "مدیریت پیشنهاد",
+    "activateHint": "دوباره توی ویترین دیده می‌شه.",
+    "deactivateHint": "از ویترین برداشته می‌شه، ولی حذف نمی‌شه."
   },
   "chatsPage": {
     "activeTab": "فعال",

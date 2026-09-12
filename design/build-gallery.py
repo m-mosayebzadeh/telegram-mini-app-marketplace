@@ -15,7 +15,7 @@ STYLES = os.path.join(ROOT, 'frontend', 'src', 'styles')
 SHELL = os.path.join(ROOT, 'design', 'gallery-shell.html')
 OUT = os.path.join(ROOT, 'design', 'ember-ui-kit.html')
 
-COMPONENTS = ('button.css', 'chip.css', 'discover.css', 'header.css',
+COMPONENTS = ('activity.css', 'button.css', 'chip.css', 'discover.css', 'header.css',
               'input.css', 'list.css', 'nav.css', 'offer.css', 'profile.css',
               'sheet.css', 'states.css')
 
