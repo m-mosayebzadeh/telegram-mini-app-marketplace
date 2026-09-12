@@ -255,3 +255,23 @@
   font: var(--text-caption);
   color: var(--color-text-3);
 }
+
+/* A leading icon that is a marker, not a picture — no circle behind it,
+   unlike .ui-row-media which frames an avatar. */
+.ui-row-media-plain {
+  width: 24px;
+  height: 24px;
+  border-radius: 0;
+  background: none;
+  color: var(--color-text-2);
+}
+
+/* A caveat about the list above it, not about any one row. */
+.ar-empty {
+  margin-top: var(--space-3);
+}
+
+/* Says which list is on screen when one surface shows two. */
+.as-heading {
+  margin-top: var(--space-5);
+}

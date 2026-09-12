@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { assignRole, getUserDetail, listRoles, listUserRoles, revokeRole } from '../lib/adminApi'
 import { formatApiError } from '../lib/api'
 import { Sheet } from '../components/ui/Sheet'
-import { IconArrowNarrowLeft } from '../components/icons'
+import {
+  PageHeader,
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  SkeletonRows,
+  useToast,
+} from '../components/ui'
+import { IconChevron, IconShieldLock } from '../components/icons'
 import type { AdminUserDetail, Role, UserRole } from '../lib/types'
 
 /**
@@ -18,6 +26,7 @@ import type { AdminUserDetail, Role, UserRole } from '../lib/types'
 export default function AdminUserRoles() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const toast = useToast()
   const { id } = useParams()
   const userId = Number(id)
 
@@ -51,7 +60,7 @@ export default function AdminUserRoles() {
       setRevokeTarget(null)
       loadRoles()
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setBusy(false)
     }
@@ -71,79 +80,94 @@ export default function AdminUserRoles() {
       setAddingRole(false)
       loadRoles()
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setBusy(false)
     }
   }
 
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
-
-  // Roles the user doesn't already hold — the only ones worth offering
-  // in the "افزودن نقش" sheet.
+  // Roles the user does not already hold — the only ones worth offering.
   const heldRoleIds = new Set((roles ?? []).map((r) => r.role_id))
   const assignableRoles = (allRoles ?? []).filter((r) => !heldRoleIds.has(r.id))
 
   return (
-    <div className="hp-page">
-      <div className="hp-page-back-header">
-        <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-          <IconArrowNarrowLeft size={20} />
-        </button>
-        <span className="hp-page-back-title">
-          {t('admin.userRolesTitle')}
-          {user ? ` — ${user.display_name}` : ''}
-        </span>
+    <div className="ui-page">
+      {/* The person's name IS the title once loaded: "Roles" on its own
+          does not say whose. */}
+      <PageHeader
+        title={user ? user.display_name : t('admin.userRolesTitle')}
+        onBack={() => navigate(-1)}
+      />
+
+      <div className="ui-page-body ui-page-body-action">
+        {error ? (
+          <ErrorState text={error} onRetry={loadRoles} />
+        ) : roles == null ? (
+          <SkeletonRows count={3} />
+        ) : roles.length === 0 ? (
+          <EmptyState
+            icon={<IconShieldLock size={24} />}
+            title={t('admin.userRolesEmpty')}
+            text={t('admin.userRolesEmptyHint')}
+          />
+        ) : (
+          <div className="ui-list">
+            {roles.map((role) => (
+              <div className="fr-row" key={role.role_id}>
+                <button
+                  type="button"
+                  className="ui-row"
+                  onClick={() => navigate(`/admin/assistants/roles/${role.role_id}`)}
+                >
+                  <span className="ui-row-main">
+                    <span className="ui-row-title">{role.role_name}</span>
+                    <span className="ui-row-subtitle">{t('admin.viewPermissionsButton')}</span>
+                  </span>
+                  <span className="ui-row-trailing">
+                    {!role.is_active && (
+                      <span className="ui-status ui-status-neutral">
+                        {t('admin.roleInactiveLabel')}
+                      </span>
+                    )}
+                    <IconChevron size={20} className="ui-row-chevron" />
+                  </span>
+                </button>
+
+                <div className="fr-actions fr-actions-single">
+                  <Button variant="danger" size="sm" onClick={() => setRevokeTarget(role)}>
+                    {t('admin.revokeRoleButton')}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {roles == null ? (
-        <Placeholder>
-          <Spinner size="m" />
-        </Placeholder>
-      ) : roles.length === 0 ? (
-        <p className="hp-empty">{t('admin.userRolesEmpty')}</p>
-      ) : (
-        <div className="hp-list">
-          {roles.map((role) => (
-            <div key={role.role_id} className="hp-list-row">
-              <span className="hp-list-title">
-                {role.role_name}
-                {!role.is_active && (
-                  <span className="hp-list-subtitle"> ({t('admin.roleInactiveLabel')})</span>
-                )}
-              </span>
-              <div className="hp-list-row-actions">
-                <button className="hp-btn-sm" onClick={() => navigate(`/admin/assistants/roles/${role.role_id}`)}>
-                  {t('admin.viewPermissionsButton')}
-                </button>
-                <button className="hp-btn-sm" onClick={() => setRevokeTarget(role)}>
-                  {t('admin.revokeRoleButton')}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="hp-field">
-        <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} onClick={openAddRole}>
+      <div className="ui-action-bar">
+        <Button variant="primary" size="lg" block onClick={openAddRole}>
           {t('admin.addRoleButton')}
-        </button>
+        </Button>
       </div>
 
       {addingRole && (
         <Sheet title={t('admin.addRoleButton')} onClose={() => setAddingRole(false)}>
           {allRoles == null ? (
-            <Placeholder>
-              <Spinner size="s" />
-            </Placeholder>
+            <SkeletonRows count={2} />
           ) : assignableRoles.length === 0 ? (
-            <p className="hp-empty">{t('admin.addRoleEmpty')}</p>
+            <EmptyState title={t('admin.addRoleEmpty')} text={t('admin.addRoleEmptyHint')} />
           ) : (
-            <div className="hp-list">
+            <div className="ui-list">
               {assignableRoles.map((role) => (
-                <button key={role.id} className="hp-list-row" disabled={busy} onClick={() => pickRoleToAdd(role.id)}>
-                  <span className="hp-list-title">{role.name}</span>
+                <button
+                  className="ui-row"
+                  key={role.id}
+                  disabled={busy}
+                  onClick={() => pickRoleToAdd(role.id)}
+                >
+                  <span className="ui-row-main">
+                    <span className="ui-row-title">{role.name}</span>
+                  </span>
                 </button>
               ))}
             </div>
@@ -152,20 +176,15 @@ export default function AdminUserRoles() {
       )}
 
       {revokeTarget && (
-        <div className="hp-confirm-backdrop" onClick={() => setRevokeTarget(null)}>
-          <div className="hp-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <p className="hp-confirm-title">{t('admin.revokeRoleButton')}</p>
-            <p className="hp-confirm-message">{t('admin.revokeRoleConfirmBody')}</p>
-            <div className="hp-confirm-actions">
-              <button className="hp-confirm-btn" onClick={() => setRevokeTarget(null)}>
-                {t('common.cancel')}
-              </button>
-              <button className="hp-confirm-btn hp-confirm-btn-danger" disabled={busy} onClick={confirmRevoke}>
-                {t('admin.revokeRoleButton')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={t('admin.revokeRoleButton')}
+          text={t('admin.revokeRoleConfirmBody')}
+          confirmLabel={t('admin.revokeRoleButton')}
+          destructive
+          loading={busy}
+          onCancel={() => setRevokeTarget(null)}
+          onConfirm={confirmRevoke}
+        />
       )}
     </div>
   )

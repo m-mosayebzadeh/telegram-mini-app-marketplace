@@ -293,7 +293,47 @@
     "scopeFinanceTopups": "بررسی شارژها",
     "scopeFinanceRates": "کارمزدها و نرخ‌ها",
     "roleMembersTitle": "افرادی که این نقش رو دارن",
-    "roleMembersEmpty": "کسی این نقش رو نداره"
+    "roleMembersEmpty": "کسی این نقش رو نداره",
+    "noAccessHint": "حساب شما به هیچ بخشی از پنل مدیریت دسترسی نداره.",
+    "ownerOnlyHint": "این بخش فقط برای مالک است.",
+    "sectionFinanceHint": "برداشت‌ها، شارژها و نرخ‌ها",
+    "sectionUsersHint": "جست‌وجو و مدیریت حساب‌ها",
+    "sectionAssistantsHint": "دسترسی‌ها و نقش‌ها",
+    "withdrawalsHint": "بررسی و تسویه درخواست‌های برداشت",
+    "topupsHint": "بررسی رسیدهای کارت‌به‌کارت",
+    "ratesHint": "نرخ دراپ و درصد کارمزدها",
+    "assistantSearchHint": "دادن یا گرفتن دسترسی از یک نفر",
+    "rolesHint": "ساخت نقش و تعیین اینکه هر نقش چه کاری می‌تواند بکند",
+    "usersEmptyHint": "هنوز کاربری ثبت‌نام نکرده.",
+    "usersEmptyForQuery": "هیچ کاربری با «{{query}}» پیدا نشد.",
+    "manageRole": "مدیریت نقش",
+    "rolesEmptyHint": "نقش یعنی یک کار مشخص — مثلاً «بررسی شارژها». دسترسی رو با دادن نقش می‌دی، نه تک‌تک.",
+    "deactivateRoleHint": "دسترسی‌هاش موقتاً از همه گرفته می‌شه، ولی نقش می‌مونه.",
+    "roleCreated": "نقش ساخته شد",
+    "roleSaved": "نقش ذخیره شد",
+    "roleNamePlaceholder": "مثلاً: بررسی شارژها",
+    "roleNameHint": "اسمی بگذار که بگوید این نقش چه کاری می‌کند.",
+    "roleNoScopes": "این نقش فعلاً هیچ دسترسی‌ای نمی‌دهد.",
+    "roleMembersEmptyHint": "هنوز کسی این نقش رو نداره. از بخش «جست‌وجوی دستیار» به کسی بدش.",
+    "searchResultsLabel": "نتیجه‌ی جست‌وجو",
+    "currentAssistantsLabel": "دستیارهای فعلی",
+    "isAssistantLabel": "دستیار",
+    "assistantSearchEmptyHint": "اسم یا نام کاربری‌اش را کامل‌تر بنویس.",
+    "assistantsEmptyHint": "فعلاً هیچ‌کس جز خودت به پنل دسترسی نداره.",
+    "userRolesEmptyHint": "این کاربر هیچ نقشی نداره، پس هیچ دسترسی‌ای هم به پنل نداره.",
+    "addRoleEmptyHint": "همه‌ی نقش‌های موجود رو داره.",
+    "ratesWarning": "این عددها روی همه‌ی کاربران و همه‌ی تراکنش‌ها اثر می‌گذارند و برگشت خودکار ندارند.",
+    "ratesGroupPricing": "قیمت‌گذاری",
+    "ratesGroupCommission": "کارمزد پلتفرم",
+    "ratesGroupWithdrawal": "برداشت",
+    "ratesStarHint": "هر دراپ چند تومان حساب می‌شود.",
+    "ratesChatCommissionHint": "فقط وقتی گفتگو سالم بسته شد از ارائه‌دهنده کسر می‌شود.",
+    "ratesContentCommissionHint": "در لحظه‌ی خرید کسر می‌شود، چون محتوا فوری تحویل می‌شود.",
+    "ratesWithdrawalFeeHint": "عمداً صفر است: بابت برداشت پولی که خودش درآورده، از کسی کارمزد نمی‌گیریم.",
+    "topupsNothingPending": "همه‌ی رسیدها بررسی شدن.",
+    "topupsNothingHere": "چیزی با این وضعیت ثبت نشده.",
+    "approveRequestedHint": "مبلغ درخواست‌شده: {{amount}} تومان",
+    "rejectReasonHint": "این متن رو درخواست‌کننده می‌بینه."
   },
   "offers": {
     "browseTitle": "پیشنهادهای فعال",
@@ -395,7 +435,9 @@
     "insufficientBalance": "موجودی کافی نیست — اول کیف پول رو شارژ کنید",
     "videoBadge": "ویدیو",
     "pinnedBadge": "سنجاق‌شده",
-    "title": "محتوا"
+    "title": "محتوا",
+    "type_photo": "عکس",
+    "type_short_video": "ویدیو"
   },
   "chatSession": {
     "title": "نشست چت",
@@ -552,6 +594,7 @@
     "withdrawableCeiling": "قابل برداشت شما: {{amount}} تومان",
     "emptyHistoryHint": "هر شارژ، خرید و برداشتی که انجام بدی اینجا ثبت می‌شه.",
     "noBanksHint": "برای برداشت، اول باید یک حساب بانکی به نام خودت اضافه کنی.",
-    "emptyWithdrawalsHint": "وقتی برداشتی ثبت کنی، وضعیتش اینجا دنبال می‌شه."
+    "emptyWithdrawalsHint": "وقتی برداشتی ثبت کنی، وضعیتش اینجا دنبال می‌شه.",
+    "tomanUnit": "تومان"
   }
 }

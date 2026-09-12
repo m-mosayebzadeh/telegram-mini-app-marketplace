@@ -108,3 +108,20 @@
 .cd-delete {
   color: var(--color-danger);
 }
+
+/* A receipt photo, full screen, tapped to dismiss. The reviewer's whole
+   job is reading a number off it, so it is shown as large as it fits
+   rather than framed in a card. */
+.at-receipt {
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-scrim);
+}
+
+.at-receipt img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}

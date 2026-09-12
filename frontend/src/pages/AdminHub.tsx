@@ -1,22 +1,17 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMe } from '../lib/MeContext'
+import { PageHeader, EmptyState, NavRow } from '../components/ui'
 import { IconCoin, IconShieldLock, IconUsers } from '../components/icons'
 
 /**
- * The admin panel's own "home" — a list of top-level sections (see the
- * discussion in the chat that led here: as admin functionality grows,
- * it needs real sections/subsections, not one flat settings row).
- * Each section has its own sub-page with its own subsections.
+ * The admin panel's home: the top-level sections, each with its own
+ * sub-page.
  *
- * "دسترسی" (the old flat per-user scope grant page) is gone — replaced
- * by "دستیاران", which manages the same kind of access but through
- * reusable Roles instead of one flat scope list copy-pasted per person
- * (see backend/app/models/role.py). "کاربران" is new: browsing and
- * moderating any user's own account. Both of those, like role
- * management itself, are owner-only for now (see
- * TECHNICAL_REQUIREMENTS.md) — "مالی" stays scoped per-subsection, same
- * as before.
+ * A section a person cannot enter is not shown at all rather than shown
+ * disabled — a greyed row is a promise of something they will never be
+ * able to open, and telling someone what they are not allowed to do is
+ * not this screen's job.
  */
 export default function AdminHub() {
   const { t } = useTranslation()
@@ -24,32 +19,49 @@ export default function AdminHub() {
   const { adminAccess } = useMe()
 
   if (!adminAccess) return null
-  const hasFinance = adminAccess.is_owner || adminAccess.scopes.some((s) => s.startsWith('finance.'))
+
+  const hasFinance =
+    adminAccess.is_owner || adminAccess.scopes.some((s) => s.startsWith('finance.'))
+  const nothing = !hasFinance && !adminAccess.is_owner
 
   return (
-    <div className="hp-page">
-      <div className="hp-page-header">{t('admin.hubTitle')}</div>
-      <div className="hp-list">
-        {hasFinance && (
-          <button className="hp-list-row" onClick={() => navigate('/admin/finance')}>
-            <span className="hp-list-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconCoin size={18} /> {t('admin.sectionFinance')}
-            </span>
-          </button>
-        )}
-        {adminAccess.is_owner && (
-          <button className="hp-list-row" onClick={() => navigate('/admin/users')}>
-            <span className="hp-list-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconUsers size={18} /> {t('admin.sectionUsers')}
-            </span>
-          </button>
-        )}
-        {adminAccess.is_owner && (
-          <button className="hp-list-row" onClick={() => navigate('/admin/assistants')}>
-            <span className="hp-list-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <IconShieldLock size={18} /> {t('admin.sectionAssistants')}
-            </span>
-          </button>
+    <div className="ui-page">
+      <PageHeader title={t('admin.hubTitle')} />
+
+      <div className="ui-page-body">
+        {nothing ? (
+          <EmptyState
+            icon={<IconShieldLock size={24} />}
+            title={t('admin.noAccess')}
+            text={t('admin.noAccessHint')}
+          />
+        ) : (
+          <div className="ui-list">
+            {hasFinance && (
+              <NavRow
+                icon={<IconCoin size={20} />}
+                title={t('admin.sectionFinance')}
+                subtitle={t('admin.sectionFinanceHint')}
+                onClick={() => navigate('/admin/finance')}
+              />
+            )}
+            {adminAccess.is_owner && (
+              <NavRow
+                icon={<IconUsers size={20} />}
+                title={t('admin.sectionUsers')}
+                subtitle={t('admin.sectionUsersHint')}
+                onClick={() => navigate('/admin/users')}
+              />
+            )}
+            {adminAccess.is_owner && (
+              <NavRow
+                icon={<IconShieldLock size={20} />}
+                title={t('admin.sectionAssistants')}
+                subtitle={t('admin.sectionAssistantsHint')}
+                onClick={() => navigate('/admin/assistants')}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

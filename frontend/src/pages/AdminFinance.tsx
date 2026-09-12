@@ -1,51 +1,50 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMe } from '../lib/MeContext'
+import { PageHeader, NavRow } from '../components/ui'
 
-/** "مالی" section — subsections are individually grantable
- * ("finance.topups", "finance.rates", later "finance.withdrawals"). */
+/**
+ * The finance section. Each subsection is separately grantable
+ * ("finance.withdrawals", "finance.topups", "finance.rates"), so an
+ * assistant sees only the ones they hold.
+ */
 export default function AdminFinance() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { adminAccess } = useMe()
 
   if (!adminAccess) return null
-  const hasTopups =
-    adminAccess.is_owner || adminAccess.scopes.includes('finance.topups')
-  const hasRates =
-    adminAccess.is_owner || adminAccess.scopes.includes('finance.rates')
+
+  const can = (scope: string) => adminAccess.is_owner || adminAccess.scopes.includes(scope)
 
   return (
-    <div className="hp-page">
-      <div className="hp-page-header">{t('admin.sectionFinance')}</div>
-      <div className="hp-list">
-        {(adminAccess.is_owner ||
-          adminAccess.scopes.includes('finance.withdrawals')) && (
-          <button
-            className="hp-list-row"
-            onClick={() => navigate('/admin/withdrawals')}
-          >
-            <span className="hp-list-title">
-              {t('finance.adminWithdrawals')}
-            </span>
-          </button>
-        )}
-        {hasTopups && (
-          <button
-            className="hp-list-row"
-            onClick={() => navigate('/admin/topups')}
-          >
-            <span className="hp-list-title">{t('admin.topupsTitle')}</span>
-          </button>
-        )}
-        {hasRates && (
-          <button
-            className="hp-list-row"
-            onClick={() => navigate('/admin/rates')}
-          >
-            <span className="hp-list-title">{t('admin.ratesTitle')}</span>
-          </button>
-        )}
+    <div className="ui-page">
+      <PageHeader title={t('admin.sectionFinance')} onBack={() => navigate('/admin')} />
+
+      <div className="ui-page-body">
+        <div className="ui-list">
+          {can('finance.withdrawals') && (
+            <NavRow
+              title={t('finance.adminWithdrawals')}
+              subtitle={t('admin.withdrawalsHint')}
+              onClick={() => navigate('/admin/withdrawals')}
+            />
+          )}
+          {can('finance.topups') && (
+            <NavRow
+              title={t('admin.topupsTitle')}
+              subtitle={t('admin.topupsHint')}
+              onClick={() => navigate('/admin/topups')}
+            />
+          )}
+          {can('finance.rates') && (
+            <NavRow
+              title={t('admin.ratesTitle')}
+              subtitle={t('admin.ratesHint')}
+              onClick={() => navigate('/admin/rates')}
+            />
+          )}
+        </div>
       </div>
     </div>
   )

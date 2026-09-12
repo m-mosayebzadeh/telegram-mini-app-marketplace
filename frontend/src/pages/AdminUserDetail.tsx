@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Avatar, Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import {
   blockUser,
   deleteContentAdmin,
@@ -15,7 +14,16 @@ import {
   unblockUser,
 } from '../lib/adminApi'
 import { formatApiError } from '../lib/api'
-import { IconArrowNarrowLeft } from '../components/icons'
+import {
+  PageHeader,
+  Button,
+  ConfirmDialog,
+  ErrorState,
+  SkeletonRows,
+  StatList,
+  useToast,
+} from '../components/ui'
+import { IconBan, IconPersonFallback } from '../components/icons'
 import type {
   AdminChatSession,
   AdminUserDetail as AdminUserDetailType,
@@ -36,7 +44,8 @@ type DeleteTarget = { kind: 'offer' | 'content'; id: number }
  * endpoint already returns (see backend/app/admin/router.py).
  */
 export default function AdminUserDetail() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const toast = useToast()
   const navigate = useNavigate()
   const { id } = useParams()
   const userId = Number(id)
@@ -78,7 +87,7 @@ export default function AdminUserDetail() {
       setConfirmingStatusChange(false)
       loadUser()
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setBusy(false)
     }
@@ -97,226 +106,268 @@ export default function AdminUserDetail() {
       }
       setDeleteTarget(null)
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setBusy(false)
     }
   }
 
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
-  if (!user) {
+  if (error || !user) {
     return (
-      <Placeholder>
-        <Spinner size="l" />
-      </Placeholder>
+      <div className="ui-page">
+        <PageHeader title={t('admin.usersTitle')} onBack={() => navigate(-1)} />
+        <div className="ui-page-body">
+          {error ? <ErrorState text={error} onRetry={loadUser} /> : <SkeletonRows count={5} />}
+        </div>
+      </div>
     )
   }
 
-  return (
-    <div className="hp-page">
-      <div className="hp-page-back-header">
-        <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-          <IconArrowNarrowLeft size={20} />
-        </button>
-        <span className="hp-page-back-title">{user.display_name}</span>
-      </div>
+  const blocked = user.status !== 'active'
 
-      <div className="hp-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-          <Avatar size={48} src={user.avatar_url ?? undefined} acronym={user.display_name.slice(0, 1).toUpperCase()} />
-          <span>
-            <span className="hp-card-title" style={{ display: 'block', margin: 0 }} dir="auto">
+  return (
+    <div className="ui-page">
+      <PageHeader title={user.display_name} onBack={() => navigate(-1)} />
+
+      <div className="ui-page-body">
+        {/* Who this is, large enough to be sure before acting on their
+            account. */}
+        <header className="au-identity">
+          <span className="au-avatar">
+            {user.avatar_url ? (
+              <img src={user.avatar_url} alt="" />
+            ) : (
+              <IconPersonFallback size={28} />
+            )}
+          </span>
+          <span className="au-identity-main">
+            <span className="au-name" dir="auto">
               {user.display_name}
             </span>
-            {user.username && <span className="hp-list-subtitle">@{user.username}</span>}
+            {user.username && <span className="au-username">@{user.username}</span>}
           </span>
-        </div>
-        <div className="hp-kv-row">
-          <span className="hp-kv-label">{t('admin.userDetailTelegramId')}</span>
-          <span className="hp-kv-value">{user.telegram_id}</span>
-        </div>
-        <div className="hp-kv-row">
-          <span className="hp-kv-label">{t('admin.userDetailJoinedAt')}</span>
-          <span className="hp-kv-value">{new Date(user.joined_at).toLocaleDateString()}</span>
-        </div>
-        <div className="hp-kv-row">
-          <span className="hp-kv-label">{t('account.status')}</span>
-          <span className="hp-kv-value">
-            {user.status === 'active' ? t('account.statusActive') : t('account.statusBlocked')}
-          </span>
-        </div>
-        <div className="hp-kv-row">
-          <span className="hp-kv-label">{t('admin.userDetailBalance')}</span>
-          <span className="hp-kv-value">{user.balance_toman.toLocaleString('en-US')}</span>
-        </div>
-        <div className="hp-kv-row">
-          <span className="hp-kv-label">{t('admin.userDetailPending')}</span>
-          <span className="hp-kv-value">{user.pending_toman.toLocaleString('en-US')}</span>
-        </div>
-        <div className="hp-field" style={{ margin: '12px 0 0' }}>
-          <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} onClick={() => setConfirmingStatusChange(true)}>
-            {t(user.status === 'active' ? 'admin.blockButton' : 'admin.unblockButton')}
-          </button>
-        </div>
-      </div>
+          {blocked && (
+            <span className="ui-status ui-status-danger">{t('account.statusBlocked')}</span>
+          )}
+        </header>
 
-      <div className="hp-card">
-        <p className="hp-card-title">{t('admin.usersSectionOffers')}</p>
-        {offers == null ? (
-          <Spinner size="s" />
-        ) : offers.length === 0 ? (
-          <p className="hp-empty">{t('offers.none')}</p>
-        ) : (
-          <div className="hp-list">
-            {offers.map((offer) => (
-              <div key={offer.id} className="hp-list-row">
-                <span className="hp-list-row-main">
-                  <span className="hp-list-title">{offer.title}</span>
-                  <span className="hp-list-subtitle">
-                    {t('offers.priceLine', { price: offer.price_stars, minutes: offer.display_duration_minutes })}
-                  </span>
+        <StatList
+          stats={[
+            { label: t('admin.userDetailTelegramId'), value: String(user.telegram_id) },
+            {
+              label: t('admin.userDetailJoinedAt'),
+              value: new Date(user.joined_at).toLocaleDateString(i18n.language),
+            },
+            {
+              label: t('admin.userDetailBalance'),
+              value: t('wallet.tomanAmount', {
+                amount: user.balance_toman.toLocaleString(i18n.language),
+              }),
+            },
+            {
+              label: t('admin.userDetailPending'),
+              value: t('wallet.tomanAmount', {
+                amount: user.pending_toman.toLocaleString(i18n.language),
+              }),
+            },
+          ]}
+        />
+
+        <AdminSection title={t('admin.usersSectionOffers')} rows={offers} empty={t('offers.none')}>
+          {(offers ?? []).map((offer) => (
+            <div className="ui-row" key={offer.id}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{offer.title}</span>
+                <span className="ui-row-subtitle">
+                  {t('offers.priceLine', {
+                    price: offer.price_stars,
+                    minutes: offer.display_duration_minutes,
+                  })}
                 </span>
-                <button className="hp-btn-sm" onClick={() => setDeleteTarget({ kind: 'offer', id: offer.id })}>
+              </span>
+              <span className="ui-row-trailing">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setDeleteTarget({ kind: 'offer', id: offer.id })}
+                >
                   {t('common.delete')}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                </Button>
+              </span>
+            </div>
+          ))}
+        </AdminSection>
 
-      <div className="hp-card">
-        <p className="hp-card-title">{t('admin.usersSectionContent')}</p>
-        {content == null ? (
-          <Spinner size="s" />
-        ) : content.length === 0 ? (
-          <p className="hp-empty">{t('profilePage.contentEmpty')}</p>
-        ) : (
-          <div className="hp-list">
-            {content.map((item) => (
-              <div key={item.id} className="hp-list-row">
-                <span className="hp-list-row-main">
-                  <span className="hp-list-title">{item.content_type}</span>
-                  <span className="hp-list-subtitle">{new Date(item.created_at).toLocaleDateString()}</span>
+        <AdminSection
+          title={t('admin.usersSectionContent')}
+          rows={content}
+          empty={t('profilePage.contentEmpty')}
+        >
+          {(content ?? []).map((item) => (
+            <div className="ui-row" key={item.id}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t(`content.type_${item.content_type}`)}</span>
+                <span className="ui-row-subtitle">
+                  {new Date(item.created_at).toLocaleDateString(i18n.language)}
                 </span>
-                <button className="hp-btn-sm" onClick={() => setDeleteTarget({ kind: 'content', id: item.id })}>
+              </span>
+              <span className="ui-row-trailing">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setDeleteTarget({ kind: 'content', id: item.id })}
+                >
                   {t('common.delete')}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                </Button>
+              </span>
+            </div>
+          ))}
+        </AdminSection>
 
-      <div className="hp-card">
-        <p className="hp-card-title">{t('admin.usersSectionRequests')}</p>
-        {requests == null ? (
-          <Spinner size="s" />
-        ) : requests.length === 0 ? (
-          <p className="hp-empty">{t('activityPage.requestsEmpty')}</p>
-        ) : (
-          <div className="hp-list">
-            {requests.map((request) => (
-              <div key={request.id} className="hp-list-row">
-                <span className="hp-list-row-main">
-                  <span className="hp-list-title">{request.offer_title}</span>
-                  <span className="hp-list-subtitle">
-                    {t(request.direction === 'sent' ? 'activityPage.sentTo' : 'activityPage.receivedFrom', {
-                      name: request.counterpart_display_name,
-                    })}{' '}
-                    — {request.status}
-                  </span>
+        <AdminSection
+          title={t('admin.usersSectionRequests')}
+          rows={requests}
+          empty={t('activityPage.requestsEmpty')}
+        >
+          {(requests ?? []).map((request) => (
+            <div className="ui-row" key={request.id}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{request.offer_title}</span>
+                <span className="ui-row-subtitle">
+                  {t(
+                    request.direction === 'sent'
+                      ? 'activityPage.sentTo'
+                      : 'activityPage.receivedFrom',
+                    { name: request.counterpart_display_name },
+                  )}
                 </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              </span>
+              <span className="ui-row-trailing">
+                <span className="ui-status ui-status-neutral">{request.status}</span>
+              </span>
+            </div>
+          ))}
+        </AdminSection>
 
-      <div className="hp-card">
-        <p className="hp-card-title">{t('admin.usersSectionChatSessions')}</p>
-        {chatSessions == null ? (
-          <Spinner size="s" />
-        ) : chatSessions.length === 0 ? (
-          <p className="hp-empty">{t('chatsPage.activeEmpty')}</p>
-        ) : (
-          <div className="hp-list">
-            {chatSessions.map((session) => (
-              <div key={session.id} className="hp-list-row">
-                <span className="hp-list-row-main">
-                  <span className="hp-list-title">{session.offer_title}</span>
-                  <span className="hp-list-subtitle">
-                    {session.other_display_name} —{' '}
-                    {session.status === 'open' ? t('chatSession.statusOpen') : t('chatSession.statusClosed')}
-                  </span>
+        <AdminSection
+          title={t('admin.usersSectionChatSessions')}
+          rows={chatSessions}
+          empty={t('chatsPage.activeEmpty')}
+        >
+          {(chatSessions ?? []).map((session) => (
+            <div className="ui-row" key={session.id}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{session.offer_title}</span>
+                <span className="ui-row-subtitle">{session.other_display_name}</span>
+              </span>
+              <span className="ui-row-trailing">
+                <span
+                  className={`ui-status ${
+                    session.status === 'open' ? 'ui-status-success' : 'ui-status-neutral'
+                  }`}
+                >
+                  {session.status === 'open'
+                    ? t('chatSession.statusOpen')
+                    : t('chatSession.statusClosed')}
                 </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              </span>
+            </div>
+          ))}
+        </AdminSection>
 
-      <div className="hp-card">
-        <p className="hp-card-title">{t('admin.usersSectionTransactions')}</p>
-        {transactions == null ? (
-          <Spinner size="s" />
-        ) : transactions.length === 0 ? (
-          <p className="hp-empty">{t('topup.historyEmpty')}</p>
-        ) : (
-          <div className="hp-list">
-            {transactions.map((tx) => (
-              <div key={tx.id} className="hp-list-row">
-                <span className="hp-list-row-main">
-                  <span className="hp-list-title">{tx.gross_price_toman.toLocaleString('en-US')} تومان</span>
-                  <span className="hp-list-subtitle">
-                    {tx.kind} — {tx.status}
-                  </span>
+        <AdminSection
+          title={t('admin.usersSectionTransactions')}
+          rows={transactions}
+          empty={t('topup.historyEmpty')}
+        >
+          {(transactions ?? []).map((tx) => (
+            <div className="ui-row" key={tx.id}>
+              <span className="ui-row-main">
+                <span className="ui-row-title tabular">
+                  {t('wallet.tomanAmount', {
+                    amount: tx.gross_price_toman.toLocaleString(i18n.language),
+                  })}
                 </span>
-              </div>
-            ))}
-          </div>
-        )}
+                <span className="ui-row-subtitle">{tx.kind}</span>
+              </span>
+              <span className="ui-row-trailing">
+                <span className="ui-status ui-status-neutral">{tx.status}</span>
+              </span>
+            </div>
+          ))}
+        </AdminSection>
+
+        {/* Blocking is the heaviest thing on this page, so it sits at the
+            bottom, past everything there is to read first — not at the
+            top where a thumb lands while scrolling in. */}
+        <section className="ui-section au-danger">
+          <Button
+            variant={blocked ? 'secondary' : 'danger'}
+            size="md"
+            block
+            icon={blocked ? undefined : <IconBan size={18} />}
+            onClick={() => setConfirmingStatusChange(true)}
+          >
+            {t(blocked ? 'admin.unblockButton' : 'admin.blockButton')}
+          </Button>
+        </section>
       </div>
 
       {confirmingStatusChange && (
-        <div className="hp-confirm-backdrop" onClick={() => setConfirmingStatusChange(false)}>
-          <div className="hp-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <p className="hp-confirm-title">
-              {t(user.status === 'active' ? 'admin.blockButton' : 'admin.unblockButton')}
-            </p>
-            <p className="hp-confirm-message">
-              {t(user.status === 'active' ? 'admin.blockConfirmBody' : 'admin.unblockConfirmBody')}
-            </p>
-            <div className="hp-confirm-actions">
-              <button className="hp-confirm-btn" onClick={() => setConfirmingStatusChange(false)}>
-                {t('common.cancel')}
-              </button>
-              <button className="hp-confirm-btn hp-confirm-btn-danger" disabled={busy} onClick={confirmStatusChange}>
-                {t(user.status === 'active' ? 'admin.blockButton' : 'admin.unblockButton')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={t(blocked ? 'admin.unblockButton' : 'admin.blockButton')}
+          text={t(blocked ? 'admin.unblockConfirmBody' : 'admin.blockConfirmBody')}
+          confirmLabel={t(blocked ? 'admin.unblockButton' : 'admin.blockButton')}
+          destructive={!blocked}
+          loading={busy}
+          onCancel={() => setConfirmingStatusChange(false)}
+          onConfirm={confirmStatusChange}
+        />
       )}
 
       {deleteTarget && (
-        <div className="hp-confirm-backdrop" onClick={() => setDeleteTarget(null)}>
-          <div className="hp-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <p className="hp-confirm-title">{t('common.delete')}</p>
-            <p className="hp-confirm-message">
-              {t(deleteTarget.kind === 'offer' ? 'admin.deleteOfferConfirmBody' : 'admin.deleteContentConfirmBody')}
-            </p>
-            <div className="hp-confirm-actions">
-              <button className="hp-confirm-btn" onClick={() => setDeleteTarget(null)}>
-                {t('common.cancel')}
-              </button>
-              <button className="hp-confirm-btn hp-confirm-btn-danger" disabled={busy} onClick={confirmDelete}>
-                {t('common.delete')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={t('common.delete')}
+          text={t(
+            deleteTarget.kind === 'offer'
+              ? 'admin.deleteOfferConfirmBody'
+              : 'admin.deleteContentConfirmBody',
+          )}
+          confirmLabel={t('common.delete')}
+          destructive
+          loading={busy}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={confirmDelete}
+        />
       )}
     </div>
+  )
+}
+
+interface AdminSectionProps {
+  title: string
+  /** null while loading — a skeleton, not an empty list. */
+  rows: unknown[] | null
+  empty: string
+  children: React.ReactNode
+}
+
+/**
+ * One titled block of this page. Five of them, all the same shape, so
+ * the page reads as one record rather than five different screens
+ * stacked — which is what five differently-built cards would have been.
+ */
+function AdminSection({ title, rows, empty, children }: AdminSectionProps) {
+  return (
+    <section className="ui-section">
+      <h2 className="ui-section-title">{title}</h2>
+      {rows === null ? (
+        <SkeletonRows count={2} />
+      ) : rows.length === 0 ? (
+        <p className="au-empty">{empty}</p>
+      ) : (
+        <div className="ui-list">{children}</div>
+      )}
+    </section>
   )
 }

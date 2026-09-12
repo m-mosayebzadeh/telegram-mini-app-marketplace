@@ -1,29 +1,45 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Placeholder, Spinner } from '@telegram-apps/telegram-ui'
 import { activateRole, deactivateRole, deleteRole, listRoles } from '../lib/adminApi'
 import { formatApiError } from '../lib/api'
-import { IconArrowNarrowLeft } from '../components/icons'
+import {
+  PageHeader,
+  Button,
+  ConfirmDialog,
+  EmptyState,
+  ErrorState,
+  SkeletonRows,
+  useToast,
+} from '../components/ui'
+import { Sheet } from '../components/ui/Sheet'
+import { IconChevron, IconMore, IconShieldLock } from '../components/icons'
 import type { Role } from '../lib/types'
 
-type ConfirmAction = { role: Role; kind: 'delete' | 'deactivate' }
+type Confirming = { role: Role; kind: 'delete' | 'deactivate' }
 
 /**
- * "نقش و دسترسی" — every role that exists, each row leading to its own
- * edit page (rename + toggle scopes) when tapped, plus delete/
- * (de)activate and "who has this role" actions. "ایجاد نقش" sits near
- * the bottom, per the layout the user asked for.
+ * Every role that exists. A role is a named job — "reviews top-ups" —
+ * and access is granted by giving someone the role, so revoking what a
+ * job can do is one edit rather than an audit of everyone who holds it.
+ *
+ * Tapping a role opens it for editing. The rarer actions — who holds it,
+ * deactivate, delete — are behind one overflow, the same pattern the
+ * offers list uses, rather than three small buttons per row.
  */
 export default function AdminRoles() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const toast = useToast()
+
   const [roles, setRoles] = useState<Role[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState<ConfirmAction | null>(null)
+  const [managing, setManaging] = useState<Role | null>(null)
+  const [confirming, setConfirming] = useState<Confirming | null>(null)
   const [busy, setBusy] = useState(false)
 
   function load() {
+    setError(null)
     listRoles()
       .then(setRoles)
       .catch((err) => setError(formatApiError(err)))
@@ -31,7 +47,7 @@ export default function AdminRoles() {
 
   useEffect(load, [])
 
-  async function runConfirmedAction() {
+  async function runConfirmed() {
     if (!confirming) return
     setBusy(true)
     try {
@@ -43,101 +59,177 @@ export default function AdminRoles() {
       setConfirming(null)
       load()
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     } finally {
       setBusy(false)
     }
   }
 
-  async function toggleActivate(role: Role) {
-    // Reactivating needs no confirmation — it only ever RESTORES access
-    // no one is currently missing on purpose, unlike deactivating/
-    // deleting, which both take access away from real people.
+  async function activate(role: Role) {
+    // Reactivating asks nothing: it only ever RESTORES access that was
+    // deliberately taken away, unlike deactivate and delete, which both
+    // take access away from real people.
     try {
       await activateRole(role.id)
       load()
     } catch (err) {
-      setError(formatApiError(err))
+      toast.error(formatApiError(err))
     }
   }
 
-  if (error) return <Placeholder header={t('common.error')}>{error}</Placeholder>
-
   return (
-    <div className="hp-page">
-      <div className="hp-page-back-header">
-        <button className="hp-chat-back" onClick={() => navigate(-1)} aria-label={t('common.back')}>
-          <IconArrowNarrowLeft size={20} />
-        </button>
-        <span className="hp-page-back-title">{t('admin.rolesTitle')}</span>
-      </div>
+    <div className="ui-page">
+      <PageHeader
+        title={t('admin.rolesTitle')}
+        onBack={() => navigate('/admin/assistants')}
+      />
 
-      {roles == null ? (
-        <Placeholder>
-          <Spinner size="m" />
-        </Placeholder>
-      ) : roles.length === 0 ? (
-        <p className="hp-empty">{t('admin.rolesEmpty')}</p>
-      ) : (
-        <div className="hp-list">
-          {roles.map((role) => (
-            <div key={role.id} className="hp-list-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-              <button className="hp-list-row-main" onClick={() => navigate(`/admin/assistants/roles/${role.id}`)}>
-                <span className="hp-list-title">
-                  {role.name}
-                  {!role.is_active && <span className="hp-list-subtitle"> ({t('admin.roleInactiveLabel')})</span>}
-                </span>
-                <span className="hp-list-subtitle">{t('admin.roleMembersCount', { count: role.member_count })}</span>
-              </button>
-              <div className="hp-list-row-actions" style={{ marginTop: 8 }}>
-                <button className="hp-btn-sm" onClick={() => navigate(`/admin/assistants/roles/${role.id}/members`)}>
-                  {t('admin.viewMembersButton')}
+      <div className="ui-page-body ui-page-body-action">
+        {error ? (
+          <ErrorState text={error} onRetry={load} />
+        ) : roles === null ? (
+          <SkeletonRows count={3} />
+        ) : roles.length === 0 ? (
+          <EmptyState
+            icon={<IconShieldLock size={24} />}
+            title={t('admin.rolesEmpty')}
+            text={t('admin.rolesEmptyHint')}
+            actionLabel={t('admin.createRoleButton')}
+            onAction={() => navigate('/admin/assistants/roles/new')}
+          />
+        ) : (
+          <div className="ui-list">
+            {roles.map((role) => (
+              <div className="ac-offer" key={role.id}>
+                <button
+                  type="button"
+                  className="ui-row ac-offer-main"
+                  onClick={() => navigate(`/admin/assistants/roles/${role.id}`)}
+                >
+                  <span className="ui-row-main">
+                    <span className="ui-row-title">{role.name}</span>
+                    <span className="ui-row-subtitle">
+                      {t('admin.roleMembersCount', { count: role.member_count })}
+                    </span>
+                  </span>
+                  <span className="ui-row-trailing">
+                    {/* Inactive is a state of the role, not a failure —
+                        a neutral chip, and only shown when it applies. */}
+                    {!role.is_active && (
+                      <span className="ui-status ui-status-neutral">
+                        {t('admin.roleInactiveLabel')}
+                      </span>
+                    )}
+                    <IconChevron size={20} className="ui-row-chevron" />
+                  </span>
                 </button>
-                {role.is_active ? (
-                  <button className="hp-btn-sm" onClick={() => setConfirming({ role, kind: 'deactivate' })}>
-                    {t('admin.deactivateButton')}
-                  </button>
-                ) : (
-                  <button className="hp-btn-sm" onClick={() => toggleActivate(role)}>
-                    {t('admin.activateButton')}
-                  </button>
-                )}
-                <button className="hp-btn-sm" onClick={() => setConfirming({ role, kind: 'delete' })}>
-                  {t('common.delete')}
+
+                <button
+                  type="button"
+                  className="ui-btn ui-btn-icon ac-offer-manage"
+                  onClick={() => setManaging(role)}
+                  aria-label={t('admin.manageRole')}
+                >
+                  <IconMore size={20} />
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="hp-field">
-        <button className="hp-btn hp-btn-gradient" style={{ width: '100%' }} onClick={() => navigate('/admin/assistants/roles/new')}>
-          {t('admin.createRoleButton')}
-        </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {confirming && (
-        <div className="hp-confirm-backdrop" onClick={() => setConfirming(null)}>
-          <div className="hp-confirm-box" onClick={(e) => e.stopPropagation()}>
-            <p className="hp-confirm-title">
-              {confirming.kind === 'delete' ? t('common.delete') : t('admin.deactivateButton')}
-            </p>
-            <p className="hp-confirm-message">
-              {t(confirming.kind === 'delete' ? 'admin.deleteRoleConfirmBody' : 'admin.deactivateRoleConfirmBody', {
-                count: confirming.role.member_count,
-              })}
-            </p>
-            <div className="hp-confirm-actions">
-              <button className="hp-confirm-btn" onClick={() => setConfirming(null)}>
-                {t('common.cancel')}
+      <div className="ui-action-bar">
+        <Button
+          variant="primary"
+          size="lg"
+          block
+          onClick={() => navigate('/admin/assistants/roles/new')}
+        >
+          {t('admin.createRoleButton')}
+        </Button>
+      </div>
+
+      {managing && (
+        <Sheet title={managing.name} onClose={() => setManaging(null)}>
+          <div className="ui-list">
+            <button
+              className="ui-row"
+              onClick={() => {
+                setManaging(null)
+                navigate(`/admin/assistants/roles/${managing.id}/members`)
+              }}
+            >
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('admin.viewMembersButton')}</span>
+                <span className="ui-row-subtitle">
+                  {managing.member_count.toLocaleString(i18n.language)}
+                </span>
+              </span>
+            </button>
+
+            {managing.is_active ? (
+              <button
+                className="ui-row"
+                onClick={() => {
+                  setConfirming({ role: managing, kind: 'deactivate' })
+                  setManaging(null)
+                }}
+              >
+                <span className="ui-row-main">
+                  <span className="ui-row-title">{t('admin.deactivateButton')}</span>
+                  <span className="ui-row-subtitle">{t('admin.deactivateRoleHint')}</span>
+                </span>
               </button>
-              <button className="hp-confirm-btn hp-confirm-btn-danger" disabled={busy} onClick={runConfirmedAction}>
-                {confirming.kind === 'delete' ? t('common.delete') : t('admin.deactivateButton')}
+            ) : (
+              <button
+                className="ui-row"
+                onClick={() => {
+                  activate(managing)
+                  setManaging(null)
+                }}
+              >
+                <span className="ui-row-main">
+                  <span className="ui-row-title">{t('admin.activateButton')}</span>
+                </span>
               </button>
-            </div>
+            )}
+
+            <button
+              className="ui-row ac-row-danger"
+              onClick={() => {
+                setConfirming({ role: managing, kind: 'delete' })
+                setManaging(null)
+              }}
+            >
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('common.delete')}</span>
+              </span>
+            </button>
           </div>
-        </div>
+        </Sheet>
+      )}
+
+      {/* Both of these take access away from people who currently have
+          it, so both say how many before they happen. */}
+      {confirming && (
+        <ConfirmDialog
+          title={
+            confirming.kind === 'delete' ? t('common.delete') : t('admin.deactivateButton')
+          }
+          text={t(
+            confirming.kind === 'delete'
+              ? 'admin.deleteRoleConfirmBody'
+              : 'admin.deactivateRoleConfirmBody',
+            { count: confirming.role.member_count },
+          )}
+          confirmLabel={
+            confirming.kind === 'delete' ? t('common.delete') : t('admin.deactivateButton')
+          }
+          destructive
+          loading={busy}
+          onCancel={() => setConfirming(null)}
+          onConfirm={runConfirmed}
+        />
       )}
     </div>
   )

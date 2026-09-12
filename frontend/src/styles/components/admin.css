@@ -1,0 +1,70 @@
+/**
+ * The admin panel. Built from the same components as the rest of the
+ * product on purpose: the people who use this are the same people, and a
+ * second visual language would be a second thing to learn.
+ */
+
+/* Who this record is about — large enough to be certain before acting on
+   someone's account. */
+.au-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-5);
+}
+
+.au-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface-2);
+  color: var(--color-text-3);
+}
+
+.au-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.au-identity-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.au-name {
+  font: var(--text-heading);
+  color: var(--color-text);
+}
+
+.au-username {
+  font: var(--text-caption);
+  color: var(--color-text-3);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* A section with nothing in it says so in one quiet line. It is not an
+   empty STATE — nothing is wrong, and there is nothing for an admin to
+   do about a user who has posted no content. */
+.au-empty {
+  padding-block: var(--space-3);
+  font: var(--text-caption);
+  color: var(--color-text-3);
+}
+
+/* Blocking sits at the bottom, past everything worth reading first —
+   not where a thumb lands while scrolling in. */
+.au-danger {
+  margin-top: var(--space-10);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}

@@ -264,3 +264,32 @@
 .ep-birthday-hint {
   margin-top: var(--space-3);
 }
+
+/* ---------- search ---------- */
+
+.sf-field {
+  margin-top: var(--space-4);
+  padding-inline-end: 0;
+}
+
+.sf-icon {
+  color: var(--color-text-3);
+}
+
+/* Real 44px target: clearing a search by backspacing is fiddly, and
+   this is the way out of a query that found nothing. */
+.sf-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  color: var(--color-text-3);
+}
+
+/* Safari draws its own clear button inside a type=search field; this one
+   is ours, positioned and sized on purpose. */
+.sf-field input[type='search']::-webkit-search-cancel-button {
+  display: none;
+}

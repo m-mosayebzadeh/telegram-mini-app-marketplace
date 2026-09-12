@@ -293,7 +293,47 @@
     "scopeFinanceTopups": "Top-up review",
     "scopeFinanceRates": "Rates & commissions",
     "roleMembersTitle": "People with this role",
-    "roleMembersEmpty": "No one has this role"
+    "roleMembersEmpty": "No one has this role",
+    "noAccessHint": "Your account has no access to any part of the admin panel.",
+    "ownerOnlyHint": "This section is owner-only.",
+    "sectionFinanceHint": "Withdrawals, top-ups and rates",
+    "sectionUsersHint": "Search and manage accounts",
+    "sectionAssistantsHint": "Access and roles",
+    "withdrawalsHint": "Review and settle withdrawal requests",
+    "topupsHint": "Review card-to-card receipts",
+    "ratesHint": "Drop rate and commission percentages",
+    "assistantSearchHint": "Give or take away one person’s access",
+    "rolesHint": "Create roles and set what each one can do",
+    "usersEmptyHint": "Nobody has signed up yet.",
+    "usersEmptyForQuery": "No user matches “{{query}}”.",
+    "manageRole": "Manage role",
+    "rolesEmptyHint": "A role is a named job — \"reviews top-ups\". You grant access by giving the role, not one permission at a time.",
+    "deactivateRoleHint": "Everyone loses its access for now, but the role stays.",
+    "roleCreated": "Role created",
+    "roleSaved": "Role saved",
+    "roleNamePlaceholder": "e.g. Reviews top-ups",
+    "roleNameHint": "Name it after the job it does.",
+    "roleNoScopes": "This role currently grants nothing.",
+    "roleMembersEmptyHint": "Nobody holds this role yet. Give it to someone from the assistant search.",
+    "searchResultsLabel": "Search results",
+    "currentAssistantsLabel": "Current assistants",
+    "isAssistantLabel": "Assistant",
+    "assistantSearchEmptyHint": "Try more of their name or username.",
+    "assistantsEmptyHint": "Nobody but you has access to the panel yet.",
+    "userRolesEmptyHint": "This user holds no role, so they have no access to the panel.",
+    "addRoleEmptyHint": "They already hold every role there is.",
+    "ratesWarning": "These numbers affect every user and every transaction, and there is no automatic undo.",
+    "ratesGroupPricing": "Pricing",
+    "ratesGroupCommission": "Platform commission",
+    "ratesGroupWithdrawal": "Withdrawal",
+    "ratesStarHint": "What one Drop is worth in Toman.",
+    "ratesChatCommissionHint": "Taken from the provider only once a chat closes cleanly.",
+    "ratesContentCommissionHint": "Taken at purchase, since content is delivered instantly.",
+    "ratesWithdrawalFeeHint": "Deliberately zero: nobody is charged for collecting money they earned.",
+    "topupsNothingPending": "Every receipt has been reviewed.",
+    "topupsNothingHere": "Nothing with this status.",
+    "approveRequestedHint": "Requested: {{amount}} Toman",
+    "rejectReasonHint": "The requester reads this."
   },
   "offers": {
     "browseTitle": "Active offers",
@@ -395,7 +435,9 @@
     "insufficientBalance": "Insufficient balance — top up your wallet first",
     "videoBadge": "Video",
     "pinnedBadge": "Pinned",
-    "title": "Content"
+    "title": "Content",
+    "type_photo": "Photo",
+    "type_short_video": "Video"
   },
   "chatSession": {
     "title": "Chat session",
@@ -552,6 +594,7 @@
     "withdrawableCeiling": "Available to withdraw: {{amount}} Toman",
     "emptyHistoryHint": "Every top-up, purchase and withdrawal is recorded here.",
     "noBanksHint": "To withdraw, first add a bank account in your own name.",
-    "emptyWithdrawalsHint": "Once you request a withdrawal, you follow it here."
+    "emptyWithdrawalsHint": "Once you request a withdrawal, you follow it here.",
+    "tomanUnit": "Toman"
   }
 }

@@ -10,7 +10,9 @@
 
 export { Button, IconButton } from './Button'
 export { ConfirmDialog } from './ConfirmDialog'
+export { NavRow } from './NavRow'
 export { PageHeader } from './PageHeader'
+export { SearchField } from './SearchField'
 export { Segments, type SegmentOption } from './Segments'
 export { Sheet } from './Sheet'
 export { StatList, type Stat } from './StatList'
