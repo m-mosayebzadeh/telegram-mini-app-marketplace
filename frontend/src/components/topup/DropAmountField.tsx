@@ -33,7 +33,7 @@ export function DropAmountField({
 
   return (
     <label className="ui-field" htmlFor={id}>
-      <span className="ui-field-label">{label ?? t('topup.converterStarsLabel')}</span>
+      <span className="ui-field-label">{label ?? t('topup.converterDropsLabel')}</span>
 
       <div className="ui-input-group">
         <input

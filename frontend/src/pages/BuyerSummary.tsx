@@ -58,7 +58,7 @@ export default function BuyerSummary() {
                 value: summary.completed_transactions_count.toLocaleString(i18n.language),
               },
               {
-                label: t('buyerSummary.totalStarsSpent'),
+                label: t('buyerSummary.totalDropsSpent'),
                 value: <DropAmount amount={summary.total_drops_spent} locale={i18n.language} size={16} />,
               },
             ]}

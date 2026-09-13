@@ -304,9 +304,10 @@ export interface MyProfile {
   birthday_year: number | null
 }
 
-/** GET /pricing — the current Star-to-Toman rate and commission
- * percentages, used to show a price breakdown without a round trip per
- * keystroke (see lib/priceBreakdown.ts). */
+/** GET /pricing — the Drop-to-Toman peg and the commission percentages,
+ * used to show a price breakdown without a round trip per keystroke (see
+ * lib/priceBreakdown.ts). The peg is fixed rather than a market rate, so
+ * it never has to be frozen per transaction. */
 export interface PricingConfig {
   drop_to_toman_rate: number
   chat_commission_percent: number

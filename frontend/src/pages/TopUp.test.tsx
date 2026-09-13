@@ -123,14 +123,14 @@ describe('TopUp — card to card', () => {
   })
 
   it('opens with the amount the offer page said was missing', async () => {
-    await render({ prefillStars: 400 })
+    await render({ prefillDrops: 400 })
 
     expect(container.querySelector<HTMLInputElement>('#topup-direct-amount')!.value).toBe('400')
     expect(container.textContent).toContain('200,000')
   })
 
   it('goes back to the offer it was sent from, not to the wallet', async () => {
-    await render({ prefillStars: 400, from: '/offers/5' })
+    await render({ prefillDrops: 400, from: '/offers/5' })
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>('.ui-header-back')!.click()

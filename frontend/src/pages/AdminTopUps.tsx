@@ -75,7 +75,7 @@ export default function AdminTopUps() {
     if (!reviewing) return
     const amount = Number(finalAmount)
     if (!amount || amount <= 0 || !reference.trim()) {
-      setReviewError(t('topup.starsAmountMustBePositive'))
+      setReviewError(t('topup.amountMustBePositive'))
       return
     }
     if (amount !== reviewing.request.requested_toman_amount && !confirmMismatch) {

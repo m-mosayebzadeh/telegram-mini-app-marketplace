@@ -14,8 +14,8 @@ import {
 import { IconShieldLock } from '../components/icons'
 import { useMe } from '../lib/MeContext'
 
-/** "مالی → کارمزدها" — edit the platform's Star-to-Toman rate and every
- * commission percentage (see backend/app/models/platform_rates.py).
+/** "مالی → کارمزدها" — edit the Drop-to-Toman peg and every commission
+ * percentage (see backend/app/models/platform_rates.py).
  * Access (owner or "finance.rates") comes from the session-wide check
  * in MeContext, not a fetch of its own. */
 export default function AdminRates() {
@@ -127,11 +127,11 @@ export default function AdminRates() {
           <div className="co-form">
             <RateField
               id="rate-star"
-              label={t('admin.ratesStarLabel')}
+              label={t('admin.ratesDropLabel')}
               unit={t('finance.tomanUnit')}
               value={starRate}
               onChange={setStarRate}
-              hint={t('admin.ratesStarHint')}
+              hint={t('admin.ratesDropHint')}
             />
           </div>
         </section>

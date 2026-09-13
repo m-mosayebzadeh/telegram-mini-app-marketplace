@@ -23,9 +23,9 @@ describe('computePriceBreakdown', () => {
   })
 
   it('rounds a fractional commission in the provider favour', () => {
-    // 5% of 25 Stars is 1.25 — the platform takes 1, not 2.
+    // 5% of 25 Drops is 1.25 — the platform takes 1, not 2.
     expect(computePriceBreakdown(25, 2500, 5).netProviderDrops).toBe(24)
-    // 10% of 25 Stars is 2.5 — again floored on the platform's side.
+    // 10% of 25 Drops is 2.5 — again floored on the platform's side.
     expect(computePriceBreakdown(25, 2500, 10).netProviderDrops).toBe(23)
   })
 })

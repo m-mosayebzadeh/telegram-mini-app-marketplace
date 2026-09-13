@@ -205,13 +205,13 @@ export default function OfferDetail() {
         <ConfirmDialog
           title={t('offers.insufficientBalanceTitle')}
           text={t('offers.insufficientBalanceMessage', {
-            stars: missingDrops.toLocaleString(i18n.language),
+            drops: missingDrops.toLocaleString(i18n.language),
             toman: (missingDrops * (dropToTomanRate ?? 0)).toLocaleString(i18n.language),
           })}
           confirmLabel={t('offers.quickTopUpButton')}
           onCancel={() => setRefusal(null)}
           onConfirm={() =>
-            navigate('/wallet/topup', { state: { prefillStars: missingDrops, from: `/offers/${id}` } })
+            navigate('/wallet/topup', { state: { prefillDrops: missingDrops, from: `/offers/${id}` } })
           }
         />
       )}

@@ -15,18 +15,12 @@ export function listMyTopUpRequests(): Promise<TopUpRequest[]> {
   return apiFetch<TopUpRequest[]>('/topup/requests/mine')
 }
 
-export function createTopUpRequest(file: File, requestedStars: number): Promise<TopUpRequest> {
+export function createTopUpRequest(file: File, requestedDrops: number): Promise<TopUpRequest> {
   const form = new FormData()
   form.append('file', file)
-  form.append('requested_drops', String(requestedStars))
+  form.append('requested_drops', String(requestedDrops))
   return apiFetch<TopUpRequest>('/topup/requests', { method: 'POST', body: form })
 }
-
-/** Starts a real Telegram Stars purchase — see
- * backend/app/topup/router.py's create_star_invoice. The returned link
- * is handed straight to Telegram.WebApp.openInvoice() (see
- * lib/telegramInvoice.ts); nothing is credited until Telegram's own
- * webhook confirms the payment happened. */
 
 /** Same blob-fetch pattern as lib/contentApi.ts's fetchContentFileBlobUrl
  * — the receipt route is access-checked, so a plain <img src> can't be

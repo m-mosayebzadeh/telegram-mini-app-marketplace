@@ -25,7 +25,7 @@ class ContentOut(BaseModel):
     # Whether *this* viewer can currently see the real content — computed
     # per-request (see app/content/access.py), not a stored column. Lets
     # the frontend decide what to render (plain image, "tap to reveal",
-    # or "tap to unlock for N stars") without a second request.
+    # or "tap to unlock for N Drops") without a second request.
     can_see_original: bool
     like_count: int
     liked_by_me: bool

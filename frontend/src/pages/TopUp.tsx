@@ -12,10 +12,12 @@ import type { TopUpCardInfo, TopUpRequest } from '../lib/types'
  * Adding wallet balance: a card-to-card transfer with a receipt, which an
  * admin reviews before anything is credited.
  *
- * Telegram Stars and the third-party seller links used to sit here as two more
- * tabs. Both are gone — Stars because the money side of this app must not
- * depend on Telegram, and the outbound links because they sold the same thing
- * for more while never touching the wallet at all.
+ * Telegram Stars and third-party seller links used to sit here as two more
+ * tabs. Both were removed: Stars because the money side of this product must
+ * not be something Telegram can switch off, and the outbound links because
+ * they sold the same thing for more while never touching the wallet at all.
+ * The cost is deliberate and worth restating — there is no instant top-up any
+ * more, and every credit waits on a person reviewing a receipt.
  */
 export default function TopUp() {
   const { t } = useTranslation()
@@ -26,8 +28,8 @@ export default function TopUp() {
   // Arriving from the offer page's "insufficient balance" dialog carries
   // exactly how much is missing, so this screen opens with the amount
   // already filled in rather than making someone work it out again.
-  const navState = location.state as { prefillStars?: number; from?: string } | null
-  const prefillStars = navState?.prefillStars ?? null
+  const navState = location.state as { prefillDrops?: number; from?: string } | null
+  const prefillDrops = navState?.prefillDrops ?? null
   const from = navState?.from
   const back = from && /^\/offers\/\d+$/.test(from) ? from : '/wallet'
 
@@ -39,7 +41,7 @@ export default function TopUp() {
   // --- card-to-card ---
   const [receipt, setReceipt] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [directAmount, setDirectAmount] = useState(prefillStars ? String(prefillStars) : '')
+  const [directAmount, setDirectAmount] = useState(prefillDrops ? String(prefillDrops) : '')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -79,7 +81,7 @@ export default function TopUp() {
   async function submitReceipt() {
     const amount = Number(directAmount)
     if (!receipt || !amount) {
-      setSubmitError(t('topup.starsAmountMustBePositive'))
+      setSubmitError(t('topup.amountMustBePositive'))
       return
     }
     setSubmitting(true)

@@ -83,8 +83,8 @@ class Content(Base):
     original_file_path: Mapped[str] = mapped_column(String(500))
 
     is_paid: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Only meaningful when is_paid is True. Stars amount; actual payment
-    # wiring is deferred (see TECHNICAL_REQUIREMENTS.md, section 7).
+    # Only meaningful when is_paid is True. A Drop amount, like every
+    # other price in the product (see TECHNICAL_REQUIREMENTS.md, 14).
     price_drops: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Whether this item is shown behind a spoiler overlay by default.

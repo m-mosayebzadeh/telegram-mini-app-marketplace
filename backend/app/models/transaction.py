@@ -9,10 +9,15 @@ serve both chat requests and content purchases instead of needing two
 near-identical tables.
 
 Every number here is computed ONCE, at the moment of payment, and frozen
-forever — see split_commission() in app/wallet/service.py. If the
-platform's commission percentage or the Star-to-Toman rate changes
-later, past transactions must NOT change retroactively; only future
-ones use the new values.
+forever -- see split_commission() in app/wallet/service.py. If the
+platform's commission percentage changes later, past transactions must
+NOT change retroactively; only future ones use the new values.
+
+The Drop-to-Toman rate is stored per transaction too, but for a weaker
+reason than it used to have: it is a fixed peg now, not a market rate, so
+there is nothing to protect a past transaction from. It stays because a
+peg CAN be redenominated one day, and an old row that cannot say what a
+Drop was worth at the time would be unauditable.
 """
 
 import enum
@@ -71,7 +76,7 @@ class Transaction(Base):
     request_id: Mapped[int | None] = mapped_column(ForeignKey("requests.id"), nullable=True)
     content_id: Mapped[int | None] = mapped_column(ForeignKey("contents.id"), nullable=True)
 
-    # --- the Star-denominated split (the authoritative numbers) ---
+    # --- the Drop-denominated split (the authoritative numbers) ---
     # Copied from the Offer/Content's price at the moment of payment, not
     # read live from it later — the source could theoretically change
     # (though business rules already block editing a live offer; this is
@@ -81,10 +86,10 @@ class Transaction(Base):
     commission_drops: Mapped[int] = mapped_column(Integer)
     net_provider_drops: Mapped[int] = mapped_column(Integer)
 
-    # --- the Toman figures, derived from the Star split above using
-    # this frozen rate (see module docstring) — purely for the wallet
-    # ledger and for display; never re-derived later from a possibly
-    # different current rate ---
+    # --- the Toman figures, derived from the Drop split above using the
+    # rate recorded here (see module docstring) -- purely for the wallet
+    # ledger and for display; never re-derived later from whatever the
+    # current rate happens to be ---
     drop_to_toman_rate: Mapped[int] = mapped_column(Integer)
     gross_price_toman: Mapped[int] = mapped_column(Integer)
     commission_toman: Mapped[int] = mapped_column(Integer)

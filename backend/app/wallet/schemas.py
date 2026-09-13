@@ -7,10 +7,10 @@ class BalanceOut(BaseModel):
     withdrawal_pending_toman: int = 0
     # Spendable right now — the sum of this user's own ledger entries.
     balance_toman: int
-    # A display-only estimate ("about how many Stars can I spend right
-    # now"), computed with floor division. Never used to decide whether
-    # a charge succeeds — every real charge is computed from the priced
-    # item's own Star amount (see app/wallet/service.py), not from this.
+    # A display-only figure ("about how many Drops can I spend right
+    # now"), computed with floor division. Never used to decide whether a
+    # charge succeeds -- every real charge is computed from the priced
+    # item's own Drop amount (see app/wallet/service.py), not from this.
     balance_drops_equivalent: int
     # Earned as a provider from CHAT_REQUEST transactions, but not yet
     # spendable — held until the paid-for chat session closes cleanly

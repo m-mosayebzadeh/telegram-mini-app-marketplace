@@ -11,7 +11,7 @@
  * only one they can act on.
  *
  * The commission is floored (`Math.floor`), exactly like the backend's
- * split_commission(): a fraction of a Star that rounding would otherwise lose
+ * split_commission(): a fraction of a Toman that rounding would otherwise lose
  * always ends up on the provider's side, never the platform's, so the two
  * never disagree about what a provider is owed.
  */

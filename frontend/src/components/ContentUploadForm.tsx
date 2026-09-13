@@ -38,7 +38,7 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
   const [contentType, setContentType] = useState<'photo' | 'short_video'>('photo')
   const [durationSeconds, setDurationSeconds] = useState('')
   const [isPaid, setIsPaid] = useState(false)
-  const [priceDrops, setPriceStars] = useState('')
+  const [priceDrops, setPriceDrops] = useState('')
   const [hasSpoiler, setHasSpoiler] = useState(false)
   const [audienceType, setAudienceType] = useState<'public' | 'followers'>('public')
   const [busy, setBusy] = useState(false)
@@ -158,7 +158,7 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
       </div>
       {isPaid && (
         <div className="hp-field">
-          <NumberField header={t('content.priceLabel')} value={priceDrops} onChange={setPriceStars} />
+          <NumberField header={t('content.priceLabel')} value={priceDrops} onChange={setPriceDrops} />
         </div>
       )}
       {!isPaid && (
