@@ -36,7 +36,7 @@ export default function Withdraw() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const [draft] = useState(initialDraft)
-  const [stars, setStars] = useState<string>(draft.stars || '')
+  const [drops, setDrops] = useState<string>(draft.drops || '')
   const [bankId, setBankId] = useState<string>(draft.bankId || '')
   const [retryKey, setRetryKey] = useState<string>(
     draft.retryKey || crypto.randomUUID(),
@@ -51,9 +51,9 @@ export default function Withdraw() {
   useEffect(() => {
     sessionStorage.setItem(
       draftKey,
-      JSON.stringify({ stars, bankId, retryKey }),
+      JSON.stringify({ drops, bankId, retryKey }),
     )
-  }, [stars, bankId, retryKey])
+  }, [drops, bankId, retryKey])
   const load = useCallback(() => {
     Promise.all([bankAccounts(), withdrawals()])
       .then(([b, r]) => {
@@ -75,7 +75,7 @@ export default function Withdraw() {
     setError('')
     setNotice('')
     try {
-      setQuote(await quoteWithdrawal(Number(stars)))
+      setQuote(await quoteWithdrawal(Number(drops)))
     } catch (e) {
       setError(financeError(e, t))
     } finally {
@@ -90,14 +90,14 @@ export default function Withdraw() {
       await apiFetch('/wallet/withdrawals', {
         method: 'POST',
         body: JSON.stringify({
-          stars: quote.stars,
+          drops: quote.drops,
           bank_account_id: Number(bankId),
           quote_token: quote.quote_token,
           idempotency_key: retryKey,
         }),
       })
       setQuote(null)
-      setStars('')
+      setDrops('')
       setRetryKey(crypto.randomUUID())
       setNotice(t('finance.submitted'))
       load()
@@ -130,10 +130,10 @@ export default function Withdraw() {
   }
   const selected = banks.find((b) => b.id === Number(bankId))
   const valid =
-    /^\d+$/.test(stars) &&
-    Number.isSafeInteger(Number(stars)) &&
-    Number(stars) > 0 &&
-    Number(stars) <= 1_000_000_000 &&
+    /^\d+$/.test(drops) &&
+    Number.isSafeInteger(Number(drops)) &&
+    Number(drops) > 0 &&
+    Number(drops) <= 1_000_000_000 &&
     !!selected
   return (
     <div className="ui-page">
@@ -142,16 +142,16 @@ export default function Withdraw() {
       <div className="ui-page-body">
         <div className="co-form">
           <label className="ui-field" htmlFor="withdraw-amount">
-            <span className="ui-field-label">{t('finance.stars')}</span>
+            <span className="ui-field-label">{t('finance.drops')}</span>
             <input
               id="withdraw-amount"
               className="ui-input ui-input-numeric wd-amount"
               inputMode="numeric"
               disabled={busy}
-              value={stars}
+              value={drops}
               onChange={(e) => {
                 changed()
-                setStars(digits(e.target.value))
+                setDrops(digits(e.target.value))
               }}
             />
           </label>
@@ -197,10 +197,10 @@ export default function Withdraw() {
             <StatList
               stats={[
                 {
-                  label: t('finance.stars'),
-                  value: <DropAmount amount={quote.stars} locale={i18n.language} size={16} />,
+                  label: t('finance.drops'),
+                  value: <DropAmount amount={quote.drops} locale={i18n.language} size={16} />,
                   note: t('finance.rate', {
-                    amount: quote.star_rate.toLocaleString(i18n.language),
+                    amount: quote.drop_rate.toLocaleString(i18n.language),
                   }),
                 },
                 {

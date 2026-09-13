@@ -24,7 +24,7 @@ vi.mock('../lib/api', async (original) => ({
   apiFetch: mocks.api,
 }))
 vi.mock('../lib/pricing', () => ({
-  getPricingConfig: () => Promise.resolve({ star_to_toman_rate: 500, chat_commission_percent: 10 }),
+  getPricingConfig: () => Promise.resolve({ drop_to_toman_rate: 500, chat_commission_percent: 10 }),
 }))
 vi.mock('../lib/topupApi', () => ({
   createStarInvoice: mocks.createStarInvoice,

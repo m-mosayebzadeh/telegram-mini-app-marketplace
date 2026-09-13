@@ -85,7 +85,7 @@ class Content(Base):
     is_paid: Mapped[bool] = mapped_column(Boolean, default=False)
     # Only meaningful when is_paid is True. Stars amount; actual payment
     # wiring is deferred (see TECHNICAL_REQUIREMENTS.md, section 7).
-    price_stars: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    price_drops: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Whether this item is shown behind a spoiler overlay by default.
     # Forced to True whenever is_paid is True (see the CHECK constraint
@@ -121,8 +121,8 @@ class Content(Base):
         CheckConstraint("NOT is_paid OR has_spoiler", name="ck_paid_implies_spoiler"),
         # Price only makes sense together with is_paid.
         CheckConstraint(
-            "(is_paid AND price_stars IS NOT NULL) OR "
-            "(NOT is_paid AND price_stars IS NULL)",
+            "(is_paid AND price_drops IS NOT NULL) OR "
+            "(NOT is_paid AND price_drops IS NULL)",
             name="ck_price_matches_is_paid",
         ),
         # duration_seconds only makes sense for a video, and must fit

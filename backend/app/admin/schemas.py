@@ -79,8 +79,8 @@ class TopUpRequesterOut(BaseModel):
 class AdminTopUpRequestOut(BaseModel):
     id: int
     requester: TopUpRequesterOut
-    requested_stars: int
-    star_rate_at_request: int
+    requested_drops: int
+    drop_rate_at_request: int
     requested_toman_amount: int
     status: str
     final_toman_amount: int | None
@@ -128,7 +128,8 @@ class AdminChatSessionOut(BaseModel):
 
 
 class PlatformRatesOut(BaseModel):
-    star_to_toman_rate: int
+    drop_to_toman_rate: int
+    telegram_star_to_toman_rate: int
     chat_commission_percent: int
     content_commission_percent: int
     withdrawal_commission_percent: int
@@ -138,7 +139,8 @@ class PlatformRatesOut(BaseModel):
 
 class PlatformRatesUpdate(BaseModel):
     model_config = {"extra": "forbid"}
-    star_to_toman_rate: int = Field(gt=0, le=1_000_000_000, strict=True)
+    drop_to_toman_rate: int = Field(gt=0, le=1_000_000_000, strict=True)
+    telegram_star_to_toman_rate: int = Field(gt=0, le=1_000_000_000, strict=True)
     chat_commission_percent: int = Field(ge=0, le=100, strict=True)
     content_commission_percent: int = Field(ge=0, le=100, strict=True)
     withdrawal_commission_percent: int = Field(ge=0, le=100, strict=True)

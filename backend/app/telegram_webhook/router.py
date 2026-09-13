@@ -137,7 +137,7 @@ def _handle_successful_payment(db: Session, payment: dict, payer_id: int | None)
     # app/wallet/service.py's credit_topup) — so a real purchase and a
     # manually-approved one are indistinguishable in the wallet
     # afterwards, only their own request row remembers which was which.
-    rate = get_rates(db).star_to_toman_rate
+    rate = get_rates(db).telegram_star_to_toman_rate
     entry = credit_topup(db, user_id=purchase.user_id, amount_toman=purchase.stars * rate)
     entry.star_purchase_id = purchase.id
 

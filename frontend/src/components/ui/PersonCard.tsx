@@ -57,7 +57,7 @@ export function PersonCard({ offer, locale, onClick }: PersonCardProps) {
           <span className="ui-person-price">
             <span className="ui-drop tabular">
               <IconDrop size={14} />
-              {offer.price_stars.toLocaleString(locale)}
+              {offer.price_drops.toLocaleString(locale)}
             </span>
           </span>
 

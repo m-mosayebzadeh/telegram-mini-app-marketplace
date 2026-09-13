@@ -162,7 +162,7 @@ export function getPlatformRates(): Promise<PlatformRates> {
 }
 
 export function updatePlatformRates(rates: {
-  star_to_toman_rate: number
+  drop_to_toman_rate: number
   chat_commission_percent: number
   content_commission_percent: number
   withdrawal_commission_percent: number

@@ -28,7 +28,7 @@ function makeSession(overrides: Partial<ChatSession> = {}): ChatSession {
     my_role: 'buyer',
     other_participant: { user_id: 2, display_name: 'Sara', username: 'sara', avatar_url: null },
     offer_title: 'Chat with me',
-    price_stars: 40,
+    price_drops: 40,
     display_duration_minutes: 30,
     disputed: false,
     transaction_status: 'pending',

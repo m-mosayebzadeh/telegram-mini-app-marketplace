@@ -45,7 +45,7 @@ export default function CreateOffer() {
       await apiFetch('/offers', {
         method: 'POST',
         body: JSON.stringify({
-          price_stars: Number(price),
+          price_drops: Number(price),
           display_duration_minutes: Number(duration),
           title: title.trim(),
           description: description.trim(),
@@ -88,11 +88,11 @@ export default function CreateOffer() {
             id="offer-price"
             value={price}
             onChange={setPrice}
-            label={t('offers.priceStarsLabel')}
+            label={t('offers.priceDropsLabel')}
           />
           {/* What the provider actually keeps. Shown here, while they are
               choosing the number, rather than discovered after a sale. */}
-          <PriceBreakdown priceStars={Number(price) || 0} audience="provider" />
+          <PriceBreakdown priceDrops={Number(price) || 0} audience="provider" />
 
           <label className="ui-field" htmlFor="offer-duration">
             <span className="ui-field-label">{t('offers.durationLabel')}</span>

@@ -11,7 +11,7 @@ class BalanceOut(BaseModel):
     # now"), computed with floor division. Never used to decide whether
     # a charge succeeds — every real charge is computed from the priced
     # item's own Star amount (see app/wallet/service.py), not from this.
-    balance_stars_equivalent: int
+    balance_drops_equivalent: int
     # Earned as a provider from CHAT_REQUEST transactions, but not yet
     # spendable — held until the paid-for chat session closes cleanly
     # (see release_transaction() in app/wallet/service.py). Always 0
@@ -38,11 +38,11 @@ class TransactionOut(BaseModel):
     provider_id: int
     request_id: int | None
     content_id: int | None
-    gross_price_stars: int
+    gross_price_drops: int
     commission_rate_percent: int
-    commission_stars: int
-    net_provider_stars: int
-    star_to_toman_rate: int
+    commission_drops: int
+    net_provider_drops: int
+    drop_to_toman_rate: int
     gross_price_toman: int
     commission_toman: int
     net_provider_toman: int

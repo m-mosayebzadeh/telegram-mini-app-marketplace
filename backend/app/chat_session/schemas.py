@@ -35,7 +35,7 @@ class ChatSessionOut(BaseModel):
     other_participant: ChatSessionParticipantOut
 
     offer_title: str
-    price_stars: int
+    price_drops: int
     # Informational display duration from the Offer — TECHNICAL_REQUIREMENTS.md
     # is explicit this is never an enforced timer; the chat UI shows it
     # as "expected duration", not a countdown.

@@ -43,21 +43,21 @@ def test_free_public_photo_without_a_spoiler_is_allowed(db):
 
 
 def test_paid_content_must_have_a_spoiler(db):
-    db.add(_content(is_paid=True, price_stars=10, has_spoiler=False))
+    db.add(_content(is_paid=True, price_drops=10, has_spoiler=False))
 
     with pytest.raises(IntegrityError):
         db.commit()
 
 
 def test_paid_content_requires_a_price(db):
-    db.add(_content(is_paid=True, price_stars=None, has_spoiler=True))
+    db.add(_content(is_paid=True, price_drops=None, has_spoiler=True))
 
     with pytest.raises(IntegrityError):
         db.commit()
 
 
 def test_free_content_cannot_have_a_price(db):
-    db.add(_content(is_paid=False, price_stars=10))
+    db.add(_content(is_paid=False, price_drops=10))
 
     with pytest.raises(IntegrityError):
         db.commit()

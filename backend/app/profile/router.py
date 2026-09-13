@@ -363,7 +363,7 @@ def read_buyer_summary(
             Transaction.buyer_id == user_id,
             Transaction.status.in_([TransactionStatus.PENDING, TransactionStatus.SUCCEEDED]),
         )
-        .with_entities(Transaction.gross_price_stars)
+        .with_entities(Transaction.gross_price_drops)
         .all()
     )
     total_stars_spent_sum = sum(row[0] for row in total_stars_spent)

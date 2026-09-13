@@ -60,7 +60,7 @@ export default function WalletPage() {
                   </span>
                   <span className="wl-balance-drop tabular">
                     <IconDrop size={18} />
-                    {balance.balance_stars_equivalent.toLocaleString(i18n.language)}
+                    {balance.balance_drops_equivalent.toLocaleString(i18n.language)}
                   </span>
                 </>
               ) : (

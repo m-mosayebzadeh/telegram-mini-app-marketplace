@@ -14,8 +14,8 @@ class TopUpCardInfoOut(BaseModel):
 class TopUpRequestOut(BaseModel):
     id: int
     user_id: int
-    requested_stars: int
-    star_rate_at_request: int
+    requested_drops: int
+    drop_rate_at_request: int
     requested_toman_amount: int
     status: str
     final_toman_amount: int | None

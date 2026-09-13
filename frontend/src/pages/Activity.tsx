@@ -170,7 +170,7 @@ export default function Activity() {
         action={
           balance && (
             <DropChip
-              amount={balance.balance_stars_equivalent}
+              amount={balance.balance_drops_equivalent}
               locale={i18n.language}
               onClick={() => navigate('/wallet')}
               label={t('wallet.title')}

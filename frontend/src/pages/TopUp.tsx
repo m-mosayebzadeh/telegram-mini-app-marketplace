@@ -74,7 +74,7 @@ export default function TopUp() {
   function load() {
     setError(null)
     getPricingConfig()
-      .then((config) => setRate(config.star_to_toman_rate))
+      .then((config) => setRate(config.drop_to_toman_rate))
       .catch((err) => setError(formatApiError(err)))
     getTopUpCardInfo()
       .then(setCardInfo)

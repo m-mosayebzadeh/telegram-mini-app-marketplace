@@ -19,7 +19,7 @@ vi.mock('../lib/api', async (original) => ({
 
 const emptyBalance = {
   balance_toman: 250000,
-  balance_stars_equivalent: 100,
+  balance_drops_equivalent: 100,
   pending_toman: 0,
   withdrawal_pending_toman: 0,
   in_flight_toman: 0,

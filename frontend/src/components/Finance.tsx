@@ -45,7 +45,7 @@ export function WithdrawalCard({
       </div>
       <p>
         {new Date(row.created_at).toLocaleString(i18n.language)} ·{' '}
-        <DropAmount amount={row.stars} locale={i18n.language} size={16} />
+        <DropAmount amount={row.drops} locale={i18n.language} size={16} />
       </p>
       <p>{row.holder_name}</p>
       <p>

@@ -14,7 +14,7 @@ interface DropAmountFieldProps {
 /**
  * "How much Drop?" — the one field every top-up method needs.
  *
- * Drop is the only amount stored anywhere (TopUpRequest.requested_stars);
+ * Drop is the only amount stored anywhere (TopUpRequest.requested_drops);
  * the Toman line is computed and read-only, never a second box to type
  * into. That was a real bug once: a typed Toman amount that did not
  * divide evenly by the rate silently rounded to a Drop count that was

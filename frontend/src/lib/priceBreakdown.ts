@@ -16,16 +16,16 @@
  * never disagree about what a provider is owed.
  */
 export function computePriceBreakdown(
-  grossPriceStars: number,
-  starToTomanRate: number,
+  grossPriceDrops: number,
+  dropToTomanRate: number,
   commissionPercent = 0,
 ) {
-  const commissionStars = Math.floor((grossPriceStars * commissionPercent) / 100)
-  const netProviderStars = grossPriceStars - commissionStars
+  const commissionDrops = Math.floor((grossPriceDrops * commissionPercent) / 100)
+  const netProviderDrops = grossPriceDrops - commissionDrops
   return {
-    grossPriceStars,
-    grossPriceToman: grossPriceStars * starToTomanRate,
-    netProviderStars,
-    netProviderToman: netProviderStars * starToTomanRate,
+    grossPriceDrops,
+    grossPriceToman: grossPriceDrops * dropToTomanRate,
+    netProviderDrops,
+    netProviderToman: netProviderDrops * dropToTomanRate,
   }
 }

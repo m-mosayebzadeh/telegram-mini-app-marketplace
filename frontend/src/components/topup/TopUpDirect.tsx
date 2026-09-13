@@ -139,7 +139,7 @@ export function TopUpDirect({
                 <span className="ui-row-main">
                   <span className="ui-row-title tu-history-amount tabular">
                     <IconDrop size={16} />
-                    {row.requested_stars.toLocaleString(i18n.language)}
+                    {row.requested_drops.toLocaleString(i18n.language)}
                     <span className="of-own-dot" aria-hidden="true" />
                     {t('wallet.tomanAmount', {
                       amount: row.requested_toman_amount.toLocaleString(i18n.language),

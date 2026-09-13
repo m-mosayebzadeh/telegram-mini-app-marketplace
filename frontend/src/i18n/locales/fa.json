@@ -350,9 +350,9 @@
     "delete": "حذف",
     "deleteConfirm": "این پیشنهاد حذف بشه؟",
     "titleLabel": "عنوان",
-    "priceStarsLabel": "قیمت (دراپ)",
-    "priceInToman": "معادل تومانی",
-    "providerNetEarnings": "درآمد خالص شما",
+    "priceDropsLabel": "قیمت (دراپ)",
+    "priceInToman": "{{amount}} تومان",
+    "providerNetEarnings": "درآمد شما {{amount}} تومان",
     "commission": "کارمزد",
     "netEarnings": "مبلغ نهایی ارائه‌دهنده",
     "starsAndToman": "{{stars}} دراپ ({{toman}} تومان)",
@@ -382,7 +382,8 @@
     "titlePlaceholder": "مثلاً: گپ درباره‌ی کتاب و فیلم",
     "descriptionPlaceholder": "بگو دقیقاً چی ارائه می‌دی و طرف مقابل چه انتظاری داشته باشه.",
     "minutesUnit": "دقیقه",
-    "durationHint": "فقط برای اطلاع خریدار — هیچ تایمری نشست رو نمی‌بنده."
+    "durationHint": "فقط برای اطلاع خریدار — هیچ تایمری نشست رو نمی‌بنده.",
+    "afterCommission": "پس از {{percent}}٪ کارمزد پلتفرم"
   },
   "requests": {
     "mineTitle": "درخواست‌های من",

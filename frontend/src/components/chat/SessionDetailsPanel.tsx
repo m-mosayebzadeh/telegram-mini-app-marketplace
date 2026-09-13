@@ -53,7 +53,7 @@ export function SessionDetailsPanel({
       </div>
       <div className="hp-chat-details-row">
         <span className="hp-chat-details-label">{t('chatSession.priceLabel')}</span>
-        <span className="hp-chat-details-value">{session.price_stars}</span>
+        <span className="hp-chat-details-value">{session.price_drops}</span>
       </div>
       <div className="hp-chat-details-row">
         {/* "Expected", never a countdown — display_duration_minutes is

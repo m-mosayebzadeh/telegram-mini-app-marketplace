@@ -192,7 +192,7 @@ export default function AdminTopUps() {
                         what they asked for, and what that costs. */}
                     <span className="ui-row-subtitle tu-history-amount tabular">
                       <IconDrop size={16} />
-                      {r.requested_stars.toLocaleString(i18n.language)}
+                      {r.requested_drops.toLocaleString(i18n.language)}
                       <span className="of-own-dot" aria-hidden="true" />
                       {t('wallet.tomanAmount', {
                         amount: r.requested_toman_amount.toLocaleString(i18n.language),

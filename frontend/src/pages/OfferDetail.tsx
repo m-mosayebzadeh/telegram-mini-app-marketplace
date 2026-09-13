@@ -42,7 +42,7 @@ export default function OfferDetail() {
   const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [balance, setBalance] = useState<Balance | null>(null)
-  const [starToTomanRate, setStarToTomanRate] = useState<number | null>(null)
+  const [dropToTomanRate, setDropToTomanRate] = useState<number | null>(null)
   const [sending, setSending] = useState(false)
   const [busyRequestId, setBusyRequestId] = useState<number | null>(null)
   const [refusal, setRefusal] = useState<Refusal | null>(null)
@@ -89,16 +89,16 @@ export default function OfferDetail() {
       .then(setBalance)
       .catch(() => setBalance(null))
     getPricingConfig()
-      .then((config) => setStarToTomanRate(config.star_to_toman_rate))
-      .catch(() => setStarToTomanRate(null))
+      .then((config) => setDropToTomanRate(config.drop_to_toman_rate))
+      .catch(() => setDropToTomanRate(null))
   }, [isOwner, offer])
 
   // Payment only happens once the provider accepts, so a request is free
   // to send with an empty wallet — which used to mean a buyer could send
   // one that was doomed to fail at payment time, with no warning. This
   // is that warning, raised before the request is even created.
-  const missingStars =
-    offer && balance ? Math.max(0, offer.price_stars - balance.balance_stars_equivalent) : 0
+  const missingDrops =
+    offer && balance ? Math.max(0, offer.price_drops - balance.balance_drops_equivalent) : 0
 
   async function sendRequest() {
     setSending(true)
@@ -130,7 +130,7 @@ export default function OfferDetail() {
   }
 
   function handleRequestClick() {
-    if (missingStars > 0) {
+    if (missingDrops > 0) {
       setRefusal({ kind: 'funds' })
       return
     }
@@ -200,13 +200,13 @@ export default function OfferDetail() {
         <ConfirmDialog
           title={t('offers.insufficientBalanceTitle')}
           text={t('offers.insufficientBalanceMessage', {
-            stars: missingStars.toLocaleString(i18n.language),
-            toman: (missingStars * (starToTomanRate ?? 0)).toLocaleString(i18n.language),
+            stars: missingDrops.toLocaleString(i18n.language),
+            toman: (missingDrops * (dropToTomanRate ?? 0)).toLocaleString(i18n.language),
           })}
           confirmLabel={t('offers.quickTopUpButton')}
           onCancel={() => setRefusal(null)}
           onConfirm={() =>
-            navigate('/wallet/topup', { state: { prefillStars: missingStars, from: `/offers/${id}` } })
+            navigate('/wallet/topup', { state: { prefillStars: missingDrops, from: `/offers/${id}` } })
           }
         />
       )}

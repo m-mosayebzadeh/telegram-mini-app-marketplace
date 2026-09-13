@@ -226,7 +226,7 @@ export default function ContentDetail() {
                 {needsPurchase ? (
                   <>
                     <IconDrop size={18} />
-                    {t('content.lockedPayToUnlock', { price: content.price_stars })}
+                    {t('content.lockedPayToUnlock', { price: content.price_drops })}
                   </>
                 ) : (
                   t('content.lockedTapToUnlock')

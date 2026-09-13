@@ -18,7 +18,7 @@ export function listMyTopUpRequests(): Promise<TopUpRequest[]> {
 export function createTopUpRequest(file: File, requestedStars: number): Promise<TopUpRequest> {
   const form = new FormData()
   form.append('file', file)
-  form.append('requested_stars', String(requestedStars))
+  form.append('requested_drops', String(requestedStars))
   return apiFetch<TopUpRequest>('/topup/requests', { method: 'POST', body: form })
 }
 

@@ -54,7 +54,7 @@ def get_my_balance(
     paid_but_unsettled = get_buyer_in_flight_toman(db, current_user.id)
     return BalanceOut(
         balance_toman=balance_toman,
-        balance_stars_equivalent=balance_toman // get_rates(db).star_to_toman_rate,
+        balance_drops_equivalent=balance_toman // get_rates(db).drop_to_toman_rate,
         pending_toman=earned_but_held,
         withdrawal_pending_toman=queued_withdrawals,
         in_flight_toman=earned_but_held + queued_withdrawals + paid_but_unsettled,

@@ -54,7 +54,7 @@ export function OfferRequestsView({
           {offer.title}
         </span>
         <span className="of-own-meta">
-          <DropAmount amount={offer.price_stars} locale={i18n.language} size={16} />
+          <DropAmount amount={offer.price_drops} locale={i18n.language} size={16} />
           <span className="of-own-dot" aria-hidden="true" />
           <span className="tabular">
             {t('discover.minutes', { minutes: offer.display_duration_minutes })}

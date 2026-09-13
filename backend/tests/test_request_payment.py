@@ -20,7 +20,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 
 def _create_offer(client, auth: dict, **overrides):
     payload = {
-        "price_stars": 40,
+        "price_drops": 40,
         "display_duration_minutes": 30,
         "title": "Chat with me",
         "description": "A nice chat",
@@ -99,11 +99,11 @@ def test_pay_charges_buyer_immediately_but_holds_the_providers_share(client, db_
     auth_b = _auth_header(2, "Bob")  # buyer
     alice = _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_stars=40)
+    offer = _create_offer(client, auth_a, price_drops=40)
     req = _create_accepted_request(client, auth_a, auth_b, offer)
 
     # Exactly enough for the 40-star offer, nothing more.
-    give_wallet_balance(db_session, bob["id"], amount_toman=40 * settings.star_to_toman_rate)
+    give_wallet_balance(db_session, bob["id"], amount_toman=40 * settings.drop_to_toman_rate)
 
     response = client.post(f"/requests/{req['id']}/pay", headers=auth_b)
 
@@ -112,9 +112,9 @@ def test_pay_charges_buyer_immediately_but_holds_the_providers_share(client, db_
     # 40 stars at the default 10% chat commission -> 4 stars commission,
     # 36 stars to the provider (see test_wallet.py for the rounding rule
     # itself).
-    assert body["gross_price_stars"] == 40
-    assert body["commission_stars"] == 4
-    assert body["net_provider_stars"] == 36
+    assert body["gross_price_drops"] == 40
+    assert body["commission_drops"] == 4
+    assert body["net_provider_drops"] == 36
     assert body["status"] == "pending"
     assert body["request_id"] == req["id"]
 
@@ -127,7 +127,7 @@ def test_pay_charges_buyer_immediately_but_holds_the_providers_share(client, db_
     # instead, not as spendable balance.
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.star_to_toman_rate
+    assert alice_wallet["pending_toman"] == 36 * settings.drop_to_toman_rate
     assert alice  # just to use the variable
 
 
@@ -142,9 +142,9 @@ def test_release_transaction_moves_pending_share_to_provider(client, db_session)
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_stars=40)
+    offer = _create_offer(client, auth_a, price_drops=40)
     req = _create_accepted_request(client, auth_a, auth_b, offer)
-    give_wallet_balance(db_session, bob["id"], amount_toman=40 * settings.star_to_toman_rate)
+    give_wallet_balance(db_session, bob["id"], amount_toman=40 * settings.drop_to_toman_rate)
     client.post(f"/requests/{req['id']}/pay", headers=auth_b)
 
     transaction = db_session.query(Transaction).filter(Transaction.request_id == req["id"]).one()
@@ -155,7 +155,7 @@ def test_release_transaction_moves_pending_share_to_provider(client, db_session)
 
     assert transaction.status.value == "succeeded"
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
-    assert alice_wallet["balance_toman"] == 36 * settings.star_to_toman_rate
+    assert alice_wallet["balance_toman"] == 36 * settings.drop_to_toman_rate
     assert alice_wallet["pending_toman"] == 0
 
 
@@ -164,9 +164,9 @@ def test_cannot_pay_the_same_request_twice(client, db_session):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_stars=40)
+    offer = _create_offer(client, auth_a, price_drops=40)
     req = _create_accepted_request(client, auth_a, auth_b, offer)
-    give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.star_to_toman_rate)
+    give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.drop_to_toman_rate)
 
     first = client.post(f"/requests/{req['id']}/pay", headers=auth_b)
     second = client.post(f"/requests/{req['id']}/pay", headers=auth_b)
@@ -176,4 +176,4 @@ def test_cannot_pay_the_same_request_twice(client, db_session):
     # Only charged once, even though Bob had enough balance to be
     # charged twice.
     remaining = client.get("/wallet/balance", headers=auth_b).json()["balance_toman"]
-    assert remaining == 160 * settings.star_to_toman_rate
+    assert remaining == 160 * settings.drop_to_toman_rate

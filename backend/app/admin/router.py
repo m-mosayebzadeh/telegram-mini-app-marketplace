@@ -402,7 +402,7 @@ def _admin_content_out(db: Session, content: Content) -> ContentOut:
         content_type=content.content_type.value,
         duration_seconds=content.duration_seconds,
         is_paid=content.is_paid,
-        price_stars=content.price_stars,
+        price_drops=content.price_drops,
         has_spoiler=content.has_spoiler,
         audience_type=content.audience_type.value,
         is_pinned=content.is_pinned,
@@ -459,7 +459,7 @@ def list_user_requests_admin(
                 id=request.id,
                 offer_id=offer.id,
                 offer_title=offer.title,
-                offer_price_stars=offer.price_stars,
+                offer_price_stars=offer.price_drops,
                 status=request.status.value,
                 reason=request.reason,
                 created_at=request.created_at,
@@ -526,8 +526,8 @@ def _topup_out(topup_request: TopUpRequest, requester: User) -> AdminTopUpReques
         requester=TopUpRequesterOut(
             user_id=requester.id, display_name=requester.display_name, username=requester.username
         ),
-        requested_stars=topup_request.requested_stars,
-        star_rate_at_request=topup_request.star_rate_at_request,
+        requested_drops=topup_request.requested_drops,
+        drop_rate_at_request=topup_request.drop_rate_at_request,
         requested_toman_amount=topup_request.requested_toman_amount,
         status=topup_request.status.value,
         final_toman_amount=topup_request.final_toman_amount,
@@ -632,7 +632,8 @@ def update_platform_rates(
     """
     lock_finances(db)
     rates = get_rates(db)
-    rates.star_to_toman_rate = payload.star_to_toman_rate
+    rates.drop_to_toman_rate = payload.drop_to_toman_rate
+    rates.telegram_star_to_toman_rate = payload.telegram_star_to_toman_rate
     rates.chat_commission_percent = payload.chat_commission_percent
     rates.content_commission_percent = payload.content_commission_percent
     rates.withdrawal_commission_percent = payload.withdrawal_commission_percent

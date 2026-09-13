@@ -74,7 +74,7 @@ def _to_content_out(db: Session, viewer: User, content: Content) -> ContentOut:
         content_type=content.content_type.value,
         duration_seconds=content.duration_seconds,
         is_paid=content.is_paid,
-        price_stars=content.price_stars,
+        price_drops=content.price_drops,
         has_spoiler=content.has_spoiler,
         audience_type=content.audience_type.value,
         is_pinned=content.is_pinned,
@@ -142,7 +142,7 @@ def upload_content(
     content_type: ContentType = Form(...),
     duration_seconds: int | None = Form(None),
     is_paid: bool = Form(False),
-    price_stars: int | None = Form(None),
+    price_drops: int | None = Form(None),
     has_spoiler: bool = Form(False),
     audience_type: ContentAudience = Form(ContentAudience.PUBLIC),
     audience_user_id: int | None = Form(None),
@@ -167,12 +167,12 @@ def upload_content(
     # until paid," so there's nothing wrong to reject here.
     if is_paid:
         has_spoiler = True
-        if price_stars is None or price_stars <= 0:
+        if price_drops is None or price_drops <= 0:
             raise HTTPException(
-                status.HTTP_400_BAD_REQUEST, "price_stars is required for paid content."
+                status.HTTP_400_BAD_REQUEST, "price_drops is required for paid content."
             )
     else:
-        price_stars = None
+        price_drops = None
 
     target_user_id, target_group_id = _validate_audience(
         db,
@@ -190,7 +190,7 @@ def upload_content(
         duration_seconds=duration_seconds,
         original_file_path=original_path,
         is_paid=is_paid,
-        price_stars=price_stars,
+        price_drops=price_drops,
         has_spoiler=has_spoiler,
         audience_type=audience_type,
         audience_user_id=target_user_id,
@@ -261,7 +261,7 @@ def get_content_file(
         # 402 Payment Required: exists for exactly this situation.
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={"reason": "payment_required", "price_stars": content.price_stars},
+            detail={"reason": "payment_required", "price_drops": content.price_drops},
         )
 
     if content.has_spoiler:
@@ -308,7 +308,7 @@ def purchase_content(
             kind=TransactionKind.CONTENT_PURCHASE,
             buyer_id=current_user.id,
             provider_id=provider_id,
-            gross_price_stars=content.price_stars,
+            gross_price_drops=content.price_drops,
             content_id=content.id,
         )
     except InsufficientBalanceError as exc:

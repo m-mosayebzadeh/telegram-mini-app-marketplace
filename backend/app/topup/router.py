@@ -78,7 +78,7 @@ def create_star_invoice(
 @router.post("/requests", response_model=TopUpRequestOut, status_code=status.HTTP_201_CREATED)
 def create_topup_request(
     file: UploadFile = File(...),
-    requested_stars: int = Form(...),
+    requested_drops: int = Form(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> TopUpRequest:
@@ -88,18 +88,18 @@ def create_topup_request(
     rate change between submission and admin review never silently
     changes what the user thought they were asking for.
     """
-    if requested_stars <= 0:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "requested_stars must be positive.")
+    if requested_drops <= 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "requested_drops must be positive.")
 
     receipt_path = save_receipt_file(current_user.id, file)
-    rate = get_rates(db).star_to_toman_rate
+    rate = get_rates(db).drop_to_toman_rate
 
     topup_request = TopUpRequest(
         user_id=current_user.id,
         receipt_file_path=receipt_path,
-        requested_stars=requested_stars,
-        star_rate_at_request=rate,
-        requested_toman_amount=requested_stars * rate,
+        requested_drops=requested_drops,
+        drop_rate_at_request=rate,
+        requested_toman_amount=requested_drops * rate,
     )
     db.add(topup_request)
     db.commit()

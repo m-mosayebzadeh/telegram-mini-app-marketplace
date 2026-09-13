@@ -30,7 +30,7 @@ class BankOut(BankInput):
     model_config = {'from_attributes': True}
 
 class QuoteInput(BaseModel):
-    stars: int = Field(gt=0, le=1_000_000_000, strict=True)
+    drops: int = Field(gt=0, le=1_000_000_000, strict=True)
 
 class WithdrawalInput(QuoteInput):
     bank_account_id: int = Field(gt=0, strict=True)
@@ -48,8 +48,8 @@ class WithdrawalOut(BaseModel):
     holder_name: str
     card_number: str
     iban: str
-    stars: int
-    star_rate: int
+    drops: int
+    drop_rate: int
     fee_percent: int
     minimum_toman: int
     gross_toman: int

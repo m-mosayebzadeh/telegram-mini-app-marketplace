@@ -76,16 +76,16 @@ class Transaction(Base):
     # read live from it later — the source could theoretically change
     # (though business rules already block editing a live offer; this is
     # just extra safety for content, which has no such lock).
-    gross_price_stars: Mapped[int] = mapped_column(Integer)
+    gross_price_drops: Mapped[int] = mapped_column(Integer)
     commission_rate_percent: Mapped[int] = mapped_column(Integer)
-    commission_stars: Mapped[int] = mapped_column(Integer)
-    net_provider_stars: Mapped[int] = mapped_column(Integer)
+    commission_drops: Mapped[int] = mapped_column(Integer)
+    net_provider_drops: Mapped[int] = mapped_column(Integer)
 
     # --- the Toman figures, derived from the Star split above using
     # this frozen rate (see module docstring) — purely for the wallet
     # ledger and for display; never re-derived later from a possibly
     # different current rate ---
-    star_to_toman_rate: Mapped[int] = mapped_column(Integer)
+    drop_to_toman_rate: Mapped[int] = mapped_column(Integer)
     gross_price_toman: Mapped[int] = mapped_column(Integer)
     commission_toman: Mapped[int] = mapped_column(Integer)
     net_provider_toman: Mapped[int] = mapped_column(Integer)
@@ -115,13 +115,13 @@ class Transaction(Base):
             "(kind = 'content_purchase' AND content_id IS NOT NULL AND request_id IS NULL)",
             name="ck_transaction_target_matches_kind",
         ),
-        # The Star split must always account for the whole gross price —
+        # The Drop split must always account for the whole gross price —
         # this is what guarantees rounding never creates or destroys a
-        # star (see split_commission()'s "rounds in the provider's
+        # Drop (see split_commission()'s "rounds in the provider's
         # favor" rule: the commission side loses the fraction, the net
         # side never does, so they always add back up exactly).
         CheckConstraint(
-            "commission_stars + net_provider_stars = gross_price_stars",
-            name="ck_star_split_sums_to_gross",
+            "commission_drops + net_provider_drops = gross_price_drops",
+            name="ck_drop_split_sums_to_gross",
         ),
     )

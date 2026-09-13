@@ -13,7 +13,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 
 def _create_offer(client, auth: dict, **overrides):
     payload = {
-        "price_stars": 10,
+        "price_drops": 10,
         "display_duration_minutes": 30,
         "title": "Chat with me",
         "description": "A nice chat",
@@ -45,7 +45,7 @@ def test_create_offer_requires_a_title(client):
     response = client.post(
         "/offers",
         headers=auth,
-        json={"price_stars": 10, "display_duration_minutes": 30, "description": "A nice chat"},
+        json={"price_drops": 10, "display_duration_minutes": 30, "description": "A nice chat"},
     )
 
     assert response.status_code == 422
@@ -55,7 +55,7 @@ def test_create_offer_rejects_non_positive_price(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
 
-    response = _create_offer(client, auth, price_stars=0)
+    response = _create_offer(client, auth, price_drops=0)
 
     assert response.status_code == 422
 
@@ -358,10 +358,10 @@ def test_offer_is_editable_before_any_request(client):
     _login(client, 1, "Alice")
     offer = _create_offer(client, auth).json()
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_stars": 99})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_drops": 99})
 
     assert response.status_code == 200
-    assert response.json()["price_stars"] == 99
+    assert response.json()["price_drops"] == 99
 
 
 def test_offer_is_locked_once_it_has_a_pending_request(client):
@@ -372,7 +372,7 @@ def test_offer_is_locked_once_it_has_a_pending_request(client):
     offer = _create_offer(client, auth_a).json()
     client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_stars": 99})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 99})
 
     assert response.status_code == 400
 
@@ -386,7 +386,7 @@ def test_offer_is_editable_again_after_its_only_request_is_rejected(client):
     req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/reject", headers=auth_a, json={"reason": "no thanks"})
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_stars": 99})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 99})
 
     assert response.status_code == 200
 

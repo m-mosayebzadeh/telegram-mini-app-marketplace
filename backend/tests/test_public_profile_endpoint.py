@@ -170,7 +170,7 @@ def test_provider_summary_tracks_response_and_rejection_rate(client):
     offer = client.post(
         "/offers",
         headers=auth_alice,
-        json={"price_stars": 10, "display_duration_minutes": 30, "title": "Chat with me", "description": "Chat"},
+        json={"price_drops": 10, "display_duration_minutes": 30, "title": "Chat with me", "description": "Chat"},
     ).json()
 
     bob_request = client.post(
@@ -208,11 +208,11 @@ def test_provider_summary_counts_completed_services(client, db_session):
         data={
             "content_type": "photo",
             "is_paid": "true",
-            "price_stars": "10",
+            "price_drops": "10",
             "audience_type": "public",
         },
     ).json()
-    give_wallet_balance(db_session, bob["id"], amount_toman=10 * settings.star_to_toman_rate)
+    give_wallet_balance(db_session, bob["id"], amount_toman=10 * settings.drop_to_toman_rate)
     client.post(f"/content/{content['id']}/purchase", headers=auth_bob)
 
     response = client.get(f"/profiles/{alice['id']}/provider-summary", headers=auth_bob)
@@ -261,11 +261,11 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
         data={
             "content_type": "photo",
             "is_paid": "true",
-            "price_stars": "10",
+            "price_drops": "10",
             "audience_type": "public",
         },
     ).json()
-    give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.star_to_toman_rate)
+    give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.drop_to_toman_rate)
     client.post(f"/content/{content['id']}/purchase", headers=auth_bob)
 
     # A paid chat request stays PENDING (idle money) -- still counts as
@@ -273,7 +273,7 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
     offer = client.post(
         "/offers",
         headers=auth_alice,
-        json={"price_stars": 20, "display_duration_minutes": 30, "title": "Chat", "description": "Chat"},
+        json={"price_drops": 20, "display_duration_minutes": 30, "title": "Chat", "description": "Chat"},
     ).json()
     req = client.post("/requests", headers=auth_bob, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/accept", headers=auth_alice)

@@ -49,7 +49,7 @@ export function ContentTile({ content, onClick }: ContentTileProps) {
   // can't tell a free teaser apart from a priced unlock. This mirrors
   // the three grid states from the design pass exactly: free, spoiler
   // (mystery veil, no price), premium (mystery veil + gold badge).
-  const premium = locked && content.is_paid && content.price_stars != null
+  const premium = locked && content.is_paid && content.price_drops != null
 
   return (
     <button className="hp-tile" onClick={onClick}>
@@ -74,7 +74,7 @@ export function ContentTile({ content, onClick }: ContentTileProps) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--color-on-scrim)" stroke="none">
                 <path d="M12 3.5l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4-3.9-3.8 5.4-.8L12 3.5z" />
               </svg>
-              <span>{content.price_stars}</span>
+              <span>{content.price_drops}</span>
             </div>
           ) : (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--color-text-2)" stroke="none">

@@ -24,7 +24,7 @@ def _upload(
     content_type: str = "photo",
     duration_seconds: int | None = None,
     is_paid: bool = False,
-    price_stars: int | None = None,
+    price_drops: int | None = None,
     has_spoiler: bool = False,
     audience_type: str = "public",
     audience_user_id: int | None = None,
@@ -39,8 +39,8 @@ def _upload(
     }
     if duration_seconds is not None:
         data["duration_seconds"] = str(duration_seconds)
-    if price_stars is not None:
-        data["price_stars"] = str(price_stars)
+    if price_drops is not None:
+        data["price_drops"] = str(price_drops)
     if audience_user_id is not None:
         data["audience_user_id"] = str(audience_user_id)
     if audience_group_id is not None:
@@ -89,7 +89,7 @@ def test_paid_upload_forces_spoiler_even_if_client_says_false(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
 
-    response = _upload(client, auth, is_paid=True, price_stars=50, has_spoiler=False)
+    response = _upload(client, auth, is_paid=True, price_drops=50, has_spoiler=False)
 
     assert response.status_code == 201
     assert response.json()["has_spoiler"] is True
@@ -99,7 +99,7 @@ def test_paid_upload_without_price_fails(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
 
-    response = _upload(client, auth, is_paid=True, price_stars=None)
+    response = _upload(client, auth, is_paid=True, price_drops=None)
 
     assert response.status_code == 400
 
@@ -197,12 +197,12 @@ def test_paid_content_without_purchase_returns_402(client):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     _login(client, 2, "Bob")
-    content = _upload(client, auth_a, is_paid=True, price_stars=50).json()
+    content = _upload(client, auth_a, is_paid=True, price_drops=50).json()
 
     response = client.get(f"/content/{content['id']}/file", headers=auth_b)
 
     assert response.status_code == 402
-    assert response.json()["detail"]["price_stars"] == 50
+    assert response.json()["detail"]["price_drops"] == 50
 
 
 def test_paid_content_purchase_without_enough_balance_returns_402(client):
@@ -210,7 +210,7 @@ def test_paid_content_purchase_without_enough_balance_returns_402(client):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     _login(client, 2, "Bob")
-    content = _upload(client, auth_a, is_paid=True, price_stars=50).json()
+    content = _upload(client, auth_a, is_paid=True, price_drops=50).json()
 
     # Bob has no wallet balance at all yet.
     response = client.post(f"/content/{content['id']}/purchase", headers=auth_b)
@@ -224,8 +224,8 @@ def test_paid_content_after_purchase_reveals_file(client, db_session):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    content = _upload(client, auth_a, is_paid=True, price_stars=50).json()
-    give_wallet_balance(db_session, bob["id"], amount_toman=50 * settings.star_to_toman_rate)
+    content = _upload(client, auth_a, is_paid=True, price_drops=50).json()
+    give_wallet_balance(db_session, bob["id"], amount_toman=50 * settings.drop_to_toman_rate)
 
     purchase = client.post(f"/content/{content['id']}/purchase", headers=auth_b)
     assert purchase.status_code == 201
@@ -249,7 +249,7 @@ def test_paid_content_after_purchase_reveals_file(client, db_session):
 def test_owner_cannot_purchase_own_paid_content(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
-    content = _upload(client, auth, is_paid=True, price_stars=50).json()
+    content = _upload(client, auth, is_paid=True, price_drops=50).json()
 
     response = client.post(f"/content/{content['id']}/purchase", headers=auth)
 

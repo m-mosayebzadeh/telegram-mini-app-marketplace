@@ -58,10 +58,18 @@ class Settings(BaseSettings):
     # only has to move the VALUES into the database and add an endpoint
     # to edit them — no other code needs to change.
 
-    # Toman per Star. Used to convert a Star-denominated offer/content
-    # price into the Toman amount actually charged against the wallet
-    # ledger (which is Toman-denominated — see the ledger entity docs).
-    star_to_toman_rate: int = 2500
+    # Toman per Drop, the app's own pricing unit. This is a FIXED PEG, not
+    # a market rate: Drops and Toman are one currency at two scales. Keeping
+    # it fixed is what removes a whole layer of complexity — every internal
+    # money calculation stays in whole Toman, so a percentage split is exact
+    # to within one Toman and rounding effectively disappears.
+    drop_to_toman_rate: int = 1000
+
+    # Toman per TELEGRAM Star, used only when someone tops up by buying
+    # Telegram Stars. This one is a real exchange rate and genuinely floats,
+    # which is exactly why it is separate: Telegram is now just one way to
+    # buy Drops, not the unit the product is priced in.
+    telegram_star_to_toman_rate: int = 2500
 
     # Platform commission on a purchase, as a whole percent of the price.
     # These are only the SEED values for a brand-new database: once the

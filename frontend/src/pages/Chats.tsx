@@ -130,7 +130,7 @@ export default function Chats() {
                       <span className="ch-offer-title" dir="auto">
                         {session.offer_title}
                       </span>
-                      <DropAmount amount={session.price_stars} locale={i18n.language} size={16} />
+                      <DropAmount amount={session.price_drops} locale={i18n.language} size={16} />
                     </span>
                   </span>
 

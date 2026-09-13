@@ -5,20 +5,25 @@ import { computePriceBreakdown } from '../lib/priceBreakdown'
 import type { PricingConfig } from '../lib/types'
 
 /**
- * One line under a Star price, saying what that price means in Toman —
- * but a different thing depending on who is looking (see priceBreakdown.ts
- * for why each side is shown a single number and not a breakdown):
+ * A caption under a Drop price, saying what that price means in Toman — but a
+ * different thing depending on who is looking (see priceBreakdown.ts for why
+ * each side gets a single number and not a breakdown):
  *
  * - `buyer`: the amount they will be charged.
- * - `provider`: what they will actually earn, after the platform's
- *   commission. For a chat that commission is only ever taken once the
- *   session has closed cleanly, never at the moment of sale.
+ * - `provider`: what they will actually earn, plus a plain line naming the
+ *   commission. For a chat that commission is only ever taken once the session
+ *   has closed cleanly, never at the moment of sale — but the raw price sits
+ *   right above this on the same screen, so a smaller number with no
+ *   explanation reads as money quietly disappearing.
+ *
+ * Renders as caption text belonging to whatever row it sits in, not as a row of
+ * its own: the price is the headline and this is its footnote.
  */
 export function PriceBreakdown({
-  priceStars,
+  priceDrops,
   audience = 'buyer',
 }: {
-  priceStars: number
+  priceDrops: number
   audience?: 'buyer' | 'provider'
 }) {
   const { t, i18n } = useTranslation()
@@ -26,32 +31,33 @@ export function PriceBreakdown({
   useEffect(() => {
     let active = true
     getPricingConfig()
-      .then((c) => {
-        if (active) setPricing(c)
+      .then((config) => {
+        if (active) setPricing(config)
       })
       .catch(() => {})
     return () => {
       active = false
     }
   }, [])
-  if (!pricing || priceStars <= 0) return null
+  if (!pricing || priceDrops <= 0) return null
 
-  const breakdown = computePriceBreakdown(
-    priceStars,
-    pricing.star_to_toman_rate,
-    audience === 'provider' ? pricing.chat_commission_percent : 0,
-  )
   const isProvider = audience === 'provider'
+  const commissionPercent = isProvider ? pricing.chat_commission_percent : 0
+  const breakdown = computePriceBreakdown(
+    priceDrops,
+    pricing.drop_to_toman_rate,
+    commissionPercent,
+  )
+  const toman = isProvider ? breakdown.netProviderToman : breakdown.grossPriceToman
+
   return (
-    <div className="hp-kv-row">
-      <span className="hp-kv-label">
-        {isProvider ? t('offers.providerNetEarnings') : t('offers.priceInToman')}
-      </span>
-      <span className="hp-kv-value">
-        {(isProvider ? breakdown.netProviderToman : breakdown.grossPriceToman).toLocaleString(
-          i18n.language,
-        )}
-      </span>
-    </div>
+    <span className="ui-stat-note">
+      {t(isProvider ? 'offers.providerNetEarnings' : 'offers.priceInToman', {
+        amount: toman.toLocaleString(i18n.language),
+      })}
+      {isProvider && commissionPercent > 0 && (
+        <> · {t('offers.afterCommission', { percent: commissionPercent })}</>
+      )}
+    </span>
   )
 }

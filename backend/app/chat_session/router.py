@@ -69,7 +69,7 @@ def _to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int)
             avatar_url=get_current_avatar_url(db, other_user_id),
         ),
         offer_title=offer.title,
-        price_stars=offer.price_stars,
+        price_drops=offer.price_drops,
         display_duration_minutes=offer.display_duration_minutes,
         disputed=transaction.disputed_at is not None,
         transaction_status=transaction.status.value,

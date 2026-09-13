@@ -237,7 +237,7 @@ def list_activity_requests(
                 id=request.id,
                 offer_id=offer.id,
                 offer_title=offer.title,
-                offer_price_stars=offer.price_stars,
+                offer_price_stars=offer.price_drops,
                 status=request.status.value,
                 reason=request.reason,
                 created_at=request.created_at,
@@ -431,7 +431,7 @@ def pay_for_request(
             kind=TransactionKind.CHAT_REQUEST,
             buyer_id=current_user.id,
             provider_id=req.offer.provider_id,
-            gross_price_stars=req.offer.price_stars,
+            gross_price_drops=req.offer.price_drops,
             request_id=req.id,
         )
     except InsufficientBalanceError as exc:

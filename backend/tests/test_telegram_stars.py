@@ -177,7 +177,7 @@ def test_successful_payment_credits_the_wallet_and_marks_purchase_paid(client, d
     assert purchase.status == StarPurchaseStatus.PAID
     assert purchase.telegram_payment_charge_id == "charge-1"
     assert purchase.paid_at is not None
-    assert get_balance_toman(db_session, purchase.user_id) == 25 * settings.star_to_toman_rate
+    assert get_balance_toman(db_session, purchase.user_id) == 25 * settings.telegram_star_to_toman_rate
 
 
 def test_successful_payment_is_idempotent_on_replay(client, db_session):
@@ -199,7 +199,7 @@ def test_successful_payment_is_idempotent_on_replay(client, db_session):
     # didn't arrive in time) must never credit the wallet a second time.
     client.post("/telegram/webhook", json=payload, headers=WEBHOOK_HEADERS)
 
-    assert get_balance_toman(db_session, purchase.user_id) == 10 * settings.star_to_toman_rate
+    assert get_balance_toman(db_session, purchase.user_id) == 10 * settings.telegram_star_to_toman_rate
 
 
 def test_successful_payment_for_unknown_purchase_does_not_crash(client):

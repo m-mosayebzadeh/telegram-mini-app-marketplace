@@ -217,7 +217,7 @@ def main() -> None:
                 content_type=ContentType.PHOTO,
                 has_spoiler=True,
                 is_paid=True,
-                price_stars=100,
+                price_drops=100,
             ),
         ]
 
@@ -231,7 +231,7 @@ def main() -> None:
                     audience_type=ContentAudience.PUBLIC,
                     duration_seconds=item.pop("duration_seconds", None),
                     is_paid=item.pop("is_paid", False),
-                    price_stars=item.pop("price_stars", None),
+                    price_drops=item.pop("price_drops", None),
                     has_spoiler=item.pop("has_spoiler", False),
                     is_pinned=item.pop("is_pinned", False),
                     **item,

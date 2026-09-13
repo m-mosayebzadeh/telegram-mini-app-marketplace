@@ -350,9 +350,9 @@
     "delete": "Delete",
     "deleteConfirm": "Delete this offer?",
     "titleLabel": "Title",
-    "priceStarsLabel": "Price (Drop)",
-    "priceInToman": "Toman equivalent",
-    "providerNetEarnings": "Your net earnings",
+    "priceDropsLabel": "Price (Drop)",
+    "priceInToman": "{{amount}} Toman",
+    "providerNetEarnings": "You earn {{amount}} Toman",
     "commission": "Commission",
     "netEarnings": "Provider's net earnings",
     "starsAndToman": "{{stars}} Drop ({{toman}} Toman)",
@@ -382,7 +382,8 @@
     "titlePlaceholder": "e.g. A chat about books and film",
     "descriptionPlaceholder": "Say exactly what you offer and what to expect.",
     "minutesUnit": "min",
-    "durationHint": "For the buyer's information only — no timer closes a session."
+    "durationHint": "For the buyer's information only — no timer closes a session.",
+    "afterCommission": "after {{percent}}% platform commission"
   },
   "requests": {
     "mineTitle": "My requests",

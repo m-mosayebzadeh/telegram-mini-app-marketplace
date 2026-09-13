@@ -5,8 +5,8 @@ through admin review (see TECHNICAL_REQUIREMENTS.md, "شارژ کارت‌به�
 Deliberately its own entity, separate from CreditLedgerEntry — a request
 can sit PENDING for a while (or get REJECTED) without ever touching the
 wallet at all; only an APPROVED request produces a real ledger entry
-(see app/topup/router.py's approve endpoint). requested_stars/
-star_rate_at_request/requested_toman_amount are what the USER asked
+(see app/topup/router.py's approve endpoint). requested_drops/
+drop_rate_at_request/requested_toman_amount are what the USER asked
 for, frozen at submission time (same "freeze the rate" pattern as
 Transaction) — purely so the admin has something to cross-check the
 actual bank receipt against. The admin's own final_toman_amount at
@@ -45,8 +45,8 @@ class TopUpRequest(Base):
     # Content already uses instead of a plain static mount.
     receipt_file_path: Mapped[str] = mapped_column(String(500))
 
-    requested_stars: Mapped[int] = mapped_column(Integer)
-    star_rate_at_request: Mapped[int] = mapped_column(Integer)
+    requested_drops: Mapped[int] = mapped_column(Integer)
+    drop_rate_at_request: Mapped[int] = mapped_column(Integer)
     requested_toman_amount: Mapped[int] = mapped_column(Integer)
 
     status: Mapped[TopUpStatus] = mapped_column(

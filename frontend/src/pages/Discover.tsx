@@ -93,7 +93,7 @@ export default function Discover() {
     // truth for every other filter.
     return [...filtered].sort((a, b) =>
       sort === 'cheapest'
-        ? a.price_stars - b.price_stars
+        ? a.price_drops - b.price_drops
         : Date.parse(b.created_at) - Date.parse(a.created_at),
     )
   }, [offers, interest, sort])
@@ -105,7 +105,7 @@ export default function Discover() {
         action={
           balance && (
             <DropChip
-              amount={balance.balance_stars_equivalent}
+              amount={balance.balance_drops_equivalent}
               locale={i18n.language}
               onClick={() => navigate('/wallet')}
               label={t('wallet.title')}

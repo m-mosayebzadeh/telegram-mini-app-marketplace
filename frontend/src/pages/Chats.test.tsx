@@ -41,7 +41,7 @@ function session(overrides: Partial<ChatSession> = {}): ChatSession {
       avatar_url: null,
     },
     offer_title: 'Chat with me',
-    price_stars: 250,
+    price_drops: 250,
     display_duration_minutes: 30,
     disputed: false,
     transaction_status: 'succeeded',

@@ -13,7 +13,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 
 def _create_offer(client, auth: dict, **overrides):
     payload = {
-        "price_stars": 10,
+        "price_drops": 10,
         "display_duration_minutes": 30,
         "title": "Chat with me",
         "description": "A nice chat",
@@ -164,7 +164,7 @@ def test_activity_feed_rows_are_enriched_with_offer_price_and_counterpart_info(c
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_stars=42)
+    offer = _create_offer(client, auth_a, price_drops=42)
     client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
 
     row = client.get("/requests/activity", headers=auth_b).json()[0]

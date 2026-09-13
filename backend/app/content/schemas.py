@@ -17,7 +17,7 @@ class ContentOut(BaseModel):
     content_type: str
     duration_seconds: int | None
     is_paid: bool
-    price_stars: int | None
+    price_drops: int | None
     has_spoiler: bool
     audience_type: str
     is_pinned: bool

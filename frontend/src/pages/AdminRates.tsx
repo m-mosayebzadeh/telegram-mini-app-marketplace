@@ -42,7 +42,7 @@ export default function AdminRates() {
     setLoadError(null)
     getPlatformRates()
       .then((r) => {
-        setStarRate(String(r.star_to_toman_rate))
+        setStarRate(String(r.drop_to_toman_rate))
         setChatPercent(String(r.chat_commission_percent))
         setContentPercent(String(r.content_commission_percent))
         setWithdrawalPercent(String(r.withdrawal_commission_percent))
@@ -59,7 +59,7 @@ export default function AdminRates() {
     setBusy(true)
     try {
       await updatePlatformRates({
-        star_to_toman_rate: Number(starRate),
+        drop_to_toman_rate: Number(starRate),
         chat_commission_percent: Number(chatPercent),
         content_commission_percent: Number(contentPercent),
         minimum_withdrawal_toman: Number(minimum),

@@ -37,8 +37,8 @@ def set_rates(client, **changes):
     assert response.status_code == 200, response.text
 
 
-def give_earnings(client, db, stars):
-    """Make user 1 genuinely EARN `stars`, by running a real sale.
+def give_earnings(client, db, drops):
+    """Make user 1 genuinely EARN `drops`, by running a real sale.
 
     Withdrawals are capped at what a user earned on the platform — money they
     merely topped up can be spent here but never cashed out to a bank card —
@@ -50,8 +50,8 @@ def give_earnings(client, db, stars):
 
     set_rates(client, chat_commission_percent=0)
     buyer = client.get('/me', headers=auth(2)).json()
-    give_wallet_balance(db, buyer['id'], stars * settings.star_to_toman_rate)
-    offer = _create_offer(client, auth(1), price_stars=stars)
+    give_wallet_balance(db, buyer['id'], drops * settings.drop_to_toman_rate)
+    offer = _create_offer(client, auth(1), price_drops=drops)
     request = _create_accepted_request(client, auth(1), auth(2), offer)
     assert client.post(f"/requests/{request['id']}/pay", headers=auth(2)).status_code == 201
     transaction = db.query(Transaction).filter_by(request_id=request['id']).one()
@@ -62,14 +62,14 @@ def give_earnings(client, db, stars):
 def setup(client, db, amount=1_000_000):
     user = client.get('/me',headers=auth(1)).json()
     client.get('/me',headers=auth(99))
-    give_earnings(client, db, amount // settings.star_to_toman_rate)
+    give_earnings(client, db, amount // settings.drop_to_toman_rate)
     bank = client.post('/wallet/bank-accounts',headers=auth(1),json=BANK)
     assert bank.status_code == 201
     return user['id'], bank.json()['id']
 
-def payload(client, bank, stars=200):
-    quote = client.post('/wallet/withdrawals/quote',headers=auth(1),json={'stars':stars}).json()
-    return dict(stars=stars, bank_account_id=bank, quote_token=quote['quote_token'], idempotency_key=str(uuid4()))
+def payload(client, bank, drops=500):
+    quote = client.post('/wallet/withdrawals/quote',headers=auth(1),json={'drops':drops}).json()
+    return dict(drops=drops, bank_account_id=bank, quote_token=quote['quote_token'], idempotency_key=str(uuid4()))
 
 def create(client, body):
     return client.post('/wallet/withdrawals',headers=auth(1),json=body)
@@ -100,9 +100,9 @@ def test_snapshot_fee_hold_cancel_and_replay(client,db_session):
     assert client.post(f"/wallet/withdrawals/{row['id']}/cancel",headers=auth(1)).status_code==409
     assert balance(client)==1000000
 
-@pytest.mark.parametrize('stars',[0,-1,1.5,'200',True,1_000_000_001])
-def test_invalid_amounts(client,stars):
-    assert client.post('/wallet/withdrawals/quote',headers=auth(1),json={'stars':stars}).status_code==422
+@pytest.mark.parametrize('drops',[0,-1,1.5,'200',True,1_000_000_001])
+def test_invalid_amounts(client,drops):
+    assert client.post('/wallet/withdrawals/quote',headers=auth(1),json={'drops':drops}).status_code==422
 
 @pytest.mark.parametrize('field,value',[('card_number','123'),('iban','IR123'),('holder_name','  ')])
 def test_bank_format(client,field,value):
@@ -113,15 +113,16 @@ def test_owner_checks_and_minimum(client,db_session):
     assert create(client,payload(client,bank,199)).status_code==400
     assert balance(client)==1000000
     assert client.put(f'/wallet/bank-accounts/{bank}',headers=auth(2),json=BANK).status_code==404
-    q=client.post('/wallet/withdrawals/quote',headers=auth(2),json={'stars':200}).json()
+    q=client.post('/wallet/withdrawals/quote',headers=auth(2),json={'drops':500}).json()
     assert client.post('/wallet/withdrawals',headers=auth(2),json={**payload(client,bank),'quote_token':q['quote_token']}).status_code==404
     assert client.get('/admin/withdrawals',headers=auth(1)).status_code==403
 
 def test_stale_quote_reconfirmation_and_historical_rates(client,db_session):
     _,bank=setup(client,db_session)
     body=payload(client,bank)
-    update={'star_to_toman_rate':3000,'chat_commission_percent':10,'content_commission_percent':5,
-            'withdrawal_commission_percent':11,'complaint_commission_percent':0,'minimum_withdrawal_toman':500000}
+    update={'drop_to_toman_rate':1200,'telegram_star_to_toman_rate':2500,'chat_commission_percent':10,
+            'content_commission_percent':5,'withdrawal_commission_percent':11,'complaint_commission_percent':0,
+            'minimum_withdrawal_toman':500000}
     assert client.put('/admin/rates',headers=auth(99),json=update).status_code==200
     response=create(client,body)
     assert response.status_code==409
@@ -196,14 +197,14 @@ def test_concurrent_withdrawals_cannot_overdraw(concurrent_client,same_key):
 @pytest.mark.parametrize('purchase_kind',['content','chat'])
 def test_withdrawal_and_purchase_share_balance_lock(concurrent_client,purchase_kind):
     client,db=concurrent_client
-    _,bank=setup(client,db,500000)
+    _,bank=setup(client,db,500_000)
     body=payload(client,bank)
     client.get('/me',headers=auth(2))
     if purchase_kind=='content':
-        item=_upload(client,auth(2),is_paid=True,price_stars=200).json()
+        item=_upload(client,auth(2),is_paid=True,price_drops=500).json()
         path=f"/content/{item['id']}/purchase"
     else:
-        offer=_create_offer(client,auth(2),price_stars=200)
+        offer=_create_offer(client,auth(2),price_drops=500)
         request=_create_accepted_request(client,auth(2),auth(1),offer)
         path=f"/requests/{request['id']}/pay"
     results=race(lambda:create(client,body),lambda:client.post(path,headers=auth(1)))
@@ -222,29 +223,29 @@ def test_staff_claim_and_customer_cancel_are_exclusive(concurrent_client):
 def test_content_purchase_takes_its_commission_immediately(client,db_session):
     """Content is delivered the moment it is paid for, so there is nothing to
     wait on: the platform's cut is taken in the same breath as the charge.
-    25 stars at the default 5% is 1.25, floored to 1 in the provider's favour."""
+    25 drops at the default 5% is 1.25, floored to 1 in the provider's favour."""
     setup(client,db_session)
     client.get('/me',headers=auth(2))
-    item=_upload(client,auth(2),is_paid=True,price_stars=25).json()
+    item=_upload(client,auth(2),is_paid=True,price_drops=25).json()
     assert client.post(f"/content/{item['id']}/purchase",headers=auth(1)).status_code==201
     tx=db_session.query(Transaction).filter_by(kind='content_purchase').one()
     assert tx.commission_rate_percent==settings.content_commission_percent
-    assert tx.commission_stars==1
-    assert tx.net_provider_stars==24
-    assert tx.commission_toman==1*tx.star_to_toman_rate
+    assert tx.commission_drops==1
+    assert tx.net_provider_drops==24
+    assert tx.commission_toman==1*tx.drop_to_toman_rate
 
 
 def test_historical_pending_transaction_keeps_its_original_fee(client,db_session):
     from app.wallet.service import release_transaction
     setup(client,db_session)
     client.get('/me',headers=auth(2))
-    offer=_create_offer(client,auth(2),price_stars=40)
+    offer=_create_offer(client,auth(2),price_drops=40)
     req=_create_accepted_request(client,auth(2),auth(1),offer)
     client.post(f"/requests/{req['id']}/pay",headers=auth(1))
     tx=db_session.query(Transaction).filter_by(request_id=req['id']).one()
     tx.commission_rate_percent=10
-    tx.commission_stars=4
-    tx.net_provider_stars=36
+    tx.commission_drops=4
+    tx.net_provider_drops=36
     tx.commission_toman=10000
     tx.net_provider_toman=90000
     db_session.commit()
@@ -260,10 +261,10 @@ def test_historical_pending_transaction_keeps_its_original_fee(client,db_session
 def test_fee_is_floored_in_toman(client,db_session):
     setup(client,db_session)
     rates=get_rates(db_session)
-    rates.star_to_toman_rate=2501
+    rates.drop_to_toman_rate=2501
     rates.withdrawal_commission_percent=7
     db_session.commit()
-    q=client.post('/wallet/withdrawals/quote',headers=auth(1),json={'stars':201}).json()
+    q=client.post('/wallet/withdrawals/quote',headers=auth(1),json={'drops':201}).json()
     assert q['gross_toman']==502701
     assert q['fee_toman']==35189
     assert q['net_toman']==467512
@@ -330,6 +331,6 @@ def test_topped_up_money_cannot_be_withdrawn(client, db_session):
 def test_the_quote_reports_the_ceiling(client, db_session):
     _, bank = setup(client, db_session)
 
-    quoted = client.post('/wallet/withdrawals/quote', headers=auth(1), json={'stars': 200}).json()
+    quoted = client.post('/wallet/withdrawals/quote', headers=auth(1), json={'drops': 500}).json()
 
     assert quoted['withdrawable_toman'] == 1_000_000

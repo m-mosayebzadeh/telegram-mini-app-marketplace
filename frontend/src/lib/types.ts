@@ -44,7 +44,7 @@ export interface Me {
 export interface Balance {
   withdrawal_pending_toman: number
   balance_toman: number
-  balance_stars_equivalent: number
+  balance_drops_equivalent: number
   pending_toman: number
   /** Everything that exists but is not available right now, as one figure —
    * a chat still running, earnings inside the release grace period, and any
@@ -73,7 +73,7 @@ export interface Offer {
   id: number
   provider_id: number
   service_type: string
-  price_stars: number
+  price_drops: number
   display_duration_minutes: number
   title: string
   description: string
@@ -157,7 +157,7 @@ export interface ChatSession {
   my_role: 'buyer' | 'provider'
   other_participant: ChatSessionParticipant
   offer_title: string
-  price_stars: number
+  price_drops: number
   // Informational only — never an enforced timer (see section 3).
   display_duration_minutes: number
   disputed: boolean
@@ -174,11 +174,11 @@ export interface Transaction {
   provider_id: number
   request_id: number | null
   content_id: number | null
-  gross_price_stars: number
+  gross_price_drops: number
   commission_rate_percent: number
-  commission_stars: number
-  net_provider_stars: number
-  star_to_toman_rate: number
+  commission_drops: number
+  net_provider_drops: number
+  drop_to_toman_rate: number
   gross_price_toman: number
   commission_toman: number
   net_provider_toman: number
@@ -229,7 +229,7 @@ export interface Content {
   content_type: 'photo' | 'short_video'
   duration_seconds: number | null
   is_paid: boolean
-  price_stars: number | null
+  price_drops: number | null
   has_spoiler: boolean
   audience_type: 'public' | 'followers' | 'user' | 'group'
   is_pinned: boolean
@@ -260,7 +260,7 @@ export interface MyProfile {
  * percentages, used to show a price breakdown without a round trip per
  * keystroke (see lib/priceBreakdown.ts). */
 export interface PricingConfig {
-  star_to_toman_rate: number
+  drop_to_toman_rate: number
   chat_commission_percent: number
   content_commission_percent: number
   withdrawal_commission_percent: number
@@ -330,8 +330,8 @@ export interface StarInvoice {
 export interface TopUpRequest {
   id: number
   user_id: number
-  requested_stars: number
-  star_rate_at_request: number
+  requested_drops: number
+  drop_rate_at_request: number
   requested_toman_amount: number
   status: 'pending' | 'approved' | 'rejected'
   final_toman_amount: number | null
@@ -422,7 +422,7 @@ export interface AdminChatSession {
  * transactions/top-ups; past ones already stored their own frozen
  * rate/commission and never change retroactively. */
 export interface PlatformRates {
-  star_to_toman_rate: number
+  drop_to_toman_rate: number
   chat_commission_percent: number
   content_commission_percent: number
   withdrawal_commission_percent: number

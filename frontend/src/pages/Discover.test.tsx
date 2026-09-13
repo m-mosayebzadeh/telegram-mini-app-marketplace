@@ -22,7 +22,7 @@ function offer(overrides: Partial<Offer> & Pick<Offer, 'id'>): Offer {
   return {
     provider_id: overrides.id,
     service_type: 'chat',
-    price_stars: 100,
+    price_drops: 100,
     display_duration_minutes: 30,
     title: 'Chat with me',
     description: 'A nice chat',
@@ -45,7 +45,7 @@ function offer(overrides: Partial<Offer> & Pick<Offer, 'id'>): Offer {
 
 const balance = {
   balance_toman: 250000,
-  balance_stars_equivalent: 1240,
+  balance_drops_equivalent: 1240,
   pending_toman: 0,
   withdrawal_pending_toman: 0,
   in_flight_toman: 0,
@@ -111,8 +111,8 @@ describe('Discover', () => {
 
   it('reorders by price when the cheapest chip is picked', async () => {
     respond([
-      offer({ id: 1, price_stars: 500, created_at: '2026-03-01T00:00:00Z' }),
-      offer({ id: 2, price_stars: 120, created_at: '2026-01-01T00:00:00Z' }),
+      offer({ id: 1, price_drops: 500, created_at: '2026-03-01T00:00:00Z' }),
+      offer({ id: 2, price_drops: 120, created_at: '2026-01-01T00:00:00Z' }),
     ])
     await render()
 

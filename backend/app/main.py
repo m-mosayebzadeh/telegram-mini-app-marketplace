@@ -109,7 +109,8 @@ def read_pricing_config(
     """Current conversion and commission settings, for price previews in the UI."""
     rates = get_rates(db)
     return {
-        "star_to_toman_rate": rates.star_to_toman_rate,
+        "drop_to_toman_rate": rates.drop_to_toman_rate,
+        "telegram_star_to_toman_rate": rates.telegram_star_to_toman_rate,
         "chat_commission_percent": rates.chat_commission_percent,
         "content_commission_percent": rates.content_commission_percent,
         "withdrawal_commission_percent": rates.withdrawal_commission_percent,

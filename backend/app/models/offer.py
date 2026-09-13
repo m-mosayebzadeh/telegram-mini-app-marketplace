@@ -36,7 +36,7 @@ class Offer(Base):
         Enum(OfferServiceType, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
         default=OfferServiceType.CHAT,
     )
-    price_stars: Mapped[int] = mapped_column(Integer)
+    price_drops: Mapped[int] = mapped_column(Integer)
     # Informational only — TECHNICAL_REQUIREMENTS.md is explicit that
     # this is NOT an enforced timer; nothing in this app ever reads this
     # value to decide when a chat session should end.

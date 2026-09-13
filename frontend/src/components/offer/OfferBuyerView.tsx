@@ -75,11 +75,11 @@ export function OfferBuyerView({
           other. */}
       <section className="of-deal">
         <div className="of-deal-cell">
-          <span className="of-deal-label">{t('offers.priceStarsLabel')}</span>
+          <span className="of-deal-label">{t('offers.priceDropsLabel')}</span>
           <span className="of-deal-value">
-            <DropAmount amount={offer.price_stars} locale={i18n.language} size={24} />
+            <DropAmount amount={offer.price_drops} locale={i18n.language} size={24} />
           </span>
-          <PriceBreakdown priceStars={offer.price_stars} audience="buyer" />
+          <PriceBreakdown priceDrops={offer.price_drops} audience="buyer" />
         </div>
         <div className="of-deal-cell">
           <span className="of-deal-label">{t('offers.durationLabel')}</span>
