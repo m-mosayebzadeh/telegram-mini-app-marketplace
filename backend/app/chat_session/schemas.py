@@ -46,7 +46,12 @@ class ChatSessionOut(BaseModel):
     reserved_blocks: int
     block_duration_seconds: int
     block_price_drops: int
+    #: When the clock actually started — the provider's first message. None
+    #: means the session is reserved and still waiting for them to arrive; the
+    #: buyer may write in the meantime and it costs nothing.
+    started_at: datetime | None
     #: When it will stop on its own, honouring a stop-at-block-end request.
+    #: Before it starts, this is when the unclaimed reservation expires.
     ends_at: datetime | None
     #: Who asked for it to stop at the end of the running block, if anyone.
     close_at_block_end_by_user_id: int | None

@@ -5,6 +5,7 @@ import WalletHistory from './pages/WalletHistory'
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { IconActivity, IconChat, IconDashboard, IconDiscover, IconPersonFallback } from './components/icons'
+import { LiveSessionBar } from './components/LiveSessionBar'
 import { MeProvider, useMe } from './lib/MeContext'
 import { needsDevLogin } from './lib/session'
 import Discover from './pages/Discover'
@@ -117,6 +118,9 @@ function AppShell() {
     // .ui-page-body, which also accounts for the safe area — a single
     // fixed number here could not.
     <>
+      {/* Above the page's own header on purpose: a conversation in progress
+          outranks whatever screen you happen to be looking at. */}
+      <LiveSessionBar />
       <Routes>
         {/* The app opens on the showcase, not on your own profile —
             see TABS above. */}

@@ -65,7 +65,15 @@ class ChatSession(Base):
     consumed_toman: Mapped[int] = mapped_column(Integer, default=0)
     consumed_blocks: Mapped[int] = mapped_column(Integer, default=0)
 
-    # When the session is due to close on its own: the start plus every
+    # When the clock actually started: the provider's first message, not the
+    # moment the money was reserved. A buyer should not pay for the seconds
+    # spent waiting for the other person to arrive — and making the start an
+    # act of the provider's removes the need for any separate rule about a
+    # provider who never turns up. NULL means the session is reserved and
+    # waiting; the buyer may write in the meantime without starting anything.
+    started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    # When the session is due to close on its own: the real start plus every
     # reserved block. Storing the end rather than recomputing it is what lets
     # "has this finished?" be one comparison, with no scheduler anywhere.
     scheduled_end_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

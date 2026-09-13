@@ -50,6 +50,7 @@ def to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int) 
         reserved_blocks=chat_session.reserved_blocks,
         block_duration_seconds=chat_session.block_duration_seconds,
         block_price_drops=chat_session.block_price_drops,
+        started_at=chat_session.started_at,
         ends_at=due_end(chat_session),
         close_at_block_end_by_user_id=chat_session.close_at_block_end_by_user_id,
         consumed_blocks=chat_session.consumed_blocks,

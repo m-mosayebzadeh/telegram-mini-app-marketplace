@@ -585,5 +585,11 @@
     "noBanksHint": "To withdraw, first add a bank account in your own name.",
     "emptyWithdrawalsHint": "Once you request a withdrawal, you follow it here.",
     "tomanUnit": "Toman"
+  },
+  "liveSession": {
+    "waitingToStart": "waiting to start",
+    "minutesLeft": "{{minutes}} min left",
+    "endingNow": "ending now",
+    "returnTo": "Return to your chat with {{name}}"
   }
 }

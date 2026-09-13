@@ -25,13 +25,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.chat_session.access import get_participant_session
 from app.wallet.service import release_transaction
-from app.wallet.blocks import (
-    EndReason,
-    close_and_settle,
-    close_if_due,
-    due_end,
-    provider_has_spoken,
-)
+from app.wallet.blocks import EndReason, close_and_settle, close_if_due, due_end
 from app.chat_session.schemas import ChatSessionOut
 from app.chat_session.serializers import to_chat_session_out
 from app.core.config import settings
@@ -44,6 +38,41 @@ from app.models.user import User
 from app.profile.photos import get_current_avatar_url
 
 router = APIRouter(prefix="/chat-sessions", tags=["chat-sessions"])
+
+
+@router.get("/live", response_model=ChatSessionOut | None)
+def read_my_live_session(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut | None:
+    """
+    The one session this user is in the middle of, if any.
+
+    Deliberately its own small endpoint rather than a flag on /me: the app
+    shows a bar on every screen while a session is running, and that bar has
+    to stay right after the app is closed, reopened, or crashes. Deriving it
+    from the server on each navigation is what makes it survive all three —
+    there is no local state to lose.
+
+    Only ONE can exist at a time, which is the same rule that stops anyone
+    holding two live interactions at once.
+    """
+    sessions = (
+        db.query(ChatSession)
+        .join(Request, ChatSession.request_id == Request.id)
+        .join(Offer, Request.offer_id == Offer.id)
+        .filter(
+            or_(Request.buyer_id == current_user.id, Offer.provider_id == current_user.id),
+            ChatSession.status == ChatSessionStatus.OPEN,
+        )
+        .all()
+    )
+    for chat_session in sessions:
+        # A session whose time ran out is only closed when someone looks at
+        # it, and this endpoint is exactly such a look.
+        if close_if_due(db, chat_session).status == ChatSessionStatus.OPEN:
+            return to_chat_session_out(db, chat_session, current_user.id)
+    return None
 
 
 @router.get("/mine", response_model=list[ChatSessionOut])
@@ -87,12 +116,12 @@ def close_session(
             status_code=status.HTTP_400_BAD_REQUEST, detail="This session is already closed."
         )
 
-    # Whoever closes, every finished block belongs to the provider. Only the
-    # block still running depends on who stopped it — and a provider who never
-    # said anything at all costs the buyer nothing (see app/wallet/blocks.py).
+    # Whoever closes, every finished block belongs to the provider; only the
+    # block still running depends on who stopped it. A session the provider
+    # never started costs the buyer nothing at all, whoever closes it.
     is_buyer = chat_session.request.buyer_id == current_user.id
-    if not provider_has_spoken(db, chat_session):
-        reason = EndReason.PROVIDER_SILENT
+    if chat_session.started_at is None:
+        reason = EndReason.NOT_STARTED
     else:
         reason = EndReason.BUYER_CLOSED if is_buyer else EndReason.PROVIDER_CLOSED
     close_and_settle(

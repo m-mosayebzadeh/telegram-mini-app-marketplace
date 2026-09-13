@@ -168,7 +168,12 @@ export interface ChatSession {
   reserved_blocks: number
   block_duration_seconds: number
   block_price_drops: number
-  /** When it will stop on its own, honouring a stop-at-block-end request. */
+  /** When the clock actually started — the provider's first message. null
+   *  means the session is reserved and still waiting for them to arrive; the
+   *  buyer may write in the meantime and it costs nothing. */
+  started_at: string | null
+  /** When it will stop on its own. Before it starts, this is when the
+   *  unclaimed reservation expires. */
   ends_at: string | null
   close_at_block_end_by_user_id: number | null
   /** Filled in once it has closed. */
@@ -177,7 +182,7 @@ export interface ChatSession {
     | 'completed'
     | 'buyer_closed'
     | 'provider_closed'
-    | 'provider_silent'
+    | 'not_started'
     | null
 
   /** Whether the CALLER has signed off on the settlement. Once they have,

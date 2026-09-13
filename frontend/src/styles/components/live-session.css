@@ -1,0 +1,63 @@
+/* The live-session bar: the standing way back into a conversation that is
+   still running (see components/LiveSessionBar.tsx).
+
+   It sits above the page's own header and stays put while the page scrolls,
+   because the whole point is that it cannot be scrolled away from. It is a
+   status surface, not an action surface: one saturated dot carries the "this
+   is live" signal, and everything else stays neutral so it never competes with
+   the screen it sits on top of. */
+
+.lv-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  /* Clears the notch: this is the topmost thing on the screen. */
+  padding: calc(var(--space-2) + env(safe-area-inset-top, 0px)) var(--space-4) var(--space-2);
+
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font: var(--text-body-md);
+  text-align: start;
+  cursor: pointer;
+}
+
+.lv-bar:active {
+  background: var(--color-surface);
+}
+
+/* The one piece of saturated colour, and the only thing that says "now". */
+.lv-bar-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+}
+
+.lv-bar-name {
+  /* A long display name gives way before the status does — knowing how long is
+     left matters more than reading the whole name again. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lv-bar-status {
+  flex: none;
+  margin-inline-start: auto;
+  font: var(--text-caption);
+  color: var(--color-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.lv-bar-chevron {
+  flex: none;
+  color: var(--color-text-3);
+}

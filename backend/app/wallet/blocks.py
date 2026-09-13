@@ -27,7 +27,6 @@ from sqlalchemy.orm import Session
 from app.core.config import SESSION_BLOCK_COUNT
 from app.core.rates import get_rates, lock_finances
 from app.core.time import utcnow
-from app.models.chat_message import ChatMessage
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
 from app.models.offer import Offer
@@ -48,10 +47,11 @@ class EndReason:
     #: buyer is not charged for it. Without this asymmetry a provider could
     #: take a block's money and leave immediately.
     PROVIDER_CLOSED = "provider_closed"
-    #: The provider never said a single word in the whole first block. Fully
-    #: refunded, automatically, with no complaint and no staff involved — the
-    #: server knows the message count, so there is nothing to judge.
-    PROVIDER_SILENT = "provider_silent"
+    #: The provider never arrived, so the clock never started. Fully refunded,
+    #: automatically — there is nothing to judge, because no time was sold.
+    #: Who closed it tells the two variants apart: empty means it ran out on
+    #: its own, otherwise the provider came back and tidied it up.
+    NOT_STARTED = "not_started"
 
 
 def start_session(db: Session, *, request_id: int, offer: Offer, buyer_id: int) -> ChatSession:
@@ -72,7 +72,8 @@ def start_session(db: Session, *, request_id: int, offer: Offer, buyer_id: int) 
     if balance < reserved_toman:
         raise InsufficientBalanceError(needed_toman=reserved_toman, available_toman=balance)
 
-    started_at = utcnow()
+    # opened_at is when the money was reserved. The clock itself does not
+    # start until the provider says something (see start_clock below).
     chat_session = ChatSession(
         request_id=request_id,
         reserved_blocks=SESSION_BLOCK_COUNT,
@@ -80,8 +81,7 @@ def start_session(db: Session, *, request_id: int, offer: Offer, buyer_id: int) 
         block_price_drops=offer.block_price_drops,
         block_price_toman=offer.block_price_drops * rate,
         reserved_toman=reserved_toman,
-        opened_at=started_at,
-        scheduled_end_at=started_at + timedelta(seconds=offer.session_duration_seconds),
+        opened_at=utcnow(),
     )
     db.add(chat_session)
     db.flush()
@@ -97,11 +97,32 @@ def start_session(db: Session, *, request_id: int, offer: Offer, buyer_id: int) 
     return chat_session
 
 
+def total_duration_seconds(chat_session: ChatSession) -> int:
+    """The whole session's length, as it was sold."""
+    return chat_session.block_duration_seconds * chat_session.reserved_blocks
+
+
+def start_clock(db: Session, chat_session: ChatSession) -> None:
+    """Starts the session, on the provider's first message.
+
+    Called from the message route rather than from a timer, which is the whole
+    point: the session begins when the provider actually arrives, so the buyer
+    never pays for the wait and a provider who never comes costs them nothing.
+
+    Does NOT commit.
+    """
+    if chat_session.started_at is not None:
+        return
+    now = utcnow()
+    chat_session.started_at = now
+    chat_session.scheduled_end_at = now + timedelta(seconds=total_duration_seconds(chat_session))
+
+
 def elapsed_blocks(chat_session: ChatSession, at: datetime) -> int:
     """How many blocks have been entered by `at` — the running one counted."""
-    if chat_session.block_duration_seconds <= 0:
+    if chat_session.block_duration_seconds <= 0 or chat_session.started_at is None:
         return 0
-    seconds = max(0.0, (at - chat_session.opened_at).total_seconds())
+    seconds = max(0.0, (at - chat_session.started_at).total_seconds())
     # At least one: the first block starts the instant the session does, so a
     # buyer who closes immediately has still used it.
     return min(
@@ -112,9 +133,9 @@ def elapsed_blocks(chat_session: ChatSession, at: datetime) -> int:
 
 def completed_blocks(chat_session: ChatSession, at: datetime) -> int:
     """How many blocks have finished by `at` — the running one excluded."""
-    if chat_session.block_duration_seconds <= 0:
+    if chat_session.block_duration_seconds <= 0 or chat_session.started_at is None:
         return 0
-    seconds = max(0.0, (at - chat_session.opened_at).total_seconds())
+    seconds = max(0.0, (at - chat_session.started_at).total_seconds())
     return min(
         chat_session.reserved_blocks,
         int(seconds // chat_session.block_duration_seconds),
@@ -130,24 +151,13 @@ def consumed_blocks_for(chat_session: ChatSession, *, reason: str, at: datetime)
     buyer used part of it and pays; the provider cut it short and does not get
     to keep it.
     """
-    if reason == EndReason.PROVIDER_SILENT:
+    if reason == EndReason.NOT_STARTED:
         return 0
     if reason == EndReason.COMPLETED:
         return chat_session.reserved_blocks
     if reason == EndReason.PROVIDER_CLOSED:
         return completed_blocks(chat_session, at)
     return elapsed_blocks(chat_session, at)
-
-
-def provider_has_spoken(db: Session, chat_session: ChatSession) -> bool:
-    """Whether the provider has sent anything at all in this session."""
-    provider_id = chat_session.request.offer.provider_id
-    return (
-        db.query(ChatMessage)
-        .filter(ChatMessage.chat_session_id == chat_session.id, ChatMessage.sender_id == provider_id)
-        .first()
-        is not None
-    )
 
 
 def close_and_settle(
@@ -223,15 +233,21 @@ def close_and_settle(
     return chat_session
 
 
-def due_end(chat_session: ChatSession) -> datetime | None:
-    """When this session is due to stop, honouring a stop-at-block-end request."""
-    if chat_session.scheduled_end_at is None:
-        return None
+def due_end(chat_session: ChatSession) -> datetime:
+    """
+    When this session is due to stop.
+
+    A session that never started still expires — after the length it was sold
+    as. Reusing the session's own duration avoids inventing a second number
+    nobody has been told about, and it means a forgotten reservation cleans
+    itself up instead of sitting on the buyer's money indefinitely.
+    """
+    if chat_session.started_at is None:
+        return chat_session.opened_at + timedelta(seconds=total_duration_seconds(chat_session))
     if chat_session.close_at_block_end_by_user_id is None:
         return chat_session.scheduled_end_at
-    block_end = chat_session.opened_at + timedelta(
-        seconds=chat_session.block_duration_seconds
-        * elapsed_blocks(chat_session, utcnow())
+    block_end = chat_session.started_at + timedelta(
+        seconds=chat_session.block_duration_seconds * elapsed_blocks(chat_session, utcnow())
     )
     return min(block_end, chat_session.scheduled_end_at)
 
@@ -247,14 +263,12 @@ def close_if_due(db: Session, chat_session: ChatSession) -> ChatSession:
     if chat_session.status != ChatSessionStatus.OPEN:
         return chat_session
     end = due_end(chat_session)
-    if end is None or utcnow() < end:
+    if utcnow() < end:
         return chat_session
 
-    reason = EndReason.COMPLETED
-    # A session where the provider never spoke costs the buyer nothing, even
-    # if it ran its full length.
-    if not provider_has_spoken(db, chat_session):
-        reason = EndReason.PROVIDER_SILENT
+    # Never started means the provider never arrived: nothing was sold, so
+    # every Drop goes back to the buyer.
+    reason = EndReason.COMPLETED if chat_session.started_at is not None else EndReason.NOT_STARTED
     close_and_settle(db, chat_session, reason=reason, closed_by_user_id=None, at=end)
     db.commit()
     db.refresh(chat_session)

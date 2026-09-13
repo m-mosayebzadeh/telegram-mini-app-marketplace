@@ -37,6 +37,7 @@ function makeSession(overrides: Partial<ChatSession> = {}): ChatSession {
     reserved_blocks: 4,
     block_duration_seconds: 450,
     block_price_drops: 10,
+    started_at: null,
     ends_at: null,
     close_at_block_end_by_user_id: null,
     consumed_blocks: 0,

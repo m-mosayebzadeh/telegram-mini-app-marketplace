@@ -39,7 +39,7 @@ from app.profile.photos import get_current_avatar_url
 from app.request.schemas import IncomingRequestOut, RequestActivityOut, RequestCreate, RequestOut, RequestReject
 from app.chat_session.schemas import ChatSessionOut
 from app.chat_session.serializers import to_chat_session_out
-from app.wallet.blocks import start_session
+from app.wallet.blocks import close_if_due, start_session
 from app.wallet.service import InsufficientBalanceError
 
 router = APIRouter(prefix="/requests", tags=["requests"])
@@ -91,17 +91,32 @@ def _live_request_with_provider(db: Session, buyer_id: int, provider_id: int) ->
     return next((r for r in candidates if _is_request_still_live(db, r)), None)
 
 
-def _has_open_accepted_request(db: Session, provider_id: int) -> bool:
-    """Whether `provider_id` already has an accepted-and-not-yet-finished
-    request, on ANY of their offers — the global one-open-chat-at-a-time
-    rule."""
+def _open_accepted_request(db: Session, provider_id: int) -> Request | None:
+    """
+    The request standing between this provider and accepting anything else, if
+    there is one — the global one-open-chat-at-a-time rule.
+
+    Every candidate's session is swept first: a session whose time has run out
+    is only marked closed when someone looks at it, so without this a provider
+    could be told they have an open chat that had in fact already finished.
+    """
     accepted_requests = (
         db.query(Request)
         .join(Offer, Request.offer_id == Offer.id)
         .filter(Offer.provider_id == provider_id, Request.status == RequestStatus.ACCEPTED)
         .all()
     )
-    return any(_is_request_still_live(db, r) for r in accepted_requests)
+    for request in accepted_requests:
+        chat_session = db.query(ChatSession).filter(ChatSession.request_id == request.id).first()
+        if chat_session is not None:
+            close_if_due(db, chat_session)
+        if _is_request_still_live(db, request):
+            return request
+    return None
+
+
+def _has_open_accepted_request(db: Session, provider_id: int) -> bool:
+    return _open_accepted_request(db, provider_id) is not None
 
 
 def _get_incoming_request(db: Session, request_id: int, provider_id: int) -> Request:
@@ -317,13 +332,23 @@ def accept_request(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Only a pending request can be accepted."
         )
-    if _has_open_accepted_request(db, current_user.id):
+    blocking_request = _open_accepted_request(db, current_user.id)
+    if blocking_request is not None:
+        blocking_session = (
+            db.query(ChatSession).filter(ChatSession.request_id == blocking_request.id).first()
+        )
         # Structured, not a plain string — see create_request's identical
         # reasoning; lets the frontend show its own translated message
         # instead of the raw English text (see OfferDetail.tsx).
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"reason": "provider_has_open_accepted_request"},
+            # The id travels with the error so the app can offer a way
+            # straight to the conversation that is in the way, rather than
+            # leaving someone to hunt for it in their chat list.
+            detail={
+                "reason": "provider_has_open_accepted_request",
+                "chat_session_id": blocking_session.id if blocking_session else None,
+            },
         )
 
     req.status = RequestStatus.ACCEPTED

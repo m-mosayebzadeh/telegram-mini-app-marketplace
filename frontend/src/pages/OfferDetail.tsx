@@ -151,8 +151,13 @@ export default function OfferDetail() {
       setRequests(await apiFetch<IncomingRequest[]>(`/requests?offer_id=${id}`))
     } catch (err) {
       if (err instanceof ApiError && err.status === 400) {
-        const why = (err.body as { detail?: { reason?: string } } | null)?.detail?.reason
-        if (why === 'provider_has_open_accepted_request') {
+        const detail = (
+          err.body as { detail?: { reason?: string; chat_session_id?: number | null } } | null
+        )?.detail
+        if (detail?.reason === 'provider_has_open_accepted_request') {
+          // No dialog and no "go there" button: the live-session bar is
+          // already on screen, above this page, pointing at exactly the
+          // conversation in the way. Saying it twice would be noise.
           toast.error(t('offers.openAcceptedRequestError'))
           return
         }

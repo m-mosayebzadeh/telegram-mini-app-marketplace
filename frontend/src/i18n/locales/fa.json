@@ -585,5 +585,11 @@
     "noBanksHint": "برای برداشت، اول باید یک حساب بانکی به نام خودت اضافه کنی.",
     "emptyWithdrawalsHint": "وقتی برداشتی ثبت کنی، وضعیتش اینجا دنبال می‌شه.",
     "tomanUnit": "تومان"
+  },
+  "liveSession": {
+    "waitingToStart": "در انتظار شروع",
+    "minutesLeft": "{{minutes}} دقیقه مانده",
+    "endingNow": "در حال پایان",
+    "returnTo": "بازگشت به گفتگو با {{name}}"
   }
 }

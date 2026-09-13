@@ -51,13 +51,16 @@ def _running_session(client, db_session, *, price_drops=40, duration=1800, provi
             headers=provider,
             data={"type": "text", "text": "Hello"},
         )
+        # That message started the clock; pick the new timestamps up.
+        db_session.refresh(chat_session)
     return chat_session, provider, buyer, buyer_id
 
 
 def _start_ago(db_session, chat_session, seconds):
-    """Back-dates the start, so the session looks that many seconds old."""
-    chat_session.opened_at = utcnow() - timedelta(seconds=seconds)
-    chat_session.scheduled_end_at = chat_session.opened_at + timedelta(
+    """Back-dates the moment the provider started it, so the session looks
+    that many seconds into its running time."""
+    chat_session.started_at = utcnow() - timedelta(seconds=seconds)
+    chat_session.scheduled_end_at = chat_session.started_at + timedelta(
         seconds=chat_session.block_duration_seconds * chat_session.reserved_blocks
     )
     db_session.commit()
@@ -121,13 +124,13 @@ def test_a_buyer_who_cannot_cover_the_whole_session_cannot_start_it(client, db_s
         # Finished blocks belong to the provider no matter who closed.
         (1800, EndReason.BUYER_CLOSED, 4),
         (1800, EndReason.PROVIDER_CLOSED, 4),
-        # Never spoke: nothing is owed at all, however long it ran.
-        (1800, EndReason.PROVIDER_SILENT, 0),
+        # Never started: nothing is owed at all, whatever the clock says.
+        (1800, EndReason.NOT_STARTED, 0),
     ],
 )
 def test_consumed_blocks_follow_who_stopped_it(client, db_session, seconds_in, reason, expected):
     chat_session, _, _, _ = _running_session(client, db_session)
-    at = chat_session.opened_at + timedelta(seconds=seconds_in)
+    at = chat_session.started_at + timedelta(seconds=seconds_in)
 
     assert consumed_blocks_for(chat_session, reason=reason, at=at) == expected
 
@@ -181,16 +184,15 @@ def test_what_was_used_becomes_a_pending_transaction_with_its_commission(client,
     assert wallet["pending_toman"] == 18 * RATE
 
 
-def test_a_session_nobody_spoke_in_costs_the_buyer_nothing(client, db_session):
-    """The objective guard: the server knows the message count, so the most
-    common failure never has to reach a human."""
+def test_a_session_the_provider_never_joined_costs_the_buyer_nothing(client, db_session):
+    """No judgement is involved: the clock only starts when the provider
+    speaks, so a provider who never arrives has sold no time at all."""
     chat_session, _, buyer, _ = _running_session(client, db_session, provider_speaks=False)
-    _start_ago(db_session, chat_session, 500)
 
     client.post(f"/chat-sessions/{chat_session.id}/close", headers=buyer)
 
     db_session.refresh(chat_session)
-    assert chat_session.end_reason == EndReason.PROVIDER_SILENT
+    assert chat_session.end_reason == EndReason.NOT_STARTED
     assert chat_session.consumed_blocks == 0
     assert db_session.query(Transaction).count() == 0
     assert client.get("/wallet/balance", headers=buyer).json()["balance_toman"] == 40 * RATE
@@ -238,3 +240,135 @@ def test_settling_twice_changes_nothing(client, db_session):
         .count()
         == 1
     )
+
+
+# --- when the clock starts -------------------------------------------------
+#
+# The provider's first message, not the moment the money was reserved. The
+# buyer should not pay for the wait, and making the start an act of the
+# provider's is what removes any need for a separate no-show rule.
+
+
+def test_a_reserved_session_has_not_started_yet(client, db_session):
+    chat_session, _, buyer, _ = _running_session(client, db_session, provider_speaks=False)
+
+    body = client.get(f"/chat-sessions/{chat_session.id}", headers=buyer).json()
+
+    assert body["status"] == "open"
+    assert body["started_at"] is None
+    assert body["consumed_blocks"] == 0
+
+
+def test_the_buyer_writing_first_does_not_start_the_clock(client, db_session):
+    """Saying "I am here" while waiting is the natural thing to do, and it
+    must not cost anything."""
+    chat_session, _, buyer, _ = _running_session(client, db_session, provider_speaks=False)
+
+    client.post(
+        f"/chat-sessions/{chat_session.id}/messages",
+        headers=buyer,
+        data={"type": "text", "text": "Hi, I am here"},
+    )
+
+    db_session.refresh(chat_session)
+    assert chat_session.started_at is None
+
+
+def test_the_provider_first_message_starts_the_clock(client, db_session):
+    chat_session, provider, _, _ = _running_session(client, db_session, provider_speaks=False)
+
+    client.post(
+        f"/chat-sessions/{chat_session.id}/messages",
+        headers=provider,
+        data={"type": "text", "text": "Hello"},
+    )
+
+    db_session.refresh(chat_session)
+    assert chat_session.started_at is not None
+    assert chat_session.scheduled_end_at == chat_session.started_at + timedelta(seconds=1800)
+
+
+def test_later_provider_messages_do_not_move_the_start(client, db_session):
+    """Otherwise every reply would push the end of the session further out."""
+    chat_session, provider, _, _ = _running_session(client, db_session)
+    first_start = chat_session.started_at
+
+    client.post(
+        f"/chat-sessions/{chat_session.id}/messages",
+        headers=provider,
+        data={"type": "text", "text": "Still here"},
+    )
+
+    db_session.refresh(chat_session)
+    assert chat_session.started_at == first_start
+
+
+def test_a_reservation_nobody_started_expires_on_its_own(client, db_session):
+    """After the length it was sold as — reusing a number the buyer already
+    knows, so a forgotten reservation cleans itself up rather than sitting on
+    their money."""
+    chat_session, _, buyer, _ = _running_session(client, db_session, provider_speaks=False)
+    chat_session.opened_at = utcnow() - timedelta(seconds=1801)
+    db_session.commit()
+
+    body = client.get(f"/chat-sessions/{chat_session.id}", headers=buyer).json()
+
+    assert body["status"] == "closed"
+    assert body["end_reason"] == EndReason.NOT_STARTED
+    assert body["closed_by_user_id"] is None  # the system, not a person
+    assert client.get("/wallet/balance", headers=buyer).json()["balance_toman"] == 40 * RATE
+
+
+def test_the_provider_can_tidy_up_a_reservation_they_never_joined(client, db_session):
+    """Same outcome, and who closed it is what tells the two apart."""
+    chat_session, provider, buyer, _ = _running_session(client, db_session, provider_speaks=False)
+
+    client.post(f"/chat-sessions/{chat_session.id}/close", headers=provider)
+
+    db_session.refresh(chat_session)
+    assert chat_session.end_reason == EndReason.NOT_STARTED
+    assert chat_session.closed_by_user_id is not None
+    assert client.get("/wallet/balance", headers=buyer).json()["balance_toman"] == 40 * RATE
+
+
+# --- finding your way back -------------------------------------------------
+
+
+def test_the_live_session_is_findable_from_anywhere(client, db_session):
+    """The app shows a bar on every screen while a session runs, and it has to
+    be right after a close, a reopen, or a crash — so it comes from the server
+    each time rather than from anything the client remembers."""
+    chat_session, provider, buyer, _ = _running_session(client, db_session)
+
+    for who in (buyer, provider):
+        body = client.get("/chat-sessions/live", headers=who).json()
+        assert body is not None
+        assert body["id"] == chat_session.id
+        assert body["ends_at"] is not None
+
+
+def test_a_reserved_session_still_counts_as_live(client, db_session):
+    """Waiting for the provider to arrive is exactly when the buyer most needs
+    the way back."""
+    chat_session, _, buyer, _ = _running_session(client, db_session, provider_speaks=False)
+
+    body = client.get("/chat-sessions/live", headers=buyer).json()
+
+    assert body is not None
+    assert body["started_at"] is None
+
+
+def test_there_is_no_live_session_once_it_has_closed(client, db_session):
+    chat_session, _, buyer, _ = _running_session(client, db_session)
+    client.post(f"/chat-sessions/{chat_session.id}/close", headers=buyer)
+
+    assert client.get("/chat-sessions/live", headers=buyer).json() is None
+
+
+def test_a_session_past_its_time_is_not_reported_as_live(client, db_session):
+    """It is swept on the way past, so the bar disappears by itself rather
+    than pointing at something already over."""
+    chat_session, _, buyer, _ = _running_session(client, db_session)
+    _start_ago(db_session, chat_session, 1801)
+
+    assert client.get("/chat-sessions/live", headers=buyer).json() is None

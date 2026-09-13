@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.chat_session.access import get_participant_session
+from app.wallet.blocks import close_if_due, start_clock
 from app.chat_message.schemas import ChatMessageOut
 from app.core.database import get_db
 from app.core.storage import save_content_file
@@ -68,7 +69,9 @@ def send_message(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatMessage:
-    chat_session = get_participant_session(db, session_id, current_user.id)
+    # Reading the session is also when its own clock gets checked, so a
+    # message can never land in a session whose time already ran out.
+    chat_session = close_if_due(db, get_participant_session(db, session_id, current_user.id))
 
     # A closed session's conversation is read-only — this is the same
     # rule the frontend's composer already enforces (hiding itself once
@@ -128,6 +131,13 @@ def send_message(
         duration_seconds=message_duration,
     )
     db.add(message)
+
+    # The provider's first message is what starts the session: until they
+    # arrive, the buyer is not paying for anything. The buyer may write while
+    # waiting — that is only natural — and it starts nothing.
+    if current_user.id == chat_session.request.offer.provider_id:
+        start_clock(db, chat_session)
+
     db.commit()
     db.refresh(message)
     return message
