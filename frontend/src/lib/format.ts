@@ -1,7 +1,27 @@
-/** Strips everything except digits (0-9) from a string — e.g. turns a
- * formatted "1,000,000" back into "1000000". */
+/**
+ * Persian (۰-۹) and Arabic-Indic (٠-٩) digits folded to ASCII.
+ *
+ * The app's default language is Persian and phone keyboards follow the
+ * app, so this is the ordinary way a number arrives here — not an edge
+ * case. Every numeric field goes through it, so the same number stores
+ * identically however it was typed.
+ */
+export function toLatinDigits(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 1776))
+    .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 1632))
+}
+
+/**
+ * Everything except digits removed — "1,000,000" back to "1000000".
+ *
+ * Persian digits are folded FIRST. Stripping non-ASCII digits before
+ * folding them is the bug this function exists to make impossible: it
+ * silently deletes what a Persian speaker just typed, and the field goes
+ * blank with no explanation.
+ */
 export function digitsOnly(value: string): string {
-  return value.replace(/\D/g, '')
+  return toLatinDigits(value).replace(/\D/g, '')
 }
 
 /**

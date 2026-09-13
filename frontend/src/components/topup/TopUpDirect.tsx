@@ -91,7 +91,7 @@ export function TopUpDirect({
           rate={rate}
           help={
             rate != null
-              ? t('topup.converterRateHint', { rate: rate.toLocaleString(i18n.language) })
+              ? t('topup.converterRateHint', { rate: rate })
               : undefined
           }
         />
@@ -142,7 +142,7 @@ export function TopUpDirect({
                     {row.requested_drops.toLocaleString(i18n.language)}
                     <span className="of-own-dot" aria-hidden="true" />
                     {t('wallet.tomanAmount', {
-                      amount: row.requested_toman_amount.toLocaleString(i18n.language),
+                      amount: row.requested_toman_amount,
                     })}
                   </span>
                   {row.status === 'approved' && row.final_toman_amount != null && (

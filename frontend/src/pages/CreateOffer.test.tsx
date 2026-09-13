@@ -35,10 +35,22 @@ function type(selector: string, value: string) {
   })
 }
 
-function fill({ price, duration }: { price: string; duration: string }) {
+/** The duration is a stepper and a row of presets now, not a text field:
+ *  it can only ever produce a legal value, so there is nothing to type
+ *  and nothing to reject. */
+function setDuration(minutes: number) {
+  const more = [...container.querySelectorAll<HTMLButtonElement>('.df-step')].at(-1)!
+  // First tap lands on the minimum, then one step at a time. Each click
+  // gets its own act() — batched into one, they would all read the same
+  // pre-click state and the value would move by a single step.
+  const steps = Math.round((minutes - 20) / 5)
+  for (let i = 0; i <= steps; i += 1) act(() => more.click())
+}
+
+function fill({ price, duration }: { price: string; duration: number }) {
   type('#offer-title', 'Chat with me')
   type('#offer-price', price)
-  type('#offer-duration', duration)
+  setDuration(duration)
   type('#offer-description', 'A nice chat')
 }
 
@@ -71,30 +83,52 @@ describe('creating an offer', () => {
   it('refuses a price that will not split into whole blocks', () => {
     // A session is settled one block at a time, so 42 Drops would leave a
     // half Drop in every single settlement.
-    fill({ price: '42', duration: '30' })
+    fill({ price: '42', duration: 30 })
 
     expect(container.textContent).toContain('offers.priceMustFitBlocks')
     expect(submitButton().disabled).toBe(true)
   })
 
   it('names the nearest workable prices instead of only complaining', () => {
-    fill({ price: '42', duration: '30' })
+    fill({ price: '42', duration: 30 })
 
     expect(container.textContent).toContain('40')
     expect(container.textContent).toContain('44')
   })
 
   it('spells out what a buyer is actually buying', () => {
-    fill({ price: '100', duration: '30' })
+    fill({ price: '100', duration: 30 })
 
-    // Four blocks of 7.5 minutes at 25 Drops each.
+    // Four blocks of 7 minutes 30 seconds at 25 Drops each. The length is
+    // said in minutes AND seconds rather than as "7.5 minutes", which is
+    // not a number anyone thinks in.
     expect(container.textContent).toContain('offers.blockBreakdown')
-    expect(container.textContent).toContain('7.5')
-    expect(container.textContent).toContain('25')
+    // The mock nests one JSON blob inside another, so the inner quotes
+    // arrive escaped; the regex is tolerant of that rather than encoding
+    // the mock's own formatting into the expectation.
+    expect(container.textContent).toMatch(/minutes.{1,3}:7,.{1,3}seconds.{1,3}:30/)
+    expect(container.textContent).toContain('"price":25')
+  })
+
+  it('offers lengths whose blocks are whole minutes', () => {
+    // Every preset divides into four whole-minute blocks — 60 minutes is
+    // four 15-minute blocks, which reads as something a person chose.
+    const presets = [...container.querySelectorAll('.df-presets .ui-chip')]
+    expect(presets.length).toBeGreaterThan(0)
+    act(() => (presets[2] as HTMLButtonElement).click())
+
+    expect(container.textContent).toMatch(/minutes.{1,3}:15/)
+  })
+
+  it('cannot be stepped below the shortest session it sells', () => {
+    const less = container.querySelector<HTMLButtonElement>('.df-step')!
+    act(() => less.click())
+
+    expect(less.disabled).toBe(true)
   })
 
   it('sends the duration in seconds, which is what makes blocks exact', async () => {
-    fill({ price: '100', duration: '30' })
+    fill({ price: '100', duration: 30 })
 
     await act(async () => submitButton().click())
 

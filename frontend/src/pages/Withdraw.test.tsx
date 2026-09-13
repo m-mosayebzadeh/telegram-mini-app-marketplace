@@ -141,7 +141,7 @@ describe('withdrawal confirmation', () => {
     await click('finance.confirmWithdrawal')
     expect(mocks.api).toHaveBeenCalledTimes(1)
     expect(host.textContent).toContain('finance.errors.quote_changed')
-    expect(host.textContent).toContain('400,000')
+    expect(host.textContent).toContain('400000')
     await click('finance.confirmWithdrawal')
     expect(mocks.api).toHaveBeenCalledTimes(2)
     const first = JSON.parse(mocks.api.mock.calls[0][1].body)

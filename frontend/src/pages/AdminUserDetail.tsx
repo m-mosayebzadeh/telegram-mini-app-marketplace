@@ -161,13 +161,13 @@ export default function AdminUserDetail() {
             {
               label: t('admin.userDetailBalance'),
               value: t('wallet.tomanAmount', {
-                amount: user.balance_toman.toLocaleString(i18n.language),
+                amount: user.balance_toman,
               }),
             },
             {
               label: t('admin.userDetailPending'),
               value: t('wallet.tomanAmount', {
-                amount: user.pending_toman.toLocaleString(i18n.language),
+                amount: user.pending_toman,
               }),
             },
           ]}
@@ -285,7 +285,7 @@ export default function AdminUserDetail() {
               <span className="ui-row-main">
                 <span className="ui-row-title tabular">
                   {t('wallet.tomanAmount', {
-                    amount: tx.gross_price_toman.toLocaleString(i18n.language),
+                    amount: tx.gross_price_toman,
                   })}
                 </span>
                 <span className="ui-row-subtitle">{tx.kind}</span>

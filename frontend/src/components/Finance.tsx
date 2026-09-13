@@ -8,7 +8,7 @@ export function MoneySummary({
 }: {
   quote: WithdrawalQuote | Withdrawal
 }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   return (
     <dl className="finance-summary">
       {(['gross_toman', 'fee_toman', 'net_toman'] as const).map((key) => (
@@ -19,7 +19,7 @@ export function MoneySummary({
           </dt>
           <dd>
             {t('finance.toman', {
-              amount: quote[key].toLocaleString(i18n.language),
+              amount: quote[key],
             })}
           </dd>
         </div>

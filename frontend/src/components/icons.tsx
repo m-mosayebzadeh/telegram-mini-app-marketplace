@@ -386,3 +386,11 @@ export function IconBan({ size = 24, className }: IconProps) {
     </svg>
   )
 }
+
+export function IconMinus({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+      <path d="M5 12h14" />
+    </svg>
+  )
+}

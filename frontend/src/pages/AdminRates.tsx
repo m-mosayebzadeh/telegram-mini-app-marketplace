@@ -12,6 +12,7 @@ import {
   useToast,
 } from '../components/ui'
 import { IconShieldLock } from '../components/icons'
+import { digitsOnly } from '../lib/format'
 import { useMe } from '../lib/MeContext'
 
 /** "مالی → کارمزدها" — edit the Drop-to-Toman peg and every commission
@@ -229,7 +230,7 @@ function RateField({ id, label, unit, value, onChange, hint, invalid }: RateFiel
           inputMode="numeric"
           value={value}
           onChange={(event) =>
-            onChange(event.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''))
+            onChange(digitsOnly(event.target.value).replace(/^0+(?=\d)/, ''))
           }
           placeholder="0"
           aria-invalid={invalid || undefined}

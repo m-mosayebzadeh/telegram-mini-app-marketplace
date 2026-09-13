@@ -222,7 +222,7 @@ export default function AdminWithdrawals() {
   )
 }
 function MoneySummaryForReview({ row }: { row: Withdrawal }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   return (
     <p>
       {row.holder_name}
@@ -233,7 +233,7 @@ function MoneySummaryForReview({ row }: { row: Withdrawal }) {
       <br />
       {t('finance.net_toman')}:{' '}
       {t('finance.toman', {
-        amount: row.net_toman.toLocaleString(i18n.language),
+        amount: row.net_toman,
       })}
     </p>
   )

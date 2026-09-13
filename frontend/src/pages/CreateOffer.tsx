@@ -5,6 +5,7 @@ import { PriceBreakdown } from '../components/PriceBreakdown'
 import { DropAmountField } from '../components/topup/DropAmountField'
 import { apiFetch, formatApiError } from '../lib/api'
 import { PageHeader, Button, useToast } from '../components/ui'
+import { DurationField, STEP_MINUTES } from '../components/offer/DurationField'
 
 /** What a title and a description are allowed to be — the same limits
  *  the backend enforces (see backend/app/offer/schemas.py), stated here
@@ -31,29 +32,37 @@ export default function CreateOffer() {
 
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
-  const [duration, setDuration] = useState('')
+  // Minutes. 0 until a length is chosen, which is what keeps the
+  // submit button honest about an untouched form.
+  const [duration, setDuration] = useState(0)
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   // Every field is required by the backend, so the button says so by
   // staying disabled rather than letting someone submit and be told.
-  // A session is paid for and settled one block at a time, so its price has to
-  // split into whole blocks. Rather than rejecting the number afterwards, the
-  // form says what the nearest workable prices are while it is being typed.
+  //
+  // A session is paid for and settled one block at a time, so its price
+  // has to split into whole blocks. Rather than rejecting the number
+  // afterwards, the form says what the nearest workable prices are while
+  // it is being typed.
   const priceDrops = Number(price)
   const priceFitsBlocks = priceDrops > 0 && priceDrops % SESSION_BLOCK_COUNT === 0
-  const nearestPrices = priceDrops > 0 && !priceFitsBlocks
-    ? [
-        Math.floor(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
-        Math.ceil(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
-      ].filter((value) => value > 0)
-    : []
+  const nearestPrices =
+    priceDrops > 0 && !priceFitsBlocks
+      ? [
+          Math.floor(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
+          Math.ceil(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
+        ].filter((value) => value > 0)
+      : []
 
   const complete =
     title.trim().length > 0 &&
     description.trim().length > 0 &&
     priceFitsBlocks &&
-    Number(duration) > 0
+    // The duration control can only produce a legal value, so there is
+    // nothing to check beyond "has one been chosen".
+    duration > 0 &&
+    duration % STEP_MINUTES === 0
 
   async function submit() {
     setSubmitting(true)
@@ -62,7 +71,7 @@ export default function CreateOffer() {
         method: 'POST',
         body: JSON.stringify({
           price_drops: Number(price),
-          session_duration_seconds: Number(duration) * 60,
+          session_duration_seconds: duration * 60,
           title: title.trim(),
           description: description.trim(),
         }),
@@ -120,36 +129,12 @@ export default function CreateOffer() {
             </span>
           )}
 
-          <label className="ui-field" htmlFor="offer-duration">
-            <span className="ui-field-label">{t('offers.durationLabel')}</span>
-            <div className="ui-input-group">
-              <input
-                id="offer-duration"
-                className="ui-input ui-input-numeric"
-                type="text"
-                inputMode="numeric"
-                value={duration}
-                onChange={(event) =>
-                  setDuration(event.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''))
-                }
-                placeholder="0"
-              />
-              <span className="ui-input-group-addon">{t('offers.minutesUnit')}</span>
-            </div>
-            {/* The duration is a commitment now, not a hint: the session runs
-                exactly this long and closes itself at the end of the last
-                block. Showing the block breakdown here is the clearest way to
-                explain what the buyer is actually buying. */}
-            <span className="ui-field-help">
-              {priceFitsBlocks && Number(duration) > 0
-                ? t('offers.blockBreakdown', {
-                    blocks: SESSION_BLOCK_COUNT,
-                    minutes: (Number(duration) / SESSION_BLOCK_COUNT).toLocaleString(i18n.language),
-                    price: (priceDrops / SESSION_BLOCK_COUNT).toLocaleString(i18n.language),
-                  })
-                : t('offers.durationHint')}
-            </span>
-          </label>
+          <DurationField
+            minutes={duration}
+            onChange={setDuration}
+            blockCount={SESSION_BLOCK_COUNT}
+            pricePerBlock={priceFitsBlocks ? priceDrops / SESSION_BLOCK_COUNT : null}
+          />
 
           <label className="ui-field" htmlFor="offer-description">
             <span className="ui-field-label">

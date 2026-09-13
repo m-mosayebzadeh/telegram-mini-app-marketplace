@@ -13,6 +13,7 @@ import {
   SkeletonRows,
 } from '../components/ui'
 import { IconDrop, IconPersonFallback, IconShieldLock } from '../components/icons'
+import { digitsOnly } from '../lib/format'
 import { Sheet } from '../components/ui/Sheet'
 import { fetchTopUpReceiptBlobUrl } from '../lib/topupApi'
 import { useMe } from '../lib/MeContext'
@@ -195,7 +196,7 @@ export default function AdminTopUps() {
                       {r.requested_drops.toLocaleString(i18n.language)}
                       <span className="of-own-dot" aria-hidden="true" />
                       {t('wallet.tomanAmount', {
-                        amount: r.requested_toman_amount.toLocaleString(i18n.language),
+                        amount: r.requested_toman_amount,
                       })}
                     </span>
                   </span>
@@ -287,7 +288,7 @@ export default function AdminTopUps() {
                       inputMode="numeric"
                       value={finalAmount}
                       onChange={(e) =>
-                        setFinalAmount(e.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''))
+                        setFinalAmount(digitsOnly(e.target.value).replace(/^0+(?=\d)/, ''))
                       }
                     />
                     <span className="ui-input-group-addon">{t('finance.tomanUnit')}</span>
@@ -296,7 +297,7 @@ export default function AdminTopUps() {
                       against it without leaving the sheet. */}
                   <span className="ui-field-help tabular">
                     {t('admin.approveRequestedHint', {
-                      amount: reviewing.request.requested_toman_amount.toLocaleString(i18n.language),
+                      amount: reviewing.request.requested_toman_amount,
                     })}
                   </span>
                 </label>
@@ -339,8 +340,8 @@ export default function AdminTopUps() {
         <ConfirmDialog
           title={t('admin.amountMismatchTitle')}
           text={t('admin.amountMismatchBody', {
-            requested: reviewing.request.requested_toman_amount.toLocaleString(i18n.language),
-            final: Number(finalAmount).toLocaleString(i18n.language),
+            requested: reviewing.request.requested_toman_amount,
+            final: Number(finalAmount),
           })}
           confirmLabel={t('admin.amountMismatchConfirm')}
           destructive

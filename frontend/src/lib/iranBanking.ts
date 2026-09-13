@@ -8,18 +8,10 @@
  * eye at all, which is the point of the formatting here.
  */
 
-/** Persian and Arabic-Indic digits typed on a Persian keyboard, folded
- *  to ASCII so the same number is stored however it was entered. */
-export function toLatinDigits(value: string): string {
-  return value
-    .replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 1776))
-    .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 1632))
-}
-
-/** Everything except 0-9 removed, Persian digits folded first. */
-export function onlyDigits(value: string): string {
-  return toLatinDigits(value).replace(/\D/g, '')
-}
+// Digit handling is the same everywhere in the app, so it lives in one
+// place; these are re-exported because the bank fields read better
+// importing them alongside the formatters below.
+export { digitsOnly as onlyDigits, toLatinDigits } from './format'
 
 export const CARD_LENGTH = 16
 /** An Iranian IBAN is IR plus 24 digits. Only the digits are typed; the

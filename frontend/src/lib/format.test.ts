@@ -1,7 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { digitsOnly, formatThousands } from './format'
+import { digitsOnly, formatThousands, toLatinDigits } from './format'
+
+describe('toLatinDigits', () => {
+  it('folds Persian digits', () => {
+    expect(toLatinDigits('۱۲۳۴۵۶۷۸۹۰')).toBe('1234567890')
+  })
+
+  it('folds Arabic-Indic digits', () => {
+    expect(toLatinDigits('١٢٣٤٥٦٧٨٩٠')).toBe('1234567890')
+  })
+
+  it('leaves Latin digits and surrounding text alone', () => {
+    expect(toLatinDigits('IR12 ab')).toBe('IR12 ab')
+  })
+})
 
 describe('digitsOnly', () => {
+  it('keeps a number typed in Persian rather than deleting it', () => {
+    // The app defaults to Persian and the phone keyboard follows the
+    // app, so this is the ordinary case. Stripping non-ASCII digits
+    // before folding them blanked the field with no explanation — which
+    // is the bug this test exists to keep away.
+    expect(digitsOnly('۱۰۰')).toBe('100')
+    expect(digitsOnly('۱٬۰۰۰')).toBe('1000')
+  })
+
   it('strips commas', () => {
     expect(digitsOnly('1,000,000')).toBe('1000000')
   })

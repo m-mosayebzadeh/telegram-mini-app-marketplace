@@ -26,7 +26,7 @@ export function PriceBreakdown({
   priceDrops: number
   audience?: 'buyer' | 'provider'
 }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const [pricing, setPricing] = useState<PricingConfig | null>(null)
   useEffect(() => {
     let active = true
@@ -53,7 +53,7 @@ export function PriceBreakdown({
   return (
     <span className="ui-stat-note">
       {t(isProvider ? 'offers.providerNetEarnings' : 'offers.priceInToman', {
-        amount: toman.toLocaleString(i18n.language),
+        amount: toman,
       })}
       {isProvider && commissionPercent > 0 && (
         <> · {t('offers.afterCommission', { percent: commissionPercent })}</>

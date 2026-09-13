@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { IconDrop } from '../icons'
+import { digitsOnly } from '../../lib/format'
 
 interface DropAmountFieldProps {
   id: string
@@ -46,7 +47,7 @@ export function DropAmountField({
           // "00100" looks like a different, smaller number than the 100
           // it actually parses to.
           onChange={(event) =>
-            onChange(event.target.value.replace(/[^\d]/g, '').replace(/^0+(?=\d)/, ''))
+            onChange(digitsOnly(event.target.value).replace(/^0+(?=\d)/, ''))
           }
           placeholder="0"
         />

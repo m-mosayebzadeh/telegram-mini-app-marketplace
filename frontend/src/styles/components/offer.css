@@ -191,3 +191,50 @@
   margin-inline-start: var(--space-2);
   vertical-align: -0.25em;
 }
+
+/* ---------- duration picker ---------- */
+
+.df-presets {
+  margin-block: var(--space-2);
+}
+
+/* A stepper, not a text field: the value can only ever be legal, so
+   there is no error state to design and nothing to reject after the
+   fact. */
+.df-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 52px;
+  padding-inline: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.df-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-full);
+  color: var(--color-accent-ink);
+}
+
+.df-step:active:not(:disabled) {
+  background: var(--color-surface-2);
+}
+
+.df-step:disabled {
+  opacity: 0.35;
+}
+
+.df-value {
+  flex: 1;
+  text-align: center;
+  font: var(--text-heading);
+  color: var(--color-text);
+}

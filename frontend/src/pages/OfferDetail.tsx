@@ -30,7 +30,7 @@ import type { Balance, ChatSession, IncomingRequest, Offer } from '../lib/types'
 type Refusal = { kind: 'daily_cap'; limit: number } | { kind: 'live_conflict' } | { kind: 'funds' }
 
 export default function OfferDetail() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -205,8 +205,8 @@ export default function OfferDetail() {
         <ConfirmDialog
           title={t('offers.insufficientBalanceTitle')}
           text={t('offers.insufficientBalanceMessage', {
-            drops: missingDrops.toLocaleString(i18n.language),
-            toman: (missingDrops * (dropToTomanRate ?? 0)).toLocaleString(i18n.language),
+            drops: missingDrops,
+            toman: (missingDrops * (dropToTomanRate ?? 0)),
           })}
           confirmLabel={t('offers.quickTopUpButton')}
           onCancel={() => setRefusal(null)}

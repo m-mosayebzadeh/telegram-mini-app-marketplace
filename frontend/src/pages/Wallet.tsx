@@ -37,7 +37,7 @@ export default function WalletPage() {
 
   useEffect(load, [load])
 
-  const format = (toman: number) => toman.toLocaleString(i18n.language)
+  const format = (toman: number) => toman
 
   return (
     <div className="ui-page">

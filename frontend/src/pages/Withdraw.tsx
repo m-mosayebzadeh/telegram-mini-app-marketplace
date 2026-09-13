@@ -200,25 +200,25 @@ export default function Withdraw() {
                   label: t('finance.drops'),
                   value: <DropAmount amount={quote.drops} locale={i18n.language} size={16} />,
                   note: t('finance.rate', {
-                    amount: quote.drop_rate.toLocaleString(i18n.language),
+                    amount: quote.drop_rate,
                   }),
                 },
                 {
                   label: t('finance.gross_toman'),
                   value: t('finance.toman', {
-                    amount: quote.gross_toman.toLocaleString(i18n.language),
+                    amount: quote.gross_toman,
                   }),
                 },
                 {
                   label: `${t('finance.fee_toman')} (${quote.fee_percent}%)`,
                   value: t('finance.toman', {
-                    amount: quote.fee_toman.toLocaleString(i18n.language),
+                    amount: quote.fee_toman,
                   }),
                 },
                 {
                   label: t('finance.net_toman'),
                   value: t('finance.toman', {
-                    amount: quote.net_toman.toLocaleString(i18n.language),
+                    amount: quote.net_toman,
                   }),
                 },
               ]}
@@ -226,7 +226,7 @@ export default function Withdraw() {
 
             <p className="wd-note">
               {t('finance.minimum', {
-                amount: quote.minimum_toman.toLocaleString(i18n.language),
+                amount: quote.minimum_toman,
               })}
             </p>
             {/* Only money EARNED on the platform can be withdrawn, so the
@@ -235,7 +235,7 @@ export default function Withdraw() {
                 a clear limit and a rejected request. */}
             <p className="wd-note">
               {t('finance.withdrawableCeiling', {
-                amount: quote.withdrawable_toman.toLocaleString(i18n.language),
+                amount: quote.withdrawable_toman,
               })}
             </p>
 

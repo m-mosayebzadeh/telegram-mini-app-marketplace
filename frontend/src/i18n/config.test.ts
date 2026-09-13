@@ -39,8 +39,28 @@ describe('i18n config', () => {
   })
 
   it('interpolates values into a templated string', () => {
-    const result = i18n.t('wallet.pendingValue', { toman: '1,000' })
-    expect(result).toContain('1,000')
+    const result = i18n.t('wallet.pendingValue', { toman: 1000 })
+    expect(result).toContain('۱٬۰۰۰')
+  })
+
+  it('renders an interpolated number in the reader own digits', async () => {
+    // The translation declares "{{toman, number}}" and the call site
+    // passes a plain number, so no screen has to remember to localise
+    // one — which is exactly how Persian text ended up reading
+    // "10٪ کارمزد" beside "۲۵ دراپ".
+    await i18n.changeLanguage('fa')
+    expect(i18n.t('wallet.pendingValue', { toman: 90000 })).toContain('۹۰٬۰۰۰')
+
+    await i18n.changeLanguage('en')
+    expect(i18n.t('wallet.pendingValue', { toman: 90000 })).toContain('90,000')
+
+    await i18n.changeLanguage('fa')
+  })
+
+  it('leaves a string value alone', async () => {
+    // A name, a username, a search query: already the caller decision,
+    // and never to be second-guessed by a number formatter.
+    expect(i18n.t('activityPage.sentTo', { name: 'Sara' })).toContain('Sara')
   })
 
   it('sets <html dir="rtl" lang="fa"> for Persian and flips to ltr/en for English', async () => {

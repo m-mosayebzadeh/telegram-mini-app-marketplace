@@ -70,7 +70,7 @@ export default function WalletHistory() {
                       <bdi>
                         {credit ? '+' : '−'}
                         {t('finance.toman', {
-                          amount: Math.abs(entry.amount_toman).toLocaleString(i18n.language),
+                          amount: Math.abs(entry.amount_toman),
                         })}
                       </bdi>
                     </span>

@@ -69,7 +69,9 @@ describe('wallet screen', () => {
     await render()
 
     expect(container.textContent).toContain('wallet.inFlight')
-    expect(container.textContent).toContain('300,000')
+    // The mock renders the interpolation object verbatim; the real
+    // t() formats it (see i18n/config.test.ts).
+    expect(container.textContent).toContain('300000')
   })
 
   it('never shows the withdrawal ceiling here — it belongs on the withdraw screen', async () => {
