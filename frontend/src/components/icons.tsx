@@ -477,3 +477,12 @@ export function IconCopy({ size = 24, className }: IconProps) {
     </svg>
   )
 }
+
+export function IconPause({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <rect x="7" y="5" width="3.5" height="14" rx="1.2" />
+      <rect x="13.5" y="5" width="3.5" height="14" rx="1.2" />
+    </svg>
+  )
+}

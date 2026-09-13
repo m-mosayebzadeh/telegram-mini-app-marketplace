@@ -194,7 +194,7 @@
     "dropUnit": "دراپ",
     "cardNumberLabel": "شماره کارت مقصد",
     "historyEmptyHint": "رسیدهایی که می‌فرستی و نتیجه‌شون اینجا میاد.",
-    "amountLabel": "چقدر شارژ می‌کنی؟",
+    "amountLabel": "مقدار",
     "transferLabel": "مبلغ واریزی",
     "rateHint": "هر دراپ {{rate, number}} تومان"
   },
@@ -507,7 +507,12 @@
     "settlementNotYet": "هنوز چیزی خرج نشده — پول رزرو است",
     "settlementNothingOwed": "چیزی مصرف نشد",
     "seconds": "{{seconds, number}} ثانیه",
-    "blockPosition": "بلوک {{current, number}} از {{total, number}}"
+    "blockPosition": "بلوک {{current, number}} از {{total, number}}",
+    "micDenied": "دسترسی به میکروفون داده نشد.",
+    "voicePlay": "پخش",
+    "voicePause": "توقف",
+    "openPhoto": "دیدن عکس",
+    "openVideo": "پخش ویدیو"
   },
   "finance": {
     "banks": "حساب‌های بانکی من",

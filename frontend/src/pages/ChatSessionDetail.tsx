@@ -8,6 +8,7 @@ import { mergeMessages } from '../lib/chatMessageMerge'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
 import { ChatHeader } from '../components/chat/ChatHeader'
 import { SessionSheet } from '../components/chat/SessionSheet'
+import { MediaViewer } from '../components/chat/MediaViewer'
 import { BlockBar } from '../components/chat/BlockBar'
 import { WaitingToStart } from '../components/chat/WaitingToStart'
 import { MessageList } from '../components/chat/MessageList'
@@ -44,6 +45,10 @@ export default function ChatSessionDetail() {
   const [session, setSession] = useState<ChatSession | null>(null)
   const [sessionError, setSessionError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  // One viewer at a time, owned by the page rather than by a bubble.
+  const [viewing, setViewing] = useState<{ url: string; kind: 'photo' | 'video' } | null>(
+    null,
+  )
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
   const [closingSession, setClosingSession] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -197,6 +202,7 @@ export default function ChatSessionDetail() {
         loading={messagesLoading}
         error={messagesError}
         onRetry={retryMessage}
+        onOpenMedia={(url, kind = 'photo') => setViewing({ url, kind })}
       />
 
       <Composer
@@ -206,7 +212,10 @@ export default function ChatSessionDetail() {
         onSendVideo={(mediaUrl, file, durationSeconds) =>
           send({ type: 'video', media_url: mediaUrl, file, duration_seconds: durationSeconds })
         }
-        onSendVoice={(durationSeconds) => send({ type: 'voice', duration_seconds: durationSeconds })}
+        onSendVoice={(mediaUrl, file, durationSeconds) =>
+          send({ type: 'voice', media_url: mediaUrl, file, duration_seconds: durationSeconds })
+        }
+        onRecordingError={(message) => toast.error(message)}
       />
 
       {sheetOpen && (
@@ -242,6 +251,10 @@ export default function ChatSessionDetail() {
           onConfirm={confirmCloseSession}
           busy={closingSession}
         />
+      )}
+
+      {viewing && (
+        <MediaViewer url={viewing.url} kind={viewing.kind} onClose={() => setViewing(null)} />
       )}
 
       {reportOpen && <ReportModal onClose={() => setReportOpen(false)} />}

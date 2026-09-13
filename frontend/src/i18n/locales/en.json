@@ -194,7 +194,7 @@
     "dropUnit": "Drop",
     "cardNumberLabel": "Transfer to this card",
     "historyEmptyHint": "Receipts you send, and what came of them, show up here.",
-    "amountLabel": "How much?",
+    "amountLabel": "Amount",
     "transferLabel": "Transfer",
     "rateHint": "{{rate, number}} Toman per Drop"
   },
@@ -507,7 +507,12 @@
     "settlementNotYet": "Nothing spent yet — the money is reserved",
     "settlementNothingOwed": "Nothing was used",
     "seconds": "{{seconds, number}}s",
-    "blockPosition": "Block {{current, number}} of {{total, number}}"
+    "blockPosition": "Block {{current, number}} of {{total, number}}",
+    "micDenied": "Microphone access was refused.",
+    "voicePlay": "Play",
+    "voicePause": "Pause",
+    "openPhoto": "View photo",
+    "openVideo": "Play video"
   },
   "finance": {
     "banks": "My bank accounts",

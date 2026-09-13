@@ -112,13 +112,25 @@ def send_message(
         text = None
         message_duration = duration_seconds
 
-    else:  # VOICE — simulated recording, never a real file (see app/models/chat_message.py)
+    else:  # VOICE
         if duration_seconds is None or not (0 < duration_seconds <= MAX_CHAT_VOICE_DURATION_SECONDS):
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 f"duration_seconds must be between 1 and {MAX_CHAT_VOICE_DURATION_SECONDS} for a voice message.",
             )
-        file_path = None
+        # Real audio now. A voice message used to store only its length,
+        # which meant the recipient had a bubble saying "8 seconds" and
+        # no way to hear the eight seconds -- a control that looked like
+        # a feature and was not one.
+        #
+        # The file stays OPTIONAL rather than required, because older
+        # messages recorded before this have no bytes and must keep
+        # rendering; the frontend shows those without a play control
+        # instead of offering one that cannot work.
+        if file is None:
+            file_path = None
+        else:
+            file_path = save_content_file(current_user.id, file)
         text = None
         message_duration = duration_seconds
 
@@ -150,10 +162,14 @@ def get_message_file(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> FileResponse:
-    """The actual bytes of a photo/video message — a text or voice
-    message has no file at all (voice is a simulated recording, never a
-    real one; see app/models/chat_message.py), so both 404 here the same
-    as a message that doesn't exist."""
+    """
+    The actual bytes of a photo, video or voice message.
+
+    A text message has no file, and neither do voice messages recorded
+    before real audio existed (see send_message). Both 404 here, the same
+    as a message that does not exist -- the caller cannot tell the
+    difference and does not need to.
+    """
     get_participant_session(db, session_id, current_user.id)
 
     message = db.get(ChatMessage, message_id)

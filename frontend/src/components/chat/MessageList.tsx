@@ -10,6 +10,7 @@ interface MessageListProps {
   loading: boolean
   error: string | null
   onRetry: (message: ChatMessage) => void
+  onOpenMedia: (url: string, kind?: 'photo' | 'video') => void
 }
 
 /**
@@ -21,7 +22,14 @@ interface MessageListProps {
  * layer itself, so adding "load older messages" later only means the
  * parent page passing a longer array — no change needed here.
  */
-export function MessageList({ messages, viewerId, loading, error, onRetry }: MessageListProps) {
+export function MessageList({
+  messages,
+  viewerId,
+  loading,
+  error,
+  onRetry,
+  onOpenMedia,
+}: MessageListProps) {
   const { t } = useTranslation()
 
   if (loading) {
@@ -70,6 +78,7 @@ export function MessageList({ messages, viewerId, loading, error, onRetry }: Mes
               message={message}
               isMine={message.sender_id === viewerId}
               onRetry={onRetry}
+              onOpenMedia={onOpenMedia}
             />
           ))}
         </Fragment>

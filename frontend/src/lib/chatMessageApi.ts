@@ -44,15 +44,23 @@ interface ChatMessageApiRow {
 const fileUrlCache = new Map<number, string>()
 
 async function resolveMediaUrl(sessionId: number, row: ChatMessageApiRow): Promise<string | null> {
-  if (row.type !== 'photo' && row.type !== 'video') return null
+  if (row.type === 'text') return null
 
   const cached = fileUrlCache.get(row.id)
   if (cached) return cached
 
-  const blob = await apiFetchBlob(`/chat-sessions/${sessionId}/messages/${row.id}/file`)
-  const url = URL.createObjectURL(blob)
-  fileUrlCache.set(row.id, url)
-  return url
+  try {
+    const blob = await apiFetchBlob(`/chat-sessions/${sessionId}/messages/${row.id}/file`)
+    const url = URL.createObjectURL(blob)
+    fileUrlCache.set(row.id, url)
+    return url
+  } catch {
+    // A voice message recorded before real audio existed has no bytes on
+    // disk and 404s here. That is not an error to surface: the bubble
+    // renders without a play control rather than offering one that
+    // cannot work.
+    return null
+  }
 }
 
 async function toChatMessage(sessionId: number, row: ChatMessageApiRow): Promise<ChatMessage> {
@@ -107,7 +115,7 @@ export function composeMessage(session: ChatSession, senderId: number, content: 
     sender_id: senderId,
     type: content.type,
     text: content.type === 'text' ? content.text : null,
-    media_url: content.type === 'photo' || content.type === 'video' ? content.media_url : null,
+    media_url: content.type === 'text' ? null : content.media_url,
     duration_seconds: content.type === 'video' || content.type === 'voice' ? content.duration_seconds : null,
     status: 'sending',
     created_at: new Date().toISOString(),
@@ -147,10 +155,9 @@ export async function deliverMessage(session: ChatSession, message: ChatMessage)
     form.append('text', content.text)
   } else if (content.type === 'photo') {
     form.append('file', content.file)
-  } else if (content.type === 'video') {
-    form.append('file', content.file)
-    form.append('duration_seconds', String(content.duration_seconds))
   } else {
+    // Video and voice both carry a file and a length.
+    form.append('file', content.file)
     form.append('duration_seconds', String(content.duration_seconds))
   }
 

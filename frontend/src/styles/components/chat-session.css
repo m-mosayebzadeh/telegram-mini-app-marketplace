@@ -535,9 +535,11 @@
   color: var(--color-danger);
 }
 
-/* The send arrow points the way the message travels, which is whichever
-   way the language runs. */
-[dir='rtl'] .cp-btn-primary svg {
+/* The send ARROW points the way the message travels, which is whichever
+   way the language runs. Scoped to the arrow on purpose: the same rule
+   on every primary button in this row also mirrored the recording
+   tick, and a backwards checkmark reads as a stray chevron. */
+[dir='rtl'] .cp-send svg {
   transform: scaleX(-1);
 }
 
@@ -579,4 +581,112 @@
   .cp-recording-dot {
     animation: none;
   }
+}
+
+/* ---------- media in a bubble ---------- */
+
+/* A photo that cannot be opened is a thumbnail pretending to be a
+   photo. */
+.cm-media-open {
+  display: block;
+  width: 100%;
+}
+
+.cm-media-open:active {
+  opacity: 0.8;
+}
+
+.cm-attachment-open {
+  width: 100%;
+  color: inherit;
+  text-align: start;
+}
+
+.cm-attachment-open:active {
+  opacity: 0.7;
+}
+
+/* ---------- voice ---------- */
+
+.cm-voice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 160px;
+}
+
+.cm-voice-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  color: inherit;
+}
+
+.cm-voice-play:active {
+  transform: scale(0.94);
+}
+
+/* Fills as it plays. The one moving element that belongs on this screen,
+   because something is actually moving. */
+.cm-voice-track {
+  flex: 1;
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 22%, transparent);
+  overflow: hidden;
+}
+
+.cm-voice-fill {
+  display: block;
+  height: 100%;
+  background: currentColor;
+  opacity: 0.75;
+}
+
+.cm-voice-time {
+  flex-shrink: 0;
+  font: var(--text-caption);
+  opacity: 0.75;
+}
+
+/* ---------- full-screen media ---------- */
+
+.mv {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-scrim);
+  animation: ui-fade-in var(--motion-base) var(--ease);
+}
+
+.mv-media {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+
+/* Clear of the notch on a browser that has one, and out of the way of
+   the media itself. */
+.mv-close {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + var(--space-3));
+  inset-inline-end: var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-on-scrim) 14%, transparent);
+  color: var(--color-on-scrim);
 }

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { IconAlert, IconCheck, IconMic, IconPlay } from '../icons'
+import { IconAlert, IconCheck, IconPlay } from '../icons'
+import { VoicePlayer } from './VoicePlayer'
 import type { ChatMessage } from '../../lib/chatMessageTypes'
 
 interface MessageBubbleProps {
@@ -9,6 +10,9 @@ interface MessageBubbleProps {
    *  messages carry one, the same as any real chat app. */
   isMine: boolean
   onRetry: (message: ChatMessage) => void
+  /** Opens a photo or video full screen. Lives on the page rather than
+   *  in the bubble so only one viewer can ever be open. */
+  onOpenMedia: (url: string, kind?: 'photo' | 'video') => void
 }
 
 /**
@@ -24,7 +28,7 @@ interface MessageBubbleProps {
  * outcome and gets a hairline tick; only a FAILURE earns colour, and it
  * earns a tappable retry rather than just a warning sign.
  */
-export function MessageBubble({ message, isMine, onRetry }: MessageBubbleProps) {
+export function MessageBubble({ message, isMine, onRetry, onOpenMedia }: MessageBubbleProps) {
   const { t } = useTranslation()
 
   const time = new Date(message.created_at).toLocaleTimeString(undefined, {
@@ -37,28 +41,36 @@ export function MessageBubble({ message, isMine, onRetry }: MessageBubbleProps) 
       {message.type === 'text' && <p className="cm-text">{message.text}</p>}
 
       {message.type === 'photo' && (
-        <img className="cm-media" src={message.media_url ?? undefined} alt="" />
+        /* Tappable: a photo in a conversation that cannot be opened is a
+           thumbnail pretending to be a photo. */
+        <button
+          type="button"
+          className="cm-media-open"
+          onClick={() => message.media_url && onOpenMedia(message.media_url)}
+          aria-label={t('chatSession.openPhoto')}
+        >
+          <img className="cm-media" src={message.media_url ?? undefined} alt="" />
+        </button>
       )}
 
       {message.type === 'video' && (
-        <span className="cm-attachment">
+        <button
+          type="button"
+          className="cm-attachment cm-attachment-open"
+          onClick={() => message.media_url && onOpenMedia(message.media_url, 'video')}
+          aria-label={t('chatSession.openVideo')}
+        >
           <span className="cm-attachment-icon">
             <IconPlay size={16} />
           </span>
-          <span className="tabular">{t('chatSession.seconds', { seconds: message.duration_seconds })}</span>
-        </span>
+          <span className="tabular">
+            {t('chatSession.seconds', { seconds: message.duration_seconds })}
+          </span>
+        </button>
       )}
 
       {message.type === 'voice' && (
-        <span className="cm-attachment">
-          <span className="cm-attachment-icon">
-            <IconMic size={16} />
-          </span>
-          {/* A fixed waveform: it stands for "this is audio" and does not
-              pretend to be this particular recording's shape. */}
-          <span className="cm-wave" aria-hidden="true" />
-          <span className="tabular">{t('chatSession.seconds', { seconds: message.duration_seconds })}</span>
-        </span>
+        <VoicePlayer src={message.media_url} durationSeconds={message.duration_seconds} />
       )}
 
       <span className="cm-footer">

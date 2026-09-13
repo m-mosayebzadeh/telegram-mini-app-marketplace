@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { formatElapsedTime } from '../../lib/chatTime'
 import { AttachmentPreviewSheet } from './AttachmentPreviewSheet'
 import { IconCheck, IconMic, IconPaperclip, IconSend, IconTrash } from '../icons'
+import { canRecordVoice, startVoiceRecording, type VoiceSession } from '../../lib/voiceRecorder'
 
 interface ComposerProps {
   /** True once the session is closed — a closed session's conversation
@@ -12,7 +13,10 @@ interface ComposerProps {
   onSendText: (text: string) => void
   onSendPhoto: (mediaUrl: string, file: File) => void
   onSendVideo: (mediaUrl: string, file: File, durationSeconds: number) => void
-  onSendVoice: (durationSeconds: number) => void
+  onSendVoice: (mediaUrl: string, file: File, durationSeconds: number) => void
+  /** Surfaces a refused microphone — a button that silently does
+   *  nothing is worse than one that says why. */
+  onRecordingError: (message: string) => void
 }
 
 type PendingAttachment = { kind: 'photo' | 'video'; file: File; previewUrl: string }
@@ -29,13 +33,21 @@ type PendingAttachment = { kind: 'photo' | 'video'; file: File; previewUrl: stri
  * section 12's note that real audio capture is out of scope for this
  * pass; what gets "sent" is just that elapsed duration.
  */
-export function Composer({ disabled, onSendText, onSendPhoto, onSendVideo, onSendVoice }: ComposerProps) {
+export function Composer({
+  disabled,
+  onSendText,
+  onSendPhoto,
+  onSendVideo,
+  onSendVoice,
+  onRecordingError,
+}: ComposerProps) {
   const { t } = useTranslation()
   const [text, setText] = useState('')
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null)
   const [recordingStartedAt, setRecordingStartedAt] = useState<string | null>(null)
   const [now, setNow] = useState(() => new Date())
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const voiceRef = useRef<VoiceSession | null>(null)
 
   // Ticks the recording timer once a second, exactly like ChatHeader's
   // own elapsed-time clock — only running while actually recording.
@@ -91,20 +103,37 @@ export function Composer({ disabled, onSendText, onSendPhoto, onSendVideo, onSen
     setPendingAttachment(null)
   }
 
-  function startRecording() {
-    setRecordingStartedAt(new Date().toISOString())
-    setNow(new Date())
+  async function startRecording() {
+    try {
+      // The microphone is asked for BEFORE the UI switches to recording:
+      // flipping first and then being refused would show a timer for
+      // audio that was never captured, which is exactly the gap this
+      // whole change closes.
+      voiceRef.current = await startVoiceRecording()
+      setRecordingStartedAt(new Date().toISOString())
+      setNow(new Date())
+    } catch {
+      onRecordingError(t('chatSession.micDenied'))
+    }
   }
 
   function cancelRecording() {
+    voiceRef.current?.cancel()
+    voiceRef.current = null
     setRecordingStartedAt(null)
   }
 
-  function stopAndSendRecording() {
-    if (!recordingStartedAt) return
-    const elapsedSeconds = Math.max(1, Math.round((Date.now() - new Date(recordingStartedAt).getTime()) / 1000))
+  async function stopAndSendRecording() {
+    const session = voiceRef.current
+    voiceRef.current = null
     setRecordingStartedAt(null)
-    onSendVoice(elapsedSeconds)
+    if (!session) return
+
+    const recording = await session.stop()
+    if (!recording) return
+    // The object URL is NOT revoked here: it becomes the sent message's
+    // media_url and is what plays it back in the list.
+    onSendVoice(recording.url, recording.file, recording.durationSeconds)
   }
 
   if (recordingStartedAt) {
@@ -173,21 +202,26 @@ export function Composer({ disabled, onSendText, onSendPhoto, onSendVideo, onSen
       {text.trim() ? (
         <button
           type="button"
-          className="cp-btn cp-btn-primary"
+          className="cp-btn cp-btn-primary cp-send"
           onClick={submitText}
           aria-label={t('chatSession.sendButtonLabel')}
         >
           <IconSend size={20} />
         </button>
       ) : (
-        <button
-          type="button"
-          className="cp-btn"
-          onClick={startRecording}
-          aria-label={t('chatSession.micButtonLabel')}
-        >
-          <IconMic size={20} />
-        </button>
+        // Hidden entirely where recording is impossible — an insecure
+        // origin, no microphone, an old webview. A button that cannot
+        // work is worse than no button.
+        canRecordVoice() && (
+          <button
+            type="button"
+            className="cp-btn"
+            onClick={startRecording}
+            aria-label={t('chatSession.micButtonLabel')}
+          >
+            <IconMic size={20} />
+          </button>
+        )
       )}
 
       {pendingAttachment && (

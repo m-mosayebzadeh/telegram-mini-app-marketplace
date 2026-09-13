@@ -29,8 +29,11 @@ export interface ChatMessage {
   type: ChatMessageType
   /** Set for 'text' messages, null otherwise. */
   text: string | null
-  /** Set for 'photo' and 'video' messages (a displayable image/video
-   * source — an object URL or data URI), null otherwise. */
+  /** A playable/displayable source for the message's own bytes — an
+   *  object URL. Set for photo, video and voice; null for text, and also
+   *  null for a voice message recorded before real audio existed, which
+   *  is why the bubble checks it rather than assuming a voice message
+   *  always has something to play. */
   media_url: string | null
   /** Set for 'voice' and 'video' messages, null otherwise. */
   duration_seconds: number | null
@@ -59,7 +62,7 @@ export type NewMessageContent =
   | { type: 'text'; text: string }
   | { type: 'photo'; media_url: string; file: File }
   | { type: 'video'; media_url: string; file: File; duration_seconds: number }
-  | { type: 'voice'; duration_seconds: number }
+  | { type: 'voice'; media_url: string; file: File; duration_seconds: number }
 
 /** One calendar day's worth of consecutive messages — see
  * lib/chatTime.ts's groupMessagesByDate(), which produces these for the

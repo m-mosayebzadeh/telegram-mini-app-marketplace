@@ -92,11 +92,24 @@ describe('chatMessageApi', () => {
 
     it('leaves fields irrelevant to the message type null', () => {
       const session = makeSession()
-      const voice = composeMessage(session, 1, { type: 'voice', duration_seconds: 12 })
+      // A voice message carries real audio now: its own recording, and
+      // its length. It used to carry only the length, which is why the
+      // recipient got a bubble saying "12 seconds" and no way to hear
+      // them.
+      const voice = composeMessage(session, 1, {
+        type: 'voice',
+        media_url: 'blob:recording',
+        file: new File([''], 'voice.webm', { type: 'audio/webm' }),
+        duration_seconds: 12,
+      })
 
       expect(voice.text).toBeNull()
-      expect(voice.media_url).toBeNull()
+      expect(voice.media_url).toBe('blob:recording')
       expect(voice.duration_seconds).toBe(12)
+
+      const message = composeMessage(session, 1, { type: 'text', text: 'hi' })
+      expect(message.media_url).toBeNull()
+      expect(message.duration_seconds).toBeNull()
     })
   })
 
