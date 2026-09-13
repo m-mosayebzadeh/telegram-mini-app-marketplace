@@ -103,7 +103,7 @@ export function MyRequestsView({
                       {request.offer_title}
                     </span>
                     <DropAmount
-                      amount={request.offer_price_stars}
+                      amount={request.offer_price_drops}
                       locale={i18n.language}
                       size={16}
                     />

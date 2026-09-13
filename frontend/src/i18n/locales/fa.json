@@ -8,7 +8,8 @@
     "close": "بستن",
     "cancel": "لغو",
     "delete": "حذف",
-    "retry": "تلاش دوباره"
+    "retry": "تلاش دوباره",
+    "or": "یا"
   },
   "login": {
     "title": "یک کاربر آزمایشی انتخاب کنید",
@@ -174,23 +175,12 @@
   },
   "topup": {
     "pageTitle": "شارژ کیف پول",
-    "tabDirect": "مستقیم",
-    "tabStars": "دراپ تلگرام",
-    "tabIntermediaries": "واسطه‌ها",
     "directPro1": "شارژ حساب بدون کارمزد",
     "directPro2": "شارژ معادل دراپ بدون واسطه و با مبلغ پایین‌تر از سایر فروشنده‌ها",
     "directPro3": "بدون فریز دراپ و استفاده آنی",
     "directCon1": "بین ده دقیقه تا یک ساعت طول می‌کشه تا حساب شارژ بشه",
-    "starsPro1": "شارژ آنی حساب",
-    "starsCon1": "فریز دراپ در کیف پول شما تا ۳ هفته طبق بروکراسی تلگرام",
-    "buyStarsButton": "خرید دراپ",
-    "starsPurchaseSuccess": "دراپها به کیف‌پولتون اضافه شد!",
-    "starsPurchaseFailed": "پرداخت انجام نشد. دوباره امتحان کنید.",
-    "intermediariesCon1": "گران‌تر بودن قیمت دراپ نسبت به روش مستقیم",
-    "intermediariesCon2": "فریز دراپ در کیف پول شما تا ۳ هفته طبق بروکراسی تلگرام",
     "cardCopy": "کپی شماره کارت",
     "cardCopied": "شماره کارت کپی شد",
-    "converterStarsLabel": "تعداد دراپ",
     "converterTomanLabel": "مبلغ (تومان)",
     "converterRateHint": "نرخ فعلی: هر دراپ {{rate}} تومان",
     "receiptLabel": "رسید پرداخت",
@@ -207,10 +197,6 @@
     "rejectionReasonLabel": "دلیل رد",
     "finalAmountLabel": "مبلغ شارژشده",
     "trackingRefLabel": "شماره پیگیری",
-    "intermediarySiteIranicard": "ایرانی‌کارت",
-    "intermediarySiteNumberland": "نامبرلند",
-    "intermediarySiteSubtg": "ساب‌تی‌جی",
-    "starsAmountMustBePositive": "تعداد دراپ باید بزرگ‌تر از صفر باشه",
     "dropUnit": "دراپ",
     "cardNumberLabel": "شماره کارت مقصد",
     "historyEmptyHint": "رسیدهایی که می‌فرستی و نتیجه‌شون اینجا میاد."
@@ -382,8 +368,10 @@
     "titlePlaceholder": "مثلاً: گپ درباره‌ی کتاب و فیلم",
     "descriptionPlaceholder": "بگو دقیقاً چی ارائه می‌دی و طرف مقابل چه انتظاری داشته باشه.",
     "minutesUnit": "دقیقه",
-    "durationHint": "فقط برای اطلاع خریدار — هیچ تایمری نشست رو نمی‌بنده.",
-    "afterCommission": "پس از {{percent}}٪ کارمزد پلتفرم"
+    "durationHint": "جلسه دقیقاً همین‌قدر طول می‌کشد و خودکار بسته می‌شود",
+    "afterCommission": "پس از {{percent}}٪ کارمزد پلتفرم",
+    "priceMustFitBlocks": "قیمت باید بر {{blocks}} بخش‌پذیر باشد — مثلاً {{suggestions}}",
+    "blockBreakdown": "{{blocks}} بلوک {{minutes}} دقیقه‌ای، هر بلوک {{price}} دراپ"
   },
   "requests": {
     "mineTitle": "درخواست‌های من",

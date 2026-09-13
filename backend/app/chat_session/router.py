@@ -24,7 +24,16 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.chat_session.access import get_participant_session
-from app.chat_session.schemas import ChatSessionOut, ChatSessionParticipantOut
+from app.wallet.service import release_transaction
+from app.wallet.blocks import (
+    EndReason,
+    close_and_settle,
+    close_if_due,
+    due_end,
+    provider_has_spoken,
+)
+from app.chat_session.schemas import ChatSessionOut
+from app.chat_session.serializers import to_chat_session_out
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.time import utcnow
@@ -35,46 +44,6 @@ from app.models.user import User
 from app.profile.photos import get_current_avatar_url
 
 router = APIRouter(prefix="/chat-sessions", tags=["chat-sessions"])
-
-
-def _to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int) -> ChatSessionOut:
-    """Builds the enriched response for one session, from `viewer_id`'s
-    point of view. Every route below returns through this instead of
-    handing back the bare ORM row, so the chat screen's header and
-    session-details panel always have what they need in one call — see
-    ChatSessionOut's docstring-equivalent comments in schemas.py."""
-    request = chat_session.request
-    offer = request.offer
-    transaction = chat_session.transaction
-
-    is_buyer = request.buyer_id == viewer_id
-    my_role = "buyer" if is_buyer else "provider"
-    other_user_id = offer.provider_id if is_buyer else request.buyer_id
-
-    other_user = db.get(User, other_user_id)
-
-    return ChatSessionOut(
-        id=chat_session.id,
-        request_id=chat_session.request_id,
-        transaction_id=chat_session.transaction_id,
-        status=chat_session.status.value,
-        opened_at=chat_session.opened_at,
-        closed_at=chat_session.closed_at,
-        closed_by_user_id=chat_session.closed_by_user_id,
-        my_role=my_role,
-        other_participant=ChatSessionParticipantOut(
-            user_id=other_user_id,
-            display_name=other_user.display_name,
-            username=other_user.username,
-            avatar_url=get_current_avatar_url(db, other_user_id),
-        ),
-        offer_title=offer.title,
-        price_drops=offer.price_drops,
-        display_duration_minutes=offer.display_duration_minutes,
-        disputed=transaction.disputed_at is not None,
-        transaction_status=transaction.status.value,
-        archived=chat_session.archived_by_buyer if is_buyer else chat_session.archived_by_provider,
-    )
 
 
 @router.get("/mine", response_model=list[ChatSessionOut])
@@ -91,7 +60,9 @@ def list_my_sessions(
         .filter(or_(Request.buyer_id == current_user.id, Offer.provider_id == current_user.id))
         .all()
     )
-    return [_to_chat_session_out(db, s, current_user.id) for s in sessions]
+    # Reading the list is also when each session's own clock gets checked —
+    # the lazy sweep that stands in for a scheduler (see close_if_due).
+    return [to_chat_session_out(db, close_if_due(db, s), current_user.id) for s in sessions]
 
 
 @router.get("/{session_id}", response_model=ChatSessionOut)
@@ -100,8 +71,8 @@ def get_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatSessionOut:
-    chat_session = get_participant_session(db, session_id, current_user.id)
-    return _to_chat_session_out(db, chat_session, current_user.id)
+    chat_session = close_if_due(db, get_participant_session(db, session_id, current_user.id))
+    return to_chat_session_out(db, chat_session, current_user.id)
 
 
 @router.post("/{session_id}/close", response_model=ChatSessionOut)
@@ -110,18 +81,26 @@ def close_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatSessionOut:
-    chat_session = get_participant_session(db, session_id, current_user.id)
+    chat_session = close_if_due(db, get_participant_session(db, session_id, current_user.id))
     if chat_session.status != ChatSessionStatus.OPEN:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="This session is already closed."
         )
 
-    chat_session.status = ChatSessionStatus.CLOSED
-    chat_session.closed_at = utcnow()
-    chat_session.closed_by_user_id = current_user.id
+    # Whoever closes, every finished block belongs to the provider. Only the
+    # block still running depends on who stopped it — and a provider who never
+    # said anything at all costs the buyer nothing (see app/wallet/blocks.py).
+    is_buyer = chat_session.request.buyer_id == current_user.id
+    if not provider_has_spoken(db, chat_session):
+        reason = EndReason.PROVIDER_SILENT
+    else:
+        reason = EndReason.BUYER_CLOSED if is_buyer else EndReason.PROVIDER_CLOSED
+    close_and_settle(
+        db, chat_session, reason=reason, closed_by_user_id=current_user.id, at=utcnow()
+    )
     db.commit()
     db.refresh(chat_session)
-    return _to_chat_session_out(db, chat_session, current_user.id)
+    return to_chat_session_out(db, chat_session, current_user.id)
 
 
 def _set_archived(db: Session, session_id: int, current_user: User, archived: bool) -> ChatSessionOut:
@@ -136,7 +115,7 @@ def _set_archived(db: Session, session_id: int, current_user: User, archived: bo
         chat_session.archived_by_provider = archived
     db.commit()
     db.refresh(chat_session)
-    return _to_chat_session_out(db, chat_session, current_user.id)
+    return to_chat_session_out(db, chat_session, current_user.id)
 
 
 @router.post("/{session_id}/archive", response_model=ChatSessionOut)
@@ -159,6 +138,70 @@ def unarchive_session(
     db: Session = Depends(get_db),
 ) -> ChatSessionOut:
     return _set_archived(db, session_id, current_user, archived=False)
+
+
+def _has_confirmed(chat_session: ChatSession, user_id: int) -> bool:
+    """Whether this participant has already signed off on the settlement."""
+    if chat_session.request.buyer_id == user_id:
+        return chat_session.settlement_confirmed_by_buyer_at is not None
+    return chat_session.settlement_confirmed_by_provider_at is not None
+
+
+@router.post("/{session_id}/confirm-settlement", response_model=ChatSessionOut)
+def confirm_settlement(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """
+    Says "this was fine" about a finished session.
+
+    The settlement window exists to give an unhappy participant time to freeze
+    the money. When BOTH sides have said there is nothing to freeze, waiting
+    out the rest of it protects nobody — so the provider is paid immediately.
+
+    Confirming gives up the caller's own right to dispute this session. It does
+    not touch the other participant's, who may still be deciding.
+    """
+    lock_finances(db)
+    chat_session = get_participant_session(db, session_id, current_user.id)
+    if chat_session.status != ChatSessionStatus.CLOSED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only a closed session can be settled.",
+        )
+
+    transaction = chat_session.transaction
+    if transaction is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This session cost nothing, so there is nothing to settle.",
+        )
+    if transaction.disputed_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This session is disputed; it is for support to resolve.",
+        )
+
+    now = utcnow()
+    if chat_session.request.buyer_id == current_user.id:
+        chat_session.settlement_confirmed_by_buyer_at = (
+            chat_session.settlement_confirmed_by_buyer_at or now
+        )
+    else:
+        chat_session.settlement_confirmed_by_provider_at = (
+            chat_session.settlement_confirmed_by_provider_at or now
+        )
+
+    if (
+        chat_session.settlement_confirmed_by_buyer_at is not None
+        and chat_session.settlement_confirmed_by_provider_at is not None
+    ):
+        release_transaction(db, transaction)
+
+    db.commit()
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)
 
 
 @router.post("/{session_id}/dispute", response_model=ChatSessionOut)
@@ -189,9 +232,21 @@ def dispute_session(
         )
 
     transaction = chat_session.transaction
+    if transaction is None:
+        # Nothing was consumed, so nothing is being held and there is nothing
+        # to argue about — the buyer already has all of their money back.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This session cost nothing, so there is nothing to dispute.",
+        )
     if transaction.disputed_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="This session is already disputed."
+        )
+    if _has_confirmed(chat_session, current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You already confirmed this settlement, so you cannot dispute it.",
         )
 
     grace_deadline = chat_session.closed_at + timedelta(hours=settings.chat_release_grace_hours)
@@ -204,4 +259,4 @@ def dispute_session(
     transaction.disputed_at = utcnow()
     db.commit()
     db.refresh(chat_session)
-    return _to_chat_session_out(db, chat_session, current_user.id)
+    return to_chat_session_out(db, chat_session, current_user.id)

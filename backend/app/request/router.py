@@ -37,8 +37,10 @@ from app.models.transaction import Transaction, TransactionKind
 from app.models.user import User
 from app.profile.photos import get_current_avatar_url
 from app.request.schemas import IncomingRequestOut, RequestActivityOut, RequestCreate, RequestOut, RequestReject
-from app.wallet.schemas import TransactionOut
-from app.wallet.service import InsufficientBalanceError, pay_for_item
+from app.chat_session.schemas import ChatSessionOut
+from app.chat_session.serializers import to_chat_session_out
+from app.wallet.blocks import start_session
+from app.wallet.service import InsufficientBalanceError
 
 router = APIRouter(prefix="/requests", tags=["requests"])
 
@@ -237,7 +239,7 @@ def list_activity_requests(
                 id=request.id,
                 offer_id=offer.id,
                 offer_title=offer.title,
-                offer_price_stars=offer.price_drops,
+                offer_price_drops=offer.price_drops,
                 status=request.status.value,
                 reason=request.reason,
                 created_at=request.created_at,
@@ -385,7 +387,7 @@ def cancel_request(
     return req
 
 
-@router.post("/{request_id}/pay", response_model=TransactionOut, status_code=status.HTTP_201_CREATED)
+@router.post("/{request_id}/pay", response_model=ChatSessionOut, status_code=status.HTTP_201_CREATED)
 def pay_for_request(
     request_id: int,
     current_user: User = Depends(get_current_user),
@@ -399,9 +401,12 @@ def pay_for_request(
     their net share via app/wallet/service.py — see
     TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار" for the full design.
 
-    Also opens the ChatSession this payment is for, right here — never a
-    separate action, so a paid request can never end up without one (see
-    app/models/chat_session.py).
+    Opens the ChatSession right here — never a separate action, so a paid
+    request can never end up without one (see app/models/chat_session.py).
+
+    What it charges is the WHOLE session price, held rather than spent: the
+    session is settled block by block when it ends, and only the blocks that
+    were actually used are kept (see app/wallet/blocks.py).
     """
     lock_finances(db)
     req = _get_buyers_request(db, request_id, current_user.id)
@@ -411,28 +416,16 @@ def pay_for_request(
             detail="Only an accepted request can be paid for.",
         )
 
-    already_paid = (
-        db.query(Transaction)
-        .filter(
-            Transaction.kind == TransactionKind.CHAT_REQUEST,
-            Transaction.request_id == req.id,
-        )
-        .first()
-    )
-    if already_paid is not None:
+    already_started = db.query(ChatSession).filter(ChatSession.request_id == req.id).first()
+    if already_started is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This request has already been paid for.",
         )
 
     try:
-        transaction = pay_for_item(
-            db,
-            kind=TransactionKind.CHAT_REQUEST,
-            buyer_id=current_user.id,
-            provider_id=req.offer.provider_id,
-            gross_price_drops=req.offer.price_drops,
-            request_id=req.id,
+        chat_session = start_session(
+            db, request_id=req.id, offer=req.offer, buyer_id=current_user.id
         )
     except InsufficientBalanceError as exc:
         raise HTTPException(
@@ -444,9 +437,6 @@ def pay_for_request(
             },
         ) from exc
 
-    # pay_for_item() already flushed, so transaction.id is set here.
-    db.add(ChatSession(request_id=req.id, transaction_id=transaction.id))
-
     db.commit()
-    db.refresh(transaction)
-    return transaction
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)

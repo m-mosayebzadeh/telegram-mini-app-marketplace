@@ -24,7 +24,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 def _create_offer(client, auth: dict, **overrides):
     payload = {
         "price_drops": 40,
-        "display_duration_minutes": 30,
+        "session_duration_seconds": 1800,
         "title": "Chat with me",
         "description": "A nice chat",
     }

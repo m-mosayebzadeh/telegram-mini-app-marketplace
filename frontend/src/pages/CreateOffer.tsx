@@ -12,6 +12,10 @@ import { PageHeader, Button, useToast } from '../components/ui'
 const TITLE_MAX = 200
 const DESCRIPTION_MAX = 2000
 
+/** A session is always sold in this many equal blocks — the same constant the
+ *  backend enforces (see backend/app/core/config.py's SESSION_BLOCK_COUNT). */
+const SESSION_BLOCK_COUNT = 4
+
 /**
  * Creating an offer: what you are offering, what it costs, and how long
  * it lasts.
@@ -33,10 +37,22 @@ export default function CreateOffer() {
 
   // Every field is required by the backend, so the button says so by
   // staying disabled rather than letting someone submit and be told.
+  // A session is paid for and settled one block at a time, so its price has to
+  // split into whole blocks. Rather than rejecting the number afterwards, the
+  // form says what the nearest workable prices are while it is being typed.
+  const priceDrops = Number(price)
+  const priceFitsBlocks = priceDrops > 0 && priceDrops % SESSION_BLOCK_COUNT === 0
+  const nearestPrices = priceDrops > 0 && !priceFitsBlocks
+    ? [
+        Math.floor(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
+        Math.ceil(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
+      ].filter((value) => value > 0)
+    : []
+
   const complete =
     title.trim().length > 0 &&
     description.trim().length > 0 &&
-    Number(price) > 0 &&
+    priceFitsBlocks &&
     Number(duration) > 0
 
   async function submit() {
@@ -46,7 +62,7 @@ export default function CreateOffer() {
         method: 'POST',
         body: JSON.stringify({
           price_drops: Number(price),
-          display_duration_minutes: Number(duration),
+          session_duration_seconds: Number(duration) * 60,
           title: title.trim(),
           description: description.trim(),
         }),
@@ -92,7 +108,17 @@ export default function CreateOffer() {
           />
           {/* What the provider actually keeps. Shown here, while they are
               choosing the number, rather than discovered after a sale. */}
-          <PriceBreakdown priceDrops={Number(price) || 0} audience="provider" />
+          {priceFitsBlocks && <PriceBreakdown priceDrops={priceDrops} audience="provider" />}
+          {nearestPrices.length > 0 && (
+            <span className="ui-field-help">
+              {t('offers.priceMustFitBlocks', {
+                blocks: SESSION_BLOCK_COUNT,
+                suggestions: nearestPrices
+                  .map((value) => value.toLocaleString(i18n.language))
+                  .join(' ' + t('common.or') + ' '),
+              })}
+            </span>
+          )}
 
           <label className="ui-field" htmlFor="offer-duration">
             <span className="ui-field-label">{t('offers.durationLabel')}</span>
@@ -110,9 +136,19 @@ export default function CreateOffer() {
               />
               <span className="ui-input-group-addon">{t('offers.minutesUnit')}</span>
             </div>
-            {/* The duration is what the buyer is told to expect, not a
-                timer — nothing closes a session automatically. */}
-            <span className="ui-field-help">{t('offers.durationHint')}</span>
+            {/* The duration is a commitment now, not a hint: the session runs
+                exactly this long and closes itself at the end of the last
+                block. Showing the block breakdown here is the clearest way to
+                explain what the buyer is actually buying. */}
+            <span className="ui-field-help">
+              {priceFitsBlocks && Number(duration) > 0
+                ? t('offers.blockBreakdown', {
+                    blocks: SESSION_BLOCK_COUNT,
+                    minutes: (Number(duration) / SESSION_BLOCK_COUNT).toLocaleString(i18n.language),
+                    price: (priceDrops / SESSION_BLOCK_COUNT).toLocaleString(i18n.language),
+                  })
+                : t('offers.durationHint')}
+            </span>
           </label>
 
           <label className="ui-field" htmlFor="offer-description">

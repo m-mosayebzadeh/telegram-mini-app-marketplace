@@ -48,12 +48,22 @@ def give_earnings(client, db, drops):
     """
     from app.wallet.service import release_transaction
 
+    from app.models.chat_session import ChatSession
+    from app.wallet.blocks import EndReason, close_and_settle
+    from app.core.time import utcnow
+
     set_rates(client, chat_commission_percent=0)
     buyer = client.get('/me', headers=auth(2)).json()
     give_wallet_balance(db, buyer['id'], drops * settings.drop_to_toman_rate)
     offer = _create_offer(client, auth(1), price_drops=drops)
     request = _create_accepted_request(client, auth(1), auth(2), offer)
     assert client.post(f"/requests/{request['id']}/pay", headers=auth(2)).status_code == 201
+    # Run the session to its end so every reserved block is consumed, then
+    # settle it — earnings only exist once a session has actually finished.
+    chat_session = db.query(ChatSession).filter_by(request_id=request['id']).one()
+    close_and_settle(db, chat_session, reason=EndReason.COMPLETED,
+                     closed_by_user_id=None, at=utcnow())
+    db.commit()
     transaction = db.query(Transaction).filter_by(request_id=request['id']).one()
     release_transaction(db, transaction)
     db.commit()
@@ -120,7 +130,7 @@ def test_owner_checks_and_minimum(client,db_session):
 def test_stale_quote_reconfirmation_and_historical_rates(client,db_session):
     _,bank=setup(client,db_session)
     body=payload(client,bank)
-    update={'drop_to_toman_rate':1200,'telegram_star_to_toman_rate':2500,'chat_commission_percent':10,
+    update={'drop_to_toman_rate':1200,'chat_commission_percent':10,
             'content_commission_percent':5,'withdrawal_commission_percent':11,'complaint_commission_percent':0,
             'minimum_withdrawal_toman':500000}
     assert client.put('/admin/rates',headers=auth(99),json=update).status_code==200
@@ -242,6 +252,15 @@ def test_historical_pending_transaction_keeps_its_original_fee(client,db_session
     offer=_create_offer(client,auth(2),price_drops=40)
     req=_create_accepted_request(client,auth(2),auth(1),offer)
     client.post(f"/requests/{req['id']}/pay",headers=auth(1))
+    # The transaction only exists once the session has ended and its consumed
+    # amount is known, so the session has to be run out first.
+    from app.models.chat_session import ChatSession
+    from app.wallet.blocks import EndReason, close_and_settle
+    from app.core.time import utcnow
+    chat_session=db_session.query(ChatSession).filter_by(request_id=req['id']).one()
+    close_and_settle(db_session,chat_session,reason=EndReason.COMPLETED,
+                     closed_by_user_id=None,at=utcnow())
+    db_session.commit()
     tx=db_session.query(Transaction).filter_by(request_id=req['id']).one()
     tx.commission_rate_percent=10
     tx.commission_drops=4
@@ -285,23 +304,6 @@ def test_second_staff_cannot_pay_an_assigned_request(client,db_session):
     response=client.post(f'/admin/withdrawals/{id}/review',headers=auth(3),json={'action':'paid','reference':'bank'})
     assert response.status_code==409
     assert response.json()['detail']['reason']=='assigned_to_other_staff'
-
-
-def test_duplicate_success_callbacks_credit_once(concurrent_client):
-    from app.models.star_purchase import StarPurchase
-    client,db=concurrent_client
-    user,_=setup(client,db)
-    purchase=StarPurchase(user_id=user,stars=10,invoice_payload='concurrent-stars')
-    db.add(purchase);db.commit()
-    body={'message':{'from':{'id':1},'successful_payment':{'telegram_payment_charge_id':'same-charge',
-          'invoice_payload':'concurrent-stars','currency':'XTR','total_amount':10}}}
-    def callback():
-        return client.post('/telegram/webhook',headers={'X-Telegram-Bot-Api-Secret-Token':settings.telegram_webhook_secret},json=body)
-    assert [r.status_code for r in race(callback,callback)]==[200,200]
-    assert balance(client)==1025000
-    assert db.query(CreditLedgerEntry).filter_by(star_purchase_id=purchase.id).count()==1
-
-
 def test_bank_accepts_localized_digits(client):
     row=client.post('/wallet/bank-accounts',headers=auth(1),json={**BANK,'card_number':'۶۰۳۷۹۹۱۲۳۴۵۶۷۸۹۰','iban':'IR۱۲۳۴۵۶۷۸۹۰۱۲۳۴۵۶۷۸۹۰۱۲۳۴'})
     assert row.status_code==201

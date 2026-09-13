@@ -459,7 +459,7 @@ def list_user_requests_admin(
                 id=request.id,
                 offer_id=offer.id,
                 offer_title=offer.title,
-                offer_price_stars=offer.price_drops,
+                offer_price_drops=offer.price_drops,
                 status=request.status.value,
                 reason=request.reason,
                 created_at=request.created_at,
@@ -633,7 +633,6 @@ def update_platform_rates(
     lock_finances(db)
     rates = get_rates(db)
     rates.drop_to_toman_rate = payload.drop_to_toman_rate
-    rates.telegram_star_to_toman_rate = payload.telegram_star_to_toman_rate
     rates.chat_commission_percent = payload.chat_commission_percent
     rates.content_commission_percent = payload.content_commission_percent
     rates.withdrawal_commission_percent = payload.withdrawal_commission_percent

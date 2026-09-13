@@ -80,7 +80,7 @@ export function PersonCard({ offer, locale, onClick }: PersonCardProps) {
             and it belongs next to the price rather than buried in the
             tags. */}
         <span className="ui-tag dc-card-duration tabular">
-          {t('discover.minutes', { minutes: offer.display_duration_minutes })}
+          {t('discover.minutes', { minutes: offer.session_duration_seconds / 60 })}
         </span>
         {(provider?.interests ?? []).slice(0, 2).map((tag) => (
           <span className="ui-tag" key={tag}>

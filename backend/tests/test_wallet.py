@@ -105,8 +105,8 @@ def _sale(db_session, provider_id: int, buyer_id: int, *, amount_toman: int) -> 
     offer = Offer(
         provider_id=provider_id,
         service_type=OfferServiceType.CHAT,
-        price_drops=10,
-        display_duration_minutes=20,
+        price_drops=12,
+        session_duration_seconds=1200,
         title="Test offer",
         description="Test offer",
         status=OfferStatus.ACTIVE,

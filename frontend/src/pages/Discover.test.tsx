@@ -23,7 +23,7 @@ function offer(overrides: Partial<Offer> & Pick<Offer, 'id'>): Offer {
     provider_id: overrides.id,
     service_type: 'chat',
     price_drops: 100,
-    display_duration_minutes: 30,
+    session_duration_seconds: 1800,
     title: 'Chat with me',
     description: 'A nice chat',
     status: 'active',

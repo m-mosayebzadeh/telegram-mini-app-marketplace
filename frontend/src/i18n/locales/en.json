@@ -8,7 +8,8 @@
     "close": "Close",
     "cancel": "Cancel",
     "delete": "Delete",
-    "retry": "Try again"
+    "retry": "Try again",
+    "or": "or"
   },
   "login": {
     "title": "Choose a test user",
@@ -174,23 +175,12 @@
   },
   "topup": {
     "pageTitle": "Top Up Wallet",
-    "tabDirect": "Direct",
-    "tabStars": "Drop",
-    "tabIntermediaries": "Other sites",
     "directPro1": "No commission on your charge",
     "directPro2": "Drop-equivalent rate, no middleman, lower than other sellers",
     "directPro3": "No Drop freeze — usable right away",
     "directCon1": "Takes 10 minutes to 1 hour for your account to be charged",
-    "starsPro1": "Instant charge",
-    "starsCon1": "Drop is frozen in your wallet for up to 3 weeks (Telegram's own policy)",
-    "buyStarsButton": "Buy Drop",
-    "starsPurchaseSuccess": "Drop added to your wallet",
-    "starsPurchaseFailed": "Payment didn't go through. Please try again.",
-    "intermediariesCon1": "Drop price is higher than the direct method",
-    "intermediariesCon2": "Drop is frozen in your wallet for up to 3 weeks (Telegram's own policy)",
     "cardCopy": "Copy card number",
     "cardCopied": "Card number copied",
-    "converterStarsLabel": "Number of Drop",
     "converterTomanLabel": "Amount (Toman)",
     "converterRateHint": "Current rate: {{rate}} Toman per Drop",
     "receiptLabel": "Payment receipt",
@@ -207,10 +197,6 @@
     "rejectionReasonLabel": "Rejection reason",
     "finalAmountLabel": "Amount charged",
     "trackingRefLabel": "Tracking number",
-    "intermediarySiteIranicard": "IraniCard",
-    "intermediarySiteNumberland": "Numberland",
-    "intermediarySiteSubtg": "SubTG",
-    "starsAmountMustBePositive": "Enter a Drop amount greater than zero",
     "dropUnit": "Drop",
     "cardNumberLabel": "Transfer to this card",
     "historyEmptyHint": "Receipts you send, and what came of them, show up here."
@@ -382,8 +368,10 @@
     "titlePlaceholder": "e.g. A chat about books and film",
     "descriptionPlaceholder": "Say exactly what you offer and what to expect.",
     "minutesUnit": "min",
-    "durationHint": "For the buyer's information only — no timer closes a session.",
-    "afterCommission": "after {{percent}}% platform commission"
+    "durationHint": "The session runs exactly this long, then closes itself",
+    "afterCommission": "after {{percent}}% platform commission",
+    "priceMustFitBlocks": "The price must divide by {{blocks}} — try {{suggestions}}",
+    "blockBreakdown": "{{blocks}} blocks of {{minutes}} minutes, {{price}} Drops each"
   },
   "requests": {
     "mineTitle": "My requests",

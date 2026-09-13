@@ -41,7 +41,7 @@ function offer(overrides: Partial<Offer> = {}): Offer {
     provider_id: 2,
     service_type: 'chat',
     price_drops: 250,
-    display_duration_minutes: 30,
+    session_duration_seconds: 1800,
     title: 'Chat with me',
     description: 'A nice long chat about books',
     status: 'active',

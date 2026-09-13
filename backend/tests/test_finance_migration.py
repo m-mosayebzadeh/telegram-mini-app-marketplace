@@ -29,7 +29,7 @@ def test_upgrade_preserves_old_money_and_matches_new_columns(tmp_path, monkeypat
         # The purchase commissions were dropped by 7d2c18a40e91 and restored by
         # a3e7c41b8d92, which also switches the withdrawal fee off on an
         # already-deployed row — the lever stays, its value does not.
-        assert db.execute('SELECT drop_to_toman_rate, telegram_star_to_toman_rate, chat_commission_percent, content_commission_percent, withdrawal_commission_percent, complaint_commission_percent, minimum_withdrawal_toman FROM platform_rates').fetchone() == (1000,2500,10,5,0,0,500000)
+        assert db.execute('SELECT drop_to_toman_rate, chat_commission_percent, content_commission_percent, withdrawal_commission_percent, complaint_commission_percent, minimum_withdrawal_toman FROM platform_rates').fetchone() == (1000,10,5,0,0,500000)
         assert db.execute('PRAGMA foreign_key_check').fetchall() == []
     engine = create_engine('sqlite:///' + str(path))
     inspector = inspect(engine)

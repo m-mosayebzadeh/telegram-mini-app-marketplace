@@ -18,6 +18,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # plain terminal, a script under scripts/, pytest, ...).
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
+# How many equal blocks a chat session is divided into. Fixed rather than
+# per-offer on purpose: it is one less decision for a provider to make, and it
+# keeps the session UI identical everywhere. A session's price must divide
+# evenly by this, so no block price ever needs rounding.
+SESSION_BLOCK_COUNT = 4
+
 
 class Settings(BaseSettings):
     # The field name (telegram_bot_token) is matched to the environment
@@ -65,12 +71,6 @@ class Settings(BaseSettings):
     # to within one Toman and rounding effectively disappears.
     drop_to_toman_rate: int = 1000
 
-    # Toman per TELEGRAM Star, used only when someone tops up by buying
-    # Telegram Stars. This one is a real exchange rate and genuinely floats,
-    # which is exactly why it is separate: Telegram is now just one way to
-    # buy Drops, not the unit the product is priced in.
-    telegram_star_to_toman_rate: int = 2500
-
     # Platform commission on a purchase, as a whole percent of the price.
     # These are only the SEED values for a brand-new database: once the
     # singleton rates row exists, the admin panel (finance.rates scope) is
@@ -113,18 +113,6 @@ class Settings(BaseSettings):
     topup_card_number: str = ""
     topup_card_holder_name: str = ""
 
-    # --- real Telegram Stars top-up (see app/telegram_bot.py, app/topup/router.py) ---
-    #
-    # A secret WE make up (any random string), given to Telegram once
-    # via scripts/set_telegram_webhook.py's setWebhook call. Telegram
-    # then echoes it back on the "X-Telegram-Bot-Api-Secret-Token"
-    # header of every single webhook request it ever sends us — see
-    # app/telegram_webhook/router.py's verification. This is what makes
-    # the webhook URL safe to be public knowledge: anyone can find/guess
-    # the URL, but a request without this exact header gets rejected
-    # before anything in it is trusted, so it can't be used to fake a
-    # payment or credit a wallet that was never actually paid into.
-    telegram_webhook_secret: str = ""
 
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 

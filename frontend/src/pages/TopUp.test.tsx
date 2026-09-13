@@ -8,8 +8,6 @@ import { ToastProvider } from '../components/ui'
 const mocks = vi.hoisted(() => ({
   api: vi.fn(),
   navigate: vi.fn(),
-  openInvoice: vi.fn(),
-  createStarInvoice: vi.fn(),
   createTopUpRequest: vi.fn(),
   getTopUpCardInfo: vi.fn(),
   listMyTopUpRequests: vi.fn(),
@@ -27,12 +25,10 @@ vi.mock('../lib/pricing', () => ({
   getPricingConfig: () => Promise.resolve({ drop_to_toman_rate: 500, chat_commission_percent: 10 }),
 }))
 vi.mock('../lib/topupApi', () => ({
-  createStarInvoice: mocks.createStarInvoice,
   createTopUpRequest: mocks.createTopUpRequest,
   getTopUpCardInfo: mocks.getTopUpCardInfo,
   listMyTopUpRequests: mocks.listMyTopUpRequests,
 }))
-vi.mock('@telegram-apps/sdk-react', () => ({ openInvoice: mocks.openInvoice }))
 vi.mock('react-router-dom', async (original) => ({
   ...(await original<typeof import('react-router-dom')>()),
   useNavigate: () => mocks.navigate,
@@ -53,12 +49,6 @@ async function render(state: Record<string, unknown> | null = null) {
   })
 }
 
-function buttonWith(label: string) {
-  return [...container.querySelectorAll<HTMLButtonElement>('button')].find(
-    (el) => el.textContent?.trim() === label,
-  )
-}
-
 function type(selector: string, value: string) {
   const field = container.querySelector<HTMLInputElement>(selector)!
   const setter = Object.getOwnPropertyDescriptor(
@@ -77,8 +67,6 @@ beforeEach(() => {
   for (const fn of [
     mocks.api,
     mocks.navigate,
-    mocks.openInvoice,
-    mocks.createStarInvoice,
     mocks.createTopUpRequest,
   ]) {
     fn.mockReset()
@@ -159,84 +147,5 @@ describe('TopUp — card to card', () => {
     })
 
     expect(mocks.navigate).toHaveBeenCalledWith('/wallet')
-  })
-})
-
-describe('TopUp — Telegram Stars', () => {
-  async function openStars() {
-    await act(async () => buttonWith('topup.tabStars')!.click())
-  }
-
-  it('records the purchase before anything else once payment goes through', async () => {
-    mocks.createStarInvoice.mockResolvedValue({ invoice_link: 'x', purchase_id: 42 })
-    mocks.openInvoice.mockResolvedValue('paid')
-    // The poll that follows.
-    mocks.api.mockResolvedValue({ status: 'pending' })
-    await render()
-    await openStars()
-    type('#topup-stars-amount', '500')
-
-    await act(async () => {
-      container.querySelector<HTMLButtonElement>('.ui-action-bar .ui-btn')!.click()
-    })
-
-    // Survives a reload: the payment sheet can take the app out of the
-    // foreground, and coming back must not lose money already paid.
-    expect(sessionStorage.getItem('pending-star-purchase')).toBe('42')
-  })
-
-  it('blocks a second purchase while one is still being confirmed', async () => {
-    sessionStorage.setItem('pending-star-purchase', '42')
-    mocks.api.mockResolvedValue({ status: 'pending' })
-    await render()
-    await openStars()
-
-    expect(container.querySelector<HTMLButtonElement>('.ui-action-bar .ui-btn')!.disabled).toBe(
-      true,
-    )
-    expect(container.querySelector('.tu-awaiting')).toBeTruthy()
-  })
-
-  it('clears the pending purchase once the wallet is credited', async () => {
-    sessionStorage.setItem('pending-star-purchase', '42')
-    mocks.api.mockResolvedValue({ status: 'paid' })
-
-    await render()
-
-    expect(sessionStorage.getItem('pending-star-purchase')).toBeNull()
-    expect(container.textContent).toContain('topup.starsPurchaseSuccess')
-  })
-
-  it('does not record anything when the sheet is cancelled', async () => {
-    mocks.createStarInvoice.mockResolvedValue({ invoice_link: 'x', purchase_id: 42 })
-    mocks.openInvoice.mockResolvedValue('cancelled')
-    await render()
-    await openStars()
-    type('#topup-stars-amount', '500')
-
-    await act(async () => {
-      container.querySelector<HTMLButtonElement>('.ui-action-bar .ui-btn')!.click()
-    })
-
-    expect(sessionStorage.getItem('pending-star-purchase')).toBeNull()
-    // Cancelling is not a failure, so it says nothing.
-    expect(container.textContent).not.toContain('topup.starsPurchaseFailed')
-  })
-})
-
-describe('TopUp — third-party sellers', () => {
-  it('marks every link as leaving the app, and opens none of them itself', async () => {
-    await render()
-
-    await act(async () => buttonWith('topup.tabIntermediaries')!.click())
-
-    const links = [...container.querySelectorAll<HTMLAnchorElement>('.ui-row')]
-    expect(links).toHaveLength(3)
-    for (const link of links) {
-      expect(link.target).toBe('_blank')
-      expect(link.rel).toBe('noreferrer')
-    }
-    // No pinned action: there is nothing to do here but leave.
-    expect(container.querySelector('.ui-action-bar')).toBeNull()
   })
 })

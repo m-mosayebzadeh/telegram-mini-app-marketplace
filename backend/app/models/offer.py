@@ -7,9 +7,10 @@ creating one never requires a profile to exist first.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Enum, ForeignKey, Integer, String
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.config import SESSION_BLOCK_COUNT
 from app.core.database import Base
 from app.core.time import UTCDateTime, utcnow
 
@@ -36,11 +37,20 @@ class Offer(Base):
         Enum(OfferServiceType, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
         default=OfferServiceType.CHAT,
     )
+    # The price of ONE session, not a rate. It must divide evenly by
+    # SESSION_BLOCK_COUNT, because a session is sold and settled one block at a
+    # time and a block price that needed rounding would put a fraction of a
+    # Drop somewhere on every single session.
     price_drops: Mapped[int] = mapped_column(Integer)
-    # Informational only — TECHNICAL_REQUIREMENTS.md is explicit that
-    # this is NOT an enforced timer; nothing in this app ever reads this
-    # value to decide when a chat session should end.
-    display_duration_minutes: Mapped[int] = mapped_column(Integer)
+    # How long that session runs. This used to be decoration — the old model
+    # said explicitly that nothing read it — and is now a real commitment: the
+    # session opens for exactly this long and closes itself at the end of the
+    # last block (see TECHNICAL_REQUIREMENTS.md section 15).
+    #
+    # Seconds rather than minutes so a block is always a whole number: any
+    # whole number of minutes divides exactly by four once expressed in
+    # seconds, which a count of minutes would not.
+    session_duration_seconds: Mapped[int] = mapped_column(Integer)
     # The short label shown wherever an offer is listed (Discover, "my
     # offers", ...) — separate from `description`, which is the longer
     # free-text explanation. Before this field existed, the UI was
@@ -54,6 +64,29 @@ class Offer(Base):
     )
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+    __table_args__ = (
+        # Enforced here as well as in the schema: these two invariants are what
+        # let every later block calculation be plain integer arithmetic.
+        CheckConstraint(
+            f'price_drops > 0 AND price_drops % {SESSION_BLOCK_COUNT} = 0',
+            name='ck_offer_price_divides_into_blocks',
+        ),
+        CheckConstraint(
+            f'session_duration_seconds > 0 AND session_duration_seconds % {SESSION_BLOCK_COUNT} = 0',
+            name='ck_offer_duration_divides_into_blocks',
+        ),
+    )
+
+    @property
+    def block_duration_seconds(self) -> int:
+        """How long one block of this offer's session lasts."""
+        return self.session_duration_seconds // SESSION_BLOCK_COUNT
+
+    @property
+    def block_price_drops(self) -> int:
+        """What one block of this offer's session costs."""
+        return self.price_drops // SESSION_BLOCK_COUNT
 
     # When the provider last opened THIS offer's own incoming-requests
     # list (GET /requests?offer_id=..., see app/request/router.py's

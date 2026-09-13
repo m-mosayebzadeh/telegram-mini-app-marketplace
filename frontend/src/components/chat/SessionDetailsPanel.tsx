@@ -56,11 +56,11 @@ export function SessionDetailsPanel({
         <span className="hp-chat-details-value">{session.price_drops}</span>
       </div>
       <div className="hp-chat-details-row">
-        {/* "Expected", never a countdown — display_duration_minutes is
+        {/* "Expected", never a countdown — session_duration_seconds is
             informational only (TECHNICAL_REQUIREMENTS.md section 3), the
             session itself never enforces or ends on it. */}
         <span className="hp-chat-details-label">{t('chatSession.expectedDuration')}</span>
-        <span className="hp-chat-details-value">{session.display_duration_minutes}</span>
+        <span className="hp-chat-details-value">{session.session_duration_seconds}</span>
       </div>
       <div className="hp-chat-details-row">
         <span className="hp-chat-details-label">{t('chatSession.myRoleLabel')}</span>

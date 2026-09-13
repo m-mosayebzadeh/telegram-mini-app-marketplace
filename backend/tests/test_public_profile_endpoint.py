@@ -170,7 +170,7 @@ def test_provider_summary_tracks_response_and_rejection_rate(client):
     offer = client.post(
         "/offers",
         headers=auth_alice,
-        json={"price_drops": 10, "display_duration_minutes": 30, "title": "Chat with me", "description": "Chat"},
+        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat with me", "description": "Chat"},
     ).json()
 
     bob_request = client.post(
@@ -235,7 +235,7 @@ def test_buyer_summary_for_a_brand_new_user(client):
     body = response.json()
     assert body["status"] == "new"
     assert body["completed_transactions_count"] == 0
-    assert body["total_stars_spent"] == 0
+    assert body["total_drops_spent"] == 0
 
 
 def test_buyer_summary_for_a_nonexistent_user_returns_404(client):
@@ -268,12 +268,13 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
     give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.drop_to_toman_rate)
     client.post(f"/content/{content['id']}/purchase", headers=auth_bob)
 
-    # A paid chat request stays PENDING (idle money) -- still counts as
-    # "spent" (the buyer was already charged), but not yet "completed".
+    # A chat that is still running has RESERVED money rather than spent it —
+    # some of it may well come back — so it is deliberately not counted here.
+    # Only what a finished session actually consumed ever becomes "spent".
     offer = client.post(
         "/offers",
         headers=auth_alice,
-        json={"price_drops": 20, "display_duration_minutes": 30, "title": "Chat", "description": "Chat"},
+        json={"price_drops": 20, "session_duration_seconds": 1800, "title": "Chat", "description": "Chat"},
     ).json()
     req = client.post("/requests", headers=auth_bob, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/accept", headers=auth_alice)
@@ -284,4 +285,4 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
     body = response.json()
     assert body["status"] == "established"  # the content purchase completed
     assert body["completed_transactions_count"] == 1  # only the content, not the still-pending chat
-    assert body["total_stars_spent"] == 30  # 10 (content) + 20 (chat), pending or not
+    assert body["total_drops_spent"] == 10  # the content only; the chat has not settled

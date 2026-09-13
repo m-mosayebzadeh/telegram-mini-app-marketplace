@@ -5,7 +5,7 @@
  */
 
 import { apiFetch, apiFetchBlob } from './api'
-import type { StarInvoice, TopUpCardInfo, TopUpRequest } from './types'
+import type {  TopUpCardInfo, TopUpRequest } from './types'
 
 export function getTopUpCardInfo(): Promise<TopUpCardInfo> {
   return apiFetch<TopUpCardInfo>('/topup/card-info')
@@ -27,9 +27,6 @@ export function createTopUpRequest(file: File, requestedStars: number): Promise<
  * is handed straight to Telegram.WebApp.openInvoice() (see
  * lib/telegramInvoice.ts); nothing is credited until Telegram's own
  * webhook confirms the payment happened. */
-export function createStarInvoice(stars: number): Promise<StarInvoice> {
-  return apiFetch<StarInvoice>('/topup/stars/invoice', { method: 'POST', body: JSON.stringify({ stars }) })
-}
 
 /** Same blob-fetch pattern as lib/contentApi.ts's fetchContentFileBlobUrl
  * — the receipt route is access-checked, so a plain <img src> can't be

@@ -58,7 +58,7 @@ class RequestActivityOut(BaseModel):
     id: int
     offer_id: int
     offer_title: str
-    offer_price_stars: int
+    offer_price_drops: int
     status: str
     reason: str | None
     created_at: datetime

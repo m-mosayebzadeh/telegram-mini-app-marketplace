@@ -23,7 +23,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 def _create_offer(client, auth: dict, **overrides):
     payload = {
         "price_drops": 40,
-        "display_duration_minutes": 30,
+        "session_duration_seconds": 1800,
         "title": "Chat with me",
         "description": "A nice chat",
     }
@@ -33,15 +33,25 @@ def _create_offer(client, auth: dict, **overrides):
 
 def _open_paid_session(client, db_session, auth_provider, auth_buyer, buyer_id, offer) -> dict:
     """Full happy path up to a freshly-opened chat session: request,
-    accept, fund the buyer's wallet, pay. Returns the session as JSON."""
+    accept, fund the buyer's wallet, pay, and have the provider say
+    something. Returns the session as JSON.
+
+    The provider's first message matters: a session where they never speak at
+    all is refunded in full automatically (see app/wallet/blocks.py's
+    PROVIDER_SILENT), so without it nothing would ever be charged."""
     req = client.post("/requests", headers=auth_buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/accept", headers=auth_provider)
     give_wallet_balance(
         db_session, buyer_id, amount_toman=offer["price_drops"] * settings.drop_to_toman_rate
     )
     client.post(f"/requests/{req['id']}/pay", headers=auth_buyer)
-
-    return client.get("/chat-sessions/mine", headers=auth_buyer).json()[0]
+    session = client.get("/chat-sessions/mine", headers=auth_buyer).json()[0]
+    client.post(
+        f"/chat-sessions/{session['id']}/messages",
+        headers=auth_provider,
+        data={"type": "text", "text": "Hello"},
+    )
+    return session
 
 
 def _age_session(db_session, session_id: int, hours: int) -> None:
@@ -61,15 +71,23 @@ def test_session_is_enriched_with_offer_and_role_info(client, db_session):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_drops=40, display_duration_minutes=30)
+    offer = _create_offer(client, auth_a, price_drops=40, session_duration_seconds=1800)
 
     session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
 
     assert session["offer_title"] == "Chat with me"
     assert session["price_drops"] == 40
-    assert session["display_duration_minutes"] == 30
+    assert session["session_duration_seconds"] == 1800
     assert session["disputed"] is False
-    assert session["transaction_status"] == "pending"
+    # Nothing has been bought yet: a session reserves money and only settles
+    # for the blocks it actually uses, so there is no transaction until it
+    # ends (see app/wallet/blocks.py).
+    assert session["transaction_status"] is None
+    assert session["transaction_id"] is None
+    assert session["reserved_blocks"] == 4
+    assert session["block_duration_seconds"] == 450  # 30 minutes in four
+    assert session["block_price_drops"] == 10
+    assert session["ends_at"] is not None
 
 
 def test_session_reports_my_role_and_the_other_participant_per_viewer(client, db_session):
@@ -205,7 +223,10 @@ def test_closing_does_not_release_funds_immediately(client, db_session):
 
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.drop_to_toman_rate  # 40 - 10% commission
+    # Closing after seconds means one block of four was used: 10 Drops, less
+    # the 10% commission, leaves 9 for the provider. The other three blocks
+    # went straight back to the buyer, with nothing to wait for.
+    assert alice_wallet["pending_toman"] == 9 * settings.drop_to_toman_rate
 
 
 # --- grace-period auto-release ------------------------------------------
@@ -224,7 +245,7 @@ def test_balance_check_before_grace_period_keeps_funds_pending(client, db_sessio
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.drop_to_toman_rate
+    assert alice_wallet["pending_toman"] == 9 * settings.drop_to_toman_rate
 
 
 def test_balance_check_after_grace_period_releases_funds(client, db_session):
@@ -239,7 +260,7 @@ def test_balance_check_after_grace_period_releases_funds(client, db_session):
 
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
-    assert alice_wallet["balance_toman"] == 36 * settings.drop_to_toman_rate
+    assert alice_wallet["balance_toman"] == 9 * settings.drop_to_toman_rate
     assert alice_wallet["pending_toman"] == 0
 
 
@@ -291,7 +312,7 @@ def test_disputing_prevents_the_grace_period_release(client, db_session):
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.drop_to_toman_rate
+    assert alice_wallet["pending_toman"] == 9 * settings.drop_to_toman_rate
 
 
 def test_cannot_dispute_the_same_session_twice(client, db_session):

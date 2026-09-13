@@ -5,7 +5,10 @@ TECHNICAL_REQUIREMENTS.md, "مدل مالی و اعتبار".
 """
 
 from app.core.config import settings
+from app.core.time import utcnow
+from app.models.chat_session import ChatSession
 from app.models.transaction import Transaction
+from app.wallet.blocks import EndReason, close_and_settle
 from app.wallet.service import release_transaction
 from tests.helpers import give_wallet_balance, sign_init_data
 
@@ -21,7 +24,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 def _create_offer(client, auth: dict, **overrides):
     payload = {
         "price_drops": 40,
-        "display_duration_minutes": 30,
+        "session_duration_seconds": 1800,
         "title": "Chat with me",
         "description": "A nice chat",
     }
@@ -86,14 +89,13 @@ def test_pay_without_enough_balance_returns_402(client):
 # --- successful payment -------------------------------------------------
 
 
-def test_pay_charges_buyer_immediately_but_holds_the_providers_share(client, db_session):
+def test_paying_reserves_the_whole_price_and_buys_nothing_yet(client, db_session):
     """
-    A CHAT_REQUEST transaction settles later, not immediately (see
-    TECHNICAL_REQUIREMENTS.md, "idle money"): the buyer is charged in
-    full right away, but the provider's net share only becomes
-    spendable once the (not-yet-built) chat session closes cleanly —
-    see test_release_transaction_moves_pending_share_to_provider below
-    for that second half.
+    Paying for an accepted request no longer buys a fixed thing — it opens the
+    session and RESERVES its whole price. The buyer is debited immediately, so
+    the conversation can never die for lack of funds mid-way and the provider
+    knows the money is really there; but nobody is owed anything until the
+    session ends and it is known how many blocks were actually used.
     """
     auth_a = _auth_header(1, "Alice")  # provider
     auth_b = _auth_header(2, "Bob")  # buyer
@@ -109,25 +111,24 @@ def test_pay_charges_buyer_immediately_but_holds_the_providers_share(client, db_
 
     assert response.status_code == 201
     body = response.json()
-    # 40 stars at the default 10% chat commission -> 4 stars commission,
-    # 36 stars to the provider (see test_wallet.py for the rounding rule
-    # itself).
-    assert body["gross_price_drops"] == 40
-    assert body["commission_drops"] == 4
-    assert body["net_provider_drops"] == 36
-    assert body["status"] == "pending"
     assert body["request_id"] == req["id"]
+    assert body["status"] == "open"
+    # Four blocks of 10 Drops, and no purchase recorded yet.
+    assert body["reserved_blocks"] == 4
+    assert body["block_price_drops"] == 10
+    assert body["transaction_id"] is None
 
-    # Bob spent his entire balance immediately...
+    # Bob's whole balance is reserved: neither spendable nor gone, it shows as
+    # money in progress.
     bob_wallet = client.get("/wallet/balance", headers=auth_b).json()
     assert bob_wallet["balance_toman"] == 0
+    assert bob_wallet["in_flight_toman"] == 40 * settings.drop_to_toman_rate
 
-    # ...but Alice hasn't actually received anything yet: her spendable
-    # balance is still 0, and the 36-star net share shows up as PENDING
-    # instead, not as spendable balance.
+    # Alice is owed nothing yet either, not even provisionally: a session that
+    # has only just started has sold no time at all.
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 36 * settings.drop_to_toman_rate
+    assert alice_wallet["pending_toman"] == 0
     assert alice  # just to use the variable
 
 
@@ -146,6 +147,14 @@ def test_release_transaction_moves_pending_share_to_provider(client, db_session)
     req = _create_accepted_request(client, auth_a, auth_b, offer)
     give_wallet_balance(db_session, bob["id"], amount_toman=40 * settings.drop_to_toman_rate)
     client.post(f"/requests/{req['id']}/pay", headers=auth_b)
+
+    # Run the session out so all four blocks are consumed — only a finished
+    # session has a transaction to release.
+    chat_session = db_session.query(ChatSession).filter_by(request_id=req["id"]).one()
+    close_and_settle(
+        db_session, chat_session, reason=EndReason.COMPLETED, closed_by_user_id=None, at=utcnow()
+    )
+    db_session.commit()
 
     transaction = db_session.query(Transaction).filter(Transaction.request_id == req["id"]).one()
     assert transaction.status.value == "pending"

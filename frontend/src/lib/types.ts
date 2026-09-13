@@ -74,7 +74,7 @@ export interface Offer {
   provider_id: number
   service_type: string
   price_drops: number
-  display_duration_minutes: number
+  session_duration_seconds: number
   title: string
   description: string
   status: 'active' | 'inactive'
@@ -100,7 +100,7 @@ export interface RequestActivity {
   id: number
   offer_id: number
   offer_title: string
-  offer_price_stars: number
+  offer_price_drops: number
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
   reason: string | null
   created_at: string
@@ -145,7 +145,9 @@ export interface ChatSessionParticipant {
 export interface ChatSession {
   id: number
   request_id: number
-  transaction_id: number
+  /** null until the session ends: a session reserves money and only settles
+   *  for the blocks it used, so there is no purchase to record before then. */
+  transaction_id: number | null
   status: 'open' | 'closed'
   opened_at: string
   closed_at: string | null
@@ -158,10 +160,35 @@ export interface ChatSession {
   other_participant: ChatSessionParticipant
   offer_title: string
   price_drops: number
-  // Informational only — never an enforced timer (see section 3).
-  display_duration_minutes: number
+  /** How long the session actually runs. A commitment now, not a hint: it
+   *  closes itself at the end of its last block. */
+  session_duration_seconds: number
+
+  // --- the block plan, frozen when the session started ---
+  reserved_blocks: number
+  block_duration_seconds: number
+  block_price_drops: number
+  /** When it will stop on its own, honouring a stop-at-block-end request. */
+  ends_at: string | null
+  close_at_block_end_by_user_id: number | null
+  /** Filled in once it has closed. */
+  consumed_blocks: number
+  end_reason:
+    | 'completed'
+    | 'buyer_closed'
+    | 'provider_closed'
+    | 'provider_silent'
+    | null
+
+  /** Whether the CALLER has signed off on the settlement. Once they have,
+   *  they can no longer dispute this session. */
+  i_confirmed_settlement: boolean
+  /** Whether the other participant has. Both means the money is released
+   *  without waiting out the rest of the window. */
+  they_confirmed_settlement: boolean
+
   disputed: boolean
-  transaction_status: 'pending' | 'succeeded' | 'failed' | 'refunded'
+  transaction_status: 'pending' | 'succeeded' | 'failed' | 'refunded' | null
   // Whether the CURRENT viewer archived this session — per-viewer, see
   // backend/app/models/chat_session.py's archived_by_buyer/archived_by_provider.
   archived: boolean
@@ -308,7 +335,7 @@ export interface BuyerSummary {
   status: 'established' | 'new'
   joined_at: string
   completed_transactions_count: number
-  total_stars_spent: number
+  total_drops_spent: number
 }
 
 /** GET /topup/card-info — see backend/app/topup/schemas.py's
@@ -317,12 +344,6 @@ export interface BuyerSummary {
 export interface TopUpCardInfo {
   card_number: string
   card_holder_name: string
-}
-
-/** POST /topup/stars/invoice — see lib/topupApi.ts's createStarInvoice. */
-export interface StarInvoice {
-  invoice_link: string
-  purchase_id: number
 }
 
 /** One card-to-card top-up request, from the requester's own point of

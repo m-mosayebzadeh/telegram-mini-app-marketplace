@@ -37,13 +37,3 @@ class TopUpRejectIn(BaseModel):
     reason: str
 
 
-class StarInvoiceCreate(BaseModel):
-    stars: int = Field(strict=True, le=1_000_000_000)
-
-
-class StarInvoiceOut(BaseModel):
-    """The link to hand straight to Telegram.WebApp.openInvoice() on
-    the frontend — see app/topup/router.py's create_star_invoice."""
-
-    invoice_link: str
-    purchase_id: int

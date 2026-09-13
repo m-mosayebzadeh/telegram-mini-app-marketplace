@@ -1,13 +1,34 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.core.config import SESSION_BLOCK_COUNT
+
+
+def _must_divide_into_blocks(value: int, what: str) -> int:
+    """A session is sold and settled one block at a time, so both its price and
+    its length have to split into whole blocks — otherwise every session would
+    carry a rounding error in the one place it is least acceptable."""
+    if value % SESSION_BLOCK_COUNT:
+        raise ValueError(f'{what} must divide evenly into {SESSION_BLOCK_COUNT} blocks')
+    return value
 
 
 class OfferCreate(BaseModel):
     price_drops: int = Field(gt=0)
-    display_duration_minutes: int = Field(gt=0)
+    session_duration_seconds: int = Field(gt=0)
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=2000)
+
+    @field_validator('price_drops')
+    @classmethod
+    def _price_in_whole_blocks(cls, value: int) -> int:
+        return _must_divide_into_blocks(value, 'price_drops')
+
+    @field_validator('session_duration_seconds')
+    @classmethod
+    def _duration_in_whole_blocks(cls, value: int) -> int:
+        return _must_divide_into_blocks(value, 'session_duration_seconds')
 
 
 class OfferUpdate(BaseModel):
@@ -19,9 +40,19 @@ class OfferUpdate(BaseModel):
     """
 
     price_drops: int | None = Field(default=None, gt=0)
-    display_duration_minutes: int | None = Field(default=None, gt=0)
+    session_duration_seconds: int | None = Field(default=None, gt=0)
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, min_length=1, max_length=2000)
+
+    @field_validator('price_drops')
+    @classmethod
+    def _price_in_whole_blocks(cls, value: int | None) -> int | None:
+        return value if value is None else _must_divide_into_blocks(value, 'price_drops')
+
+    @field_validator('session_duration_seconds')
+    @classmethod
+    def _duration_in_whole_blocks(cls, value: int | None) -> int | None:
+        return value if value is None else _must_divide_into_blocks(value, 'session_duration_seconds')
 
 
 class OfferProviderOut(BaseModel):
@@ -50,7 +81,7 @@ class OfferOut(BaseModel):
     provider_id: int
     service_type: str
     price_drops: int
-    display_duration_minutes: int
+    session_duration_seconds: int
     title: str
     description: str
     status: str

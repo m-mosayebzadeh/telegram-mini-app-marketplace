@@ -59,7 +59,7 @@ export default function BuyerSummary() {
               },
               {
                 label: t('buyerSummary.totalStarsSpent'),
-                value: <DropAmount amount={summary.total_stars_spent} locale={i18n.language} size={16} />,
+                value: <DropAmount amount={summary.total_drops_spent} locale={i18n.language} size={16} />,
               },
             ]}
           />

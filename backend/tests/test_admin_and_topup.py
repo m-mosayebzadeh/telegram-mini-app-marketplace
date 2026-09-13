@@ -280,7 +280,6 @@ def test_rates_default_from_settings(client):
     assert response.status_code == 200
     body = response.json()
     assert body["drop_to_toman_rate"] == settings.drop_to_toman_rate
-    assert body["telegram_star_to_toman_rate"] == settings.telegram_star_to_toman_rate
     assert body["chat_commission_percent"] == settings.chat_commission_percent
     assert body["content_commission_percent"] == settings.content_commission_percent
     # The withdrawal lever exists but is deliberately off — a provider is
@@ -301,7 +300,6 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
         headers=OWNER_HEADER,
         json={
             "drop_to_toman_rate": 5000,
-            "telegram_star_to_toman_rate": 4000,
             "chat_commission_percent": 15,
             "content_commission_percent": 8,
             "withdrawal_commission_percent": 12,
@@ -315,7 +313,6 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
     pricing = client.get("/pricing", headers=BUYER_HEADER)
     assert pricing.json() == {
         "drop_to_toman_rate": 5000,
-        "telegram_star_to_toman_rate": 4000,
         "chat_commission_percent": 15,
         "content_commission_percent": 8,
         "withdrawal_commission_percent": 12,
@@ -522,8 +519,8 @@ def test_admin_can_list_and_delete_a_users_offer(client):
         "/offers",
         headers=BUYER_HEADER,
         json={
-            "price_drops": 10,
-            "display_duration_minutes": 30,
+            "price_drops": 12,
+            "session_duration_seconds": 1800,
             "title": "Chat with me",
             "description": "A nice chat",
         },
@@ -547,8 +544,8 @@ def test_admin_delete_offer_still_blocks_on_an_open_accepted_request(client):
         "/offers",
         headers=BUYER_HEADER,
         json={
-            "price_drops": 10,
-            "display_duration_minutes": 30,
+            "price_drops": 12,
+            "session_duration_seconds": 1800,
             "title": "Chat with me",
             "description": "A nice chat",
         },
@@ -583,8 +580,8 @@ def test_admin_requests_list_includes_both_sent_and_received(client):
         "/offers",
         headers=BUYER_HEADER,
         json={
-            "price_drops": 10,
-            "display_duration_minutes": 30,
+            "price_drops": 12,
+            "session_duration_seconds": 1800,
             "title": "Chat with me",
             "description": "A nice chat",
         },
@@ -595,4 +592,4 @@ def test_admin_requests_list_includes_both_sent_and_received(client):
     assert len(rows) == 1
     assert rows[0]["direction"] == "received"
     assert rows[0]["counterpart_user_id"] == client.get("/me", headers=OTHER_HEADER).json()["id"]
-    assert rows[0]["offer_price_stars"] == 10
+    assert rows[0]["offer_price_drops"] == 12

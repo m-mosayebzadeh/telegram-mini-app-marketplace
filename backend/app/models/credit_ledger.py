@@ -43,6 +43,10 @@ class LedgerEntryType(str, enum.Enum):
     COMMISSION = "commission"
     WITHDRAWAL = "withdrawal"
     WITHDRAWAL_REFUND = "withdrawal_refund"
+    #: The whole price of a session, taken from the buyer when it starts.
+    SESSION_HOLD = "session_hold"
+    #: The unused part of that hold, handed straight back when it ends.
+    SESSION_HOLD_RELEASE = "session_hold_release"
 
 
 class CreditLedgerEntry(Base):
@@ -73,7 +77,7 @@ class CreditLedgerEntry(Base):
     )
 
     withdrawal_id: Mapped[int | None] = mapped_column(ForeignKey('withdrawals.id'), nullable=True)
-    star_purchase_id: Mapped[int | None] = mapped_column(ForeignKey('star_purchases.id'), nullable=True, unique=True)
+    chat_session_id: Mapped[int | None] = mapped_column(ForeignKey('chat_sessions.id'), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
@@ -87,7 +91,8 @@ class CreditLedgerEntry(Base):
             "(type IN ('topup_dev_stub', 'topup') AND transaction_id IS NULL AND withdrawal_id IS NULL) OR "
             "(type IN ('withdrawal', 'withdrawal_refund') AND transaction_id IS NULL AND withdrawal_id IS NOT NULL) OR "
             "(type = 'commission' AND ((transaction_id IS NOT NULL AND withdrawal_id IS NULL) OR (transaction_id IS NULL AND withdrawal_id IS NOT NULL))) OR "
-            "(type IN ('spend', 'receive') AND transaction_id IS NOT NULL AND withdrawal_id IS NULL)",
+            "(type IN ('spend', 'receive') AND transaction_id IS NOT NULL AND withdrawal_id IS NULL) OR "
+            "(type IN ('session_hold', 'session_hold_release') AND chat_session_id IS NOT NULL)",
             name="ck_ledger_source",
         ),
         UniqueConstraint('withdrawal_id', 'type', name='uq_withdrawal_ledger_type'),

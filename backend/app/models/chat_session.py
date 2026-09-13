@@ -17,7 +17,7 @@ this model only tracks the conversation's own open/closed state.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, Enum, ForeignKey
+from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -36,7 +36,65 @@ class ChatSession(Base):
     # One-to-one: every paid Request gets exactly one session, and vice
     # versa — enforced by unique=True, not just convention.
     request_id: Mapped[int] = mapped_column(ForeignKey("requests.id"), unique=True)
-    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"), unique=True)
+    # Set only once the session has closed and its consumed amount is known.
+    # A session no longer buys a fixed thing up front — it reserves money and
+    # then settles for however much of it was actually used — so the immutable
+    # record of the purchase cannot exist until there is a final number to
+    # record (see TECHNICAL_REQUIREMENTS.md section 15).
+    transaction_id: Mapped[int | None] = mapped_column(
+        ForeignKey("transactions.id"), unique=True, nullable=True
+    )
+
+    # --- the block plan, frozen when the session starts -------------------
+    #
+    # Copied from the offer rather than read through it, so editing or
+    # deleting an offer can never change what a session already running was
+    # sold as.
+    reserved_blocks: Mapped[int] = mapped_column(Integer, default=0)
+    block_duration_seconds: Mapped[int] = mapped_column(Integer, default=0)
+    block_price_drops: Mapped[int] = mapped_column(Integer, default=0)
+    block_price_toman: Mapped[int] = mapped_column(Integer, default=0)
+
+    # --- the money, in Toman, which is what the ledger speaks -------------
+    #
+    # reserved is taken from the buyer at the start; released goes straight
+    # back to them at the end for whatever was never used; consumed is what
+    # remains and goes on to settlement.
+    reserved_toman: Mapped[int] = mapped_column(Integer, default=0)
+    released_toman: Mapped[int] = mapped_column(Integer, default=0)
+    consumed_toman: Mapped[int] = mapped_column(Integer, default=0)
+    consumed_blocks: Mapped[int] = mapped_column(Integer, default=0)
+
+    # When the session is due to close on its own: the start plus every
+    # reserved block. Storing the end rather than recomputing it is what lets
+    # "has this finished?" be one comparison, with no scheduler anywhere.
+    scheduled_end_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    # Either side can ask for the session to stop at the end of the block that
+    # is running, instead of stopping mid-block or running to the end.
+    close_at_block_end_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+
+    # Why it ended, as a value rather than prose — the settlement rules differ
+    # per reason (see app/wallet/blocks.py).
+    end_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    # --- the settlement window --------------------------------------------
+    #
+    # Either side can say "this was fine" once the session has closed. When
+    # BOTH have, the money is released at once instead of waiting out the
+    # grace period — there is nothing left to protect against.
+    #
+    # Confirming also gives up your own right to complain about this session,
+    # which is why it is recorded per side: the other participant keeps theirs
+    # either way.
+    settlement_confirmed_by_buyer_at: Mapped[datetime | None] = mapped_column(
+        UTCDateTime, nullable=True
+    )
+    settlement_confirmed_by_provider_at: Mapped[datetime | None] = mapped_column(
+        UTCDateTime, nullable=True
+    )
 
     status: Mapped[ChatSessionStatus] = mapped_column(
         Enum(ChatSessionStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),

@@ -1,5 +1,7 @@
 """Integration tests for the offer endpoints."""
 
+import pytest
+
 from tests.helpers import sign_init_data
 
 
@@ -13,8 +15,8 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 
 def _create_offer(client, auth: dict, **overrides):
     payload = {
-        "price_drops": 10,
-        "display_duration_minutes": 30,
+        "price_drops": 12,
+        "session_duration_seconds": 1800,
         "title": "Chat with me",
         "description": "A nice chat",
     }
@@ -45,7 +47,7 @@ def test_create_offer_requires_a_title(client):
     response = client.post(
         "/offers",
         headers=auth,
-        json={"price_drops": 10, "display_duration_minutes": 30, "description": "A nice chat"},
+        json={"price_drops": 12, "session_duration_seconds": 1800, "description": "A nice chat"},
     )
 
     assert response.status_code == 422
@@ -358,10 +360,10 @@ def test_offer_is_editable_before_any_request(client):
     _login(client, 1, "Alice")
     offer = _create_offer(client, auth).json()
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_drops": 99})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_drops": 96})
 
     assert response.status_code == 200
-    assert response.json()["price_drops"] == 99
+    assert response.json()["price_drops"] == 96
 
 
 def test_offer_is_locked_once_it_has_a_pending_request(client):
@@ -372,7 +374,7 @@ def test_offer_is_locked_once_it_has_a_pending_request(client):
     offer = _create_offer(client, auth_a).json()
     client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 99})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 96})
 
     assert response.status_code == 400
 
@@ -386,7 +388,7 @@ def test_offer_is_editable_again_after_its_only_request_is_rejected(client):
     req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/reject", headers=auth_a, json={"reason": "no thanks"})
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 99})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 96})
 
     assert response.status_code == 200
 
@@ -514,3 +516,102 @@ def test_my_request_status_is_null_on_a_different_offer_from_the_same_provider(c
     response = client.get(f"/offers/{offer2['id']}", headers=buyer)
 
     assert response.json()["my_request_status"] is None
+
+
+# --- an offer is a session, and a session is four equal blocks ----------------
+#
+# A session is sold and settled one block at a time, so both the price and the
+# length have to split into whole blocks. Enforcing it at the edge is what lets
+# every later block calculation be plain integer arithmetic, with no fraction
+# of a Drop anywhere.
+
+
+@pytest.mark.parametrize("price_drops", [1, 2, 3, 5, 42, 99])
+def test_a_price_that_is_not_whole_blocks_is_rejected(client, price_drops):
+    auth = _auth_header(1, "Alice")
+
+    response = _create_offer(client, auth, price_drops=price_drops)
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("price_drops", [4, 8, 12, 100, 1000])
+def test_a_price_in_whole_blocks_is_accepted(client, price_drops):
+    auth = _auth_header(1, "Alice")
+
+    response = _create_offer(client, auth, price_drops=price_drops)
+
+    assert response.status_code == 201
+    assert response.json()["price_drops"] == price_drops
+
+
+def test_every_whole_minute_is_a_valid_session_length(client):
+    """Duration is stored in seconds precisely so this holds: any whole number
+    of minutes divides exactly into four blocks, which a count of minutes
+    would not (30 minutes has no whole quarter)."""
+    auth = _auth_header(1, "Alice")
+
+    for minutes in (1, 7, 15, 30, 45, 90):
+        response = client.post(
+            "/offers",
+            headers=auth,
+            json={
+                "price_drops": 40,
+                "session_duration_seconds": minutes * 60,
+                "title": "Chat",
+                "description": "Chat",
+            },
+        )
+        assert response.status_code == 201, minutes
+        client.delete(f"/offers/{response.json()['id']}", headers=auth)
+
+
+def test_a_duration_that_is_not_whole_blocks_is_rejected(client):
+    auth = _auth_header(1, "Alice")
+
+    response = client.post(
+        "/offers",
+        headers=auth,
+        json={
+            "price_drops": 40,
+            "session_duration_seconds": 30,  # 7.5 seconds a block
+            "title": "Chat",
+            "description": "Chat",
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_editing_an_offer_into_uneven_blocks_is_rejected(client):
+    """The rule has to hold on the way in AND on the way through: an offer
+    edited to an odd price would break block settlement just as badly."""
+    auth = _auth_header(1, "Alice")
+    offer = _create_offer(client, auth, price_drops=40).json()
+
+    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_drops": 41})
+
+    assert response.status_code == 422
+    assert client.get(f"/offers/{offer['id']}", headers=auth).json()["price_drops"] == 40
+
+
+def test_block_size_is_derived_not_stored(client, db_session):
+    """A block is always the session divided by four — nothing stores it, so
+    nothing can drift out of step with the offer it belongs to."""
+    from app.models.offer import Offer
+
+    auth = _auth_header(1, "Alice")
+    offer_id = client.post(
+        "/offers",
+        headers=auth,
+        json={
+            "price_drops": 100,
+            "session_duration_seconds": 30 * 60,
+            "title": "Chat",
+            "description": "Chat",
+        },
+    ).json()["id"]
+
+    offer = db_session.get(Offer, offer_id)
+    assert offer.block_price_drops == 25
+    assert offer.block_duration_seconds == 450  # 7.5 minutes

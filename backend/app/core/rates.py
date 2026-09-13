@@ -15,7 +15,6 @@ def _defaults():
     at zero on purpose (see PlatformRates' docstring).
     """
     return dict(id=1, drop_to_toman_rate=settings.drop_to_toman_rate,
-                telegram_star_to_toman_rate=settings.telegram_star_to_toman_rate,
                 chat_commission_percent=settings.chat_commission_percent,
                 content_commission_percent=settings.content_commission_percent,
                 withdrawal_commission_percent=0, complaint_commission_percent=0,

@@ -293,23 +293,33 @@ def credit_topup(db: Session, *, user_id: int, amount_toman: int) -> CreditLedge
 
 def get_buyer_in_flight_toman(db: Session, buyer_id: int) -> int:
     """
-    What this user has already paid for a chat that has not settled yet.
+    What this user has paid out for a chat that has not finished settling.
 
-    The buyer is charged in full the moment they pay, so from their side the
-    money has simply left the wallet — without this, a paid-for chat looks
-    like money that vanished. It is not spendable and it is not lost: it
-    either reaches the provider when the session closes cleanly, or comes back
-    if the transaction is resolved in the buyer's favour.
+    A buyer's wallet is debited the moment a session starts — the whole price
+    is reserved — so without this the money simply looks gone. It is neither
+    spendable nor lost: an open session still owes them whatever it does not
+    use, and a closed one is waiting out its settlement window.
     """
-    total = (
-        db.query(func.coalesce(func.sum(Transaction.gross_price_toman), 0))
-        .filter(
-            Transaction.buyer_id == buyer_id,
-            Transaction.status == TransactionStatus.PENDING,
-        )
-        .scalar()
+    from app.models.chat_session import ChatSession, ChatSessionStatus
+    from app.models.request import Request
+
+    sessions = (
+        db.query(ChatSession)
+        .join(Request, ChatSession.request_id == Request.id)
+        .filter(Request.buyer_id == buyer_id)
+        .all()
     )
-    return int(total)
+    total = 0
+    for chat_session in sessions:
+        if chat_session.status == ChatSessionStatus.OPEN:
+            # All of it: how much comes back is not known until it ends.
+            total += chat_session.reserved_toman
+        elif (
+            chat_session.transaction is not None
+            and chat_session.transaction.status == TransactionStatus.PENDING
+        ):
+            total += chat_session.consumed_toman
+    return total
 
 
 def _ledger_total(db: Session, user_id: int, *types: LedgerEntryType) -> int:
@@ -350,7 +360,16 @@ def get_withdrawable_toman(db: Session, user_id: int) -> int:
         db, user_id, LedgerEntryType.TOPUP, LedgerEntryType.TOPUP_DEV_STUB
     )
     # SPEND rows are negative; flip them so the arithmetic below reads plainly.
-    spent = -_ledger_total(db, user_id, LedgerEntryType.SPEND)
+    # A session's hold counts as spending from the moment it starts (its
+    # release nets straight back off, being positive), otherwise money that
+    # has left the wallet for a running chat would still look withdrawable.
+    spent = -_ledger_total(
+        db,
+        user_id,
+        LedgerEntryType.SPEND,
+        LedgerEntryType.SESSION_HOLD,
+        LedgerEntryType.SESSION_HOLD_RELEASE,
+    )
     # A withdrawal debits the ledger the moment it is requested (the hold), and
     # a rejected or cancelled one credits it back, so this nets out to "money
     # already on its way out".

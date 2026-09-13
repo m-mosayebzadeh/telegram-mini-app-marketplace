@@ -84,7 +84,7 @@ export function OfferBuyerView({
         <div className="of-deal-cell">
           <span className="of-deal-label">{t('offers.durationLabel')}</span>
           <span className="of-deal-value tabular">
-            {t('discover.minutes', { minutes: offer.display_duration_minutes })}
+            {t('discover.minutes', { minutes: offer.session_duration_seconds / 60 })}
           </span>
         </div>
       </section>
