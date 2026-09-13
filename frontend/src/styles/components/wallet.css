@@ -202,3 +202,124 @@
   font: var(--text-body-md);
   color: var(--color-text);
 }
+
+/* ---------- bank numbers ---------- */
+
+/* A card number and an IBAN are Latin digits read left-to-right whichever
+   way the page runs, checked four at a time against the plastic in
+   someone's hand. Tabular figures so the groups line up; the tracking is
+   what separates the groups visually once they are grouped. */
+.bk-number {
+  direction: ltr;
+  text-align: start;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.bk-number::placeholder {
+  letter-spacing: 0.12em;
+}
+
+/* IR belongs to the FIELD, not to what gets typed — it cannot be
+   backspaced away, because an IBAN without it is not an IBAN. */
+.bk-iban-group {
+  /* The group runs left-to-right as a unit so the prefix sits where the
+     number starts, not at the far end of an RTL row. */
+  direction: ltr;
+}
+
+.bk-iban-prefix {
+  flex-shrink: 0;
+  padding-inline-end: var(--space-2);
+  border-inline-end: 1px solid var(--color-border);
+  color: var(--color-text-2);
+  font: var(--text-body-md);
+  letter-spacing: 0.08em;
+  /* Selecting it suggests it can be edited. It cannot. */
+  user-select: none;
+}
+
+.bk-iban-invalid .bk-iban-prefix {
+  border-inline-end-color: var(--color-danger);
+}
+
+/* Which bank the first six digits belong to. A confirmation, so it is
+   quiet and green rather than loud. */
+.bk-bank {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-caption);
+  color: var(--color-success);
+}
+
+.bk-bank-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+/* ---------- saved cards ---------- */
+
+.bk-cards {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+/* The one place in the product where a card-shaped object is honest:
+   this IS a card, and someone is picking theirs out of several. It is
+   still the information doing the work — no fake chip, no gradient, no
+   pretend plastic, because none of those help anyone find the right
+   account and all of them date badly. */
+.bk-card {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.bk-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  /* The overflow button's own 44px box would otherwise push the row
+     taller than the line it sits on. */
+  margin-block: calc(var(--space-2) * -1);
+}
+
+.bk-card-bank {
+  font: var(--text-label);
+  color: var(--color-text-2);
+}
+
+.bk-card-manage {
+  color: var(--color-text-3);
+}
+
+/* Four digits is what tells two of your own cards apart. The whole
+   number is one tap away, on the sheet that edits it. */
+.bk-card-number {
+  display: block;
+  width: 100%;
+  text-align: start;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font: var(--text-title);
+  letter-spacing: 0.12em;
+  color: var(--color-text);
+}
+
+.bk-card-number:active {
+  opacity: 0.6;
+}
+
+.bk-card-holder {
+  font: var(--text-caption);
+  color: var(--color-text-3);
+}

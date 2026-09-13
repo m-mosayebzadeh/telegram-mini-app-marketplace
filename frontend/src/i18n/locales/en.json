@@ -584,7 +584,12 @@
     "emptyHistoryHint": "Every top-up, purchase and withdrawal is recorded here.",
     "noBanksHint": "To withdraw, first add a bank account in your own name.",
     "emptyWithdrawalsHint": "Once you request a withdrawal, you follow it here.",
-    "tomanUnit": "Toman"
+    "tomanUnit": "Toman",
+    "bankName": "{{name}} Bank",
+    "cardIncomplete": "A card number is 16 digits.",
+    "ibanIncomplete": "An IBAN is 24 digits after IR.",
+    "holderPlaceholder": "Exactly as printed on the card",
+    "holderHint": "The account must be in your own name, or the withdrawal is rejected."
   },
   "liveSession": {
     "waitingToStart": "waiting to start",
