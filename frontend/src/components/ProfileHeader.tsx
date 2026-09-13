@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
-import { daysUntilNextBirthday, formatJalaliBirthday } from '../lib/jalali'
+import { daysUntilNextBirthday, formatBirthday } from '../lib/jalali'
 import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'
 import { AvatarGallery } from './AvatarGallery'
@@ -12,7 +12,6 @@ import {
   IconCake,
   IconCamera,
   IconCheck,
-  IconMapPin,
   IconPersonFallback,
 } from './icons'
 
@@ -151,18 +150,17 @@ export function ProfileHeader({
         </p>
       )}
 
-      {(profile.location || hasBirthday) && (
+      {hasBirthday && (
         <div className="pf-meta">
-          {profile.location && (
-            <span className="pf-meta-item">
-              <IconMapPin size={16} />
-              {profile.location}
-            </span>
-          )}
           {hasBirthday && (
             <button type="button" className="pf-meta-item pf-meta-button" onClick={() => setBirthdayOpen(true)}>
               <IconCake size={16} />
-              {formatJalaliBirthday(profile.birthday_month!, profile.birthday_day!)}
+              {formatBirthday(
+                profile.birthday_month!,
+                profile.birthday_day!,
+                profile.birthday_year,
+                i18n.language,
+              )}
             </button>
           )}
         </div>
@@ -238,7 +236,12 @@ export function ProfileHeader({
               <IconCake size={28} />
             </span>
             <p className="pf-birthday-date">
-              {formatJalaliBirthday(profile.birthday_month!, profile.birthday_day!)}
+              {formatBirthday(
+                profile.birthday_month!,
+                profile.birthday_day!,
+                profile.birthday_year,
+                i18n.language,
+              )}
             </p>
             <span className="pf-birthday-countdown">
               {daysUntilNextBirthday(profile.birthday_month!, profile.birthday_day!) === 0

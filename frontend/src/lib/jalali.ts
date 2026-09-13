@@ -208,3 +208,41 @@ export function daysUntilNextBirthday(gregorianMonth: number, gregorianDay: numb
   }
   return Math.round((next.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 }
+
+/**
+ * A stored birthday, written in the calendar of the language reading it.
+ *
+ * The same day, not two days: someone who picked 1 فروردین 1405 and then
+ * switches to English sees that exact date as 21 March 2026. Only the
+ * Gregorian value is ever stored — Jalali is derived on the way out and
+ * converted back on the way in — which is what keeps the two from
+ * drifting apart.
+ *
+ * The year is optional throughout. Without one there is no year to
+ * print, but the conversion still needs an anchor, so the current year
+ * is used and then dropped.
+ */
+export function formatBirthday(
+  gregorianMonth: number,
+  gregorianDay: number,
+  gregorianYear: number | null,
+  language: string,
+  now = new Date(),
+): string {
+  if (language.startsWith('fa')) {
+    const anchor = gregorianYear ?? now.getFullYear()
+    const { jy, jm, jd } = gregorianToJalali(anchor, gregorianMonth, gregorianDay)
+    const date = `${toPersianDigits(jd)} ${JALALI_MONTH_NAMES[jm - 1]}`
+    return gregorianYear == null ? date : `${date} ${toPersianDigits(jy)}`
+  }
+
+  // The year in this Date is never shown when gregorianYear is null; it
+  // only exists because Date needs one, and 2000 is a leap year so a
+  // 29 February birthday survives it.
+  const date = new Date(gregorianYear ?? 2000, gregorianMonth - 1, gregorianDay)
+  return date.toLocaleDateString(language, {
+    day: 'numeric',
+    month: 'short',
+    ...(gregorianYear == null ? {} : { year: 'numeric' }),
+  })
+}

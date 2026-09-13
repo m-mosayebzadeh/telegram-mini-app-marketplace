@@ -19,6 +19,12 @@ from app.core.database import Base
 MAX_INTERESTS = 10
 
 
+#: A bio is a line or two under a name, not an essay: 1000 characters
+#: produced a text box that dominated the edit screen and a profile
+#: nobody reads to the end of.
+MAX_BIO_LENGTH = 100
+
+
 class Profile(Base):
     __tablename__ = "profiles"
 
@@ -34,7 +40,7 @@ class Profile(Base):
     # "current avatar" url is needed, app/profile/photos.py's
     # get_current_avatar_url() computes it from the newest ProfilePhoto
     # row instead of reading a stored column here.
-    bio: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    bio: Mapped[str | None] = mapped_column(String(MAX_BIO_LENGTH), nullable=True)
     location: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     # A JSON column (works the same on SQLite and Postgres) holding a

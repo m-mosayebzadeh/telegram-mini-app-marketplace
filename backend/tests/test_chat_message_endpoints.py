@@ -248,7 +248,7 @@ def test_send_video_with_duration_over_the_limit_is_rejected(client, db_session)
     assert response.status_code == 400
 
 
-# --- sending a voice message (simulated — never a real file) --------------
+# --- sending a voice message ----------------------------------------------
 
 
 def test_send_a_voice_message_needs_no_file(client, db_session):
@@ -265,12 +265,48 @@ def test_send_a_voice_message_needs_no_file(client, db_session):
     assert body["type"] == "voice"
     assert body["duration_seconds"] == 8
 
-    # No file exists for a voice message — fetching one 404s, exactly
-    # like a message that was never sent at all.
-    file_response = client.get(
-        f"/chat-sessions/{session['id']}/messages/{body['id']}/file", headers=auth_a
+
+def test_a_voice_message_carries_real_audio(client, db_session):
+    """A voice message used to store only its length, so the recipient
+    got a bubble saying "8 seconds" and no way to hear them."""
+    session, _auth_a, auth_b = _setup_session(client, db_session)
+
+    sent = client.post(
+        f"/chat-sessions/{session['id']}/messages",
+        headers=auth_b,
+        data={"type": "voice", "duration_seconds": "8"},
+        files={"file": ("voice.webm", b"fake-opus-bytes", "audio/webm")},
     )
-    assert file_response.status_code == 404
+
+    assert sent.status_code == 201, sent.text
+    message_id = sent.json()["id"]
+
+    audio = client.get(
+        f"/chat-sessions/{session['id']}/messages/{message_id}/file", headers=auth_b
+    )
+    assert audio.status_code == 200
+    assert audio.content == b"fake-opus-bytes"
+
+
+def test_a_voice_message_recorded_before_audio_existed_still_lists(client, db_session):
+    """The file stays optional so older messages keep rendering; the
+    frontend shows those without a play control rather than offering one
+    that cannot work."""
+    session, _auth_a, auth_b = _setup_session(client, db_session)
+    sent = client.post(
+        f"/chat-sessions/{session['id']}/messages",
+        headers=auth_b,
+        data={"type": "voice", "duration_seconds": "8"},
+    )
+
+    audio = client.get(
+        f"/chat-sessions/{session['id']}/messages/{sent.json()['id']}/file", headers=auth_b
+    )
+
+    # Fetching bytes that were never recorded 404s, exactly like a
+    # message that was never sent at all — the caller cannot tell the
+    # difference and does not need to.
+    assert audio.status_code == 404
 
 
 def test_send_voice_without_duration_is_rejected(client, db_session):

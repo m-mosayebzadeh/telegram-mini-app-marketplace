@@ -10,11 +10,13 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.models.profile import MAX_BIO_LENGTH
+
 
 class ProfileUpdate(BaseModel):
     """What a client sends to create or update their own profile."""
 
-    bio: str | None = Field(default=None, max_length=1000)
+    bio: str | None = Field(default=None, max_length=MAX_BIO_LENGTH)
     location: str | None = Field(default=None, max_length=200)
     # Length capped at MAX_INTERESTS (app/models/profile.py) — checked in
     # app/profile/router.py, since a JSON column can't carry a CHECK on

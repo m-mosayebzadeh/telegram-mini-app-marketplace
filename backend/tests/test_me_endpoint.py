@@ -256,3 +256,38 @@ def test_pricing_config_matches_current_settings(client):
     assert body["withdrawal_commission_percent"] == 0
     assert body["complaint_commission_percent"] == 0
     assert body["minimum_withdrawal_toman"] == 500_000
+
+
+def test_a_username_can_be_given_up(client):
+    """
+    A username is optional here — the app identifies people by display
+    name and avatar, and a username is only a nicer handle to be found
+    by. Requiring a non-empty value made the field a one-way door:
+    someone who set one could never get rid of it.
+    """
+    auth = {"X-Telegram-Init-Data": sign_init_data({"id": 4242, "first_name": "Sara"})}
+    client.get("/me", headers=auth)
+
+    assert client.put("/me/username", headers=auth, json={"username": "sara"}).status_code == 200
+    assert client.get("/me", headers=auth).json()["username"] == "sara"
+
+    cleared = client.put("/me/username", headers=auth, json={"username": ""})
+
+    assert cleared.status_code == 200
+    assert cleared.json()["username"] is None
+    assert client.get("/me", headers=auth).json()["username"] is None
+
+
+def test_a_given_up_username_is_free_for_someone_else(client):
+    """The unique constraint is on a real value, so releasing one has to
+    actually release it."""
+    first = {"X-Telegram-Init-Data": sign_init_data({"id": 4243, "first_name": "A"})}
+    second = {"X-Telegram-Init-Data": sign_init_data({"id": 4244, "first_name": "B"})}
+    client.get("/me", headers=first)
+    client.get("/me", headers=second)
+    client.put("/me/username", headers=first, json={"username": "shared"})
+
+    assert client.put("/me/username", headers=second, json={"username": "shared"}).status_code == 400
+    client.put("/me/username", headers=first, json={"username": ""})
+
+    assert client.put("/me/username", headers=second, json={"username": "shared"}).status_code == 200

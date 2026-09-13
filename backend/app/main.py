@@ -242,7 +242,12 @@ USERNAME_PATTERN = re.compile(r"^[a-zA-Z0-9_]{3,32}$")
 
 
 class UsernameUpdate(BaseModel):
-    username: str = Field(min_length=1, max_length=64)
+    #: None, or an empty string, CLEARS it. A username is optional here —
+    #: the app identifies people by display name and avatar, and a
+    #: username is only a nicer handle to be found by. Someone who no
+    #: longer wants one must be able to say so; requiring a non-empty
+    #: value made the field a one-way door.
+    username: str | None = Field(default=None, max_length=64)
 
 
 @app.put("/me/username")
@@ -252,14 +257,25 @@ def update_username(
     db: Session = Depends(get_db),
 ) -> dict:
     """
-    Lets a user pick their own in-app username (separate from their real
-    Telegram @username — see User.username's docstring). Two distinct,
-    checkable error reasons on failure (not just one generic 400) so the
-    frontend can show the right hint: "invalid_characters" for anything
-    outside a-zA-Z0-9_ or the wrong length, "username_taken" if someone
-    else already has it.
+    Lets a user pick their own in-app username, or give it up.
+
+    Separate from their real Telegram @username (see User.username's
+    docstring). An empty value clears it: a username is optional, and
+    someone who had one and no longer wants it must be able to say so.
+
+    Two distinct, checkable error reasons on failure rather than one
+    generic 400, so the frontend can show the right hint:
+    "invalid_characters" for anything outside a-zA-Z0-9_ or the wrong
+    length, "username_taken" if someone else already has it.
     """
-    if not USERNAME_PATTERN.match(payload.username):
+    username = (payload.username or "").strip()
+
+    if not username:
+        current_user.username = None
+        db.commit()
+        return {"username": None}
+
+    if not USERNAME_PATTERN.match(username):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, {"reason": "invalid_characters"})
 
     # Checked up front (not just left to the database's unique
@@ -268,14 +284,12 @@ def update_username(
     # second line of defense against a race between this check and the
     # commit below (caught right after).
     taken = (
-        db.query(User)
-        .filter(User.username == payload.username, User.id != current_user.id)
-        .first()
+        db.query(User).filter(User.username == username, User.id != current_user.id).first()
     )
     if taken is not None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, {"reason": "username_taken"})
 
-    current_user.username = payload.username
+    current_user.username = username
     try:
         db.commit()
     except IntegrityError:

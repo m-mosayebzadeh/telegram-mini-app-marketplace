@@ -3,15 +3,16 @@ ChatMessage: one message inside a chat session's conversation — text,
 photo, video, or voice, per TECHNICAL_REQUIREMENTS.md section 12 (only
 these four message types are ever allowed, no arbitrary file uploads).
 
-Voice messages are deliberately special: recording is SIMULATED on the
-frontend (no real microphone access — see section 12), so a voice
-message never has a real audio file behind it, only a reported
-duration_seconds. Photo/video messages, by contrast, always have a real
-uploaded file (stored the same way as app/models/content.py's Content,
-via app/core/storage.py's save_content_file — see
-app/chat_message/router.py). This is exactly why the CHECK constraint
-below treats voice differently from photo/video even though all three
-carry duration_seconds.
+Photo, video and voice all carry a real uploaded file, stored the same
+way as app/models/content.py's Content via app/core/storage.py.
+
+Voice is the one type whose file is OPTIONAL, and only for a historical
+reason: recording used to be simulated -- the frontend timed a fake
+recording and sent only its length -- so messages from before real audio
+existed have a duration and nothing to play. They must keep rendering,
+so the CHECK below permits a NULL file_path for voice and the frontend
+shows those without a play control rather than offering one that cannot
+work. New voice messages always carry audio.
 """
 
 import enum
@@ -66,12 +67,12 @@ class ChatMessage(Base):
         # Each message type has exactly one valid shape — text carries
         # only text, photo carries only a file, video carries a file AND
         # a duration, voice carries ONLY a duration (no file — see this
-        # module's docstring on why voice is never a real recording).
+        # module's docstring on why a voice file is optional.
         CheckConstraint(
             "(type = 'text' AND text IS NOT NULL AND file_path IS NULL AND duration_seconds IS NULL) OR "
             "(type = 'photo' AND file_path IS NOT NULL AND text IS NULL AND duration_seconds IS NULL) OR "
             "(type = 'video' AND file_path IS NOT NULL AND duration_seconds IS NOT NULL AND text IS NULL) OR "
-            "(type = 'voice' AND file_path IS NULL AND duration_seconds IS NOT NULL AND text IS NULL)",
+            "(type = 'voice' AND duration_seconds IS NOT NULL AND text IS NULL)",
             name="ck_chat_message_fields_match_type",
         ),
     )

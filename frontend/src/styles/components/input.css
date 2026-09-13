@@ -229,12 +229,121 @@
   background: var(--color-surface-2);
 }
 
-/* The interests as they will actually render, under the field that
-   produced them. */
-.ep-interest-preview {
+/* A hundred characters is three lines, and a box someone can drag is a
+   box that ends up the wrong size. Fixed, and tall enough for all of
+   it. */
+.ep-bio {
+  min-height: 92px;
+  resize: none;
+}
+
+/* A username is Latin whatever the page's language is, so the field
+   runs left-to-right and the @ sits at the start of the name rather
+   than at the far end of an RTL row. It belongs to the FIELD, which is
+   also why it cannot be backspaced away. */
+.ep-username-group {
+  display: flex;
+  align-items: center;
+  direction: ltr;
+  gap: var(--space-1);
+  padding-inline-start: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.ep-username-group:focus-within {
+  border-color: var(--color-accent);
+}
+
+.ep-username-at {
+  color: var(--color-text-subtle);
+  font: var(--text-body);
+}
+
+.ep-username-input {
+  flex: 1;
+  padding-inline-start: 0;
+  border: none;
+  background: none;
+  direction: ltr;
+  text-align: left;
+}
+
+.ep-username-input:focus {
+  outline: none;
+}
+
+/* A value that is always Latin — a username — reads left-to-right even
+   in a right-to-left row. */
+.ep-value-latin {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* The chips being edited, and the same chips previewed on the row that
+   opens the sheet. */
+.ep-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.ep-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-3);
+  padding-inline: var(--space-3) var(--space-1);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font: var(--text-caption);
+}
+
+.ep-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-subtle);
+  cursor: pointer;
+}
+
+.ep-tag-remove:active {
+  background: var(--color-surface-3);
+}
+
+.ep-row-tags {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+/* Removing a birthday is a real choice, not a hidden one — but it is
+   not the sheet's primary action either, so it sits below, quiet and
+   in the warning colour. */
+.ep-clear {
+  display: block;
+  width: 100%;
+  margin-top: var(--space-5);
+  padding: var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-danger);
+  font: var(--text-body);
+  cursor: pointer;
+}
+
+.ep-clear:active {
+  background: var(--color-surface-2);
 }
 
 /* Save sits in the header on a page of small edits. Accent, because it

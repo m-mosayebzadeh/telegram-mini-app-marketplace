@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 
-// Resolved from the project root: vitest runs with the browser-ish
-// import.meta.url, which is not a file: URL here.
-const css = readFileSync(resolve('src/styles/components/chat-session.css'), 'utf8')
+// Read from disk rather than imported: vitest hands a CSS import back
+// as an empty string, which would make every assertion below pass for
+// the wrong reason. Relative to the project root, where vitest runs.
+const css = readFileSync('src/styles/components/chat-session.css', 'utf8')
 
 /**
  * Which side a message bubble sits on is one of the very few things in
