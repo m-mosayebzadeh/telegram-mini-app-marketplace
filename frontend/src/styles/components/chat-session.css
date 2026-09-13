@@ -166,20 +166,35 @@
    third colour, so the bar reads as one thing filling rather than three
    different states. */
 .bb-block-live {
-  background: color-mix(in srgb, var(--color-accent) 38%, var(--color-surface-2));
+  background: color-mix(in srgb, var(--color-accent) 45%, var(--color-surface-2));
+}
+
+/* The whole track is taller while a session is live, so the segments
+   read as a thing in progress rather than a rule under the header. */
+.bb-track {
+  align-items: stretch;
 }
 
 .bb-line {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
   gap: var(--space-3);
   min-height: 18px;
 }
 
-/* Time is the headline. Money is deliberately NOT on this bar: a figure
-   that climbs during an intimate conversation reads as a taxi meter. */
+/* Which block, in words, at the START edge — the same end the bar fills
+   from. The shape alone cannot say which end is first or which way it
+   travels; this can. */
+.bb-position {
+  font: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Time sits at the far edge, so the caption row reads as a span between
+   two points rather than two labels floating over a graphic. */
 .bb-time {
+  margin-inline-start: auto;
   font: var(--text-caption);
   color: var(--color-text-2);
 }
@@ -187,6 +202,10 @@
 /* Appears as a block turns over and leaves again. An event, not a
    readout — see AMOUNT_REVEAL_MS in BlockBar.tsx. */
 .bb-amount {
+  /* Sits beside the time rather than displacing it — a caption row that
+     re-flows every block would be movement in the one thing built to
+     hold still. */
+  margin-inline-start: var(--space-2);
   font: var(--text-caption);
   color: var(--color-accent-ink);
   animation: bb-amount-in var(--motion-base) var(--ease);
@@ -207,9 +226,10 @@
 .wts {
   flex-shrink: 0;
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--page-gutter);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--page-gutter);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }

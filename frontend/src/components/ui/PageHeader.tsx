@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { IconArrowNarrowLeft } from '../icons'
+import { IconBack } from '../icons'
 
 interface PageHeaderProps {
   title: string
@@ -50,7 +50,7 @@ export function PageHeader({ title, onBack, action }: PageHeaderProps) {
           onClick={onBack}
           aria-label={t('common.back')}
         >
-          <IconArrowNarrowLeft size={22} />
+          <IconBack size={22} />
         </button>
       ) : (
         // Both edges reserve their width whether or not they hold

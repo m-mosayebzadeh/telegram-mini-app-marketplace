@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { IconArrowNarrowLeft, IconMore, IconPersonFallback } from '../icons'
+import { IconBack, IconMore, IconPersonFallback } from '../icons'
 import type { ChatSession } from '../../lib/types'
 
 interface ChatHeaderProps {
@@ -47,7 +47,7 @@ export function ChatHeader({ session, onBack, onOpenDetails, onOpenProfile }: Ch
   return (
     <header className="ch-header">
       <button className="ui-header-slot ui-header-back" onClick={onBack} aria-label={t('common.back')}>
-        <IconArrowNarrowLeft size={22} />
+        <IconBack size={22} />
       </button>
 
       {/* The face and the name go to the person. The session is a

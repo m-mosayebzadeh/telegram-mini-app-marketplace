@@ -85,12 +85,24 @@ export function BlockBar({ session, onOpenDetails }: BlockBarProps) {
       </span>
 
       <span className="bb-line">
-        <span className="bb-time tabular">
+        {/* Which block you are in, said in words.
+            The shape alone cannot answer it: a row of segments does not
+            tell anyone which end is the start, which way it fills, or
+            which one is running now. "Block 2 of 4" does, and the bar
+            then only has to show the proportion. */}
+        <span className="bb-position tabular">
           {waiting
             ? t('chatSession.notStartedShort')
-            : remainingMs == null
-              ? ''
-              : t('chatSession.remaining', { minutes: Math.ceil(remainingMs / 60000) })}
+            : t('chatSession.blockPosition', {
+                current: Math.min(consumed + 1, session.reserved_blocks),
+                total: session.reserved_blocks,
+              })}
+        </span>
+
+        <span className="bb-time tabular">
+          {waiting || remainingMs == null
+            ? ''
+            : t('chatSession.remaining', { minutes: Math.ceil(remainingMs / 60000) })}
         </span>
 
         {/* Shown only as a block turns over, then gone. */}

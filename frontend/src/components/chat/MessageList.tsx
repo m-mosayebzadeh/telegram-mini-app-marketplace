@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { useTranslation } from 'react-i18next'
 import { groupMessagesByDate } from '../../lib/chatTime'
 import { MessageBubble } from './MessageBubble'
@@ -56,10 +57,13 @@ export function MessageList({ messages, viewerId, loading, error, onRetry }: Mes
   return (
     <div className="cs-messages">
       {groups.map((group) => (
-        <div key={group.dateKey}>
-          <div className="cs-date">
-            <span>{formatDateLabel(group.dateKey, t)}</span>
-          </div>
+        /* A Fragment, not a wrapper div. Wrapping each day in an element
+           made that element the flex child instead of the bubbles, so
+           neither the gap between messages nor the alignment that puts
+           yours and theirs on opposite sides applied to anything — every
+           bubble stacked flush against the next. */
+        <Fragment key={group.dateKey}>
+          <span className="cs-date">{formatDateLabel(group.dateKey, t)}</span>
           {group.messages.map((message) => (
             <MessageBubble
               key={message.id}
@@ -68,7 +72,7 @@ export function MessageList({ messages, viewerId, loading, error, onRetry }: Mes
               onRetry={onRetry}
             />
           ))}
-        </div>
+        </Fragment>
       ))}
     </div>
   )

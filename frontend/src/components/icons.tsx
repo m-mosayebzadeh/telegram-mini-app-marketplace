@@ -194,12 +194,21 @@ export function IconHeart({ size = 24, filled = false, className }: IconProps & 
 // theme.css). Mirrors automatically under dir="rtl" the same way
 // IconChat etc. already rely on CSS, no per-language branching needed
 // here (see the [dir='rtl'] .hp-chat-back rule).
-export function IconArrowNarrowLeft({ size = 24, className }: IconProps) {
+/**
+ * Back.
+ *
+ * A chevron, not an arrow with a tail. A tailed arrow reads as "go" —
+ * next, continue, send — which is the opposite of what this control
+ * does, and mirrored into an RTL layout it pointed off the screen edge
+ * looking like a way forward.
+ *
+ * Mirrored by .ui-header-back under dir="rtl": back is whichever way the
+ * language came from.
+ */
+export function IconBack({ size = 24, className }: IconProps) {
   return (
-    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12l14 0" />
-      <path d="M5 12l4 4" />
-      <path d="M5 12l4 -4" />
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 5.5 8.5 12l6.5 6.5" />
     </svg>
   )
 }

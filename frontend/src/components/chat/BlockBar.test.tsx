@@ -104,6 +104,16 @@ describe('BlockBar', () => {
     expect(blocks()[0].className).toContain('bb-block-live')
   })
 
+  it('says which block you are in, which the shape alone cannot', async () => {
+    // A row of segments does not tell anyone which end is the start,
+    // which way it fills, or which one is running now.
+    await render(session())
+
+    expect(container.querySelector('.bb-position')?.textContent).toContain(
+      '"current":1,"total":4',
+    )
+  })
+
   it('leads with the time left and never puts the money on the bar', async () => {
     await render(session())
 
@@ -142,9 +152,12 @@ describe('BlockBar', () => {
   it('says the session has not started rather than counting down', async () => {
     await render(session({ started_at: null }))
 
-    expect(container.querySelector('.bb-time')?.textContent).toBe(
+    // The position slot carries it: "which block" has no answer yet, so
+    // that is where "not started" belongs, not in the time slot.
+    expect(container.querySelector('.bb-position')?.textContent).toBe(
       'chatSession.notStartedShort',
     )
+    expect(container.querySelector('.bb-time')?.textContent).toBe('')
     expect(spent()).toBe(0)
     // Nothing is running, so nothing is marked as running.
     expect(container.querySelectorAll('.bb-block-live')).toHaveLength(0)
