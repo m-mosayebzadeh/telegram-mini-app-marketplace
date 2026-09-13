@@ -336,18 +336,42 @@
    ember fill is 2.8:1 and fails. Theirs is a plain surface. The two
    corners that point at the sender stay square, which is what tells the
    sides apart without needing two colours to do it. */
+/* Yours is always on the RIGHT and theirs on the left, in both
+   languages — one of the few places in this product where the side is
+   PHYSICAL rather than logical.
+   Everything else here mirrors with the language, and a bubble is the
+   one thing that must not: people read a conversation by which side it
+   is on before they read a word of it, and that habit comes from every
+   messenger they already use rather than from the direction of the
+   script. Mirroring it put your own messages on the left, which reads
+   as the other person talking.
+
+   So the alignment flips back under dir="rtl", and the tail corner is
+   set with physical properties so it stays on the same side as the
+   bubble it belongs to. */
 .cm-mine {
   align-self: flex-end;
   background: var(--color-accent);
   color: var(--color-on-accent);
-  border-end-end-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
 }
 
 .cm-theirs {
   align-self: flex-start;
   background: var(--color-surface);
   color: var(--color-text);
-  border-end-start-radius: var(--radius-sm);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+/* In a column flex container the cross axis follows the writing
+   direction, so under RTL flex-end is the LEFT edge. Swapped so the
+   physical side stays put. */
+[dir='rtl'] .cm-mine {
+  align-self: flex-start;
+}
+
+[dir='rtl'] .cm-theirs {
+  align-self: flex-end;
 }
 
 .cm-text {
@@ -398,16 +422,25 @@
   mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
 }
 
+/* The time and tick sit at the bubble's outer edge — the side away from
+   the middle of the screen — so they never land between two bubbles'
+   text. Reads left-to-right in both languages, because a clock time and
+   a tick are not language-directional. */
 .cm-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--space-1);
   margin-top: 2px;
   font: var(--text-caption);
-  /* Reads left-to-right in both languages: a clock time and a tick are
-     not language-directional. */
   direction: ltr;
+}
+
+.cm-mine .cm-footer {
+  justify-content: flex-end;
+}
+
+.cm-theirs .cm-footer {
+  justify-content: flex-start;
 }
 
 .cm-time {

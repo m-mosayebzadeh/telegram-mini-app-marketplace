@@ -10,16 +10,19 @@
    height — which is a shape nothing in the world has, and that is why it
    felt wrong before anyone could say why. A real card is 85.6 x 53.98mm,
    so 1.586:1, and holding that ratio is most of what makes this read as
-   a card rather than as a panel with a number in it.
+   a card rather than as a panel with a number on it.
 
    Nothing here imitates plastic: no chip, no hologram, no contactless
-   glyph, no glass. The proportion does the work, and everything drawn on
-   it is information someone acts on. */
+   glyph, no glass. The proportion does that work, and everything drawn
+   on it is something someone acts on. */
 .tu-card {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  display: grid;
+  /* Label at the top, number in the middle, name at the foot — the
+     three bands a card actually has, and the middle one takes the
+     slack so the number sits on the card's optical centre rather than
+     wherever the text above happens to end. */
+  grid-template-rows: auto 1fr auto;
   aspect-ratio: 1.586 / 1;
   /* A card is a held object, not a full-width band. Capped so it keeps
      its proportion on a wide screen instead of becoming a billboard. */
@@ -27,29 +30,28 @@
   margin: var(--space-5) auto 0;
   padding: var(--space-5);
   border-radius: var(--radius-lg);
-  /* Two stops of the same warm neutral, one step apart. It reads as a
-     surface catching light rather than as a gradient someone chose —
-     the one gradient in the product that is describing a physical
-     object. */
-  background: linear-gradient(145deg, var(--color-surface-2), var(--color-surface));
+  /* Two stops of the same warm neutral, one step apart: a surface
+     catching light rather than a gradient someone picked. The one
+     gradient in this product that describes a physical object. */
+  background: linear-gradient(150deg, var(--color-surface-2), var(--color-surface) 60%);
   border: 1px solid var(--color-border);
   overflow: hidden;
 }
 
-/* The single decorative mark, and it is doing a job: a soft accent glow
-   in the corner is what keeps a near-flat rectangle from reading as an
-   empty box. Behind everything, and it never touches the number. */
+/* The single decorative mark, and it earns its place: a soft accent glow
+   in the corner is what stops a near-flat rectangle reading as an empty
+   box. Behind everything, and it never touches the number. */
 .tu-card::after {
   content: '';
   position: absolute;
-  inset-inline-end: -30%;
-  top: -55%;
-  width: 75%;
+  inset-inline-end: -28%;
+  top: -50%;
+  width: 70%;
   aspect-ratio: 1;
   border-radius: var(--radius-full);
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--color-accent) 26%, transparent),
+    color-mix(in srgb, var(--color-accent) 30%, transparent),
     transparent 70%
   );
   pointer-events: none;
@@ -57,12 +59,12 @@
 
 .tu-card-label {
   position: relative;
-  font: var(--text-caption);
+  font: var(--text-label);
   color: var(--color-text-2);
 }
 
-/* The number and the copy control are the same target: a separate
-   button underneath was a second tap for the same intent. */
+/* The number and the copy control are one target: a separate button
+   underneath was a second tap for the same intent. */
 .tu-card-copy {
   position: relative;
   display: flex;
@@ -81,27 +83,33 @@
   opacity: 0.45;
 }
 
-/* Latin digits reading left-to-right whichever way the page runs;
-   isolate stops them dragging the words around them. Sized so sixteen
-   grouped digits fit one line at the 320px floor — larger, and the gaps
-   that make it checkable are the first thing to go. */
+/* The one thing on this card anyone acts on, so it is as large as
+   sixteen grouped digits can be and still fit one line at the 320px
+   floor — clamp does that arithmetic instead of a media query, and the
+   upper bound is where it stops growing on a wide screen.
+   Latin digits reading left-to-right whichever way the page runs;
+   isolate keeps them from dragging the words around them. */
 .tu-card-number {
-  font: 700 19px / 26px var(--font);
-  letter-spacing: 0.04em;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: clamp(20px, 5.6vw, 26px);
+  line-height: 32px;
+  letter-spacing: 0.02em;
   color: var(--color-text);
   direction: ltr;
   unicode-bidi: isolate;
   white-space: nowrap;
 }
 
+/* Set the way a name is embossed on a card. The one typographic nod the
+   metaphor earns, because it costs nothing and it is how the real thing
+   is printed. */
 .tu-card-holder {
   position: relative;
-  font: var(--text-caption);
-  color: var(--color-text-3);
-  /* Uppercase the way a name is embossed on a card — the one place the
-     card metaphor earns a typographic nod, because it costs nothing and
-     it is how the real thing is set. */
-  letter-spacing: 0.06em;
+  align-self: end;
+  font: var(--text-body-md);
+  letter-spacing: 0.04em;
+  color: var(--color-text-2);
 }
 
 /* ---------- the amount field ---------- */
