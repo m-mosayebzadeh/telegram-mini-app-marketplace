@@ -80,13 +80,37 @@ class ChatSession(Base):
 
     # Either side can ask for the session to stop at the end of the block that
     # is running, instead of stopping mid-block or running to the end.
+    #
+    # Its real value is protecting someone from an accident: without it, anyone
+    # who does not want the next block has to watch the clock and press close
+    # before the boundary, and being ten seconds late costs a whole block.
+    # Changing your mind simply clears both fields again.
     close_at_block_end_by_user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"), nullable=True
     )
+    # The boundary itself, fixed when the request is made rather than worked
+    # out later: recomputing it would let the target slide forward into every
+    # new block, and the session would never actually stop.
+    close_at_block_end_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     # Why it ended, as a value rather than prose — the settlement rules differ
     # per reason (see app/wallet/blocks.py).
     end_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    # --- extension --------------------------------------------------------
+    #
+    # Only the buyer asks, and only ever for ONE more block at a time. The
+    # provider has to accept, because it is their time; but they can never
+    # offer it, which would turn a conversation into a sales pitch and bring
+    # back the very incentive to stretch things out that the block model
+    # exists to remove.
+    #
+    # The block's price is held the moment it is asked for, so an acceptance
+    # can never land on a wallet that cannot cover it. NULL means no request
+    # is outstanding.
+    extension_requested_at: Mapped[datetime | None] = mapped_column(
+        UTCDateTime, nullable=True
+    )
 
     # --- the settlement window --------------------------------------------
     #

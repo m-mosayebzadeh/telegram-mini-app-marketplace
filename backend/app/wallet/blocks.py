@@ -118,6 +118,113 @@ def start_clock(db: Session, chat_session: ChatSession) -> None:
     chat_session.scheduled_end_at = now + timedelta(seconds=total_duration_seconds(chat_session))
 
 
+def can_stop_at_block_end(chat_session: ChatSession, at: datetime) -> bool:
+    """Whether stopping at the end of the running block would change anything.
+
+    In the LAST block it would not: the session already ends there. Offering it
+    anyway would mean a control that does nothing, and a stored intention that
+    has to be explained on screen without ever affecting the outcome.
+    """
+    return (
+        chat_session.status == ChatSessionStatus.OPEN
+        and chat_session.started_at is not None
+        and chat_session.close_at_block_end_by_user_id is None
+        and not is_in_last_block(chat_session, at)
+    )
+
+
+def request_stop_at_block_end(chat_session: ChatSession, user_id: int, at: datetime) -> None:
+    """
+    Asks for the session to stop when the running block does.
+
+    The end of that block is worked out now and kept, not recalculated later:
+    a recalculated target would move forward into each new block and the
+    session would never actually stop.
+    """
+    chat_session.close_at_block_end_by_user_id = user_id
+    chat_session.close_at_block_end_at = chat_session.started_at + timedelta(
+        seconds=chat_session.block_duration_seconds * elapsed_blocks(chat_session, at)
+    )
+
+
+def cancel_stop_at_block_end(chat_session: ChatSession) -> None:
+    """Changing your mind: the session goes back to running to its full end."""
+    chat_session.close_at_block_end_by_user_id = None
+    chat_session.close_at_block_end_at = None
+
+
+def is_in_last_block(chat_session: ChatSession, at: datetime) -> bool:
+    """Whether the session is running out — the only moment more time can be
+    asked for.
+
+    Asking is a question about what happens next, so it belongs at the end and
+    not at the start. Keeping it there also means "one block at a time" needs
+    no rule of its own: an accepted extension moves the last block along, and
+    the buyer has to reach it again before they can ask for another.
+    """
+    return elapsed_blocks(chat_session, at) >= chat_session.reserved_blocks
+
+
+def request_extension(db: Session, chat_session: ChatSession, buyer_id: int) -> None:
+    """
+    Holds one more block's price while the provider decides.
+
+    Taking the money up front is what makes an acceptance safe: the provider
+    taps once and the block is there, instead of discovering afterwards that
+    the wallet could not cover it. If they decline, or the session ends with
+    the question still open, the hold goes straight back.
+
+    Does NOT commit.
+    """
+    lock_finances(db)
+    price = chat_session.block_price_toman
+    balance = get_balance_toman(db, buyer_id)
+    if balance < price:
+        raise InsufficientBalanceError(needed_toman=price, available_toman=balance)
+
+    chat_session.extension_requested_at = utcnow()
+    db.add(
+        CreditLedgerEntry(
+            user_id=buyer_id,
+            amount_toman=-price,
+            type=LedgerEntryType.SESSION_HOLD,
+            chat_session_id=chat_session.id,
+        )
+    )
+
+
+def release_extension_hold(db: Session, chat_session: ChatSession) -> None:
+    """Gives back the block held for an extension that did not happen."""
+    if chat_session.extension_requested_at is None:
+        return
+    chat_session.extension_requested_at = None
+    db.add(
+        CreditLedgerEntry(
+            user_id=chat_session.request.buyer_id,
+            amount_toman=chat_session.block_price_toman,
+            type=LedgerEntryType.SESSION_HOLD_RELEASE,
+            chat_session_id=chat_session.id,
+        )
+    )
+
+
+def accept_extension(db: Session, chat_session: ChatSession) -> None:
+    """
+    Turns the held block into a real one: the session gains a block and the
+    time that goes with it, and the money moves from "held pending a decision"
+    into the session's own reservation.
+
+    Does NOT commit.
+    """
+    chat_session.extension_requested_at = None
+    chat_session.reserved_blocks += 1
+    chat_session.reserved_toman += chat_session.block_price_toman
+    if chat_session.scheduled_end_at is not None:
+        chat_session.scheduled_end_at += timedelta(
+            seconds=chat_session.block_duration_seconds
+        )
+
+
 def elapsed_blocks(chat_session: ChatSession, at: datetime) -> int:
     """How many blocks have been entered by `at` — the running one counted."""
     if chat_session.block_duration_seconds <= 0 or chat_session.started_at is None:
@@ -182,6 +289,8 @@ def close_and_settle(
 
     request = chat_session.request
     offer = request.offer
+    # An extension nobody answered is simply not part of what was sold.
+    release_extension_hold(db, chat_session)
     consumed_blocks = consumed_blocks_for(chat_session, reason=reason, at=at)
     consumed_toman = consumed_blocks * chat_session.block_price_toman
     released_toman = chat_session.reserved_toman - consumed_toman
@@ -244,12 +353,9 @@ def due_end(chat_session: ChatSession) -> datetime:
     """
     if chat_session.started_at is None:
         return chat_session.opened_at + timedelta(seconds=total_duration_seconds(chat_session))
-    if chat_session.close_at_block_end_by_user_id is None:
+    if chat_session.close_at_block_end_at is None:
         return chat_session.scheduled_end_at
-    block_end = chat_session.started_at + timedelta(
-        seconds=chat_session.block_duration_seconds * elapsed_blocks(chat_session, utcnow())
-    )
-    return min(block_end, chat_session.scheduled_end_at)
+    return min(chat_session.close_at_block_end_at, chat_session.scheduled_end_at)
 
 
 def close_if_due(db: Session, chat_session: ChatSession) -> ChatSession:
@@ -266,10 +372,31 @@ def close_if_due(db: Session, chat_session: ChatSession) -> ChatSession:
     if utcnow() < end:
         return chat_session
 
-    # Never started means the provider never arrived: nothing was sold, so
-    # every Drop goes back to the buyer.
-    reason = EndReason.COMPLETED if chat_session.started_at is not None else EndReason.NOT_STARTED
-    close_and_settle(db, chat_session, reason=reason, closed_by_user_id=None, at=end)
+    if chat_session.started_at is None:
+        # Never started means the provider never arrived: nothing was sold, so
+        # every Drop goes back to the buyer.
+        reason = EndReason.NOT_STARTED
+    elif chat_session.close_at_block_end_by_user_id is not None and end < chat_session.scheduled_end_at:
+        # Someone asked to stop here, so this is their decision to end early
+        # and is settled as such — the blocks after this one were never used.
+        stopper = chat_session.close_at_block_end_by_user_id
+        reason = (
+            EndReason.BUYER_CLOSED
+            if stopper == chat_session.request.buyer_id
+            else EndReason.PROVIDER_CLOSED
+        )
+    else:
+        reason = EndReason.COMPLETED
+    close_and_settle(
+        db,
+        chat_session,
+        reason=reason,
+        # Nobody pressed anything at this instant; a stop that was asked for
+        # earlier is recorded by its own field, not by pretending someone was
+        # here to close it.
+        closed_by_user_id=None,
+        at=end,
+    )
     db.commit()
     db.refresh(chat_session)
     return chat_session

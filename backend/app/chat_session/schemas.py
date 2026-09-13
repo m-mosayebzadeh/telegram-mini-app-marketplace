@@ -54,7 +54,23 @@ class ChatSessionOut(BaseModel):
     #: Before it starts, this is when the unclaimed reservation expires.
     ends_at: datetime | None
     #: Who asked for it to stop at the end of the running block, if anyone.
+    #: Only that person can take it back.
     close_at_block_end_by_user_id: int | None
+    #: Whether it was the CALLER who asked, so the screen can offer to undo it
+    #: rather than only announcing it.
+    i_asked_to_stop: bool
+    #: Whether stopping at the end of the running block is available right now.
+    #: False in the last block, where the session ends anyway — which is also
+    #: what keeps this and can_request_extension from ever both being true.
+    can_stop_at_block_end: bool
+    #: Whether one more block is waiting on the provider's answer. Only the
+    #: buyer can ask, and only for one block at a time.
+    extension_pending: bool
+    #: Whether the CALLER may ask for another block right now: the buyer, in
+    #: the last block, with nothing already waiting for an answer. Said here
+    #: so the chat screen shows the button only when pressing it would work —
+    #: and never to a provider, who may not ask at all.
+    can_request_extension: bool
     #: Filled in once it has closed.
     consumed_blocks: int
     end_reason: str | None

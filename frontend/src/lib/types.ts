@@ -176,6 +176,22 @@ export interface ChatSession {
    *  unclaimed reservation expires. */
   ends_at: string | null
   close_at_block_end_by_user_id: number | null
+  /** Whether it was YOU who asked, so the screen can offer to undo it rather
+   *  than only announcing it. Only whoever asked can take it back. */
+  i_asked_to_stop: boolean
+  /** Whether "stop at the end of this block" is available right now. False in
+   *  the last block, where the session ends anyway — which is also why this
+   *  and can_request_extension are never both true: each belongs to a
+   *  different part of the session. */
+  can_stop_at_block_end: boolean
+  /** Whether one more block is waiting on the provider's answer. Only the
+   *  buyer can ask, and only for one block at a time. */
+  extension_pending: boolean
+  /** Whether YOU may ask for another block right now: the buyer, in the last
+   *  block, with nothing already waiting for an answer. A provider is never
+   *  allowed to ask, so this is always false for them — the button is not
+   *  rendered at all rather than shown and refused. */
+  can_request_extension: boolean
   /** Filled in once it has closed. */
   consumed_blocks: number
   end_reason:

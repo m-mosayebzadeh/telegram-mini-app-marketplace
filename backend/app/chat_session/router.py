@@ -25,7 +25,20 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user
 from app.chat_session.access import get_participant_session
 from app.wallet.service import release_transaction
-from app.wallet.blocks import EndReason, close_and_settle, close_if_due, due_end
+from app.wallet.blocks import (
+    EndReason,
+    accept_extension,
+    can_stop_at_block_end,
+    cancel_stop_at_block_end,
+    close_and_settle,
+    close_if_due,
+    due_end,
+    is_in_last_block,
+    release_extension_hold,
+    request_extension,
+    request_stop_at_block_end,
+)
+from app.wallet.service import InsufficientBalanceError
 from app.chat_session.schemas import ChatSessionOut
 from app.chat_session.serializers import to_chat_session_out
 from app.core.config import settings
@@ -167,6 +180,195 @@ def unarchive_session(
     db: Session = Depends(get_db),
 ) -> ChatSessionOut:
     return _set_archived(db, session_id, current_user, archived=False)
+
+
+def _open_started_session(db: Session, session_id: int, user_id: int) -> ChatSession:
+    """A session of the caller's that is running right now — the only kind an
+    extension can apply to."""
+    chat_session = close_if_due(db, get_participant_session(db, session_id, user_id))
+    if chat_session.status != ChatSessionStatus.OPEN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="This session is already closed."
+        )
+    if chat_session.started_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This session has not started yet.",
+        )
+    return chat_session
+
+
+@router.post("/{session_id}/stop-at-block-end", response_model=ChatSessionOut)
+def stop_at_block_end(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """
+    Asks for the session to end when the running block does, rather than
+    carrying on into the next one.
+
+    It costs exactly the same as closing right now — the running block is paid
+    for either way — so what it buys is the rest of the time already paid for,
+    and protection from an accident: without it, anyone who does not want the
+    next block has to watch the clock and press close before the boundary, and
+    being a few seconds late costs a whole block.
+
+    Either participant may ask. It can be taken back at any time before the
+    boundary arrives.
+    """
+    lock_finances(db)
+    chat_session = _open_started_session(db, session_id, current_user.id)
+    if chat_session.close_at_block_end_by_user_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This session is already set to stop at the end of the block.",
+        )
+    if not can_stop_at_block_end(chat_session, utcnow()):
+        # Only reachable in the last block, where the session ends anyway.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"reason": "already_last_block"},
+        )
+
+    request_stop_at_block_end(chat_session, current_user.id, utcnow())
+    db.commit()
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)
+
+
+@router.delete("/{session_id}/stop-at-block-end", response_model=ChatSessionOut)
+def cancel_stop_at_block_end_request(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """Changing your mind. Only whoever asked can take it back — the other
+    participant cannot quietly overrule a decision to stop."""
+    lock_finances(db)
+    chat_session = _open_started_session(db, session_id, current_user.id)
+    if chat_session.close_at_block_end_by_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nothing is set to stop."
+        )
+    if chat_session.close_at_block_end_by_user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only whoever asked to stop can take it back.",
+        )
+
+    cancel_stop_at_block_end(chat_session)
+    db.commit()
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)
+
+
+@router.post("/{session_id}/extension", response_model=ChatSessionOut)
+def request_session_extension(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """
+    Asks for one more block.
+
+    Only the buyer may ask, and only ever for a single block at a time —
+    though they may ask again as often as they like. A provider cannot offer
+    an extension: being able to would turn a conversation into a sales pitch
+    and bring back exactly the incentive to stretch things out that selling in
+    blocks exists to remove.
+    """
+    lock_finances(db)
+    chat_session = _open_started_session(db, session_id, current_user.id)
+    if chat_session.request.buyer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the buyer can ask to extend a session.",
+        )
+    if chat_session.extension_requested_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An extension is already waiting for an answer.",
+        )
+    if chat_session.close_at_block_end_by_user_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"reason": "stopping_at_block_end"},
+        )
+    if not is_in_last_block(chat_session, utcnow()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"reason": "not_in_last_block"},
+        )
+
+    try:
+        request_extension(db, chat_session, current_user.id)
+    except InsufficientBalanceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail={
+                "reason": "insufficient_balance",
+                "needed_toman": exc.needed_toman,
+                "available_toman": exc.available_toman,
+            },
+        ) from exc
+
+    db.commit()
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)
+
+
+@router.post("/{session_id}/extension/accept", response_model=ChatSessionOut)
+def accept_session_extension(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """The provider agreeing to keep going. Their time, their call."""
+    lock_finances(db)
+    chat_session = _open_started_session(db, session_id, current_user.id)
+    if chat_session.request.offer.provider_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the provider can answer an extension request.",
+        )
+    if chat_session.extension_requested_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nothing is waiting for an answer."
+        )
+
+    accept_extension(db, chat_session)
+    db.commit()
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)
+
+
+@router.post("/{session_id}/extension/decline", response_model=ChatSessionOut)
+def decline_session_extension(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """
+    Saying no. The held block goes straight back to the buyer, and the session
+    carries on to its existing end — declining more time is not ending early.
+    """
+    lock_finances(db)
+    chat_session = _open_started_session(db, session_id, current_user.id)
+    if chat_session.request.offer.provider_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the provider can answer an extension request.",
+        )
+    if chat_session.extension_requested_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Nothing is waiting for an answer."
+        )
+
+    release_extension_hold(db, chat_session)
+    db.commit()
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)
 
 
 def _has_confirmed(chat_session: ChatSession, user_id: int) -> bool:

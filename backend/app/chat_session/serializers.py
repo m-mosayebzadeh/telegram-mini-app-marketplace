@@ -10,7 +10,9 @@ from app.chat_session.schemas import ChatSessionOut, ChatSessionParticipantOut
 from app.models.chat_session import ChatSession
 from app.models.user import User
 from app.profile.photos import get_current_avatar_url
-from app.wallet.blocks import due_end
+from app.models.chat_session import ChatSessionStatus
+from app.core.time import utcnow
+from app.wallet.blocks import can_stop_at_block_end, due_end, is_in_last_block
 
 
 def to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int) -> ChatSessionOut:
@@ -53,6 +55,19 @@ def to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int) 
         started_at=chat_session.started_at,
         ends_at=due_end(chat_session),
         close_at_block_end_by_user_id=chat_session.close_at_block_end_by_user_id,
+        i_asked_to_stop=chat_session.close_at_block_end_by_user_id == viewer_id,
+        can_stop_at_block_end=can_stop_at_block_end(chat_session, utcnow()),
+        extension_pending=chat_session.extension_requested_at is not None,
+        can_request_extension=(
+            is_buyer
+            and chat_session.status == ChatSessionStatus.OPEN
+            and chat_session.started_at is not None
+            and chat_session.extension_requested_at is None
+            # Asking for more time and asking to stop are opposites, so the
+            # screen never shows both at once.
+            and chat_session.close_at_block_end_by_user_id is None
+            and is_in_last_block(chat_session, utcnow())
+        ),
         consumed_blocks=chat_session.consumed_blocks,
         end_reason=chat_session.end_reason,
         i_confirmed_settlement=(
