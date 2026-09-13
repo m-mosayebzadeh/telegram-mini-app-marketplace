@@ -1,0 +1,119 @@
+/**
+ * The block bar: where you are in a session.
+ *
+ * Deliberately the quietest thing on the chat screen. It sits directly
+ * above a conversation that is the actual subject, so it holds still —
+ * nothing moves on it except once a block, when a segment fills.
+ */
+
+.bb {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--page-gutter);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+  text-align: start;
+}
+
+.bb:active {
+  background: var(--color-surface);
+}
+
+/* One segment per reserved block, with a hairline of the page ground
+   between them rather than a drawn divider — the gap IS the divider, and
+   it costs nothing at 2px tall. */
+.bb-track {
+  display: flex;
+  gap: 3px;
+  height: 3px;
+}
+
+.bb-block {
+  flex: 1;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-2);
+  /* Only ever animates when a block turns over, which is once every few
+     minutes — not a running animation. */
+  transition: background var(--motion-base) var(--ease);
+}
+
+.bb-block-spent {
+  background: var(--color-accent);
+}
+
+/* The block running right now: the accent at low opacity rather than a
+   third colour, so the bar reads as one thing filling rather than three
+   different states. */
+.bb-block-live {
+  background: color-mix(in srgb, var(--color-accent) 38%, var(--color-surface-2));
+}
+
+.bb-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 18px;
+}
+
+/* Time is the headline. Money is deliberately NOT on this bar: a figure
+   that climbs during an intimate conversation reads as a taxi meter. */
+.bb-time {
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+/* Appears as a block turns over and leaves again. An event, not a
+   readout — see AMOUNT_REVEAL_MS in BlockBar.tsx. */
+.bb-amount {
+  font: var(--text-caption);
+  color: var(--color-accent-ink);
+  animation: bb-amount-in var(--motion-base) var(--ease);
+}
+
+@keyframes bb-amount-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+/* ---------- waiting to start ---------- */
+
+/* The state most worth explaining, and the one that says a different
+   thing to each side. It sits between the bar and the messages, and
+   leaves the moment the session starts. */
+.wts {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--page-gutter);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.wts-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+
+.wts-text {
+  font: var(--text-caption);
+  line-height: 20px;
+  color: var(--color-text-2);
+}
+
+/* The provider's version is the consequential one — their next message
+   starts a paid session — so it carries the accent, where the buyer's is
+   reassurance and stays quiet. */
+.wts-provider {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+.wts-provider .wts-icon,
+.wts-provider .wts-text {
+  color: var(--color-accent-ink);
+}

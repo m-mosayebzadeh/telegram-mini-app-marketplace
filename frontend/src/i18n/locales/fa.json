@@ -497,7 +497,13 @@
     "reportDetailsLabel": "توضیحات بیشتر (اختیاری)",
     "reportDetailsPlaceholder": "هر چیزی که در بررسی کمک کنه",
     "reportSubmitButton": "ثبت گزارش",
-    "reportSubmitted": "ممنون — برای بررسی ثبت شد."
+    "reportSubmitted": "ممنون — برای بررسی ثبت شد.",
+    "sessionProgress": "وضعیت جلسه",
+    "notStartedShort": "هنوز شروع نشده",
+    "remaining": "{{minutes, number}} دقیقه مانده",
+    "spentSoFar": "{{drops, number}} دراپ",
+    "waitingProvider": "با اولین پیام شما جلسه شروع می‌شود و ساعت به کار می‌افتد.",
+    "waitingBuyer": "هنوز شروع نشده — وقتی {{name}} اولین پیامش را بفرستد ساعت شروع می‌شود. تا آن موقع می‌توانی بنویسی و چیزی حساب نمی‌شود."
   },
   "finance": {
     "banks": "حساب‌های بانکی من",

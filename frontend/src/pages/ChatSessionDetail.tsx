@@ -8,6 +8,8 @@ import { mergeMessages } from '../lib/chatMessageMerge'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
 import { ChatHeader } from '../components/chat/ChatHeader'
 import { SessionDetailsPanel } from '../components/chat/SessionDetailsPanel'
+import { BlockBar } from '../components/chat/BlockBar'
+import { WaitingToStart } from '../components/chat/WaitingToStart'
 import { MessageList } from '../components/chat/MessageList'
 import { Composer } from '../components/chat/Composer'
 import { ConnectionBanner } from '../components/chat/ConnectionBanner'
@@ -193,6 +195,17 @@ export default function ChatSessionDetail() {
           toast.error(t('profilePage.moreComingSoon'))
         }}
       />
+
+      {/* Where you are in the session, directly under the header — the
+          one piece of chrome the conversation is allowed to carry. */}
+      <BlockBar session={session} onOpenDetails={() => setDetailsOpen(true)} />
+
+      {/* A session that has been paid for but not started yet is the
+          state most worth explaining, and it says something DIFFERENT to
+          each side: what starts the clock, and that writing does not. */}
+      {session.status === 'open' && session.started_at == null && (
+        <WaitingToStart session={session} />
+      )}
 
       <SessionDetailsPanel
         session={session}

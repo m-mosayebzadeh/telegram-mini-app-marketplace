@@ -497,7 +497,13 @@
     "reportDetailsLabel": "Additional details (optional)",
     "reportDetailsPlaceholder": "Anything that would help us review this",
     "reportSubmitButton": "Submit report",
-    "reportSubmitted": "Thanks — this has been recorded for review."
+    "reportSubmitted": "Thanks — this has been recorded for review.",
+    "sessionProgress": "Session progress",
+    "notStartedShort": "Not started yet",
+    "remaining": "{{minutes, number}} min left",
+    "spentSoFar": "{{drops, number}} Drop",
+    "waitingProvider": "Your first message starts the session and the clock.",
+    "waitingBuyer": "Not started yet — the clock starts when {{name}} sends their first message. You can write until then and it costs nothing."
   },
   "finance": {
     "banks": "My bank accounts",
