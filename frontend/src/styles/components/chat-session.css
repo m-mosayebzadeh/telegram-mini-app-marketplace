@@ -1,12 +1,131 @@
 /**
- * The block bar: where you are in a session.
+ * The chat session screen.
  *
- * Deliberately the quietest thing on the chat screen. It sits directly
- * above a conversation that is the actual subject, so it holds still —
- * nothing moves on it except once a block, when a segment fills.
+ * The conversation is the subject; everything here is chrome around it
+ * and is written to stay out of the way. The whole screen is one column
+ * that owns the viewport, so the MESSAGE LIST scrolls and nothing else
+ * does — a page that scrolls as a whole would take the composer off
+ * screen mid-sentence.
  */
 
+.cs-page {
+  display: flex;
+  flex-direction: column;
+  /* dvh, because the mobile URL bar collapsing must not push the
+     composer out of reach. */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* ---------- header ---------- */
+
+/* One line: who, how to leave, and one way in to everything else. It
+   used to hold six controls and two readouts, including a clock that
+   counted up on a session which had not started. */
+.ch-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  height: 56px;
+  padding-top: env(safe-area-inset-top);
+  padding-inline: var(--space-2);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ch-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  min-height: var(--touch-min);
+  color: var(--color-text);
+  text-align: start;
+}
+
+.ch-identity:active {
+  opacity: 0.6;
+}
+
+.ch-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background: var(--color-surface-2);
+  color: var(--color-text-3);
+}
+
+.ch-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ch-identity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ch-name {
+  font: var(--text-body-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A caption, not a coloured pill. "Open" is the ordinary case, and a
+   pill would make the ordinary case the loudest thing on the screen. */
+.ch-state {
+  font: var(--text-caption);
+  color: var(--color-text-3);
+}
+
+/* The one state that is not ordinary. */
+.ch-state-alert {
+  color: var(--color-warning);
+}
+
+/* ---------- session sheet ---------- */
+
+.cs-closed-note {
+  margin-top: var(--space-4);
+  font: var(--text-caption);
+  color: var(--color-text-2);
+}
+
+.cs-actions {
+  margin-top: var(--space-6);
+}
+
+/* Ending is irreversible and not what most people opened the sheet for,
+   so it sits past everything else behind a rule of its own. */
+.cs-end {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---------- block bar ---------- */
+
+/* Deliberately the quietest thing on the screen. It sits directly above
+   a conversation that is the actual subject, so it holds still — nothing
+   moves except once a block, when a segment fills. */
+
 .bb {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -86,6 +205,7 @@
    thing to each side. It sits between the bar and the messages, and
    leaves the moment the session starts. */
 .wts {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
@@ -116,4 +236,327 @@
 .wts-provider .wts-icon,
 .wts-provider .wts-text {
   color: var(--color-accent-ink);
+}
+
+/* ---------- offline notice ---------- */
+
+/* Informational only: a dropped connection never ends a session, so this
+   is a line of text and not a blocking state. */
+.cs-offline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: var(--space-2) var(--page-gutter);
+  background: color-mix(in srgb, var(--color-warning) 16%, var(--color-bg));
+  color: var(--color-warning);
+  font: var(--text-caption);
+}
+
+.cs-offline-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+/* ---------- message list ---------- */
+
+/* The ONE thing on this screen that scrolls. */
+.cs-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--page-gutter);
+}
+
+.cs-messages-centered {
+  align-items: center;
+  justify-content: center;
+}
+
+.cs-notice {
+  max-width: 32ch;
+  font: var(--text-body);
+  color: var(--color-text-3);
+  text-align: center;
+}
+
+.cs-notice-error {
+  color: var(--color-danger);
+}
+
+/* A date divider is a label on the gap between two days, so it is the
+   quietest text on the screen and carries no rule or box. */
+.cs-date {
+  align-self: center;
+  padding-block: var(--space-3);
+  font: var(--text-caption);
+  color: var(--color-text-3);
+}
+
+/* ---------- bubbles ---------- */
+
+.cm {
+  max-width: 78%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  font: var(--text-body);
+  /* A long word or a URL must wrap rather than widening the bubble past
+     the screen. */
+  overflow-wrap: anywhere;
+}
+
+/* Yours takes the accent surface and therefore dark ink — white on the
+   ember fill is 2.8:1 and fails. Theirs is a plain surface. The two
+   corners that point at the sender stay square, which is what tells the
+   sides apart without needing two colours to do it. */
+.cm-mine {
+  align-self: flex-end;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-end-end-radius: var(--radius-sm);
+}
+
+.cm-theirs {
+  align-self: flex-start;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-end-start-radius: var(--radius-sm);
+}
+
+.cm-text {
+  white-space: pre-wrap;
+}
+
+.cm-media {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  border-radius: var(--radius-md);
+}
+
+/* A video or a voice note, as a compact row rather than a player: the
+   real playback surface is out of scope, and pretending otherwise would
+   promise something a tap does not deliver. */
+.cm-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--text-caption);
+}
+
+.cm-attachment-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+/* Stands for "this is audio". It does not pretend to be this
+   recording's own shape, which would be a drawing of data we do not
+   have. */
+.cm-wave {
+  flex: 1;
+  min-width: 48px;
+  height: 14px;
+  background:
+    repeating-linear-gradient(
+      to right,
+      currentColor 0 2px,
+      transparent 2px 5px
+    );
+  opacity: 0.45;
+  mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+}
+
+.cm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  margin-top: 2px;
+  font: var(--text-caption);
+  /* Reads left-to-right in both languages: a clock time and a tick are
+     not language-directional. */
+  direction: ltr;
+}
+
+.cm-time {
+  opacity: 0.6;
+}
+
+/* "Sent" is the ordinary outcome, so it is a hairline tick at the same
+   opacity as the time beside it — present, not announced. */
+.cm-tick {
+  opacity: 0.6;
+}
+
+.cm-sending {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: var(--radius-full);
+  opacity: 0.6;
+  animation: ui-spin 700ms linear infinite;
+}
+
+/* Only a FAILURE earns colour — and it earns a tap, not just a warning
+   sign. On the accent bubble it takes that surface's ink, because red on
+   ember is unreadable. */
+.cm-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 24px;
+  font: var(--text-caption);
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+.cm-mine .cm-retry {
+  color: var(--color-on-accent);
+  text-decoration: underline;
+}
+
+/* Loading: the shape of a conversation before the conversation. */
+.cm-skeleton {
+  width: 58%;
+  height: 40px;
+}
+
+.cm-skeleton-short {
+  width: 40%;
+}
+
+/* ---------- composer ---------- */
+
+.cp {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom));
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+.cp-readonly {
+  justify-content: center;
+  padding-block: var(--space-4);
+  font: var(--text-caption);
+  color: var(--color-text-3);
+  text-align: center;
+}
+
+.cp-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: var(--text-body);
+}
+
+.cp-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.cp-input::placeholder {
+  color: var(--color-text-3);
+}
+
+/* Every control here is 44×44 whatever the glyph inside measures, and
+   none of them is filled — a row of coloured circles under a
+   conversation is four things competing with the conversation. */
+.cp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border-radius: var(--radius-full);
+  color: var(--color-text-2);
+  cursor: pointer;
+}
+
+.cp-btn:active {
+  background: var(--color-surface);
+}
+
+/* The one exception: send, and only when there is something to send.
+   It is the action the row exists for. */
+.cp-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.cp-btn-primary:active {
+  background: var(--color-accent);
+  transform: scale(0.94);
+}
+
+.cp-btn-danger {
+  color: var(--color-danger);
+}
+
+/* The send arrow points the way the message travels, which is whichever
+   way the language runs. */
+[dir='rtl'] .cp-btn-primary svg {
+  transform: scaleX(-1);
+}
+
+/* ---------- recording ---------- */
+
+.cp-recording {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-height: 40px;
+  padding-inline: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+/* The one pulsing thing in the product, and it earns it: it is the only
+   moment where something is actively being captured. */
+.cp-recording-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-danger);
+  animation: cp-pulse 1.2s var(--ease) infinite;
+}
+
+@keyframes cp-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.cp-recording-time {
+  font: var(--text-body-md);
+  color: var(--color-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-recording-dot {
+    animation: none;
+  }
 }

@@ -403,3 +403,59 @@ export function IconClock({ size = 24, className }: IconProps) {
     </svg>
   )
 }
+
+export function IconFlag({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 21V4" />
+      <path d="M6 4.8c3.5-1.6 6.5 1.6 10 0v8c-3.5 1.6-6.5-1.6-10 0" />
+    </svg>
+  )
+}
+
+export function IconPaperclip({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 7.5 8.6 14a2.5 2.5 0 0 0 3.5 3.5l6.6-6.6a4.5 4.5 0 0 0-6.4-6.3L5.8 11a6.5 6.5 0 0 0 9.2 9.2l5.6-5.6" />
+    </svg>
+  )
+}
+
+export function IconMic({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
+      <path d="M12 17.5V21" />
+    </svg>
+  )
+}
+
+/** Points the way a message travels, so it mirrors under dir="rtl" the
+ *  same way the row chevron does. */
+export function IconSend({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 12h14" />
+      <path d="m13 6.5 5.5 5.5-5.5 5.5" />
+    </svg>
+  )
+}
+
+export function IconPlay({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M8 5.5v13l11-6.5-11-6.5Z" />
+    </svg>
+  )
+}
+
+export function IconAlert({ size = 24, className }: IconProps) {
+  return (
+    <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 8v4.5" />
+      <circle cx="12" cy="16" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}

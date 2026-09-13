@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next'
-import { Spinner } from '@telegram-apps/telegram-ui'
 import { groupMessagesByDate } from '../../lib/chatTime'
 import { MessageBubble } from './MessageBubble'
 import type { ChatMessage } from '../../lib/chatMessageTypes'
@@ -25,25 +24,29 @@ export function MessageList({ messages, viewerId, loading, error, onRetry }: Mes
   const { t } = useTranslation()
 
   if (loading) {
+    // Skeleton bubbles rather than a spinner, on both sides, so the
+    // shape of a conversation is there before the conversation is.
     return (
-      <div className="hp-chat-messages hp-chat-messages-centered">
-        <Spinner size="m" />
+      <div className="cs-messages">
+        <div className="cm cm-theirs ui-skeleton cm-skeleton" />
+        <div className="cm cm-mine ui-skeleton cm-skeleton cm-skeleton-short" />
+        <div className="cm cm-theirs ui-skeleton cm-skeleton" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="hp-chat-messages hp-chat-messages-centered">
-        <p className="hp-error">{error}</p>
+      <div className="cs-messages cs-messages-centered">
+        <p className="cs-notice cs-notice-error">{error}</p>
       </div>
     )
   }
 
   if (messages.length === 0) {
     return (
-      <div className="hp-chat-messages hp-chat-messages-centered">
-        <p className="hp-empty">{t('chatSession.messagesEmpty')}</p>
+      <div className="cs-messages cs-messages-centered">
+        <p className="cs-notice">{t('chatSession.messagesEmpty')}</p>
       </div>
     )
   }
@@ -51,10 +54,10 @@ export function MessageList({ messages, viewerId, loading, error, onRetry }: Mes
   const groups = groupMessagesByDate(messages)
 
   return (
-    <div className="hp-chat-messages">
+    <div className="cs-messages">
       {groups.map((group) => (
         <div key={group.dateKey}>
-          <div className="hp-chat-date-sep">
+          <div className="cs-date">
             <span>{formatDateLabel(group.dateKey, t)}</span>
           </div>
           {group.messages.map((message) => (

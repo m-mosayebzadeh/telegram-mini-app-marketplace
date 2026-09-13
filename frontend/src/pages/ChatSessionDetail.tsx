@@ -7,7 +7,7 @@ import { composeMessage, deliverMessage, listMessages } from '../lib/chatMessage
 import { mergeMessages } from '../lib/chatMessageMerge'
 import { useOnlineStatus } from '../lib/useOnlineStatus'
 import { ChatHeader } from '../components/chat/ChatHeader'
-import { SessionDetailsPanel } from '../components/chat/SessionDetailsPanel'
+import { SessionSheet } from '../components/chat/SessionSheet'
 import { BlockBar } from '../components/chat/BlockBar'
 import { WaitingToStart } from '../components/chat/WaitingToStart'
 import { MessageList } from '../components/chat/MessageList'
@@ -43,8 +43,7 @@ export default function ChatSessionDetail() {
 
   const [session, setSession] = useState<ChatSession | null>(null)
   const [sessionError, setSessionError] = useState<string | null>(null)
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
   const [closingSession, setClosingSession] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -172,49 +171,25 @@ export default function ChatSessionDetail() {
   const canDispute = session.status === 'closed' && session.closed_by_user_id !== me.id && !session.disputed
 
   return (
-    <div className="hp-page hp-chat-page">
+    <div className="cs-page">
       <ConnectionBanner online={online} />
 
       <ChatHeader
         session={session}
         onBack={() => navigate(-1)}
-        detailsOpen={detailsOpen}
-        onToggleDetails={() => setDetailsOpen((open) => !open)}
-        moreMenuOpen={moreMenuOpen}
-        onToggleMoreMenu={() => setMoreMenuOpen((open) => !open)}
-        onReportClick={() => {
-          setMoreMenuOpen(false)
-          setReportOpen(true)
-        }}
-        onBlockClick={() => {
-          setMoreMenuOpen(false)
-          // No real blocking system exists anywhere in this app yet
-          // (see ProfileTab.tsx's identical placeholder) — reusing the
-          // same "not available yet" message rather than inventing a
-          // second, differently-worded stub.
-          toast.error(t('profilePage.moreComingSoon'))
-        }}
+        onOpenDetails={() => setSheetOpen(true)}
+        onOpenProfile={() => navigate(`/profiles/${session.other_participant.user_id}`)}
       />
 
-      {/* Where you are in the session, directly under the header — the
-          one piece of chrome the conversation is allowed to carry. */}
-      <BlockBar session={session} onOpenDetails={() => setDetailsOpen(true)} />
+      {/* Where you are in the session. The one piece of chrome the
+          conversation carries, and the way in to everything about it. */}
+      <BlockBar session={session} onOpenDetails={() => setSheetOpen(true)} />
 
-      {/* A session that has been paid for but not started yet is the
-          state most worth explaining, and it says something DIFFERENT to
-          each side: what starts the clock, and that writing does not. */}
+      {/* A session paid for but not started is the state most worth
+          explaining, and it says something DIFFERENT to each side. */}
       {session.status === 'open' && session.started_at == null && (
         <WaitingToStart session={session} />
       )}
-
-      <SessionDetailsPanel
-        session={session}
-        viewerId={me.id}
-        expanded={detailsOpen}
-        onRequestClose={() => setConfirmCloseOpen(true)}
-        onDispute={disputeSession}
-        canDispute={canDispute}
-      />
 
       <MessageList
         messages={messages}
@@ -233,6 +208,33 @@ export default function ChatSessionDetail() {
         }
         onSendVoice={(durationSeconds) => send({ type: 'voice', duration_seconds: durationSeconds })}
       />
+
+      {sheetOpen && (
+        <SessionSheet
+          session={session}
+          viewerId={me.id}
+          onClose={() => setSheetOpen(false)}
+          onRequestEnd={() => {
+            setSheetOpen(false)
+            setConfirmCloseOpen(true)
+          }}
+          onDispute={() => {
+            setSheetOpen(false)
+            disputeSession()
+          }}
+          onReport={() => {
+            setSheetOpen(false)
+            setReportOpen(true)
+          }}
+          onBlock={() => {
+            setSheetOpen(false)
+            // No real blocking system exists yet (see ProfileTab.tsx's
+            // identical placeholder) — one wording, not two.
+            toast.error(t('profilePage.moreComingSoon'))
+          }}
+          canDispute={canDispute}
+        />
+      )}
 
       {confirmCloseOpen && (
         <EndSessionConfirmSheet

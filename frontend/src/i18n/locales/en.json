@@ -503,7 +503,13 @@
     "remaining": "{{minutes, number}} min left",
     "spentSoFar": "{{drops, number}} Drop",
     "waitingProvider": "Your first message starts the session and the clock.",
-    "waitingBuyer": "Not started yet — the clock starts when {{name}} sends their first message. You can write until then and it costs nothing."
+    "waitingBuyer": "Not started yet — the clock starts when {{name}} sends their first message. You can write until then and it costs nothing.",
+    "sessionLength": "Session length",
+    "priceNote": "{{blocks, number}} blocks, {{drops, number}} Drop each",
+    "blockNote": "{{minutes, number}} minutes a block",
+    "settlementNotYet": "Nothing spent yet — the money is reserved",
+    "settlementNothingOwed": "Nothing was used",
+    "seconds": "{{seconds, number}}s"
   },
   "finance": {
     "banks": "My bank accounts",

@@ -503,7 +503,13 @@
     "remaining": "{{minutes, number}} دقیقه مانده",
     "spentSoFar": "{{drops, number}} دراپ",
     "waitingProvider": "با اولین پیام شما جلسه شروع می‌شود و ساعت به کار می‌افتد.",
-    "waitingBuyer": "هنوز شروع نشده — وقتی {{name}} اولین پیامش را بفرستد ساعت شروع می‌شود. تا آن موقع می‌توانی بنویسی و چیزی حساب نمی‌شود."
+    "waitingBuyer": "هنوز شروع نشده — وقتی {{name}} اولین پیامش را بفرستد ساعت شروع می‌شود. تا آن موقع می‌توانی بنویسی و چیزی حساب نمی‌شود.",
+    "sessionLength": "مدت جلسه",
+    "priceNote": "{{blocks, number}} بلوک، هر بلوک {{drops, number}} دراپ",
+    "blockNote": "هر بلوک {{minutes, number}} دقیقه",
+    "settlementNotYet": "هنوز چیزی خرج نشده — پول رزرو است",
+    "settlementNothingOwed": "چیزی مصرف نشد",
+    "seconds": "{{seconds, number}} ثانیه"
   },
   "finance": {
     "banks": "حساب‌های بانکی من",

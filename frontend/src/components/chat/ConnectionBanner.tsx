@@ -17,8 +17,8 @@ export function ConnectionBanner({ online }: ConnectionBannerProps) {
   if (online) return null
 
   return (
-    <div className="hp-chat-connection-banner">
-      <span className="hp-chat-connection-dot" aria-hidden="true" />
+    <div className="cs-offline" role="status">
+      <span className="cs-offline-dot" aria-hidden="true" />
       {t('chatSession.connectionLost')}
     </div>
   )

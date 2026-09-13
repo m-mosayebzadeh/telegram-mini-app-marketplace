@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatElapsedTime } from '../../lib/chatTime'
 import { AttachmentPreviewSheet } from './AttachmentPreviewSheet'
+import { IconCheck, IconMic, IconPaperclip, IconSend, IconTrash } from '../icons'
 
 interface ComposerProps {
   /** True once the session is closed — a closed session's conversation
@@ -56,7 +57,7 @@ export function Composer({ disabled, onSendText, onSendPhoto, onSendVideo, onSen
   }, [])
 
   if (disabled) {
-    return <div className="hp-chat-composer hp-chat-composer-readonly">{t('chatSession.readOnlyNotice')}</div>
+    return <div className="cp cp-readonly">{t('chatSession.readOnlyNotice')}</div>
   }
 
   function submitText() {
@@ -108,36 +109,55 @@ export function Composer({ disabled, onSendText, onSendPhoto, onSendVideo, onSen
 
   if (recordingStartedAt) {
     return (
-      <div className="hp-chat-composer">
-        <div className="hp-chat-recording-row">
-          <button className="hp-chat-recording-cancel" onClick={cancelRecording} aria-label={t('chatSession.recordingCancelLabel')}>
-            🗑
-          </button>
-          <span className="hp-chat-recording-dot" aria-hidden="true" />
-          <span className="hp-chat-recording-time">{formatElapsedTime(recordingStartedAt, now)}</span>
-          <button className="hp-chat-recording-send" onClick={stopAndSendRecording} aria-label={t('chatSession.recordingSendLabel')}>
-            ✓
-          </button>
-        </div>
+      <div className="cp">
+        {/* Recording takes over the whole row: while it is running there
+            is nothing else to do here, and leaving the text field in
+            place would suggest otherwise. */}
+        <button
+          type="button"
+          className="cp-btn cp-btn-danger"
+          onClick={cancelRecording}
+          aria-label={t('chatSession.recordingCancelLabel')}
+        >
+          <IconTrash size={20} />
+        </button>
+
+        <span className="cp-recording">
+          <span className="cp-recording-dot" aria-hidden="true" />
+          <span className="cp-recording-time tabular">
+            {formatElapsedTime(recordingStartedAt, now)}
+          </span>
+        </span>
+
+        <button
+          type="button"
+          className="cp-btn cp-btn-primary"
+          onClick={stopAndSendRecording}
+          aria-label={t('chatSession.recordingSendLabel')}
+        >
+          <IconCheck size={20} />
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="hp-chat-composer">
-      <label className="hp-chat-attach-btn" aria-label={t('chatSession.attachButtonLabel')}>
-        📎
+    <div className="cp">
+      {/* Only photo and video: the product has exactly four message
+          types and there is deliberately no generic file attachment. */}
+      <label className="cp-btn" aria-label={t('chatSession.attachButtonLabel')}>
+        <IconPaperclip size={20} />
         <input
           ref={fileInputRef}
           type="file"
           accept="image/*,video/*"
+          hidden
           onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
         />
       </label>
 
       <input
-        className="hp-chat-text-input"
+        className="cp-input"
         type="text"
         value={text}
         placeholder={t('chatSession.composerPlaceholder')}
@@ -147,13 +167,26 @@ export function Composer({ disabled, onSendText, onSendPhoto, onSendVideo, onSen
         }}
       />
 
+      {/* One trailing button that changes what it is: send when there is
+          something to send, record when there is not. Two buttons would
+          mean one of them is always the wrong one. */}
       {text.trim() ? (
-        <button className="hp-chat-send-btn" onClick={submitText} aria-label={t('chatSession.sendButtonLabel')}>
-          ➤
+        <button
+          type="button"
+          className="cp-btn cp-btn-primary"
+          onClick={submitText}
+          aria-label={t('chatSession.sendButtonLabel')}
+        >
+          <IconSend size={20} />
         </button>
       ) : (
-        <button className="hp-chat-mic-btn" onClick={startRecording} aria-label={t('chatSession.micButtonLabel')}>
-          🎤
+        <button
+          type="button"
+          className="cp-btn"
+          onClick={startRecording}
+          aria-label={t('chatSession.micButtonLabel')}
+        >
+          <IconMic size={20} />
         </button>
       )}
 

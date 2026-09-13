@@ -1,73 +1,80 @@
 import { useTranslation } from 'react-i18next'
+import { IconAlert, IconCheck, IconMic, IconPlay } from '../icons'
 import type { ChatMessage } from '../../lib/chatMessageTypes'
 
 interface MessageBubbleProps {
   message: ChatMessage
-  /** Whether this message's sender is the current viewer — decides
-   * which side of the conversation it renders on, and whether a
-   * delivery-status indicator is shown at all (only your own messages
-   * show one, the same as any real chat app). */
+  /** Whether the sender is the viewer — decides which side it renders on
+   *  and whether a delivery state is shown at all. Only your own
+   *  messages carry one, the same as any real chat app. */
   isMine: boolean
   onRetry: (message: ChatMessage) => void
 }
 
 /**
- * One message bubble — text, photo, video, or voice, per the spec's
- * "only these four message types" rule (no arbitrary file uploads).
- * Renders the delivery-state indicator (sending/sent/failed, with a
- * retry affordance on failure) for the viewer's own messages.
+ * One message: text, photo, video or voice — the product's four types,
+ * with no generic file attachment.
  *
- * The photo/video/voice bodies here are intentionally simple (an image,
- * or an icon + duration) rather than a full lightbox/player — this is
- * the mock-data phase (TECHNICAL_REQUIREMENTS.md section 12); richer
- * media viewing can be layered on once real attachments exist.
+ * Rebuilt on the design system. Every glyph here used to be a text
+ * character — ▶ 🎤 ⏳ ✓ ⚠ — which takes no stroke width, no size and no
+ * alignment from anything around it, and renders differently on every
+ * platform. They are icons from the one set now.
+ *
+ * The delivery state is deliberately quiet. "Sent" is the ordinary
+ * outcome and gets a hairline tick; only a FAILURE earns colour, and it
+ * earns a tappable retry rather than just a warning sign.
  */
 export function MessageBubble({ message, isMine, onRetry }: MessageBubbleProps) {
   const { t } = useTranslation()
 
-  const bubbleClass = `hp-bubble ${isMine ? 'hp-bubble-mine' : 'hp-bubble-theirs'}`
   const time = new Date(message.created_at).toLocaleTimeString(undefined, {
     hour: '2-digit',
     minute: '2-digit',
   })
 
   return (
-    <div className={bubbleClass}>
-      {message.type === 'text' && <p className="hp-bubble-text">{message.text}</p>}
+    <div className={`cm ${isMine ? 'cm-mine' : 'cm-theirs'}`}>
+      {message.type === 'text' && <p className="cm-text">{message.text}</p>}
 
       {message.type === 'photo' && (
-        <img className="hp-bubble-media" src={message.media_url ?? undefined} alt="" />
+        <img className="cm-media" src={message.media_url ?? undefined} alt="" />
       )}
 
       {message.type === 'video' && (
-        <div className="hp-bubble-video">
-          <span className="hp-bubble-video-icon">▶</span>
-          <span>{message.duration_seconds}s</span>
-        </div>
+        <span className="cm-attachment">
+          <span className="cm-attachment-icon">
+            <IconPlay size={16} />
+          </span>
+          <span className="tabular">{t('chatSession.seconds', { seconds: message.duration_seconds })}</span>
+        </span>
       )}
 
       {message.type === 'voice' && (
-        <div className="hp-bubble-voice">
-          <span className="hp-bubble-voice-icon">🎤</span>
-          <span className="hp-bubble-voice-wave" aria-hidden="true" />
-          <span className="hp-bubble-voice-duration">{message.duration_seconds}s</span>
-        </div>
+        <span className="cm-attachment">
+          <span className="cm-attachment-icon">
+            <IconMic size={16} />
+          </span>
+          {/* A fixed waveform: it stands for "this is audio" and does not
+              pretend to be this particular recording's shape. */}
+          <span className="cm-wave" aria-hidden="true" />
+          <span className="tabular">{t('chatSession.seconds', { seconds: message.duration_seconds })}</span>
+        </span>
       )}
 
-      <div className="hp-bubble-footer">
-        <span className="hp-bubble-time">{time}</span>
-        {isMine && (
-          <span className={`hp-bubble-status hp-bubble-status-${message.status}`}>
-            {message.status === 'sending' && '⏳'}
-            {message.status === 'sent' && '✓'}
-            {message.status === 'failed' && (
-              <button className="hp-bubble-retry" onClick={() => onRetry(message)}>
-                ⚠ {t('chatSession.retryButton')}
-              </button>
-            )}
-          </span>
+      <span className="cm-footer">
+        <span className="cm-time tabular">{time}</span>
+
+        {isMine && message.status === 'sent' && (
+          <IconCheck size={14} className="cm-tick" />
         )}
-      </div>
+        {isMine && message.status === 'sending' && <span className="cm-sending" aria-hidden="true" />}
+        {isMine && message.status === 'failed' && (
+          <button type="button" className="cm-retry" onClick={() => onRetry(message)}>
+            <IconAlert size={14} />
+            {t('chatSession.retryButton')}
+          </button>
+        )}
+      </span>
     </div>
   )
 }
