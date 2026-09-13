@@ -2,9 +2,8 @@ import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../ui/Button'
 import { EmptyState, SkeletonRows } from '../ui/States'
-import { ProsCons } from './ProsCons'
 import { DropAmountField } from './DropAmountField'
-import { IconCamera, IconDrop } from '../icons'
+import { IconCamera, IconCopy, IconDrop } from '../icons'
 import type { TopUpCardInfo, TopUpRequest } from '../../lib/types'
 
 interface TopUpDirectProps {
@@ -64,23 +63,33 @@ export function TopUpDirect({
 
   return (
     <>
-      <ProsCons
-        pros={[t('topup.directPro1'), t('topup.directPro2'), t('topup.directPro3')]}
-        cons={[t('topup.directCon1')]}
-      />
-
-      {/* The number to transfer to. Latin digits run left-to-right
-          whichever way the page does, and are grouped in fours so they
-          can be checked against a banking app a glance at a time. */}
+      {/* Where the money goes. The number is the only thing anyone
+          needs from this block and the only thing they will act on, so
+          it is what is large — and the whole row is the copy control,
+          because a separate button below it was one more tap for the
+          same intent. */}
       <section className="tu-card">
         <span className="tu-card-label">{t('topup.cardNumberLabel')}</span>
-        <span className="tu-card-number tabular">
-          {cardInfo?.card_number ? formatCard(cardInfo.card_number) : '—'}
+
+        <button
+          type="button"
+          className="tu-card-copy"
+          onClick={onCopyCard}
+          disabled={!cardInfo?.card_number}
+          aria-label={t('topup.cardCopy')}
+        >
+          {/* Latin digits reading left-to-right whichever way the page
+              runs, grouped in fours so they can be checked against a
+              banking app a glance at a time. */}
+          <span className="tu-card-number tabular">
+            {cardInfo?.card_number ? formatCard(cardInfo.card_number) : '—'}
+          </span>
+          <IconCopy size={20} />
+        </button>
+
+        <span className="tu-card-holder" dir="auto">
+          {cardInfo?.card_holder_name || '—'}
         </span>
-        <span className="tu-card-holder">{cardInfo?.card_holder_name || '—'}</span>
-        <Button variant="secondary" size="sm" onClick={onCopyCard} disabled={!cardInfo?.card_number}>
-          {t('topup.cardCopy')}
-        </Button>
       </section>
 
       <section className="ui-section">
@@ -89,11 +98,6 @@ export function TopUpDirect({
           value={amount}
           onChange={onAmountChange}
           rate={rate}
-          help={
-            rate != null
-              ? t('topup.converterRateHint', { rate: rate })
-              : undefined
-          }
         />
       </section>
 

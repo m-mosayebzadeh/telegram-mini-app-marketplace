@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { digitsOnly, formatThousands, toLatinDigits } from './format'
+import { digitsOnly, formatThousands, localizeDigits, toLatinDigits } from './format'
 
 describe('toLatinDigits', () => {
   it('folds Persian digits', () => {
@@ -57,5 +57,23 @@ describe('formatThousands', () => {
 
   it('drops a leading zero the same way Number() does', () => {
     expect(formatThousands('007')).toBe('7')
+  })
+})
+
+describe('localizeDigits', () => {
+  it('writes a number in Persian digits for display', () => {
+    expect(localizeDigits('100', 'fa')).toBe('۱۰۰')
+  })
+
+  it('leaves English alone', () => {
+    expect(localizeDigits('100', 'en')).toBe('100')
+  })
+
+  it('round-trips with digitsOnly, which is what keeps display and storage in step', () => {
+    expect(digitsOnly(localizeDigits('2500', 'fa'))).toBe('2500')
+  })
+
+  it('touches only digits, never the characters around them', () => {
+    expect(localizeDigits('IR12 AB', 'fa')).toBe('IR۱۲ AB')
   })
 })

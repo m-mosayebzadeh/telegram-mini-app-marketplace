@@ -39,3 +39,27 @@ export function formatThousands(value: string): string {
   const digits = digitsOnly(value)
   return digits ? Number(digits).toLocaleString('en-US') : ''
 }
+
+/** The ten digits of a language, in order, indexed 0-9. */
+const DIGIT_SETS: Record<string, string> = {
+  fa: '۰۱۲۳۴۵۶۷۸۹',
+}
+
+/**
+ * ASCII digits rewritten in the language's own digits, for DISPLAY only.
+ *
+ * Persian text with Latin numerals in it looks like two languages sharing
+ * a line, and an input is not exempt: a field reading "100" under a label
+ * reading "چقدر" is the same mismatch as a caption would be. What is
+ * STORED stays ASCII — this is the last thing that happens before the
+ * characters reach the screen, and digitsOnly() undoes it on the way back
+ * in, so the two can never disagree.
+ *
+ * A language with no entry here keeps ASCII, which is the right answer
+ * for English and a safe one for anything unlisted.
+ */
+export function localizeDigits(value: string, language: string): string {
+  const digits = DIGIT_SETS[language.split('-')[0]]
+  if (!digits) return value
+  return value.replace(/[0-9]/g, (d) => digits[Number(d)])
+}

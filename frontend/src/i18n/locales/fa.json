@@ -175,14 +175,8 @@
   },
   "topup": {
     "pageTitle": "شارژ کیف پول",
-    "directPro1": "شارژ حساب بدون کارمزد",
-    "directPro2": "شارژ معادل دراپ بدون واسطه و با مبلغ پایین‌تر از سایر فروشنده‌ها",
-    "directPro3": "بدون فریز دراپ و استفاده آنی",
-    "directCon1": "بین ده دقیقه تا یک ساعت طول می‌کشه تا حساب شارژ بشه",
     "cardCopy": "کپی شماره کارت",
     "cardCopied": "شماره کارت کپی شد",
-    "converterTomanLabel": "مبلغ (تومان)",
-    "converterRateHint": "نرخ فعلی: هر دراپ {{rate, number}} تومان",
     "receiptLabel": "رسید پرداخت",
     "chooseReceiptFile": "برای انتخاب عکس رسید ضربه بزنید",
     "changeReceiptFile": "برای تغییر عکس ضربه بزنید",
@@ -199,7 +193,10 @@
     "trackingRefLabel": "شماره پیگیری",
     "dropUnit": "دراپ",
     "cardNumberLabel": "شماره کارت مقصد",
-    "historyEmptyHint": "رسیدهایی که می‌فرستی و نتیجه‌شون اینجا میاد."
+    "historyEmptyHint": "رسیدهایی که می‌فرستی و نتیجه‌شون اینجا میاد.",
+    "amountLabel": "چقدر شارژ می‌کنی؟",
+    "transferLabel": "مبلغ واریزی",
+    "rateHint": "هر دراپ {{rate, number}} تومان"
   },
   "admin": {
     "hubTitle": "پنل مدیریت",

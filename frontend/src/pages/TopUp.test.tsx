@@ -96,8 +96,10 @@ describe('TopUp — card to card', () => {
 
     type('#topup-direct-amount', '250')
 
-    // 250 Drop at 500 Toman each.
-    expect(container.textContent).toContain('125,000')
+    // 250 Drop at 500 Toman each. The mock renders the interpolation
+    // object verbatim; the real t() formats and localises it.
+    expect(container.textContent).toContain('"amount":125000')
+    expect(container.textContent).toContain('topup.transferLabel')
     // Exactly one amount field: Toman is derived, never typed.
     expect(container.querySelectorAll('#topup-direct-amount')).toHaveLength(1)
   })
@@ -126,7 +128,7 @@ describe('TopUp — card to card', () => {
     await render({ prefillDrops: 400 })
 
     expect(container.querySelector<HTMLInputElement>('#topup-direct-amount')!.value).toBe('400')
-    expect(container.textContent).toContain('200,000')
+    expect(container.textContent).toContain('"amount":200000')
   })
 
   it('goes back to the offer it was sent from, not to the wallet', async () => {

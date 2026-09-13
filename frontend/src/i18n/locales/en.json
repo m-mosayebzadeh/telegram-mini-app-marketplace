@@ -175,14 +175,8 @@
   },
   "topup": {
     "pageTitle": "Top Up Wallet",
-    "directPro1": "No commission on your charge",
-    "directPro2": "Drop-equivalent rate, no middleman, lower than other sellers",
-    "directPro3": "No Drop freeze — usable right away",
-    "directCon1": "Takes 10 minutes to 1 hour for your account to be charged",
     "cardCopy": "Copy card number",
     "cardCopied": "Card number copied",
-    "converterTomanLabel": "Amount (Toman)",
-    "converterRateHint": "Current rate: {{rate, number}} Toman per Drop",
     "receiptLabel": "Payment receipt",
     "chooseReceiptFile": "Tap to choose the receipt photo",
     "changeReceiptFile": "Tap to change the photo",
@@ -199,7 +193,10 @@
     "trackingRefLabel": "Tracking number",
     "dropUnit": "Drop",
     "cardNumberLabel": "Transfer to this card",
-    "historyEmptyHint": "Receipts you send, and what came of them, show up here."
+    "historyEmptyHint": "Receipts you send, and what came of them, show up here.",
+    "amountLabel": "How much?",
+    "transferLabel": "Transfer",
+    "rateHint": "{{rate, number}} Toman per Drop"
   },
   "admin": {
     "hubTitle": "Admin Panel",

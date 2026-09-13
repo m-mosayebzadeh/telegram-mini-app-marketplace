@@ -34,6 +34,7 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 from app.core.database import SessionLocal  # noqa: E402
 from app.core.time import utcnow  # noqa: E402
+from app.models.chat_message import ChatMessage, ChatMessageType  # noqa: E402
 from app.models.chat_session import ChatSession, ChatSessionStatus  # noqa: E402
 from app.models.offer import Offer, OfferStatus  # noqa: E402
 from app.models.request import Request, RequestStatus  # noqa: E402
@@ -43,6 +44,17 @@ from app.wallet.service import credit_topup, get_balance_toman  # noqa: E402
 
 BUYER_TELEGRAM_ID = 111222333  # Sara
 PROVIDER_TELEGRAM_ID = 222222  # Bob
+
+#: A short exchange, alternating sides, so both bubble styles and the
+#: gap between them are actually visible. Kept plain text: the point is
+#: to look at the conversation's shape, not at media handling.
+DEMO_MESSAGES = [
+    ('provider', 'سلام سارا، خوش اومدی 🙂'),
+    ('buyer', 'سلام! ممنون'),
+    ('buyer', 'راستش تازه سریال جدیدی رو شروع کردم و نمی‌دونم ادامه بدم یا نه'),
+    ('provider', 'کدوم؟'),
+    ('buyer', 'همونی که همه دربارش حرف می‌زنن'),
+]
 
 DEFAULT_MINUTES = 40
 DEFAULT_PRICE_DROPS = 100
@@ -148,6 +160,23 @@ def main() -> None:
                 chat_session.scheduled_end_at = chat_session.started_at + timedelta(
                     minutes=args.minutes
                 )
+
+        # A few messages, spread back through the elapsed time, so the
+        # conversation has a shape to look at rather than one empty
+        # screen with a bar on top.
+        if not args.waiting and args.elapsed > 0:
+            step = timedelta(minutes=args.elapsed / (len(DEMO_MESSAGES) + 1))
+            for index, (side, text) in enumerate(DEMO_MESSAGES, start=1):
+                db.add(
+                    ChatMessage(
+                        chat_session_id=chat_session.id,
+                        sender_id=provider.id if side == 'provider' else buyer.id,
+                        type=ChatMessageType.TEXT,
+                        text=text,
+                        created_at=chat_session.started_at + step * index,
+                    )
+                )
+            print(f'added {len(DEMO_MESSAGES)} messages across the elapsed time')
 
         db.commit()
 
