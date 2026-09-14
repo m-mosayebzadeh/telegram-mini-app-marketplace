@@ -149,6 +149,16 @@ class ChatSession(Base):
     archived_by_buyer: Mapped[bool] = mapped_column(Boolean, default=False)
     archived_by_provider: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Removing a conversation is one-sided, like archiving above it: each
+    # participant decides what to do with their own copy, and the other side's
+    # view is untouched. The messages themselves are never deleted — the other
+    # person is still reading them.
+    #
+    # Deliberately not one shared flag: a conversation both people took part in
+    # is not one person's to erase.
+    deleted_by_buyer_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    deleted_by_provider_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     # Lets code reach `session.request.buyer_id` /
     # `session.request.offer.provider_id` instead of separate queries.
     request: Mapped["Request"] = relationship()

@@ -323,3 +323,11 @@
   font: var(--text-caption);
   color: var(--color-text-3);
 }
+
+/* The status on a history row: money that has not finished moving says so.
+   Quiet by design — it is a qualifier on the amount beside it, not a thing to
+   read first. */
+.wh-status {
+  font: var(--text-caption);
+  color: var(--color-text-3);
+}

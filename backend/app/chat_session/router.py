@@ -23,7 +23,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.chat_session.access import get_participant_session
+from app.chat_session.access import deleted_for, get_participant_session
 from app.wallet.service import release_transaction
 from app.wallet.blocks import (
     EndReason,
@@ -47,6 +47,7 @@ from app.core.time import utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer
 from app.models.request import Request
+from app.models.transaction import TransactionStatus
 from app.models.user import User
 from app.profile.photos import get_current_avatar_url
 
@@ -104,7 +105,11 @@ def list_my_sessions(
     )
     # Reading the list is also when each session's own clock gets checked —
     # the lazy sweep that stands in for a scheduler (see close_if_due).
-    return [to_chat_session_out(db, close_if_due(db, s), current_user.id) for s in sessions]
+    return [
+        to_chat_session_out(db, close_if_due(db, s), current_user.id)
+        for s in sessions
+        if not deleted_for(s, current_user.id)
+    ]
 
 
 @router.get("/{session_id}", response_model=ChatSessionOut)
@@ -143,6 +148,46 @@ def close_session(
     db.commit()
     db.refresh(chat_session)
     return to_chat_session_out(db, chat_session, current_user.id)
+
+
+@router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_session_for_me(
+    session_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """
+    Removes a finished conversation from the caller's own list.
+
+    One-sided, like archiving: the messages stay, the other participant still
+    sees everything, and what they do with their own copy is their business.
+
+    Refused while the money is unsettled. Removing it would take away the way
+    back to confirming the settlement or raising a complaint, and someone
+    tidying up their chat list should not be quietly giving up the right to
+    say something went wrong. Settle first, then remove.
+    """
+    # get_participant_session already 404s if it is gone from this side.
+    chat_session = close_if_due(db, get_participant_session(db, session_id, current_user.id))
+    if chat_session.status != ChatSessionStatus.CLOSED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"reason": "session_still_open"},
+        )
+
+    transaction = chat_session.transaction
+    if transaction is not None and transaction.status == TransactionStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"reason": "settlement_unfinished"},
+        )
+
+    now = utcnow()
+    if chat_session.request.buyer_id == current_user.id:
+        chat_session.deleted_by_buyer_at = now
+    else:
+        chat_session.deleted_by_provider_at = now
+    db.commit()
 
 
 def _set_archived(db: Session, session_id: int, current_user: User, archived: bool) -> ChatSessionOut:

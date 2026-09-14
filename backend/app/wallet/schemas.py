@@ -50,3 +50,32 @@ class TransactionOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class WalletHistoryOut(BaseModel):
+    """One thing that happened to this wallet.
+
+    Deliberately says nothing about who was on the other side: a list that
+    reads "25 Drops from Sara" is a problem the moment someone glances at the
+    screen. What it was about is here, because a history that cannot be checked
+    against anything is not a history; who it was with is one tap away, on the
+    thing itself.
+    """
+
+    #: top_up | withdrawal | withdrawal_refund | chat_earning | chat_payment |
+    #: content_sale | content_purchase
+    kind: str
+    #: in_progress | awaiting_settlement | disputed | settled — anything but
+    #: the last can still change, which is why it is shown at all.
+    status: str
+    #: Positive came in, negative went out.
+    amount_drops: int
+    amount_toman: int
+    at: datetime
+    #: An offer's title, when there is one. Never a person's name.
+    subject: str | None
+    #: Where tapping this row leads, when it leads anywhere. Both None for a
+    #: top-up or a withdrawal, and for content the seller has deleted — which
+    #: they can no longer open.
+    chat_session_id: int | None
+    content_id: int | None

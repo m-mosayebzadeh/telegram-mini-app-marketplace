@@ -626,5 +626,27 @@
     "minutesLeft": "{{minutes, number}} دقیقه مانده",
     "endingNow": "در حال پایان",
     "returnTo": "بازگشت به گفتگو با {{name}}"
+  },
+  "history": {
+    "filterAll": "همه",
+    "filterIn": "دریافتی",
+    "filterOut": "پرداختی",
+    "filterPending": "در انتظار",
+    "drops": "{{amount}} دراپ",
+    "kind": {
+      "top_up": "شارژ کیف پول",
+      "withdrawal": "برداشت",
+      "withdrawal_refund": "بازگشت برداشت",
+      "chat_earning": "درآمد گفتگو",
+      "chat_payment": "هزینه‌ی گفتگو",
+      "content_sale": "فروش محتوا",
+      "content_purchase": "خرید محتوا"
+    },
+    "status": {
+      "in_progress": "در جریان",
+      "awaiting_settlement": "در انتظار تسویه",
+      "disputed": "در حال بررسی",
+      "settled": "تسویه‌شده"
+    }
   }
 }

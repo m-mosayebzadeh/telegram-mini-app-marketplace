@@ -19,7 +19,8 @@ from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.core.rates import get_rates
 from app.models.user import User
-from app.wallet.schemas import BalanceOut
+from app.wallet.history import build_history
+from app.wallet.schemas import BalanceOut, WalletHistoryOut
 from app.wallet.service import (
     get_balance_toman,
     get_buyer_in_flight_toman,
@@ -62,10 +63,35 @@ def get_my_balance(
     )
 
 
-@router.get('/history')
-def wallet_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    from app.models.credit_ledger import CreditLedgerEntry
-    entries = db.query(CreditLedgerEntry).filter_by(user_id=current_user.id).order_by(CreditLedgerEntry.id.desc()).all()
-    return [dict(id=e.id, type=e.type.value, amount_toman=e.amount_toman,
-                 withdrawal_id=e.withdrawal_id, transaction_id=e.transaction_id,
-                 created_at=e.created_at) for e in entries]
+@router.get("/history", response_model=list[WalletHistoryOut])
+def wallet_history(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[WalletHistoryOut]:
+    """
+    What happened to this wallet, told as events rather than as ledger rows.
+
+    See app/wallet/history.py for why those are not the same thing, and for the
+    two rules behind what a row says: no names in it, and money that has not
+    arrived yet still appears, marked as such.
+
+    Filtering is left to the app: the list is small enough per person to send
+    at once, and filtering it there costs nothing while a round trip per tap
+    costs a visible pause.
+    """
+    # Reading the history is also a moment to let anything due settle, the
+    # same lazy sweep the balance does.
+    release_due_chat_transactions(db, current_user.id)
+    rate = get_rates(db).drop_to_toman_rate
+    return [
+        WalletHistoryOut(
+            kind=row.kind.value,
+            status=row.status.value,
+            amount_drops=row.amount_drops,
+            amount_toman=row.amount_drops * rate,
+            at=row.at,
+            subject=row.subject,
+            chat_session_id=row.chat_session_id,
+            content_id=row.content_id,
+        )
+        for row in build_history(db, current_user.id, rate)
+    ]

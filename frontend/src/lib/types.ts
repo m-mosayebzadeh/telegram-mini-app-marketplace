@@ -473,3 +473,30 @@ export interface PlatformRates {
   minimum_withdrawal_toman: number
   updated_at: string
 }
+
+/** One thing that happened to a wallet — see backend/app/wallet/history.py.
+ *  Never says who the other side was: that is one tap away, on the thing
+ *  itself, rather than sitting in a list anyone could glance at. */
+export interface WalletHistoryRow {
+  kind:
+    | 'top_up'
+    | 'withdrawal'
+    | 'withdrawal_refund'
+    | 'chat_earning'
+    | 'chat_payment'
+    | 'content_sale'
+    | 'content_purchase'
+  /** Anything but "settled" can still change, which is why it is shown. */
+  status: 'in_progress' | 'awaiting_settlement' | 'disputed' | 'settled'
+  /** Positive came in, negative went out. */
+  amount_drops: number
+  amount_toman: number
+  at: string
+  /** An offer's title, when there is one. Never a person's name. */
+  subject: string | null
+  /** Where tapping leads, when it leads anywhere. Both null for a top-up or a
+   *  withdrawal, and for content its seller has deleted — they can no longer
+   *  open it, so the row does not offer to take them there. */
+  chat_session_id: number | null
+  content_id: number | null
+}

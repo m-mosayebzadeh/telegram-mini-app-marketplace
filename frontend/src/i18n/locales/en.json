@@ -626,5 +626,27 @@
     "minutesLeft": "{{minutes, number}} min left",
     "endingNow": "ending now",
     "returnTo": "Return to your chat with {{name}}"
+  },
+  "history": {
+    "filterAll": "All",
+    "filterIn": "In",
+    "filterOut": "Out",
+    "filterPending": "Pending",
+    "drops": "{{amount}} Drops",
+    "kind": {
+      "top_up": "Wallet top-up",
+      "withdrawal": "Withdrawal",
+      "withdrawal_refund": "Withdrawal returned",
+      "chat_earning": "Chat earning",
+      "chat_payment": "Chat payment",
+      "content_sale": "Content sale",
+      "content_purchase": "Content purchase"
+    },
+    "status": {
+      "in_progress": "in progress",
+      "awaiting_settlement": "awaiting settlement",
+      "disputed": "under review",
+      "settled": "settled"
+    }
   }
 }
