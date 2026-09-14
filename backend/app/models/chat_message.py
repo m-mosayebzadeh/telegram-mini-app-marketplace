@@ -46,7 +46,7 @@ class ChatMessage(Base):
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     type: Mapped[ChatMessageType] = mapped_column(
-        Enum(ChatMessageType, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(ChatMessageType, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
     )
 
     # Only meaningful (non-NULL) for TEXT — see the CHECK constraint below.

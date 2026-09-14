@@ -64,7 +64,7 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     kind: Mapped[TransactionKind] = mapped_column(
-        Enum(TransactionKind, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(TransactionKind, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
     )
 
     buyer_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
@@ -100,7 +100,7 @@ class Transaction(Base):
     # (PENDING vs SUCCEEDED) depends on `kind` — there isn't one
     # sensible default for both.
     status: Mapped[TransactionStatus] = mapped_column(
-        Enum(TransactionStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(TransactionStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
     )
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 

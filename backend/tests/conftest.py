@@ -14,19 +14,36 @@ modules inside it, so this always runs first.
 """
 
 import os
+import uuid
 
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-bot-token-for-pytest-only")
 os.environ.setdefault("ENABLE_DEV_TOOLS", "false")
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 from app.core.database import Base, get_db
 from app.main import app
+
+# Tests run on Postgres, the same engine production does.
+#
+# They used to run on in-memory SQLite, which was faster and needed nothing
+# installed — but this codebase's hardest rules are about money and about what
+# two requests racing each other are allowed to see, and those depend entirely
+# on how the database takes locks. Proving them on a different engine from the
+# one that will run them proves nothing.
+TEST_DATABASE_URL = os.environ.setdefault(
+    "TEST_DATABASE_URL",
+    "postgresql+psycopg://marketplace:devpass@localhost:5433/marketplace",
+)
+
+
+def _admin_engine():
+    """A connection outside any test database, for creating and dropping them."""
+    return create_engine(TEST_DATABASE_URL, isolation_level="AUTOCOMMIT")
 
 
 @pytest.fixture(autouse=True)
@@ -49,25 +66,38 @@ def isolated_uploads_dir(tmp_path):
 @pytest.fixture()
 def db_engine():
     """
-    The throwaway, in-memory database engine behind a test — split out
-    from `client` below so a test can ALSO get a direct Session on this
-    same database (via `db_session`) for setup that has no HTTP endpoint
-    of its own, e.g. crediting a wallet directly (the real top-up
-    endpoint is dev-tools-only, and tests deliberately run with dev
-    tools off, matching production — see the env vars set above).
+    A throwaway Postgres database, created and dropped around each test.
 
-    StaticPool makes every connection from this engine reuse the same
-    in-memory SQLite database instead of each one getting its own empty
-    database (SQLite's normal in-memory behavior) — otherwise a row one
-    connection creates wouldn't be visible to another.
+    One database per test rather than one schema that gets emptied: a test can
+    then open several real connections at once — which the concurrency tests
+    need — without any of them seeing another test's rows.
     """
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+    name = f"test_{uuid.uuid4().hex}"
+    admin = _admin_engine()
+    with admin.connect() as connection:
+        connection.execute(text(f'CREATE DATABASE "{name}"'))
+    admin.dispose()
+
+    url = TEST_DATABASE_URL.rsplit("/", 1)[0] + "/" + name
+    engine = create_engine(url)
     Base.metadata.create_all(bind=engine)
-    yield engine
+    try:
+        yield engine
+    finally:
+        engine.dispose()
+        admin = _admin_engine()
+        with admin.connect() as connection:
+            # Anything still attached would block the drop; tests that leak a
+            # connection should fail loudly here rather than leave a database
+            # behind.
+            connection.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    f"WHERE datname = '{name}' AND pid <> pg_backend_pid()"
+                )
+            )
+            connection.execute(text(f'DROP DATABASE IF EXISTS "{name}"'))
+        admin.dispose()
 
 
 @pytest.fixture()

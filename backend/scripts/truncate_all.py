@@ -2,14 +2,13 @@
 Wipes every row from every table EXCEPT alembic_version (so the schema
 itself, and Alembic's record of which migration it's at, are untouched
 — only data is cleared). Order matters: children are deleted before the
-parents they have a foreign key to, so this doesn't trip over SQLite's
-foreign-key checks.
+parents they have a foreign key to, so this doesn't trip over the
+database's foreign-key checks.
 
 Run from backend/:
     python scripts/truncate_all.py
 """
 
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -50,24 +49,22 @@ TABLES_IN_DELETE_ORDER = [
 
 
 def main() -> None:
-    db_path = settings.database_url.removeprefix("sqlite:///")
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
-    cur.execute("PRAGMA foreign_keys = OFF")  # belt-and-suspenders; delete order already handles it
-    for table in TABLES_IN_DELETE_ORDER:
-        cur.execute(f"DELETE FROM {table}")
-        print(f"{table}: {cur.rowcount} rows deleted")
-    # Resets AUTOINCREMENT counters so new rows start back at id 1
-    # instead of continuing from wherever they left off. sqlite_sequence
-    # only exists at all once some table used the AUTOINCREMENT keyword
-    # explicitly (none of ours do — a plain INTEGER PRIMARY KEY already
-    # auto-increments without it), so this is skipped, not an error, on
-    # a database where it was never created.
-    cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'")
-    if cur.fetchone():
-        cur.execute("DELETE FROM sqlite_sequence")
-    con.commit()
-    con.close()
+    """Deletes through the ORM's engine, so this works on whatever database is
+    configured rather than reaching for a file on disk."""
+    from sqlalchemy import text
+
+    from app.core.database import engine
+
+    with engine.begin() as connection:
+        for table in TABLES_IN_DELETE_ORDER:
+            result = connection.execute(text(f"DELETE FROM {table}"))
+            print(f"{table}: {result.rowcount} rows deleted")
+        # Identity counters go back to 1, so a fresh run starts at id 1 instead
+        # of continuing from wherever the last one left off.
+        for table in TABLES_IN_DELETE_ORDER:
+            connection.execute(
+                text(f"ALTER SEQUENCE IF EXISTS {table}_id_seq RESTART WITH 1")
+            )
     print("Done. alembic_version was left untouched.")
 
 

@@ -34,7 +34,7 @@ class Offer(Base):
     provider_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     service_type: Mapped[OfferServiceType] = mapped_column(
-        Enum(OfferServiceType, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(OfferServiceType, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=OfferServiceType.CHAT,
     )
     # The price of ONE session, not a rate. It must divide evenly by
@@ -59,11 +59,26 @@ class Offer(Base):
     description: Mapped[str] = mapped_column(String(2000))
 
     status: Mapped[OfferStatus] = mapped_column(
-        Enum(OfferStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(OfferStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=OfferStatus.ACTIVE,
     )
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+    # Deleting is marking, not removing. Requests keep pointing at the offer
+    # they were made against — the rule that a request cancelled because its
+    # offer went away is counted differently from one the buyer cancelled only
+    # means something while the offer is still there to look at. A removed row
+    # would leave those requests pointing at nothing, which is what the
+    # database now refuses outright.
+    #
+    # Users never see a deleted offer; staff see everything, which is the
+    # point of keeping it.
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
 
     __table_args__ = (
         # Enforced here as well as in the schema: these two invariants are what

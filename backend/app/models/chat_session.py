@@ -129,7 +129,7 @@ class ChatSession(Base):
     )
 
     status: Mapped[ChatSessionStatus] = mapped_column(
-        Enum(ChatSessionStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(ChatSessionStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=ChatSessionStatus.OPEN,
     )
     opened_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

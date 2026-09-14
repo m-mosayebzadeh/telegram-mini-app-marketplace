@@ -7,6 +7,9 @@ pydantic-settings==2.5.2
 
 # --- ORM / database access ---
 sqlalchemy==2.0.52
+# Postgres driver. The binary wheel keeps this a plain pip install with no
+# local Postgres headers to build against.
+psycopg[binary]==3.3.5
 # Schema migrations — see backend/migrations/README.md (or
 # docs/TECHNICAL_REQUIREMENTS.md) for the workflow. Runs automatically on
 # every app startup (app/main.py's lifespan), so a machine that's behind

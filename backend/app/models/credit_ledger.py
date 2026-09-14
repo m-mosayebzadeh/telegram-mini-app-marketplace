@@ -67,7 +67,7 @@ class CreditLedgerEntry(Base):
     amount_toman: Mapped[int] = mapped_column(Integer)
 
     type: Mapped[LedgerEntryType] = mapped_column(
-        Enum(LedgerEntryType, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(LedgerEntryType, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
     )
 
     # Which Transaction this entry belongs to. Nullable only for

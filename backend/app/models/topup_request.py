@@ -50,7 +50,7 @@ class TopUpRequest(Base):
     requested_toman_amount: Mapped[int] = mapped_column(Integer)
 
     status: Mapped[TopUpStatus] = mapped_column(
-        Enum(TopUpStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(TopUpStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=TopUpStatus.PENDING,
     )
 

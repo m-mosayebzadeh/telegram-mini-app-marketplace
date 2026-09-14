@@ -44,7 +44,7 @@ class Request(Base):
     offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"))
 
     status: Mapped[RequestStatus] = mapped_column(
-        Enum(RequestStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(RequestStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=RequestStatus.PENDING,
     )
     # Required for REJECTED (the provider's own words, or a canned option

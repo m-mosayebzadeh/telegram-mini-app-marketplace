@@ -4,7 +4,7 @@ Database setup shared by the whole app.
 SQLAlchemy is the ORM (Object-Relational Mapper): it lets us define
 Python classes (like `User`) that map to database tables, and write
 Python code instead of raw SQL for most operations. It also lets us
-switch between SQLite (local dev) and Postgres (production) by only
+point at a different Postgres by only
 changing the `database_url` setting — no code changes needed, which is
 exactly what TECHNICAL_REQUIREMENTS.md asks for in the tech stack section.
 """
@@ -19,16 +19,11 @@ from app.core.config import settings
 # The "engine" is the object that actually knows how to talk to the
 # database (open connections, run SQL, etc).
 #
-# connect_args is only needed for SQLite: by default SQLite only allows
-# the thread that created a connection to use it, but FastAPI can handle
-# a single request on a different thread than the one that created the
-# connection pool. This flag disables that check, which is safe here
-# because we open a fresh, short-lived session per request anyway.
-connect_args = {}
-if settings.database_url.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
-
-engine = create_engine(settings.database_url, connect_args=connect_args)
+# pool_pre_ping checks a pooled connection is still alive before handing it
+# out. Without it, the first request after the database restarts — or after a
+# network hiccup between app and database — fails with a stale connection
+# instead of quietly opening a new one.
+engine = create_engine(settings.database_url, pool_pre_ping=True)
 
 # A "session" is a temporary workspace for talking to the database:
 # you load objects into it, change them, and then commit to save the

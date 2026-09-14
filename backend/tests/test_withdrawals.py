@@ -4,11 +4,10 @@ from threading import Barrier
 from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from app.main import app
 from app.core.config import settings
-from app.core.database import Base, get_db
+from app.core.database import get_db
 from app.core.rates import get_rates
 from app.models.withdrawal import Withdrawal, WithdrawalEvent
 from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
@@ -173,18 +172,22 @@ def test_unsuccessful_releases_entire_amount(client,db_session,action):
     assert db_session.query(CreditLedgerEntry).filter_by(withdrawal_id=id,type=LedgerEntryType.COMMISSION).count()==0
 
 @pytest.fixture
-def concurrent_client(tmp_path):
-    engine=create_engine('sqlite:///'+str(tmp_path/'concurrent.db'),connect_args={'check_same_thread':False,'timeout':15})
-    Base.metadata.create_all(engine)
+def concurrent_client(db_engine):
+    """A client whose requests each get their OWN connection, so two of them
+    can genuinely race — which is the only way to test a lock.
+
+    It shares the per-test Postgres database from conftest rather than making
+    one of its own, so what is under test here is the same engine, with the
+    same locking rules, that production will run."""
     def sessions():
-        with Session(engine,autoflush=False) as db:
+        with Session(db_engine, autoflush=False) as db:
             yield db
-    app.dependency_overrides[get_db]=sessions
-    client=TestClient(app)
-    with Session(engine,autoflush=False) as db:
-        yield client,db
+    app.dependency_overrides[get_db] = sessions
+    client = TestClient(app)
+    with Session(db_engine, autoflush=False) as db:
+        yield client, db
     app.dependency_overrides.clear()
-    engine.dispose()
+
 
 def race(*calls):
     barrier=Barrier(len(calls))

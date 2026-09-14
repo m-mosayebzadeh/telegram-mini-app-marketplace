@@ -168,6 +168,8 @@ def create_request(
     db: Session = Depends(get_db),
 ) -> Request:
     offer = db.get(Offer, payload.offer_id)
+    if offer is not None and offer.deleted_at is not None:
+        offer = None  # deleted: gone as far as anyone but staff is concerned
     if offer is None or offer.status != OfferStatus.ACTIVE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
     if offer.provider_id == current_user.id:
@@ -293,7 +295,7 @@ def list_requests_for_offer(
     badge is never touched by this.
     """
     offer = db.get(Offer, offer_id)
-    if offer is None or offer.provider_id != current_user.id:
+    if offer is None or offer.deleted_at is not None or offer.provider_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
 
     requests = db.query(Request).filter(Request.offer_id == offer_id).all()

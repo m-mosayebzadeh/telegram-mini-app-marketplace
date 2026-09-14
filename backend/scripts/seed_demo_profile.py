@@ -12,18 +12,14 @@ itself uses:
 
 Safe to re-run: it upserts the Profile row and replaces (deletes, then
 recreates) this user's demo Content items each time rather than piling up
-duplicates. Never runs against anything but the local SQLite dev database
-this project already uses (settings.database_url) — there is no
-production data this could touch.
+duplicates. It runs against whatever settings.database_url points at, which
+is a local development database — there is no production data this could
+touch.
 
-This is exactly the kind of one-off dev fixture TECHNICAL_REQUIREMENTS.md
-already expects for schema changes on the local SQLite file (no real
-migration tool is set up yet — see the project's repo-status notes): it
-also ALTERs the profiles table in place to add the columns this seed data
-needs (is_trusted, birthday_month, birthday_day), so this script doubles
-as that migration. It is not a general migration tool — just enough to
-get this one table's new columns onto an existing local app.db without
-losing whatever else is already in it (follows, offers, wallet history).
+It used to patch columns onto the profiles table by hand, from a time before
+this project had migrations. It no longer does: Alembic owns the schema, and
+a script that quietly alters tables alongside it is a second source of truth
+waiting to disagree.
 """
 
 import io
@@ -63,38 +59,6 @@ DEMO_AVATAR_URL = "https://i.pravatar.cc/300?img=47"
 # (demo_<slug>_<uuid>.jpg) so a re-run can find and replace exactly the
 # rows this script owns, without touching anything a real upload created.
 DEMO_FILE_PREFIX = "demo_"
-
-
-def _ensure_profile_columns() -> None:
-    """ALTERs the (SQLite-only) profiles table in place if this is an
-    existing app.db from before is_trusted/birthday_month/birthday_day
-    existed. A no-op on a fresh database, where create_all() below
-    already creates the columns — and a no-op on a second run, since it
-    checks the actual column list first rather than blindly ALTERing."""
-    if not settings.database_url.startswith("sqlite"):
-        print("Non-SQLite database_url — skipping ALTER TABLE (add the columns yourself).")
-        return
-
-    inspector = inspect(engine)
-    if "profiles" not in inspector.get_table_names():
-        return  # create_all() below will create it with the new columns already.
-
-    existing = {col["name"] for col in inspector.get_columns("profiles")}
-    statements = []
-    if "is_trusted" not in existing:
-        statements.append("ALTER TABLE profiles ADD COLUMN is_trusted BOOLEAN NOT NULL DEFAULT 0")
-    if "birthday_month" not in existing:
-        statements.append("ALTER TABLE profiles ADD COLUMN birthday_month INTEGER")
-    if "birthday_day" not in existing:
-        statements.append("ALTER TABLE profiles ADD COLUMN birthday_day INTEGER")
-
-    if not statements:
-        return
-
-    with engine.begin() as conn:
-        for stmt in statements:
-            print(f"  {stmt}")
-            conn.execute(text(stmt))
 
 
 def _gradient_jpeg_bytes(top_rgb: tuple[int, int, int], bottom_rgb: tuple[int, int, int]) -> bytes:
@@ -141,7 +105,6 @@ def _save_demo_file(user_id: int, slug: str) -> str:
 def main() -> None:
     print("Ensuring tables/columns exist...")
     Base.metadata.create_all(engine)
-    _ensure_profile_columns()
 
     db = SessionLocal()
     try:

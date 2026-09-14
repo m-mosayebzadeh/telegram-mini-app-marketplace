@@ -68,7 +68,7 @@ class Content(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     content_type: Mapped[ContentType] = mapped_column(
-        Enum(ContentType, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(ContentType, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
     )
     # Only meaningful (and only non-NULL) for SHORT_VIDEO — see the CHECK
     # constraint below. Client-reported at upload time, capped at
@@ -95,7 +95,7 @@ class Content(Base):
     has_spoiler: Mapped[bool] = mapped_column(Boolean, default=False)
 
     audience_type: Mapped[ContentAudience] = mapped_column(
-        Enum(ContentAudience, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(ContentAudience, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=ContentAudience.PUBLIC,
     )
     # Exactly one of these two is set, and only when audience_type
@@ -113,6 +113,18 @@ class Content(Base):
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+
+    # Deleting is marking, not removing — and here the reason is money. A
+    # purchase records WHAT was bought; remove the row and a real transaction
+    # points at nothing, which is a receipt for an unnamed thing. Likes and
+    # unlocked-access records hang off it too.
+    #
+    # Users never see deleted content; staff see everything.
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    @property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
 
     __table_args__ = (
         # A paid item must have a spoiler. Written as "NOT is_paid OR

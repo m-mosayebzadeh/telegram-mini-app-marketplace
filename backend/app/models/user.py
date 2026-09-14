@@ -69,7 +69,7 @@ class User(Base):
         # instead of SQLAlchemy's default of "ACTIVE"/"BLOCKED" (the
         # member names) — keeps the raw database consistent with what
         # the API actually returns (see main.py's current_user.status.value).
-        Enum(UserStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(UserStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=UserStatus.ACTIVE,
     )
 

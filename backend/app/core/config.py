@@ -34,11 +34,12 @@ class Settings(BaseSettings):
     # If a user sends data older than this, validation is rejected.
     telegram_auth_max_age_seconds: int = 24 * 60 * 60  # 24 hours
 
-    # Local development database. SQLite stores everything in a single
-    # file, so no separate database server needs to be installed or run.
-    # In production this will be swapped for a Postgres URL, without
-    # changing any code that uses the ORM.
-    database_url: str = "sqlite:///./app.db"
+    # The database, in development as well as production.
+    # Postgres, in development as well as production. The money code depends
+    # on how the database takes locks, and running a different engine locally
+    # from the one that will hold real balances is how a silent money bug gets
+    # in. docs/LOCAL_DEV.md has the one command that starts it.
+    database_url: str = "postgresql+psycopg://marketplace:devpass@localhost:5433/marketplace"
 
     # Enables developer-only routes (e.g. /dev/test-init-data) that must
     # never be reachable in production. Defaults to OFF on purpose: an

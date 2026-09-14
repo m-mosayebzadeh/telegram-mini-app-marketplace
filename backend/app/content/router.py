@@ -32,6 +32,7 @@ from app.content.schemas import ContentOut, PurchaseResult
 from app.core.rates import get_rates
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.time import utcnow
 from app.core.storage import delete_content_file, save_content_file
 from app.models.audience_group import AudienceGroup
 from app.models.content import (
@@ -90,7 +91,7 @@ def _get_visible_content(db: Session, content_id: int, viewer: User) -> Content:
     — every route below needs exactly this, so a route can't accidentally
     skip it."""
     content = db.get(Content, content_id)
-    if content is None or not can_view_content(db, viewer, content):
+    if content is None or content.deleted_at is not None or not can_view_content(db, viewer, content):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found.")
     return content
 
@@ -219,7 +220,7 @@ def list_content(
     """
     all_items = (
         db.query(Content)
-        .filter(Content.user_id == user_id)
+        .filter(Content.user_id == user_id, Content.deleted_at.is_(None))
         .order_by(Content.is_pinned.desc(), Content.created_at.desc())
         .all()
     )
@@ -337,13 +338,17 @@ def pin_content(
     MAX_PINNED_CONTENT_PER_USER at a time (mirrors the active-offer cap
     pattern in app/offer/router.py)."""
     content = db.get(Content, content_id)
-    if content is None or content.user_id != current_user.id:
+    if content is None or content.deleted_at is not None or content.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Content not found.")
 
     if not content.is_pinned:
         pinned_count = (
             db.query(Content)
-            .filter(Content.user_id == current_user.id, Content.is_pinned.is_(True))
+            .filter(
+                Content.user_id == current_user.id,
+                Content.is_pinned.is_(True),
+                Content.deleted_at.is_(None),
+            )
             .count()
         )
         if pinned_count >= MAX_PINNED_CONTENT_PER_USER:
@@ -365,7 +370,7 @@ def unpin_content(
     db: Session = Depends(get_db),
 ) -> ContentOut:
     content = db.get(Content, content_id)
-    if content is None or content.user_id != current_user.id:
+    if content is None or content.deleted_at is not None or content.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Content not found.")
 
     if content.is_pinned:
@@ -427,9 +432,12 @@ def delete_content(
     db: Session = Depends(get_db),
 ) -> None:
     content = db.get(Content, content_id)
-    if content is None or content.user_id != current_user.id:
+    if content is None or content.deleted_at is not None or content.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Content not found.")
 
+    # The file goes for real — it is the only copy and nobody may see it again.
+    # The row stays: a purchase records WHAT was bought, and a transaction
+    # pointing at nothing is a receipt for an unnamed thing.
     delete_content_file(content.original_file_path)
-    db.delete(content)
+    content.deleted_at = utcnow()
     db.commit()

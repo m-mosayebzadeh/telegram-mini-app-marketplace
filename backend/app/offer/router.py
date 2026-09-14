@@ -34,7 +34,13 @@ MAX_ACTIVE_OFFERS_PER_USER = 5
 def _count_active_offers(db: Session, provider_id: int) -> int:
     return (
         db.query(Offer)
-        .filter(Offer.provider_id == provider_id, Offer.status == OfferStatus.ACTIVE)
+        .filter(
+            Offer.provider_id == provider_id,
+            Offer.status == OfferStatus.ACTIVE,
+            # A deleted offer must not hold one of the five slots: the row only
+            # still exists so its requests have something to point at.
+            Offer.deleted_at.is_(None),
+        )
         .count()
     )
 
@@ -115,7 +121,7 @@ def _my_live_request_status_for_offer(db: Session, buyer_id: int, offer_id: int)
 
 def _get_owned_offer(db: Session, offer_id: int, owner_id: int) -> Offer:
     offer = db.get(Offer, offer_id)
-    if offer is None or offer.provider_id != owner_id:
+    if offer is None or offer.deleted_at is not None or offer.provider_id != owner_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Offer not found.")
     return offer
 
@@ -152,6 +158,10 @@ def get_offer(
     db: Session = Depends(get_db),
 ) -> OfferOut:
     offer = db.get(Offer, offer_id)
+    if offer is not None and offer.deleted_at is not None:
+        # Deleted is deleted, for its own provider as much as anyone else.
+        # Only staff still see it (see app/admin/router.py).
+        offer = None
     is_owner = offer is not None and offer.provider_id == current_user.id
     # Non-owners can't see an offer that's been taken off the market —
     # 404, not a "status: inactive" response, so it disappears the same
@@ -201,7 +211,9 @@ def list_offers(
     if provider_id is None:
         return _discovery_feed(db)
 
-    query = db.query(Offer).filter(Offer.status == OfferStatus.ACTIVE)
+    query = db.query(Offer).filter(
+        Offer.status == OfferStatus.ACTIVE, Offer.deleted_at.is_(None)
+    )
     if provider_id is not None:
         query = query.filter(Offer.provider_id == provider_id)
         if provider_id == current_user.id:
@@ -209,7 +221,11 @@ def list_offers(
             # can see (and manage) your own INACTIVE offers too, and
             # attach each one's request_count — see OfferOut's docstring
             # for why this is only populated in this one branch.
-            offers = db.query(Offer).filter(Offer.provider_id == provider_id).all()
+            offers = (
+                db.query(Offer)
+                .filter(Offer.provider_id == provider_id, Offer.deleted_at.is_(None))
+                .all()
+            )
 
             # request_count is a "what's new since you last opened THIS
             # offer's own request list" badge, not a lifetime total —
@@ -299,7 +315,7 @@ def _discovery_feed(db: Session) -> list[OfferOut]:
         db.query(Offer, User, Profile)
         .join(User, Offer.provider_id == User.id)
         .outerjoin(Profile, Profile.user_id == User.id)
-        .filter(Offer.status == OfferStatus.ACTIVE)
+        .filter(Offer.status == OfferStatus.ACTIVE, Offer.deleted_at.is_(None))
         .order_by(Offer.created_at.desc())
         .all()
     )
@@ -403,5 +419,9 @@ def delete_offer(
         pending.reason = OFFER_DELETED_REASON
         pending.responded_at = utcnow()
 
-    db.delete(offer)
+    # Marked, not removed: the requests cancelled just above still point at
+    # this offer, and the distinction between "cancelled because the offer went
+    # away" and "cancelled by the buyer" only means something while the offer
+    # is still there to look at.
+    offer.deleted_at = utcnow()
     db.commit()

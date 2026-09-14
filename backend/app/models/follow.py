@@ -39,7 +39,7 @@ class Follow(Base):
     followee_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     status: Mapped[FollowStatus] = mapped_column(
-        Enum(FollowStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls]),
+        Enum(FollowStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=FollowStatus.PENDING,
     )
 
