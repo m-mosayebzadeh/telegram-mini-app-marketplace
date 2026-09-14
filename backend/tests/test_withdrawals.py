@@ -131,7 +131,7 @@ def test_stale_quote_reconfirmation_and_historical_rates(client,db_session):
     body=payload(client,bank)
     update={'drop_to_toman_rate':1200,'chat_commission_percent':10,
             'content_commission_percent':5,'withdrawal_commission_percent':11,'complaint_commission_percent':0,
-            'minimum_withdrawal_toman':500000}
+            'minimum_withdrawal_toman':500000,'offer_expiry_days':7,'request_expiry_hours':24}
     assert client.put('/admin/rates',headers=auth(99),json=update).status_code==200
     response=create(client,body)
     assert response.status_code==409

@@ -39,6 +39,14 @@ class PlatformRates(Base):
     withdrawal_commission_percent: Mapped[int] = mapped_column(Integer, default=0)
     complaint_commission_percent: Mapped[int] = mapped_column(Integer, default=0)
     minimum_withdrawal_toman: Mapped[int] = mapped_column(Integer, default=500_000)
+
+    # --- how long things stay alive -----------------------------------------
+    #
+    # Both are enforced lazily, at the moment something is read, rather than by
+    # anything that ticks. Editable here because the right numbers are a
+    # judgement about how busy the market is, and that will change.
+    offer_expiry_days: Mapped[int] = mapped_column(Integer, default=7)
+    request_expiry_hours: Mapped[int] = mapped_column(Integer, default=24)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
     __table_args__ = (
         CheckConstraint('drop_to_toman_rate > 0 AND minimum_withdrawal_toman > 0',
@@ -50,5 +58,9 @@ class PlatformRates(Base):
         CheckConstraint(
             'chat_commission_percent BETWEEN 0 AND 100 AND content_commission_percent BETWEEN 0 AND 100',
             name='ck_purchase_commission_percentages',
+        ),
+        CheckConstraint(
+            'offer_expiry_days > 0 AND request_expiry_hours > 0',
+            name='ck_positive_expiries',
         ),
     )

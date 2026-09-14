@@ -16,7 +16,10 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
+from datetime import timedelta
+
 from app.core.database import get_db
+from app.core.rates import get_rates
 from app.core.time import utcnow
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.offer import Offer, OfferStatus
@@ -287,6 +290,11 @@ def _provider_out(
     )
 
 
+def _oldest_live_offer(db: Session):
+    """The cut-off an offer has to be newer than to still be on the market."""
+    return utcnow() - timedelta(days=get_rates(db).offer_expiry_days)
+
+
 def _discovery_feed(db: Session) -> list[OfferOut]:
     """
     Every ACTIVE offer in the marketplace, each carrying the person
@@ -315,7 +323,13 @@ def _discovery_feed(db: Session) -> list[OfferOut]:
         db.query(Offer, User, Profile)
         .join(User, Offer.provider_id == User.id)
         .outerjoin(Profile, Profile.user_id == User.id)
-        .filter(Offer.status == OfferStatus.ACTIVE, Offer.deleted_at.is_(None))
+        .filter(
+            Offer.status == OfferStatus.ACTIVE,
+            Offer.deleted_at.is_(None),
+            # Read straight into the query rather than swept row by row: the
+            # showcase is the one place this has to be fast.
+            Offer.created_at > _oldest_live_offer(db),
+        )
         .order_by(Offer.created_at.desc())
         .all()
     )

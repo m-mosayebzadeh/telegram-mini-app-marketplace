@@ -323,7 +323,14 @@
     "topupsNothingPending": "Every receipt has been reviewed.",
     "topupsNothingHere": "Nothing with this status.",
     "approveRequestedHint": "Requested: {{amount, number}} Toman",
-    "rejectReasonHint": "The requester reads this."
+    "rejectReasonHint": "The requester reads this.",
+    "ratesOfferExpiryLabel": "Offer stays listed (days)",
+    "ratesRequestExpiryLabel": "Request waits for an answer (hours)",
+    "ratesGroupExpiry": "Expiry",
+    "ratesDaysUnit": "days",
+    "ratesHoursUnit": "hours",
+    "ratesOfferExpiryHint": "After this, the offer leaves the showcase. It is not deleted, and its owner can list it again.",
+    "ratesRequestExpiryHint": "A request nobody answers in this time is closed, with its own reason rather than \"declined\"."
   },
   "offers": {
     "browseTitle": "Active offers",

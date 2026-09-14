@@ -315,6 +315,11 @@ export interface PricingConfig {
   withdrawal_commission_percent: number
   complaint_commission_percent: number
   minimum_withdrawal_toman: number
+  /** How long a listing stays on the showcase, and how long a request waits
+   *  for an answer before it runs out. Both enforced when something is read,
+   *  never by anything that ticks. */
+  offer_expiry_days: number
+  request_expiry_hours: number
 }
 
 /** One row in a followers/following list — GET /follow/{id}/followers or
@@ -471,6 +476,11 @@ export interface PlatformRates {
   withdrawal_commission_percent: number
   complaint_commission_percent: number
   minimum_withdrawal_toman: number
+  /** How long a listing stays on the showcase, and how long a request waits
+   *  for an answer before it runs out. Both enforced when something is read,
+   *  never by anything that ticks. */
+  offer_expiry_days: number
+  request_expiry_hours: number
   updated_at: string
 }
 

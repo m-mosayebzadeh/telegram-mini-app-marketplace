@@ -34,6 +34,8 @@ export default function AdminRates() {
   const [withdrawalPercent, setWithdrawalPercent] = useState('')
   const [complaintPercent, setComplaintPercent] = useState('')
   const [minimum, setMinimum] = useState('')
+  const [offerDays, setOfferDays] = useState('')
+  const [requestHours, setRequestHours] = useState('')
   const [loaded, setLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -49,6 +51,8 @@ export default function AdminRates() {
         setWithdrawalPercent(String(r.withdrawal_commission_percent))
         setComplaintPercent(String(r.complaint_commission_percent))
         setMinimum(String(r.minimum_withdrawal_toman))
+        setOfferDays(String(r.offer_expiry_days))
+        setRequestHours(String(r.request_expiry_hours))
         setLoaded(true)
       })
       .catch((err) => setLoadError(formatApiError(err)))
@@ -64,6 +68,8 @@ export default function AdminRates() {
         chat_commission_percent: Number(chatPercent),
         content_commission_percent: Number(contentPercent),
         minimum_withdrawal_toman: Number(minimum),
+        offer_expiry_days: Number(offerDays),
+        request_expiry_hours: Number(requestHours),
         withdrawal_commission_percent: Number(withdrawalPercent),
         complaint_commission_percent: Number(complaintPercent),
       })
@@ -83,6 +89,8 @@ export default function AdminRates() {
     percentInRange(contentPercent) &&
     percentInRange(withdrawalPercent) &&
     percentInRange(complaintPercent) &&
+    Number(offerDays) > 0 &&
+    Number(requestHours) > 0 &&
     minimum !== '' &&
     Number(minimum) > 0 &&
     Number(starRate) > 0
@@ -192,6 +200,33 @@ export default function AdminRates() {
               unit={t('finance.tomanUnit')}
               value={minimum}
               onChange={setMinimum}
+            />
+          </div>
+        </section>
+
+        <section className="ui-section">
+          <h2 className="ui-section-title">{t('admin.ratesGroupExpiry')}</h2>
+          <div className="co-form">
+            {/* Both are checked when something is read, never by anything
+                running in the background. They live here because the right
+                numbers are a judgement about how busy the market is. */}
+            <RateField
+              id="rate-offer-expiry"
+              label={t('admin.ratesOfferExpiryLabel')}
+              unit={t('admin.ratesDaysUnit')}
+              value={offerDays}
+              onChange={setOfferDays}
+              hint={t('admin.ratesOfferExpiryHint')}
+              invalid={Number(offerDays) <= 0}
+            />
+            <RateField
+              id="rate-request-expiry"
+              label={t('admin.ratesRequestExpiryLabel')}
+              unit={t('admin.ratesHoursUnit')}
+              value={requestHours}
+              onChange={setRequestHours}
+              hint={t('admin.ratesRequestExpiryHint')}
+              invalid={Number(requestHours) <= 0}
             />
           </div>
         </section>

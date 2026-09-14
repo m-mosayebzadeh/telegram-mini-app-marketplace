@@ -323,7 +323,14 @@
     "topupsNothingPending": "همه‌ی رسیدها بررسی شدن.",
     "topupsNothingHere": "چیزی با این وضعیت ثبت نشده.",
     "approveRequestedHint": "مبلغ درخواست‌شده: {{amount, number}} تومان",
-    "rejectReasonHint": "این متن رو درخواست‌کننده می‌بینه."
+    "rejectReasonHint": "این متن رو درخواست‌کننده می‌بینه.",
+    "ratesOfferExpiryLabel": "اعتبار پیشنهاد (روز)",
+    "ratesRequestExpiryLabel": "مهلت پاسخ به درخواست (ساعت)",
+    "ratesGroupExpiry": "انقضاها",
+    "ratesDaysUnit": "روز",
+    "ratesHoursUnit": "ساعت",
+    "ratesOfferExpiryHint": "پس از این مدت، پیشنهاد از ویترین برداشته می‌شود. حذف نمی‌شود و صاحبش می‌تواند دوباره فعالش کند.",
+    "ratesRequestExpiryHint": "درخواستی که در این مدت جواب نگیرد بسته می‌شود، با دلیلی جدا از «رد شد»."
   },
   "offers": {
     "browseTitle": "پیشنهادهای فعال",

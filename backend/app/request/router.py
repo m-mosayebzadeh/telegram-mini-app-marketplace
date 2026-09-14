@@ -39,6 +39,7 @@ from app.profile.photos import get_current_avatar_url
 from app.request.schemas import IncomingRequestOut, RequestActivityOut, RequestCreate, RequestOut, RequestReject
 from app.chat_session.schemas import ChatSessionOut
 from app.chat_session.serializers import to_chat_session_out
+from app.request.expiry import expire_requests_if_due
 from app.wallet.blocks import close_if_due, start_session
 from app.wallet.service import InsufficientBalanceError
 
@@ -216,7 +217,11 @@ def list_my_requests(
     db: Session = Depends(get_db),
 ) -> list[Request]:
     """Everything the current user has requested, as a buyer."""
-    return db.query(Request).filter(Request.buyer_id == current_user.id).all()
+    rows = db.query(Request).filter(Request.buyer_id == current_user.id).all()
+    # Reading the list is when anything nobody answered in time runs out — the
+    # same lazy sweep used everywhere else, instead of something that ticks.
+    expire_requests_if_due(db, rows)
+    return rows
 
 
 @router.get("/activity", response_model=list[RequestActivityOut])
@@ -245,6 +250,9 @@ def list_activity_requests(
         .order_by(Request.created_at.desc())
         .all()
     )
+    # The feed both sides actually look at, so it is where an unanswered
+    # request runs out.
+    expire_requests_if_due(db, [request for request, _ in rows])
 
     out: list[RequestActivityOut] = []
     for request, offer in rows:

@@ -287,6 +287,8 @@ def test_rates_default_from_settings(client):
     assert body["withdrawal_commission_percent"] == 0
     assert body["complaint_commission_percent"] == 0
     assert body["minimum_withdrawal_toman"] == 500_000
+    assert body["offer_expiry_days"] == 7
+    assert body["request_expiry_hours"] == 24
 
 
 def test_rates_forbidden_without_scope(client):
@@ -305,6 +307,8 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
             "withdrawal_commission_percent": 12,
             "complaint_commission_percent": 7,
             "minimum_withdrawal_toman": 500000,
+            "offer_expiry_days": 14,
+            "request_expiry_hours": 48,
         },
     )
     assert update.status_code == 200
@@ -318,6 +322,8 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
         "withdrawal_commission_percent": 12,
         "complaint_commission_percent": 7,
         "minimum_withdrawal_toman": 500000,
+        "offer_expiry_days": 14,
+        "request_expiry_hours": 48,
     }
 
 

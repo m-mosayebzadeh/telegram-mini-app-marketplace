@@ -20,7 +20,8 @@ def _defaults():
                 chat_commission_percent=settings.chat_commission_percent,
                 content_commission_percent=settings.content_commission_percent,
                 withdrawal_commission_percent=0, complaint_commission_percent=0,
-                minimum_withdrawal_toman=500_000)
+                minimum_withdrawal_toman=500_000,
+                offer_expiry_days=7, request_expiry_hours=24)
 
 
 def get_rates(db: Session) -> PlatformRates:

@@ -31,6 +31,7 @@ from app.admin.schemas import (
 )
 from app.auth.dependencies import effective_admin_scopes, get_current_user, is_owner, require_admin, require_owner
 from app.content.schemas import ContentOut
+from app.content.access import purchase_count
 from app.core.database import get_db
 from app.core.rates import get_rates
 from app.core.storage import delete_content_file
@@ -359,9 +360,20 @@ def unblock_user(
 def list_user_offers_admin(
     user_id: int, current_user: User = Depends(require_owner), db: Session = Depends(get_db)
 ) -> list[Offer]:
-    """Every offer this user has, active or not — an admin isn't
-    limited to the ACTIVE-only view a stranger would get."""
-    return db.query(Offer).filter(Offer.provider_id == user_id).order_by(Offer.created_at.desc()).all()
+    """Every offer this user has: active, inactive, and deleted.
+
+    Deleted ones are included on purpose — staff are the only people who can
+    still see them, and a record of what was there is most of the reason the
+    rows are kept at all. Each says which it is (see OfferOut.is_deleted)."""
+    offers = (
+        db.query(Offer).filter(Offer.provider_id == user_id).order_by(Offer.created_at.desc()).all()
+    )
+    return [
+        OfferOut.model_validate(offer, from_attributes=True).model_copy(
+            update={"is_deleted": offer.deleted_at is not None}
+        )
+        for offer in offers
+    ]
 
 
 @router.delete("/offers/{offer_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -390,7 +402,9 @@ def delete_offer_admin(
         pending.reason = OFFER_DELETED_REASON
         pending.responded_at = utcnow()
 
-    db.delete(offer)
+    # Marked, not removed, exactly as when a provider deletes their own: the
+    # cancelled requests above still point at it.
+    offer.deleted_at = utcnow()
     db.commit()
 
 
@@ -411,6 +425,8 @@ def _admin_content_out(db: Session, content: Content) -> ContentOut:
         # this is the moderation view, not a real viewer's own.
         can_see_original=True,
         like_count=like_count,
+        purchase_count=purchase_count(db, content.id),
+        is_deleted=content.deleted_at is not None,
         liked_by_me=False,
     )
 
@@ -419,6 +435,8 @@ def _admin_content_out(db: Session, content: Content) -> ContentOut:
 def list_user_content_admin(
     user_id: int, current_user: User = Depends(require_owner), db: Session = Depends(get_db)
 ) -> list[ContentOut]:
+    """Every piece of content this user has, deleted ones included — see the
+    offers list above for why."""
     items = db.query(Content).filter(Content.user_id == user_id).order_by(Content.created_at.desc()).all()
     return [_admin_content_out(db, c) for c in items]
 
@@ -430,8 +448,13 @@ def delete_content_admin(
     content = db.get(Content, content_id)
     if content is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Content not found.")
-    delete_content_file(content.original_file_path)
-    db.delete(content)
+    # Same rule as the owner deleting it: gone entirely if nobody paid, marked
+    # (and the file kept) if somebody did, because they keep what they bought.
+    if purchase_count(db, content.id):
+        content.deleted_at = utcnow()
+    else:
+        delete_content_file(content.original_file_path)
+        db.delete(content)
     db.commit()
 
 
@@ -638,6 +661,8 @@ def update_platform_rates(
     rates.withdrawal_commission_percent = payload.withdrawal_commission_percent
     rates.complaint_commission_percent = payload.complaint_commission_percent
     rates.minimum_withdrawal_toman = payload.minimum_withdrawal_toman
+    rates.offer_expiry_days = payload.offer_expiry_days
+    rates.request_expiry_hours = payload.request_expiry_hours
     db.commit()
     db.refresh(rates)
     return rates

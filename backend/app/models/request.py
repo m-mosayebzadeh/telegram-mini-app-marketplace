@@ -25,6 +25,12 @@ OFFER_DELETED_REASON = "Offer was deleted by the provider."
 # Activity feed and anywhere else `reason` is shown.
 CANCELLED_BY_BUYER_REASON = "Cancelled by the buyer."
 
+# Nobody answered in time. Kept apart from the two above for the same reason
+# they are kept apart from each other: "the provider never replied" is a
+# different fact about a buyer than "they changed their mind", and the trust
+# summary counts only what the buyer actually did.
+EXPIRED_REASON = "The provider did not answer in time."
+
 
 class RequestStatus(str, enum.Enum):
     PENDING = "pending"

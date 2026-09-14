@@ -85,6 +85,9 @@ class OfferOut(BaseModel):
     title: str
     description: str
     status: str
+    #: Whether it has been deleted. Only staff ever see a deleted offer at all,
+    #: so for everyone else this is always false.
+    is_deleted: bool = False
     created_at: datetime
 
     # Only populated when listing your OWN offers (see list_offers) —

@@ -134,6 +134,8 @@ class PlatformRatesOut(BaseModel):
     withdrawal_commission_percent: int
     complaint_commission_percent: int
     minimum_withdrawal_toman: int
+    offer_expiry_days: int
+    request_expiry_hours: int
     updated_at: datetime
 
 class PlatformRatesUpdate(BaseModel):
@@ -144,3 +146,5 @@ class PlatformRatesUpdate(BaseModel):
     withdrawal_commission_percent: int = Field(ge=0, le=100, strict=True)
     complaint_commission_percent: int = Field(ge=0, le=100, strict=True)
     minimum_withdrawal_toman: int = Field(gt=0, le=1_000_000_000_000, strict=True)
+    offer_expiry_days: int = Field(gt=0, le=365, strict=True)
+    request_expiry_hours: int = Field(gt=0, le=720, strict=True)

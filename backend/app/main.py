@@ -113,6 +113,11 @@ def read_pricing_config(
         "withdrawal_commission_percent": rates.withdrawal_commission_percent,
         "complaint_commission_percent": rates.complaint_commission_percent,
         "minimum_withdrawal_toman": rates.minimum_withdrawal_toman,
+        # Not pricing as such, but this is what the app reads to know the
+        # platform's current settings, and it needs these to say how long an
+        # offer has left.
+        "offer_expiry_days": rates.offer_expiry_days,
+        "request_expiry_hours": rates.request_expiry_hours,
     }
 
 
