@@ -27,7 +27,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.content.access import can_see_original, can_view_content
+from app.content.access import can_see_original, can_view_content, purchase_count
 from app.content.schemas import ContentOut, PurchaseResult
 from app.core.rates import get_rates
 from app.core.config import settings
@@ -83,6 +83,10 @@ def _to_content_out(db: Session, viewer: User, content: Content) -> ContentOut:
         can_see_original=can_see_original(db, viewer, content),
         like_count=like_count,
         liked_by_me=liked_by_me,
+        # Only the owner is told how many people bought it: it is the number
+        # they need before deciding to delete, and nobody else's business.
+        purchase_count=purchase_count(db, content.id) if viewer.id == content.user_id else 0,
+        is_deleted=content.deleted_at is not None,
     )
 
 
@@ -91,7 +95,9 @@ def _get_visible_content(db: Session, content_id: int, viewer: User) -> Content:
     — every route below needs exactly this, so a route can't accidentally
     skip it."""
     content = db.get(Content, content_id)
-    if content is None or content.deleted_at is not None or not can_view_content(db, viewer, content):
+    # Deleted content is not filtered here: can_view_content decides, because
+    # a buyer keeps access to it and nobody else has any.
+    if content is None or not can_view_content(db, viewer, content):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found.")
     return content
 
@@ -226,6 +232,32 @@ def list_content(
     )
     visible = [c for c in all_items if can_view_content(db, current_user, c)]
     return [_to_content_out(db, current_user, c) for c in visible]
+
+
+@router.get("/purchased", response_model=list[ContentOut])
+def list_purchased_content(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ContentOut]:
+    """
+    Everything this user has bought, in one place of their own.
+
+    What you paid for belongs in your space, not in the seller's. Until now the
+    only way back to a purchase was remembering whose profile it was on — and
+    once a seller takes something down, that way disappears entirely while the
+    purchase does not.
+
+    Private to the owner: nobody else ever sees what someone has bought, which
+    in this app matters rather a lot. Newest purchase first.
+    """
+    rows = (
+        db.query(Content)
+        .join(ContentPurchase, ContentPurchase.content_id == Content.id)
+        .filter(ContentPurchase.user_id == current_user.id)
+        .order_by(ContentPurchase.purchased_at.desc())
+        .all()
+    )
+    return [_to_content_out(db, current_user, content) for content in rows]
 
 
 @router.get("/{content_id}", response_model=ContentOut)
@@ -435,9 +467,20 @@ def delete_content(
     if content is None or content.deleted_at is not None or content.user_id != current_user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Content not found.")
 
-    # The file goes for real — it is the only copy and nobody may see it again.
-    # The row stays: a purchase records WHAT was bought, and a transaction
-    # pointing at nothing is a receipt for an unnamed thing.
-    delete_content_file(content.original_file_path)
-    content.deleted_at = utcnow()
+    # What deleting means depends on whether anyone paid for it.
+    #
+    # Nobody did: it really goes — row and file both. Nothing refers to it, so
+    # keeping it would only take up space.
+    #
+    # Somebody did: the row stays, because a purchase records WHAT was bought
+    # and a transaction pointing at nothing is a receipt for an unnamed thing —
+    # and so does the FILE, because the people who paid keep access to it. A
+    # seller may take something off sale; taking it back out of the hands of
+    # people who bought it is a different act, and not one a delete button
+    # should quietly perform.
+    if purchase_count(db, content.id):
+        content.deleted_at = utcnow()
+    else:
+        delete_content_file(content.original_file_path)
+        db.delete(content)
     db.commit()

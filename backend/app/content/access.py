@@ -47,6 +47,26 @@ def _is_group_member(db: Session, *, group_id: int, user_id: int) -> bool:
     )
 
 
+def has_purchased(db: Session, user_id: int, content_id: int) -> bool:
+    """Whether this user has paid for this exact item."""
+    return (
+        db.query(ContentPurchase)
+        .filter(ContentPurchase.user_id == user_id, ContentPurchase.content_id == content_id)
+        .first()
+        is not None
+    )
+
+
+def purchase_count(db: Session, content_id: int) -> int:
+    """How many people have bought this item.
+
+    The seller sees this before deleting: taking something down is not the same
+    act once other people have paid for it, and they should be told which act
+    they are performing before they perform it.
+    """
+    return db.query(ContentPurchase).filter(ContentPurchase.content_id == content_id).count()
+
+
 def can_view_content(db: Session, viewer: User, content: Content) -> bool:
     """
     Whether `viewer` is allowed to know this content item exists at all.
@@ -56,6 +76,12 @@ def can_view_content(db: Session, viewer: User, content: Content) -> bool:
     per TECHNICAL_REQUIREMENTS.md section 4.
     """
     owner_id = content.user_id
+    if content.deleted_at is not None:
+        # Taken down. It stays visible to the people who paid for it — what
+        # you bought does not disappear because the seller changed their mind
+        # — and to nobody else, the seller included.
+        return has_purchased(db, viewer.id, content.id)
+
     if viewer.id == owner_id:
         return True
 

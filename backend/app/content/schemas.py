@@ -27,6 +27,12 @@ class ContentOut(BaseModel):
     # the frontend decide what to render (plain image, "tap to reveal",
     # or "tap to unlock for N Drops") without a second request.
     can_see_original: bool
+    #: How many people have bought this. Shown to the owner before they delete
+    #: it, because deleting is a different act once somebody has paid.
+    purchase_count: int = 0
+    #: Whether it has been taken down. Only ever true for someone who bought
+    #: it — nobody else is shown a deleted item at all.
+    is_deleted: bool = False
     like_count: int
     liked_by_me: bool
 
