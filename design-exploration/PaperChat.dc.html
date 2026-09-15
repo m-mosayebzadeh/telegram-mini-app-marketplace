@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap">
+  <style>
+    body { margin: 0; }
+    .pp { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .pp-ink { border: 2.5px solid #16150f; }
+  </style>
+</helmet>
+
+<div class="pp" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #f5eee1; color: #16150f;">
+
+  <!-- The header is the ticket you bought, stapled to the top of the screen.
+       Two stubs are torn off; two are still attached. Nobody has to be taught
+       what a torn ticket means. -->
+  <div class="pp-ink" style="position: absolute; top: 18px; right: 18px; left: 18px; height: 108px;
+              background: #ffe45e; box-shadow: 5px 6px 0 #16150f;">
+    <div style="padding: 12px 14px 0; display: flex; align-items: center; gap: 10px;">
+      <div class="pp-ink" style="width: 34px; height: 34px; background: #ff5470;"></div>
+      <div style="flex-grow: 1; font-size: 15px; font-weight: 900;">مهتاب</div>
+      <div style="font-size: 20px; font-weight: 900;">۱۲:۰۴</div>
+    </div>
+    <div style="margin-top: 12px; padding: 0 14px; display: flex; gap: 6px;">
+      <div class="pp-ink" style="flex: 1; height: 34px; background: #d8d2c4; display: flex; align-items: center;
+                  justify-content: center; font-size: 10.5px; font-weight: 700; color: rgba(22,21,15,.45);
+                  text-decoration: line-through;">۲۵</div>
+      <div class="pp-ink" style="flex: 1; height: 34px; background: #ff5470; color: #fff6f2; display: flex;
+                  align-items: center; justify-content: center; font-size: 10.5px; font-weight: 900;">اکنون</div>
+      <div class="pp-ink" style="flex: 1; height: 34px; background: #b9cdff; display: flex; align-items: center;
+                  justify-content: center; font-size: 10.5px; font-weight: 700;">۲۵</div>
+      <div class="pp-ink" style="flex: 1; height: 34px; background: #b9cdff; display: flex; align-items: center;
+                  justify-content: center; font-size: 10.5px; font-weight: 700;">۲۵</div>
+    </div>
+  </div>
+
+  <!-- Messages are notes pinned to a board: hard edges, a drawn shadow, a
+       slight rotation so a thread of them looks handled rather than generated. -->
+  <div class="pp-ink" style="position: absolute; top: 158px; right: 18px; max-width: 262px;
+              background: #ffffff; padding: 13px 15px; box-shadow: 4px 4px 0 #16150f;
+              transform: rotate(-.9deg); font-size: 14px; font-weight: 500; line-height: 1.8;">
+    سلام. راستش هیچ‌وقت فکر نمی‌کردم یک روز پول بدهم که کسی واقعاً گوش بدهد.
+  </div>
+
+  <div class="pp-ink" style="position: absolute; top: 268px; left: 18px; max-width: 258px;
+              background: #b9cdff; padding: 13px 15px; box-shadow: 4px 4px 0 #16150f;
+              transform: rotate(1.1deg); font-size: 14px; font-weight: 500; line-height: 1.8;">
+    من هم فکر نمی‌کردم یک روز بابتش پول بگیرم. از کجا شروع کنیم؟
+  </div>
+
+  <!-- A block boundary is printed across the page like a perforation, because
+       that is precisely what it is: the point where one stub ends. -->
+  <div style="position: absolute; top: 374px; right: 18px; left: 18px; display: flex; align-items: center; gap: 10px;">
+    <div style="flex-grow: 1; border-top: 2.5px dashed rgba(22,21,15,.45);"></div>
+    <div style="font-size: 10px; font-weight: 900; letter-spacing: .1em;">بلیت دوم</div>
+    <div style="flex-grow: 1; border-top: 2.5px dashed rgba(22,21,15,.45);"></div>
+  </div>
+
+  <div class="pp-ink" style="position: absolute; top: 404px; right: 18px; max-width: 268px;
+              background: #ffffff; padding: 13px 15px; box-shadow: 4px 4px 0 #16150f;
+              transform: rotate(-.6deg); font-size: 14px; font-weight: 500; line-height: 1.8;">
+    از جایی که هیچ‌کس نمی‌پرسد. مثلاً از اینکه چرا هیچ‌کدام از کارهایی که کردم را دوست ندارم.
+  </div>
+
+  <div class="pp-ink" style="position: absolute; top: 530px; left: 18px; max-width: 220px;
+              background: #b9cdff; padding: 13px 15px; box-shadow: 4px 4px 0 #16150f;
+              transform: rotate(.8deg); font-size: 14px; font-weight: 500; line-height: 1.8;">
+    پس از همان شروع کنیم.
+  </div>
+
+  <!-- Extension is buying one more stub. Shown here as it looks before the
+       last block, when it is legible but not yet live. -->
+  <div style="position: absolute; left: 18px; right: 18px; bottom: 116px; height: 44px;
+              border: 2.5px dashed rgba(22,21,15,.3); display: flex; align-items: center;
+              justify-content: center; font-size: 11.5px; font-weight: 700; color: rgba(22,21,15,.45);">
+    بلیت پنجم در بلیت آخر باز می‌شود
+  </div>
+
+  <div style="position: absolute; left: 18px; right: 18px; bottom: 34px; display: flex; gap: 8px;">
+    <div class="pp-ink" style="flex-grow: 1; height: 56px; background: #ffffff; display: flex;
+                align-items: center; padding: 0 16px; font-size: 13.5px; font-weight: 500;
+                color: rgba(22,21,15,.4);">بنویس…</div>
+    <div class="pp-ink" style="width: 56px; height: 56px; background: #ff5470; color: #fff6f2; display: flex;
+                align-items: center; justify-content: center; font-size: 22px; font-weight: 900;
+                box-shadow: 4px 4px 0 #16150f;">←</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

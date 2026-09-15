@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap">
+  <style>
+    body { margin: 0; }
+    .pp { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .pp-ink { border: 2.5px solid #16150f; }
+    .pp-halftone {
+      background-image: radial-gradient(#16150f 1.1px, transparent 1.2px);
+      background-size: 6px 6px;
+    }
+  </style>
+</helmet>
+
+<div class="pp" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #f5eee1; color: #16150f;">
+
+  <!-- Printed matter, not glass. Two spot inks that overprint, halftone dots
+       instead of gradients, hard offset shadows instead of soft ones, and a
+       deliberate 1px misregistration - the things that make a risograph look
+       made rather than rendered. -->
+  <div style="position: absolute; top: 40px; right: 22px; left: 22px; display: flex;
+              justify-content: space-between; align-items: center;">
+    <div style="font-size: 26px; font-weight: 900; letter-spacing: -.01em;">امشب کی بیدار است؟</div>
+  </div>
+  <div style="position: absolute; top: 82px; right: 22px; left: 22px; height: 4px; background: #16150f;"></div>
+
+  <!-- The deck. Cards are physically stacked and rotated: you flick the top one
+       away, which is a gesture the thumb already knows and needs no label. -->
+  <div class="pp-ink" style="position: absolute; top: 132px; right: 40px; left: 40px; height: 450px;
+              background: #ffd6e0; transform: rotate(-4deg); box-shadow: 5px 6px 0 #16150f;"></div>
+  <div class="pp-ink" style="position: absolute; top: 126px; right: 32px; left: 32px; height: 450px;
+              background: #b9cdff; transform: rotate(2.4deg); box-shadow: 5px 6px 0 #16150f;"></div>
+
+  <div class="pp-ink" style="position: absolute; top: 118px; right: 24px; left: 24px; height: 456px;
+              background: #f5eee1; box-shadow: 7px 8px 0 #16150f; overflow: hidden;">
+
+    <!-- Photo as a duotone halftone plate, with the pink plate offset by a
+         couple of pixels the way a two-pass print misses. -->
+    <div style="position: absolute; top: 18px; right: 18px; width: 150px; height: 178px; background: #ff5470;"></div>
+    <div class="pp-halftone pp-ink" style="position: absolute; top: 14px; right: 22px; width: 150px;
+                height: 178px; background-color: #2b4bd0; opacity: .88;"></div>
+
+    <div style="position: absolute; top: 20px; left: 18px; width: 150px; text-align: left;">
+      <div style="font-size: 34px; font-weight: 900; line-height: 1.1;">مهتاب</div>
+      <div style="margin-top: 10px; font-size: 12px; font-weight: 500; line-height: 1.7;">
+        تهران<br>شب‌ها بیدار
+      </div>
+      <!-- Price as a rubber stamp, tilted, overprinted in the second ink. -->
+      <div style="margin-top: 16px; display: inline-block; transform: rotate(-6deg); border: 2.5px solid #ff5470;
+                  color: #ff5470; padding: 5px 10px; font-size: 15px; font-weight: 900;">۱۰۰ دراپ</div>
+    </div>
+
+    <div style="position: absolute; top: 216px; right: 18px; left: 18px; font-size: 15px; font-weight: 500;
+                line-height: 1.85;">
+      شب‌ها بیدارم و از حرف زدن درباره‌ی چیزهایی که هیچ‌کس نمی‌پرسد خسته نمی‌شوم.
+    </div>
+
+    <!-- Four ticket stubs: this is what a half-hour looks like as an object. -->
+    <div style="position: absolute; top: 320px; right: 18px; left: 18px;">
+      <div style="font-size: 10.5px; font-weight: 700; letter-spacing: .12em;">نیم‌ساعت = چهار بلیت</div>
+      <div style="margin-top: 10px; display: flex; gap: 6px;">
+        <div class="pp-ink" style="flex: 1; height: 38px; background: #b9cdff; display: flex;
+                    align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">۲۵</div>
+        <div class="pp-ink" style="flex: 1; height: 38px; background: #b9cdff; display: flex;
+                    align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">۲۵</div>
+        <div class="pp-ink" style="flex: 1; height: 38px; background: #b9cdff; display: flex;
+                    align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">۲۵</div>
+        <div class="pp-ink" style="flex: 1; height: 38px; background: #b9cdff; display: flex;
+                    align-items: center; justify-content: center; font-size: 11px; font-weight: 700;">۲۵</div>
+      </div>
+    </div>
+
+    <div style="position: absolute; bottom: 16px; right: 18px; left: 18px; display: flex; gap: 8px;">
+      <div class="pp-ink" style="width: 56px; height: 48px; display: flex; align-items: center;
+                  justify-content: center; font-size: 18px; background: #f5eee1;">✕</div>
+      <div class="pp-ink" style="flex-grow: 1; height: 48px; background: #ff5470; color: #fff6f2;
+                  display: flex; align-items: center; justify-content: center; font-size: 15px;
+                  font-weight: 700;">بلیت بگیر</div>
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 592px; right: 24px; left: 24px; text-align: center; font-size: 11px;
+              font-weight: 500; color: rgba(22,21,15,.5);">۲۲ کارت دیگر در دسته — بکش کنار</div>
+
+  <!-- Live conversation as a sticker slapped on the page, rotated, unmissable. -->
+  <div class="pp-ink" style="position: absolute; bottom: 92px; right: 24px; left: 24px; height: 52px;
+              background: #ffe45e; transform: rotate(-1.2deg); box-shadow: 4px 5px 0 #16150f;
+              display: flex; align-items: center; justify-content: space-between; padding: 0 16px;
+              box-sizing: border-box;">
+    <div style="font-size: 13px; font-weight: 700;">گفتگو با مهتاب باز است</div>
+    <div style="font-size: 14px; font-weight: 900;">۱۲:۰۴</div>
+  </div>
+
+  <!-- Navigation: four printed tabs with a real, drawn edge. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 72px; background: #16150f;
+              display: flex; align-items: center; padding: 0 12px; box-sizing: border-box; gap: 8px;">
+    <div style="flex: 1; height: 44px; background: #ffe45e; border: 2.5px solid #16150f; display: flex;
+                align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700;">دسته</div>
+    <div style="flex: 1; height: 44px; color: #f5eee1; display: flex; align-items: center;
+                justify-content: center; font-size: 12.5px; font-weight: 500;">رسیدها</div>
+    <div style="flex: 1; height: 44px; color: #f5eee1; display: flex; align-items: center;
+                justify-content: center; font-size: 12.5px; font-weight: 500;">کیف</div>
+    <div style="flex: 1; height: 44px; color: #f5eee1; display: flex; align-items: center;
+                justify-content: center; font-size: 12.5px; font-weight: 500;">من</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

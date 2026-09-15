@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    .dp { font-family: 'Vazirmatn', system-ui, sans-serif; }
+  </style>
+</helmet>
+
+<div class="dp" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: linear-gradient(180deg,#e9eef1 0%, #dde5ea 44%, #c5d3dc 100%); color: #10202b;">
+
+  <!-- Recency is distance. The oldest event is the furthest, softest thing on
+       screen; today is sharp and within thumb reach. A list sorted by time is
+       normally read by looking at dates - here it is read by focus. -->
+  <div style="position: absolute; top: 40px; right: 26px; font-size: 11px; letter-spacing: .18em;
+              color: rgba(16,32,43,.32);">گذشته</div>
+
+  <div style="position: absolute; top: 76px; right: 26px; left: 26px; filter: blur(2.6px); opacity: .40;
+              display: flex; align-items: center; gap: 10px; font-size: 11.5px;">
+    <div style="width: 22px; height: 22px; border-radius: 50%; background: #9db2be;"></div>
+    <div style="flex-grow: 1;">درخواست رها منقضی شد</div>
+  </div>
+
+  <div style="position: absolute; top: 122px; right: 26px; left: 26px; filter: blur(1.5px); opacity: .55;
+              display: flex; align-items: center; gap: 11px; font-size: 12.5px;">
+    <div style="width: 28px; height: 28px; border-radius: 9px; background: #a89a94;"></div>
+    <div style="flex-grow: 1;">یک نفر «شب‌های تهران» را خرید</div>
+    <div style="color: #b4694f;">‎+۱۸</div>
+  </div>
+
+  <div style="position: absolute; top: 180px; right: 26px; left: 26px; filter: blur(.5px); opacity: .78;
+              display: flex; align-items: center; gap: 12px; font-size: 13.5px;">
+    <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(150deg,#8fa6b4,#5d7688);"></div>
+    <div style="flex-grow: 1;">گفتگو با کیان تمام شد
+      <div style="margin-top: 3px; font-size: 10.5px; color: rgba(16,32,43,.45);">دیروز</div></div>
+    <div style="color: #b4694f;">‎+۷۵</div>
+  </div>
+
+  <!-- Near plane: things that still need something from you. -->
+  <div style="position: absolute; top: 268px; right: 22px; left: 22px; border-radius: 24px;
+              background: rgba(255,255,255,.66); backdrop-filter: blur(12px); padding: 16px 18px;
+              box-shadow: 0 14px 34px rgba(16,32,43,.14); display: flex; align-items: center; gap: 13px;">
+    <div style="width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(150deg,#7f97a7,#4b6377);"></div>
+    <div style="flex-grow: 1;">
+      <div style="font-size: 14px;">آرش درخواست گفتگو داده</div>
+      <div style="margin-top: 4px; font-size: 11px; color: rgba(16,32,43,.48);">۱۸ ساعت تا انقضا</div>
+    </div>
+    <div style="min-height: 40px; border-radius: 20px; background: #10202b; color: #eef3f6; display: flex;
+                align-items: center; padding: 0 16px; font-size: 12.5px;">بپذیر</div>
+  </div>
+
+  <!-- Nearest plane: money that is moving right now. -->
+  <div style="position: absolute; top: 376px; right: 22px; left: 22px; border-radius: 26px;
+              background: linear-gradient(160deg,#10202b,#1d3444); color: #eef3f6; padding: 20px;
+              box-shadow: 0 24px 56px rgba(16,32,43,.32);">
+    <div style="display: flex; align-items: center; gap: 13px;">
+      <div style="width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(150deg,#e0a274,#b4694f);"></div>
+      <div style="flex-grow: 1;">
+        <div style="font-size: 14.5px;">گفتگو با مهتاب در جریان است</div>
+        <div style="margin-top: 4px; font-size: 11px; opacity: .6;">۵۰ دراپ فریز · ۱۲ دقیقه</div>
+      </div>
+    </div>
+    <div style="margin-top: 16px; display: flex; gap: 6px; height: 5px;">
+      <div style="flex: 1; border-radius: 3px; background: rgba(224,162,116,.35);"></div>
+      <div style="flex: 1; border-radius: 3px; background: #e0a274;"></div>
+      <div style="flex: 1; border-radius: 3px; background: rgba(238,243,246,.16);"></div>
+      <div style="flex: 1; border-radius: 3px; background: rgba(238,243,246,.16);"></div>
+    </div>
+  </div>
+
+  <!-- The wallet is not another tab: it is the floor this whole layer stands
+       on, so money is never more than a glance away from what earned it. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 268px;
+              background: linear-gradient(180deg, rgba(197,211,220,0), #bccdd8 44%, #a9bdca 100%);"></div>
+
+  <div style="position: absolute; left: 26px; right: 26px; bottom: 150px;">
+    <div style="font-size: 11px; letter-spacing: .16em; color: rgba(16,32,43,.4);">کیف</div>
+    <div style="margin-top: 12px; display: flex; align-items: baseline; gap: 10px;">
+      <div style="font-size: 46px; font-weight: 200;">۴۲۰</div>
+      <div style="font-size: 13px; color: rgba(16,32,43,.5);">دراپ</div>
+    </div>
+    <div style="margin-top: 8px; font-size: 12px; color: rgba(16,32,43,.55);">
+      ۵۰ فریز · ۲۴۸ قابل برداشت
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 26px; right: 26px; bottom: 84px; min-height: 52px; border-radius: 26px;
+              border: 1px solid rgba(16,32,43,.28); display: flex; align-items: center; justify-content: center;
+              font-size: 14px;">برداشت</div>
+
+  <div style="position: absolute; left: 12px; top: 340px; display: flex; flex-direction: column;
+              align-items: center; gap: 9px;">
+    <div style="width: 3px; height: 16px; border-radius: 2px; background: rgba(16,32,43,.24);"></div>
+    <div style="width: 3px; height: 30px; border-radius: 2px; background: #10202b;"></div>
+    <div style="width: 3px; height: 16px; border-radius: 2px; background: rgba(16,32,43,.24);"></div>
+    <div style="width: 3px; height: 16px; border-radius: 2px; background: rgba(16,32,43,.24);"></div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 34px; text-align: center; font-size: 11px;
+              color: rgba(16,32,43,.34);">برای بازگشت، صفحه را بالا بکش</div>
+
+</div>
+</x-dc>
+</body>
+</html>

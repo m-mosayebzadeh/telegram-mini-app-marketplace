@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;300;400;700&display=swap">
+  <style>
+    body { margin: 0; }
+    .lg { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .lg-rule { height: 1px; background: rgba(22,19,15,.22); }
+    .lg-num { font-weight: 100; color: rgba(22,19,15,.30); font-size: 30px; line-height: 1; }
+  </style>
+</helmet>
+
+<div class="lg" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #f4efe4; color: #16130f;">
+
+  <!-- No cards, no grid, no avatars-as-circles. A page. Each person is an
+       ENTRY, and the typography does every job a card would have done. -->
+  <div style="position: absolute; top: 46px; right: 24px; left: 24px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div style="font-size: 11px; letter-spacing: .3em; color: rgba(22,19,15,.45);">دفتـــر شـــب</div>
+      <div style="font-size: 11px; color: rgba(22,19,15,.45);">۲۴ شهریور</div>
+    </div>
+    <div class="lg-rule" style="margin-top: 12px; background: #16130f; height: 2px;"></div>
+    <div style="margin-top: 26px; font-size: 40px; font-weight: 300; line-height: 1.18;">
+      امشب <span style="color: #b3341f;">۲۳ نفر</span><br>وقت دارند
+    </div>
+  </div>
+
+  <!-- Entry one. The number is the anchor the eye returns to; the photo is
+       deliberately the smallest thing in the row, because in this product the
+       words are what is being sold. -->
+  <div style="position: absolute; top: 236px; right: 24px; left: 24px;">
+    <div class="lg-rule"></div>
+    <div style="display: flex; gap: 14px; padding: 16px 0; align-items: flex-start;">
+      <div class="lg-num">۰۱</div>
+      <div style="flex-grow: 1;">
+        <div style="font-size: 22px; font-weight: 400;">مهتاب</div>
+        <div style="margin-top: 6px; font-size: 13px; line-height: 1.8; color: rgba(22,19,15,.66);">
+          دیر می‌خوابم و از حرف زدن درباره‌ی چیزهایی که هیچ‌کس نمی‌پرسد خسته نمی‌شوم.
+        </div>
+        <div style="margin-top: 10px; font-size: 11.5px; color: rgba(22,19,15,.5);">
+          نیم‌ساعت — <span style="color: #b3341f;">۱۰۰ دراپ</span>
+        </div>
+      </div>
+      <div style="width: 44px; height: 56px; background: #d9cfbb; flex-shrink: 0;"></div>
+    </div>
+
+    <div class="lg-rule"></div>
+    <div style="display: flex; gap: 14px; padding: 16px 0; align-items: flex-start;">
+      <div class="lg-num">۰۲</div>
+      <div style="flex-grow: 1;">
+        <div style="font-size: 22px; font-weight: 400;">آرش</div>
+        <div style="margin-top: 6px; font-size: 13px; line-height: 1.8; color: rgba(22,19,15,.66);">
+          درباره‌ی کوه، شکست، و اینکه چرا هیچ‌کدام آن‌قدر که می‌گویند بزرگ نیستند.
+        </div>
+        <div style="margin-top: 10px; font-size: 11.5px; color: rgba(22,19,15,.5);">
+          یک ساعت — <span style="color: #b3341f;">۱۸۰ دراپ</span>
+        </div>
+      </div>
+      <div style="width: 44px; height: 56px; background: #cdd3c6; flex-shrink: 0;"></div>
+    </div>
+
+    <div class="lg-rule"></div>
+    <div style="display: flex; gap: 14px; padding: 16px 0; align-items: flex-start;">
+      <div class="lg-num">۰۳</div>
+      <div style="flex-grow: 1;">
+        <div style="font-size: 22px; font-weight: 400;">نگار</div>
+        <div style="margin-top: 6px; font-size: 13px; line-height: 1.8; color: rgba(22,19,15,.66);">
+          فقط گوش می‌دهم. اگر لازم شد حرف می‌زنم.
+        </div>
+        <div style="margin-top: 10px; font-size: 11.5px; color: rgba(22,19,15,.5);">
+          نیم‌ساعت — <span style="color: #b3341f;">۸۰ دراپ</span>
+        </div>
+      </div>
+      <div style="width: 44px; height: 56px; background: #ddd2d2; flex-shrink: 0;"></div>
+    </div>
+    <div class="lg-rule"></div>
+  </div>
+
+  <!-- The running conversation lives in the footer of the page, as a footnote
+       would: present on every page, never the headline. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 56px; padding: 12px 24px;
+              background: #16130f; color: #f4efe4; display: flex; align-items: center;
+              justify-content: space-between; min-height: 52px; box-sizing: border-box;">
+    <div style="font-size: 13px;">گفتگو با مهتاب باز است</div>
+    <div style="font-size: 12px; color: #e6a06a;">۱۲ دقیقه ←</div>
+  </div>
+
+  <!-- Navigation is the running foot of a book: four words, a hairline, no
+       icons at all. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56px; padding: 0 24px;
+              box-sizing: border-box; display: flex; align-items: center; justify-content: space-between;
+              border-top: 2px solid #16130f; background: #f4efe4; font-size: 12.5px;">
+    <span style="border-bottom: 2px solid #b3341f; padding-bottom: 2px;">دفتر</span>
+    <span style="color: rgba(22,19,15,.5);">فعالیت</span>
+    <span style="color: rgba(22,19,15,.5);">حساب</span>
+    <span style="color: rgba(22,19,15,.5);">من</span>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

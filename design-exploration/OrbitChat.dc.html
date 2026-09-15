@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    .ob { font-family: 'Noto Kufi Arabic', system-ui, sans-serif; }
+  </style>
+</helmet>
+
+<div class="ob" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: radial-gradient(120% 40% at 50% 0%, #143035, #0a1417 55%, #060b0d 100%); color: #e7f0ef;">
+
+  <!-- Paid time is the whole screen's weather. The ring around the other
+       person IS the four blocks: it drains, so the cost is never a number you
+       have to go and read. -->
+  <div style="position: absolute; left: 50%; top: 96px; margin-left: -46px; width: 92px; height: 92px;">
+    <svg width="92" height="92" viewBox="0 0 92 92" style="position: absolute; inset: 0; transform: rotate(-90deg);">
+      <circle cx="46" cy="46" r="42" fill="none" stroke="rgba(231,240,239,.10)" stroke-width="3"/>
+      <circle cx="46" cy="46" r="42" fill="none" stroke="#7ad7c8" stroke-width="3"
+              stroke-dasharray="60 6" stroke-dashoffset="0" stroke-linecap="butt"
+              pathLength="264"/>
+      <circle cx="46" cy="46" r="42" fill="none" stroke="rgba(6,24,26,.92)" stroke-width="4"
+              stroke-dasharray="132 132" stroke-dashoffset="-132" pathLength="264"/>
+    </svg>
+    <div style="position: absolute; inset: 9px; border-radius: 50%;
+                background: linear-gradient(150deg,#2f6f68,#14403d); display: flex; align-items: center;
+                justify-content: center; font-size: 28px; color: #dff5f0;">م</div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; top: 198px; text-align: center;">
+    <div style="font-size: 15px;">مهتاب</div>
+    <div style="margin-top: 5px; font-size: 11.5px; color: #7ad7c8;">بلوک دوم · ۱۲ دقیقه مانده</div>
+  </div>
+
+  <!-- Messages are unboxed: on a field, a bubble is a foreign object. The
+       other person's words sit right, yours sit left and lit. -->
+  <div style="position: absolute; right: 22px; top: 268px; max-width: 250px; font-size: 14px;
+              line-height: 1.95; color: rgba(231,240,239,.86);">
+    سلام. راستش هیچ‌وقت فکر نمی‌کردم یک روز پول بدهم که کسی واقعاً گوش بدهد.
+  </div>
+  <div style="position: absolute; right: 22px; top: 254px; width: 2px; height: 62px;
+              background: rgba(122,215,200,.35);"></div>
+
+  <div style="position: absolute; left: 22px; top: 366px; max-width: 250px; font-size: 14px;
+              line-height: 1.95; color: #dff5f0; text-align: left;">
+    من هم فکر نمی‌کردم یک روز بابتش پول بگیرم. از کجا شروع کنیم؟
+  </div>
+  <div style="position: absolute; left: 22px; top: 352px; width: 2px; height: 62px;
+              background: rgba(242,176,106,.55);"></div>
+
+  <div style="position: absolute; right: 22px; top: 464px; max-width: 250px; font-size: 14px;
+              line-height: 1.95; color: rgba(231,240,239,.86);">
+    از جایی که هیچ‌کس نمی‌پرسد.
+  </div>
+  <div style="position: absolute; right: 22px; top: 450px; width: 2px; height: 36px;
+              background: rgba(122,215,200,.35);"></div>
+
+  <!-- The extension offer surfaces only in the last block, where it is a real
+       choice and not an upsell. Here it is still dormant, so it is absent. -->
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 116px; display: flex; gap: 10px;">
+    <div style="flex-grow: 1; min-height: 50px; border-radius: 25px; background: rgba(231,240,239,.06);
+                border: 1px solid rgba(231,240,239,.12); display: flex; align-items: center;
+                padding: 0 18px; font-size: 13.5px; color: rgba(231,240,239,.40);">بنویس…</div>
+    <div style="width: 50px; height: 50px; border-radius: 50%;
+                background: radial-gradient(circle at 34% 30%, #f2b06a, #b96f2e);"></div>
+  </div>
+
+  <!-- Four ticks: the same four blocks again, at thumb level, tappable for the
+       breakdown. Redundant on purpose - the ring is glanceable, this is exact. -->
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 62px; display: flex; gap: 5px;
+              align-items: center;">
+    <div style="flex: 1; height: 4px; border-radius: 2px; background: #7ad7c8;"></div>
+    <div style="flex: 1; height: 4px; border-radius: 2px; background: #7ad7c8; opacity: .55;"></div>
+    <div style="flex: 1; height: 4px; border-radius: 2px; background: rgba(231,240,239,.12);"></div>
+    <div style="flex: 1; height: 4px; border-radius: 2px; background: rgba(231,240,239,.12);"></div>
+    <div style="margin-right: 10px; font-size: 10.5px; color: rgba(231,240,239,.42);">۵۰ از ۱۰۰ دراپ</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

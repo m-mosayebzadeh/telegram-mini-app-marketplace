@@ -1,0 +1,59 @@
+{
+  "pages": [
+    { "id": "overview", "name": "۰ — مرور و انتخاب" },
+    { "id": "orbit", "name": "۱ — مدار" },
+    { "id": "ledger", "name": "۲ — دفتر شب" },
+    { "id": "signal", "name": "۳ — سیگنال" },
+    { "id": "depth", "name": "۴ — عمق" },
+    { "id": "paper", "name": "۵ — کاغذ" },
+    { "id": "one", "name": "۶ — یکی" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1500, "h": 1790, "page": "overview", "title": "مرور شش جهت", "expand": "fit" },
+
+    { "file": "OrbitIdentity.dc.html", "x": 0, "y": 0, "w": 470, "h": 1180, "page": "orbit", "title": "شناسنامه — مدار" },
+    { "file": "OrbitDiscover.dc.html", "x": 570, "y": 0, "w": 390, "h": 844, "page": "orbit", "title": "کشف + ناوبری" },
+    { "file": "OrbitProfile.dc.html", "x": 1040, "y": 0, "w": 390, "h": 844, "page": "orbit", "title": "پروفایل + پیشنهاد + محتوا" },
+    { "file": "OrbitChat.dc.html", "x": 1510, "y": 0, "w": 390, "h": 844, "page": "orbit", "title": "گفتگوی پولی" },
+    { "file": "OrbitActivity.dc.html", "x": 1980, "y": 0, "w": 390, "h": 844, "page": "orbit", "title": "فعالیت + ناوبری باز" },
+
+    { "file": "LedgerIdentity.dc.html", "x": 0, "y": 0, "w": 470, "h": 1180, "page": "ledger", "title": "شناسنامه — دفتر شب" },
+    { "file": "LedgerDiscover.dc.html", "x": 570, "y": 0, "w": 390, "h": 844, "page": "ledger", "title": "کشف + ناوبری" },
+    { "file": "LedgerProfile.dc.html", "x": 1040, "y": 0, "w": 390, "h": 844, "page": "ledger", "title": "پروفایل + پیشنهاد + محتوا" },
+    { "file": "LedgerChat.dc.html", "x": 1510, "y": 0, "w": 390, "h": 844, "page": "ledger", "title": "گفتگوی پولی" },
+    { "file": "LedgerActivity.dc.html", "x": 1980, "y": 0, "w": 390, "h": 844, "page": "ledger", "title": "فعالیت + کیف" },
+
+    { "file": "SignalIdentity.dc.html", "x": 0, "y": 0, "w": 470, "h": 1180, "page": "signal", "title": "شناسنامه — سیگنال" },
+    { "file": "SignalDiscover.dc.html", "x": 570, "y": 0, "w": 390, "h": 844, "page": "signal", "title": "کشف + ناوبری" },
+    { "file": "SignalProfile.dc.html", "x": 1040, "y": 0, "w": 390, "h": 844, "page": "signal", "title": "پروفایل + پیشنهاد + محتوا" },
+    { "file": "SignalChat.dc.html", "x": 1510, "y": 0, "w": 390, "h": 844, "page": "signal", "title": "گفتگوی پولی" },
+    { "file": "SignalActivity.dc.html", "x": 1980, "y": 0, "w": 390, "h": 844, "page": "signal", "title": "فعالیت + کیف" },
+
+    { "file": "DepthIdentity.dc.html", "x": 0, "y": 0, "w": 470, "h": 1180, "page": "depth", "title": "شناسنامه — عمق" },
+    { "file": "DepthDiscover.dc.html", "x": 570, "y": 0, "w": 390, "h": 844, "page": "depth", "title": "کشف + ناوبری" },
+    { "file": "DepthProfile.dc.html", "x": 1040, "y": 0, "w": 390, "h": 844, "page": "depth", "title": "پروفایل + پیشنهاد + محتوا" },
+    { "file": "DepthChat.dc.html", "x": 1510, "y": 0, "w": 390, "h": 844, "page": "depth", "title": "گفتگوی پولی" },
+    { "file": "DepthActivity.dc.html", "x": 1980, "y": 0, "w": 390, "h": 844, "page": "depth", "title": "فعالیت + کیف" },
+
+    { "file": "PaperIdentity.dc.html", "x": 0, "y": 0, "w": 470, "h": 1180, "page": "paper", "title": "شناسنامه — کاغذ" },
+    { "file": "PaperDiscover.dc.html", "x": 570, "y": 0, "w": 390, "h": 844, "page": "paper", "title": "کشف + ناوبری" },
+    { "file": "PaperProfile.dc.html", "x": 1040, "y": 0, "w": 390, "h": 844, "page": "paper", "title": "پروفایل + پیشنهاد + محتوا" },
+    { "file": "PaperChat.dc.html", "x": 1510, "y": 0, "w": 390, "h": 844, "page": "paper", "title": "گفتگوی پولی" },
+    { "file": "PaperActivity.dc.html", "x": 1980, "y": 0, "w": 390, "h": 844, "page": "paper", "title": "فعالیت + کیف" },
+
+    { "file": "OneIdentity.dc.html", "x": 0, "y": 0, "w": 470, "h": 1180, "page": "one", "title": "شناسنامه — یکی" },
+    { "file": "OneDiscover.dc.html", "x": 570, "y": 0, "w": 390, "h": 844, "page": "one", "title": "کشف + ناوبری" },
+    { "file": "OneProfile.dc.html", "x": 1040, "y": 0, "w": 390, "h": 844, "page": "one", "title": "پروفایل + پیشنهاد + محتوا" },
+    { "file": "OneChat.dc.html", "x": 1510, "y": 0, "w": 390, "h": 844, "page": "one", "title": "گفتگوی پولی" },
+    { "file": "OneActivity.dc.html", "x": 1980, "y": 0, "w": 390, "h": 844, "page": "one", "title": "کشوی فعالیت + کیف" }
+  ],
+  "annotations": [
+    { "id": "note-orbit", "x": 0, "y": 1260, "w": 470, "page": "orbit", "text": "ببین: جای هر آدم روی حلقه، وضعیت واقعی او نسبت به توست. صفحه‌ی چهارم ناوبری باز را نشان می‌دهد — نوار تب حذف شده." },
+    { "id": "note-ledger", "x": 0, "y": 1260, "w": 470, "page": "ledger", "text": "ببین: هیچ کارتی وجود ندارد و عکس‌ها عمداً کوچک‌اند. صفحه‌ی گفتگو یک رونوشت است، نه پیام‌رسان." },
+    { "id": "note-signal", "x": 0, "y": 1260, "w": 470, "page": "signal", "text": "ببین: صفحه‌ی گفتگو. مدل چهار بلوکی و پول فریز در این زبان بومی است و هیچ ترجمه‌ای لازم ندارد." },
+    { "id": "note-depth", "x": 0, "y": 1260, "w": 470, "page": "depth", "text": "ببین: هیچ مرز و جداکننده‌ای نیست. قفلِ محتوا همان مات بودنش است. در گفتگو، نور گرم پایین صفحه همان زمان باقی‌مانده است." },
+    { "id": "note-paper", "x": 0, "y": 1260, "w": 470, "page": "paper", "text": "ببین: نیم‌ساعت گفتگو یک بلیت چهارقبضه‌ای است. در صفحه‌ی گفتگو دو قبضه کنده شده — بدون یک کلمه توضیح." },
+    { "id": "note-one", "x": 0, "y": 1260, "w": 470, "page": "one", "text": "ببین: در هر لحظه فقط یک نفر. صفحه‌ی چهارم همان کشویی است که جای سه تب دیگر را گرفته." }
+  ],
+  "launch": { "view": "canvas", "page": "overview" }
+}

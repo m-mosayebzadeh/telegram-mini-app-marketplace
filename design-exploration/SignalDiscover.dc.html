@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    .sg { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .sg-mono { font-family: 'IBM Plex Mono', monospace; }
+    .sg-lbl { font-size: 9.5px; letter-spacing: .22em; color: rgba(214,226,224,.38); }
+    .sg-panel { border: 1px solid rgba(214,226,224,.12); background: #0c1012; }
+  </style>
+</helmet>
+
+<div class="sg" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #07090a; color: #d6e2e0;">
+
+  <!-- The product is a receiver and people are stations. Every number on this
+       screen is one the backend already computes; nothing here is invented
+       chrome. The green is used for signal only, never for decoration. -->
+  <div style="position: absolute; top: 44px; right: 20px; left: 20px; display: flex;
+              justify-content: space-between; align-items: baseline;">
+    <div class="sg-lbl">ســـیگنال</div>
+    <div class="sg-mono" style="font-size: 10px; color: rgba(214,226,224,.4);">23 ACTIVE</div>
+  </div>
+
+  <!-- The scan band. Ticks are not ornament: each tall tick is a person online
+       right now, spread across the price range you can afford. -->
+  <div class="sg-panel" style="position: absolute; top: 76px; right: 20px; left: 20px; height: 84px;
+              padding: 12px 14px; box-sizing: border-box;">
+    <div class="sg-lbl">محدوده‌ی قیمت</div>
+    <div style="margin-top: 14px; display: flex; align-items: flex-end; gap: 3px; height: 26px;">
+      <div style="flex:1;height:8px;background:rgba(214,226,224,.18)"></div>
+      <div style="flex:1;height:20px;background:#b8ff3d"></div>
+      <div style="flex:1;height:8px;background:rgba(214,226,224,.18)"></div>
+      <div style="flex:1;height:26px;background:#b8ff3d"></div>
+      <div style="flex:1;height:8px;background:rgba(214,226,224,.18)"></div>
+      <div style="flex:1;height:14px;background:#b8ff3d"></div>
+      <div style="flex:1;height:8px;background:rgba(214,226,224,.18)"></div>
+      <div style="flex:1;height:22px;background:#b8ff3d"></div>
+      <div style="flex:1;height:8px;background:rgba(214,226,224,.18)"></div>
+      <div style="flex:1;height:11px;background:rgba(184,255,61,.45)"></div>
+      <div style="flex:1;height:8px;background:rgba(214,226,224,.18)"></div>
+      <div style="flex:1;height:6px;background:rgba(214,226,224,.18)"></div>
+    </div>
+    <div class="sg-mono" style="margin-top: 8px; display: flex; justify-content: space-between;
+                font-size: 9.5px; color: rgba(214,226,224,.35);"><span>40</span><span>240 DROPS</span></div>
+  </div>
+
+  <!-- One station per row. The meter is response rate, the figure is price,
+       the dot is availability. Three facts, aligned in three columns, so a
+       comparison is vertical instead of a hunt through cards. -->
+  <div style="position: absolute; top: 180px; right: 20px; left: 20px;">
+    <div class="sg-lbl" style="display: flex; justify-content: space-between; padding-bottom: 8px;">
+      <span>ایستگاه</span><span>پاسخ‌دهی</span>
+    </div>
+
+    <div class="sg-panel" style="padding: 14px; margin-bottom: 8px; border-right: 2px solid #b8ff3d;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 6px; height: 6px; background: #b8ff3d;"></div>
+        <div style="font-size: 15px; flex-grow: 1;">مهتاب</div>
+        <div class="sg-mono" style="font-size: 13px; color: #b8ff3d;">100</div>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: rgba(214,226,224,.6); line-height: 1.7;">
+        شب‌ها بیدارم و وسط حرف کسی نمی‌پرم.
+      </div>
+      <div style="margin-top: 12px; display: flex; align-items: center; gap: 2px;">
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:#b8ff3d"></div>
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:#b8ff3d"></div>
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:#b8ff3d"></div>
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:#b8ff3d"></div>
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:rgba(214,226,224,.15)"></div>
+        <div class="sg-mono" style="margin-right: 10px; font-size: 10px; color: rgba(214,226,224,.5);">94%</div>
+      </div>
+    </div>
+
+    <div class="sg-panel" style="padding: 14px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 6px; height: 6px; background: rgba(214,226,224,.3);"></div>
+        <div style="font-size: 15px; flex-grow: 1;">آرش</div>
+        <div class="sg-mono" style="font-size: 13px; color: rgba(214,226,224,.75);">180</div>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: rgba(214,226,224,.6); line-height: 1.7;">
+        کوه، شکست، و اینکه هیچ‌کدام آن‌قدر بزرگ نیستند.
+      </div>
+      <div style="margin-top: 12px; display: flex; align-items: center; gap: 2px;">
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:#b8ff3d"></div>
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:#b8ff3d"></div>
+        <div style="flex:1;height:3px;background:#b8ff3d"></div><div style="flex:1;height:3px;background:#b8ff3d"></div>
+        <div style="flex:1;height:3px;background:rgba(214,226,224,.15)"></div><div style="flex:1;height:3px;background:rgba(214,226,224,.15)"></div>
+        <div style="flex:1;height:3px;background:rgba(214,226,224,.15)"></div><div style="flex:1;height:3px;background:rgba(214,226,224,.15)"></div>
+        <div class="sg-mono" style="margin-right: 10px; font-size: 10px; color: rgba(214,226,224,.5);">61%</div>
+      </div>
+    </div>
+
+    <div class="sg-panel" style="padding: 14px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 6px; height: 6px; background: #b8ff3d;"></div>
+        <div style="font-size: 15px; flex-grow: 1;">نگار</div>
+        <div class="sg-mono" style="font-size: 13px; color: rgba(214,226,224,.75);">80</div>
+      </div>
+      <div style="margin-top: 10px; font-size: 12px; color: rgba(214,226,224,.6); line-height: 1.7;">
+        فقط گوش می‌دهم. اگر لازم شد حرف می‌زنم.
+      </div>
+    </div>
+  </div>
+
+  <!-- Live session as a status strip, the way a receiver shows the channel it
+       is locked onto. -->
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 76px; min-height: 48px;
+              background: #b8ff3d; color: #07090a; display: flex; align-items: center;
+              justify-content: space-between; padding: 0 14px; box-sizing: border-box;">
+    <div style="font-size: 12.5px;">قفل روی مهتاب</div>
+    <div class="sg-mono" style="font-size: 14px;">12:04</div>
+  </div>
+
+  <!-- Navigation as a band selector: four detents, a tick under the live one. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 64px;
+              border-top: 1px solid rgba(214,226,224,.14); display: flex;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: #b8ff3d;"></div>
+      <div class="sg-lbl" style="color: #b8ff3d;">اسکن</div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: rgba(214,226,224,.2);"></div>
+      <div class="sg-lbl">لاگ</div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: rgba(214,226,224,.2);"></div>
+      <div class="sg-lbl">حساب</div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: rgba(214,226,224,.2);"></div>
+      <div class="sg-lbl">من</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    .on { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .on-grain {
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 2px),
+                        repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px);
+    }
+  </style>
+</helmet>
+
+<div class="on" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #000; color: #fff;">
+
+  <!-- One person. The entire screen. No list, no grid, no next card peeking in
+       from the edge - if there is nothing to compare against, the question
+       stops being "which one" and becomes "this one, or not". That is the whole
+       argument of this direction, and it is also what the product's own daily
+       request cap already forces. -->
+  <div style="position: absolute; inset: 0; background:
+              radial-gradient(85% 60% at 62% 26%, #6b5a4c 0%, #3a3028 45%, #14100d 100%);"></div>
+  <div class="on-grain" style="position: absolute; inset: 0; opacity: .5;"></div>
+  <div style="position: absolute; inset: 0; background:
+              linear-gradient(0deg, rgba(0,0,0,.92) 0%, rgba(0,0,0,.35) 42%, rgba(0,0,0,.28) 100%);"></div>
+
+  <!-- The only chrome at the top is the one fact that governs the whole
+       screen: how many of today's approaches are left. Scarcity stated, not
+       implied. -->
+  <div style="position: absolute; top: 44px; right: 24px; left: 24px; display: flex; align-items: center; gap: 7px;">
+    <div style="flex: 1; height: 2px; background: #fff;"></div>
+    <div style="flex: 1; height: 2px; background: #fff;"></div>
+    <div style="flex: 1; height: 2px; background: rgba(255,255,255,.25);"></div>
+    <div style="flex: 1; height: 2px; background: rgba(255,255,255,.25);"></div>
+    <div style="flex: 1; height: 2px; background: rgba(255,255,255,.25);"></div>
+    <div style="margin-right: 12px; font-size: 10.5px; color: rgba(255,255,255,.55);">۳ مانده</div>
+  </div>
+
+  <div style="position: absolute; right: 24px; left: 24px; bottom: 214px;">
+    <div style="font-size: 13px; font-weight: 300; color: rgba(255,255,255,.62); letter-spacing: .04em;">
+      تهران · الان بیدار
+    </div>
+    <div style="margin-top: 12px; font-size: 62px; font-weight: 200; line-height: 1;">مهتاب</div>
+    <div style="margin-top: 22px; font-size: 16px; font-weight: 300; line-height: 1.95;
+                color: rgba(255,255,255,.82); max-width: 300px;">
+      شب‌ها بیدارم و از حرف زدن درباره‌ی چیزهایی که هیچ‌کس نمی‌پرسد خسته نمی‌شوم.
+    </div>
+  </div>
+
+  <!-- Price is set as large as the name is, because it is half of the decision
+       and hiding it inside a button would be dishonest. -->
+  <div style="position: absolute; right: 24px; bottom: 150px; display: flex; align-items: baseline; gap: 10px;">
+    <div style="font-size: 30px; font-weight: 200; color: #e8b984;">۱۰۰</div>
+    <div style="font-size: 12.5px; color: rgba(255,255,255,.55);">دراپ · نیم‌ساعت</div>
+  </div>
+
+  <!-- Two choices, nothing else. Both sit in the thumb arc and both are 56px
+       tall; the refusal is not hidden behind a small grey X, because refusing
+       has to be as easy as agreeing or the count stops meaning anything. -->
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 74px; display: flex; gap: 12px;">
+    <div style="width: 86px; min-height: 56px; border-radius: 4px; border: 1px solid rgba(255,255,255,.3);
+                display: flex; align-items: center; justify-content: center; font-size: 13.5px;
+                color: rgba(255,255,255,.7);">بعدی</div>
+    <div style="flex-grow: 1; min-height: 56px; border-radius: 4px; background: #fff; color: #000;
+                display: flex; align-items: center; justify-content: center; font-size: 15px;">شروع کن</div>
+  </div>
+
+  <!-- Navigation is one hidden drawer, opened by pulling up from the bottom.
+       No tab bar: a tab bar would put four other places on a screen whose
+       entire point is that there is only one. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 26px; display: flex; justify-content: center;">
+    <div style="width: 116px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.35);"></div>
+  </div>
+  <div style="position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 10px;
+              color: rgba(255,255,255,.3);">بالا بکش</div>
+
+  <!-- A live conversation is the one thing allowed to interrupt: a single line
+       at the top edge, never a floating bubble over a face. -->
+  <div style="position: absolute; top: 78px; right: 24px; left: 24px; display: flex; align-items: center;
+              gap: 9px; font-size: 11.5px; color: #e8b984;">
+    <span style="width: 5px; height: 5px; border-radius: 50%; background: #e8b984;"></span>
+    گفتگو با نگار باز است · ۱۲ دقیقه
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

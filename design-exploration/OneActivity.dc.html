@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    .on { font-family: 'Vazirmatn', system-ui, sans-serif; }
+  </style>
+</helmet>
+
+<div class="on" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #0a0a0a; color: #fff;">
+
+  <!-- The drawer pulled up from the one-person screen. It is a full page, not a
+       sheet, and it holds everything the rest of the app would have put in
+       three tabs: what is happening, what is owed, what is owned. -->
+  <div style="position: absolute; top: 20px; left: 0; right: 0; display: flex; justify-content: center;">
+    <div style="width: 116px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.28);"></div>
+  </div>
+
+  <div style="position: absolute; top: 56px; right: 24px; left: 24px;">
+    <div style="font-size: 11px; letter-spacing: .2em; color: rgba(255,255,255,.35);">اکنون</div>
+  </div>
+
+  <!-- One live thing, given a whole block of the screen. Everything else is a
+       line. The hierarchy is brutal on purpose: at any moment there is only
+       one conversation, so only one thing here deserves weight. -->
+  <div style="position: absolute; top: 90px; right: 24px; left: 24px;">
+    <div style="font-size: 26px; font-weight: 200; line-height: 1.4;">
+      گفتگو با <span style="color: #e8b984;">نگار</span><br>در جریان است
+    </div>
+    <div style="margin-top: 16px; display: flex; gap: 6px;">
+      <div style="flex: 1; height: 2px; background: rgba(232,185,132,.35);"></div>
+      <div style="flex: 1; height: 2px; background: #e8b984;"></div>
+      <div style="flex: 1; height: 2px; background: rgba(255,255,255,.16);"></div>
+      <div style="flex: 1; height: 2px; background: rgba(255,255,255,.16);"></div>
+    </div>
+    <div style="margin-top: 10px; font-size: 12px; color: rgba(255,255,255,.45);">
+      ۱۲ دقیقه مانده · ۵۰ دراپ فریز
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 268px; right: 24px; left: 24px; height: 1px;
+              background: rgba(255,255,255,.12);"></div>
+
+  <div style="position: absolute; top: 292px; right: 24px; left: 24px;">
+    <div style="font-size: 11px; letter-spacing: .2em; color: rgba(255,255,255,.35);">در انتظار تو</div>
+    <div style="margin-top: 18px; display: flex; align-items: baseline; justify-content: space-between;">
+      <div style="font-size: 17px; font-weight: 300;">آرش می‌خواهد حرف بزند</div>
+      <div style="font-size: 11px; color: rgba(255,255,255,.4);">۱۸ ساعت</div>
+    </div>
+    <div style="margin-top: 16px; display: flex; gap: 10px;">
+      <div style="width: 84px; min-height: 44px; border-radius: 4px; border: 1px solid rgba(255,255,255,.28);
+                  display: flex; align-items: center; justify-content: center; font-size: 12.5px;
+                  color: rgba(255,255,255,.7);">نه</div>
+      <div style="flex-grow: 1; min-height: 44px; border-radius: 4px; background: #fff; color: #000;
+                  display: flex; align-items: center; justify-content: center; font-size: 13.5px;">بپذیر</div>
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 462px; right: 24px; left: 24px; height: 1px;
+              background: rgba(255,255,255,.12);"></div>
+
+  <!-- Money as one sentence in plain Persian, then the detail underneath. The
+       three-figure wallet grid is where most apps lose the reader; here the
+       sentence answers the only question they actually had. -->
+  <div style="position: absolute; top: 486px; right: 24px; left: 24px;">
+    <div style="font-size: 11px; letter-spacing: .2em; color: rgba(255,255,255,.35);">کیف</div>
+    <div style="margin-top: 18px; font-size: 22px; font-weight: 200; line-height: 1.6;">
+      <span style="color: #e8b984;">۲۴۸ دراپ</span> می‌توانی برداشت کنی
+    </div>
+    <div style="margin-top: 12px; font-size: 12.5px; color: rgba(255,255,255,.45); line-height: 1.9;">
+      کل موجودی ۴۲۰ · ۵۰ تا پایان این گفتگو فریز است
+    </div>
+    <div style="margin-top: 20px; min-height: 48px; border-radius: 4px; border: 1px solid rgba(255,255,255,.28);
+                display: flex; align-items: center; justify-content: center; font-size: 13.5px;">برداشت</div>
+  </div>
+
+  <div style="position: absolute; top: 704px; right: 24px; left: 24px; height: 1px;
+              background: rgba(255,255,255,.12);"></div>
+
+  <!-- Everything finished is compressed to one line each, in the lightest
+       possible voice: it is history, and history should not compete. -->
+  <div style="position: absolute; top: 728px; right: 24px; left: 24px; font-size: 12.5px; font-weight: 300;
+              color: rgba(255,255,255,.42); line-height: 2.3;">
+    <div style="display: flex; justify-content: space-between;"><span>گفتگو با کیان تمام شد</span><span>‎+۷۵</span></div>
+    <div style="display: flex; justify-content: space-between;"><span>فروش «شب‌های تهران»</span><span>‎+۱۸</span></div>
+    <div style="display: flex; justify-content: space-between; opacity: .6;"><span>درخواست رها منقضی شد</span><span>—</span></div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

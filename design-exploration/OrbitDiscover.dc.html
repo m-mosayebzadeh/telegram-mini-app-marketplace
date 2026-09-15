@@ -1,0 +1,116 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #7ad7c8; } a:hover { color: #a6e7dc; }
+    .ob { font-family: 'Noto Kufi Arabic', system-ui, sans-serif; }
+  </style>
+</helmet>
+
+<div class="ob" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden; background:
+  radial-gradient(120% 70% at 50% 74%, #10262a 0%, #0a1417 46%, #060b0d 100%); color: #e7f0ef;">
+
+  <!-- Rings. Each one is a real boundary: how close someone already is to a
+       conversation with you. Nothing here is decoration - the radius IS the
+       data the app already holds. -->
+  <div style="position: absolute; left: 50%; top: 620px; width: 300px; height: 300px; margin-left: -150px;
+              margin-top: -150px; border-radius: 50%; border: 1px solid rgba(122,215,200,.20);"></div>
+  <div style="position: absolute; left: 50%; top: 620px; width: 520px; height: 520px; margin-left: -260px;
+              margin-top: -260px; border-radius: 50%; border: 1px solid rgba(122,215,200,.12);"></div>
+  <div style="position: absolute; left: 50%; top: 620px; width: 760px; height: 760px; margin-left: -380px;
+              margin-top: -380px; border-radius: 50%; border: 1px solid rgba(122,215,200,.07);"></div>
+
+  <!-- Ring labels sit on the ring, reading outward. -->
+  <div style="position: absolute; right: 20px; top: 486px; font-size: 11px; letter-spacing: .14em;
+              color: rgba(122,215,200,.72);">در جریان</div>
+  <div style="position: absolute; right: 20px; top: 352px; font-size: 11px; letter-spacing: .14em;
+              color: rgba(231,240,239,.42);">به تو نزدیک شده‌اند</div>
+  <div style="position: absolute; right: 20px; top: 200px; font-size: 11px; letter-spacing: .14em;
+              color: rgba(231,240,239,.26);">ناشناخته</div>
+
+  <!-- Inner ring: an open conversation. Largest, brightest, closest to the thumb. -->
+  <div style="position: absolute; left: 96px; top: 470px; display: flex; flex-direction: column;
+              align-items: center; gap: 6px;">
+    <div style="width: 74px; height: 74px; border-radius: 50%; background: linear-gradient(145deg,#2f6f68,#14403d);
+                display: flex; align-items: center; justify-content: center; font-size: 26px; color: #dff5f0;
+                box-shadow: 0 0 0 2px #7ad7c8, 0 12px 34px rgba(122,215,200,.28);">م</div>
+    <div style="font-size: 12.5px;">مهتاب</div>
+    <div style="font-size: 10.5px; color: #7ad7c8;">۱۲ دقیقه مانده</div>
+  </div>
+
+  <div style="position: absolute; right: 92px; top: 492px; display: flex; flex-direction: column;
+              align-items: center; gap: 6px;">
+    <div style="width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(145deg,#31555f,#16303a);
+                display: flex; align-items: center; justify-content: center; font-size: 21px; color: #cfe6ea;
+                box-shadow: 0 0 0 1px rgba(122,215,200,.45);">ن</div>
+    <div style="font-size: 12px; color: rgba(231,240,239,.8);">نگار</div>
+  </div>
+
+  <!-- Middle ring: people whose own action pulled them closer - a request. -->
+  <div style="position: absolute; left: 44px; top: 320px; display: flex; flex-direction: column;
+              align-items: center; gap: 5px;">
+    <div style="width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(145deg,#3a4a63,#1b2434);
+                display: flex; align-items: center; justify-content: center; font-size: 19px; color: #ccd7ea;">آ</div>
+    <div style="font-size: 11.5px; color: rgba(231,240,239,.72);">آرش</div>
+  </div>
+  <div style="position: absolute; left: 168px; top: 268px; display: flex; flex-direction: column;
+              align-items: center; gap: 5px;">
+    <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(145deg,#4a3d57,#221a2b);
+                display: flex; align-items: center; justify-content: center; font-size: 18px; color: #ded0e8;">ر</div>
+    <div style="font-size: 11.5px; color: rgba(231,240,239,.72);">رها</div>
+  </div>
+  <div style="position: absolute; right: 42px; top: 330px; display: flex; flex-direction: column;
+              align-items: center; gap: 5px;">
+    <div style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(145deg,#2f5a4a,#152b24);
+                display: flex; align-items: center; justify-content: center; font-size: 18px; color: #cfe8db;">ک</div>
+    <div style="font-size: 11.5px; color: rgba(231,240,239,.72);">کیان</div>
+  </div>
+
+  <!-- Outer ring: unknown. Small, dim, unnamed until you reach for them. -->
+  <div style="position: absolute; left: 66px; top: 168px; width: 34px; height: 34px; border-radius: 50%;
+              background: rgba(231,240,239,.10); border: 1px solid rgba(231,240,239,.16);"></div>
+  <div style="position: absolute; left: 150px; top: 124px; width: 30px; height: 30px; border-radius: 50%;
+              background: rgba(231,240,239,.08); border: 1px solid rgba(231,240,239,.14);"></div>
+  <div style="position: absolute; right: 78px; top: 156px; width: 36px; height: 36px; border-radius: 50%;
+              background: rgba(231,240,239,.11); border: 1px solid rgba(231,240,239,.17);"></div>
+  <div style="position: absolute; right: 150px; top: 112px; width: 26px; height: 26px; border-radius: 50%;
+              background: rgba(231,240,239,.07); border: 1px solid rgba(231,240,239,.12);"></div>
+
+  <!-- You. The centre of your own field, and the one thing the thumb always
+       finds. Holding it opens the sections; a flick chooses one. -->
+  <div style="position: absolute; left: 50%; top: 620px; margin-left: -37px; margin-top: -37px;
+              width: 74px; height: 74px; border-radius: 50%;
+              background: radial-gradient(circle at 34% 30%, #f2b06a, #b96f2e);
+              box-shadow: 0 0 0 6px rgba(242,176,106,.10), 0 0 44px rgba(242,176,106,.28);"></div>
+
+  <div style="position: absolute; left: 0; right: 0; top: 688px; text-align: center; font-size: 11px;
+              letter-spacing: .12em; color: rgba(231,240,239,.36);">برای دیدن بخش‌ها نگه دار</div>
+
+  <!-- A stranger you reached for rises as a sheet, without leaving the field. -->
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 118px; padding: 16px 20px 0;
+              box-sizing: border-box; background: rgba(9,20,22,.92); border-top: 1px solid rgba(122,215,200,.18);
+              backdrop-filter: blur(18px);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(145deg,#31555f,#16303a);
+                  display: flex; align-items: center; justify-content: center; font-size: 17px;">ن</div>
+      <div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1;">
+        <div style="font-size: 14px;">نگار</div>
+        <div style="font-size: 11.5px; color: rgba(231,240,239,.52);">نیم‌ساعت حرف بی‌واسطه · ۱۰۰ دراپ</div>
+      </div>
+      <div style="min-height: 44px; display: flex; align-items: center; padding: 0 18px; border-radius: 22px;
+                  background: #7ad7c8; color: #06181a; font-size: 13.5px;">نزدیک شو</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

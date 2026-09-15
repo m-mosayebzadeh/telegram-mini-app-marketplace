@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700;900&display=swap">
+  <style>
+    body { margin: 0; }
+    .pp { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .pp-ink { border: 2.5px solid #16150f; }
+    .pp-halftone { background-image: radial-gradient(#16150f 1.1px, transparent 1.2px); background-size: 6px 6px; }
+  </style>
+</helmet>
+
+<div class="pp" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #f5eee1; color: #16150f;">
+
+  <!-- A poster for one person. Everything is set as though it will be printed
+       and pinned to a wall, which is the emotional claim of this direction:
+       these are people, not listings. -->
+  <div style="position: absolute; top: 0; right: 0; left: 0; height: 300px; background: #ff5470;"></div>
+  <div class="pp-halftone" style="position: absolute; top: 0; right: 4px; left: -4px; height: 296px;
+              background-color: #2b4bd0; opacity: .85;"></div>
+  <div style="position: absolute; top: 296px; right: 0; left: 0; height: 4px; background: #16150f;"></div>
+
+  <div style="position: absolute; top: 196px; right: 22px;">
+    <div class="pp-ink" style="display: inline-block; background: #ffe45e; padding: 8px 14px;
+                box-shadow: 5px 5px 0 #16150f;">
+      <span style="font-size: 36px; font-weight: 900;">مهتاب</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 322px; right: 22px; left: 22px; font-size: 15px; font-weight: 500;
+              line-height: 1.9;">
+    سه سال است شب‌ها بیدارم. بیشتر آدم‌ها دنبال نصیحت نیستند؛ دنبال کسی‌اند که وسط حرفشان نپرد.
+  </div>
+
+  <!-- Facts as three stamped blocks in the second ink. -->
+  <div style="position: absolute; top: 430px; right: 22px; left: 22px; display: flex; gap: 8px;">
+    <div class="pp-ink" style="flex: 1; background: #b9cdff; padding: 10px 8px; text-align: center;">
+      <div style="font-size: 22px; font-weight: 900;">۴۸</div>
+      <div style="margin-top: 2px; font-size: 10px; font-weight: 700;">گفتگو</div>
+    </div>
+    <div class="pp-ink" style="flex: 1; background: #b9cdff; padding: 10px 8px; text-align: center;">
+      <div style="font-size: 22px; font-weight: 900;">۴٫۸</div>
+      <div style="margin-top: 2px; font-size: 10px; font-weight: 700;">امتیاز</div>
+    </div>
+    <div class="pp-ink" style="flex: 1; background: #b9cdff; padding: 10px 8px; text-align: center;">
+      <div style="font-size: 22px; font-weight: 900;">۹۴٪</div>
+      <div style="margin-top: 2px; font-size: 10px; font-weight: 700;">پاسخ</div>
+    </div>
+  </div>
+
+  <!-- Content as sealed envelopes. A locked piece is literally covered by a
+       printed band you have to buy off - much closer to how a paywall feels
+       than a grey padlock. -->
+  <div style="position: absolute; top: 528px; right: 22px; left: 22px;">
+    <div style="font-size: 11px; font-weight: 700; letter-spacing: .14em;">از او</div>
+    <div style="margin-top: 12px; display: flex; gap: 10px;">
+      <div class="pp-ink" style="flex: 1; height: 104px; background: #b9cdff; position: relative;
+                  box-shadow: 4px 4px 0 #16150f;">
+        <div class="pp-halftone" style="position: absolute; inset: 0; background-color: #2b4bd0; opacity: .5;"></div>
+      </div>
+      <div class="pp-ink" style="flex: 1; height: 104px; background: #d8d2c4; position: relative;
+                  box-shadow: 4px 4px 0 #16150f; overflow: hidden;">
+        <div style="position: absolute; top: 38px; right: -14px; left: -14px; height: 28px; background: #ff5470;
+                    border-top: 2.5px solid #16150f; border-bottom: 2.5px solid #16150f;
+                    transform: rotate(-9deg); display: flex; align-items: center; justify-content: center;
+                    color: #fff6f2; font-size: 12px; font-weight: 900;">۲۰ دراپ</div>
+      </div>
+      <div class="pp-ink" style="flex: 1; height: 104px; background: #d8d2c4; position: relative;
+                  box-shadow: 4px 4px 0 #16150f; overflow: hidden;">
+        <div style="position: absolute; top: 38px; right: -14px; left: -14px; height: 28px; background: #ff5470;
+                    border-top: 2.5px solid #16150f; border-bottom: 2.5px solid #16150f;
+                    transform: rotate(-9deg); display: flex; align-items: center; justify-content: center;
+                    color: #fff6f2; font-size: 12px; font-weight: 900;">۱۵ دراپ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- The offer as an actual ticket, perforation and stub included. The four
+       blocks are the four tear-lines: the pricing model made physical. -->
+  <div class="pp-ink" style="position: absolute; left: 22px; right: 22px; bottom: 92px; height: 88px;
+              background: #ffe45e; box-shadow: 6px 6px 0 #16150f; display: flex; overflow: hidden;">
+    <div style="width: 92px; border-left: 2.5px dashed #16150f; display: flex; flex-direction: column;
+                align-items: center; justify-content: center; gap: 2px;">
+      <div style="font-size: 26px; font-weight: 900;">۱۰۰</div>
+      <div style="font-size: 10px; font-weight: 700;">دراپ</div>
+    </div>
+    <div style="flex-grow: 1; padding: 14px 16px;">
+      <div style="font-size: 16px; font-weight: 900;">گفتگوی شبانه</div>
+      <div style="margin-top: 5px; font-size: 11.5px; font-weight: 500;">۳۰ دقیقه · چهار بلیت ۷٫۵ دقیقه‌ای</div>
+      <div style="margin-top: 10px; display: flex; gap: 5px;">
+        <div style="flex: 1; height: 6px; background: #16150f;"></div>
+        <div style="flex: 1; height: 6px; background: #16150f;"></div>
+        <div style="flex: 1; height: 6px; background: #16150f;"></div>
+        <div style="flex: 1; height: 6px; background: #16150f;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pp-ink" style="position: absolute; left: 22px; right: 22px; bottom: 24px; height: 56px;
+              background: #ff5470; color: #fff6f2; display: flex; align-items: center; justify-content: center;
+              font-size: 16px; font-weight: 900; box-shadow: 5px 5px 0 #16150f;">بلیت بگیر</div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; }
+    .sg { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .sg-mono { font-family: 'IBM Plex Mono', monospace; }
+    .sg-lbl { font-size: 9.5px; letter-spacing: .22em; color: rgba(214,226,224,.38); }
+    .sg-panel { border: 1px solid rgba(214,226,224,.12); background: #0c1012; }
+  </style>
+</helmet>
+
+<div class="sg" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #07090a; color: #d6e2e0;">
+
+  <div style="position: absolute; top: 44px; right: 20px; left: 20px;">
+    <div class="sg-lbl">لاگ</div>
+  </div>
+
+  <!-- Earnings as telemetry. Seven bars, one per day: a shape the eye reads
+       in a quarter second, where seven rows of numbers would take ten. -->
+  <div class="sg-panel" style="position: absolute; top: 74px; right: 20px; left: 20px; padding: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div class="sg-lbl">این هفته</div>
+      <div class="sg-mono" style="font-size: 20px; color: #b8ff3d;">+248</div>
+    </div>
+    <div style="margin-top: 14px; display: flex; align-items: flex-end; gap: 5px; height: 48px;">
+      <div style="flex:1;height:22%;background:rgba(184,255,61,.35)"></div>
+      <div style="flex:1;height:60%;background:rgba(184,255,61,.5)"></div>
+      <div style="flex:1;height:12%;background:rgba(184,255,61,.3)"></div>
+      <div style="flex:1;height:78%;background:rgba(184,255,61,.6)"></div>
+      <div style="flex:1;height:40%;background:rgba(184,255,61,.45)"></div>
+      <div style="flex:1;height:0%;background:rgba(214,226,224,.12)"></div>
+      <div style="flex:1;height:100%;background:#b8ff3d"></div>
+    </div>
+  </div>
+
+  <!-- The log itself. Status is a word in a fixed column, never a coloured
+       pill, so five rows can be scanned in one downward sweep. -->
+  <div style="position: absolute; top: 236px; right: 20px; left: 20px;">
+    <div class="sg-lbl" style="display: flex; padding-bottom: 10px;">
+      <div style="width: 58px;">وضعیت</div><div style="flex-grow: 1;">رویداد</div>
+      <div style="width: 56px; text-align: left;">مبلغ</div>
+    </div>
+
+    <div class="sg-panel" style="padding: 13px 14px; margin-bottom: 6px; border-right: 2px solid #b8ff3d;
+                display: flex; align-items: center;">
+      <div class="sg-mono" style="width: 58px; font-size: 9.5px; color: #b8ff3d;">LIVE</div>
+      <div style="flex-grow: 1; font-size: 13px;">گفتگو با مهتاب</div>
+      <div class="sg-mono" style="width: 56px; text-align: left; font-size: 13px;">−50</div>
+    </div>
+
+    <div class="sg-panel" style="padding: 13px 14px; margin-bottom: 6px; display: flex; align-items: center;">
+      <div class="sg-mono" style="width: 58px; font-size: 9.5px; color: #e8c15a;">WAIT</div>
+      <div style="flex-grow: 1; font-size: 13px;">درخواست آرش<br>
+        <span class="sg-mono" style="font-size: 9.5px; color: rgba(214,226,224,.4);">18H LEFT</span></div>
+      <div class="sg-mono" style="width: 56px; text-align: left; font-size: 13px; color: rgba(214,226,224,.4);">—</div>
+    </div>
+
+    <div class="sg-panel" style="padding: 13px 14px; margin-bottom: 6px; display: flex; align-items: center;">
+      <div class="sg-mono" style="width: 58px; font-size: 9.5px; color: rgba(214,226,224,.45);">DONE</div>
+      <div style="flex-grow: 1; font-size: 13px;">گفتگو با کیان</div>
+      <div class="sg-mono" style="width: 56px; text-align: left; font-size: 13px; color: #b8ff3d;">+75</div>
+    </div>
+
+    <div class="sg-panel" style="padding: 13px 14px; margin-bottom: 6px; display: flex; align-items: center;">
+      <div class="sg-mono" style="width: 58px; font-size: 9.5px; color: rgba(214,226,224,.45);">SOLD</div>
+      <div style="flex-grow: 1; font-size: 13px;">شب‌های تهران</div>
+      <div class="sg-mono" style="width: 56px; text-align: left; font-size: 13px; color: #b8ff3d;">+18</div>
+    </div>
+
+    <div class="sg-panel" style="padding: 13px 14px; display: flex; align-items: center; opacity: .55;">
+      <div class="sg-mono" style="width: 58px; font-size: 9.5px;">EXP</div>
+      <div style="flex-grow: 1; font-size: 13px;">درخواست رها</div>
+      <div class="sg-mono" style="width: 56px; text-align: left; font-size: 13px;">—</div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 20px; right: 20px; bottom: 84px; display: flex; gap: 8px;">
+    <div class="sg-panel" style="flex: 1; padding: 12px;">
+      <div class="sg-lbl">موجودی</div>
+      <div class="sg-mono" style="margin-top: 6px; font-size: 20px;">420</div>
+    </div>
+    <div class="sg-panel" style="flex: 1; padding: 12px;">
+      <div class="sg-lbl">فریز</div>
+      <div class="sg-mono" style="margin-top: 6px; font-size: 20px; color: #e8c15a;">50</div>
+    </div>
+    <div class="sg-panel" style="flex: 1; padding: 12px;">
+      <div class="sg-lbl">قابل برداشت</div>
+      <div class="sg-mono" style="margin-top: 6px; font-size: 20px; color: #b8ff3d;">248</div>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 64px;
+              border-top: 1px solid rgba(214,226,224,.14); display: flex;">
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: rgba(214,226,224,.2);"></div>
+      <div class="sg-lbl">اسکن</div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: #b8ff3d;"></div>
+      <div class="sg-lbl" style="color: #b8ff3d;">لاگ</div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: rgba(214,226,224,.2);"></div>
+      <div class="sg-lbl">حساب</div>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;">
+      <div style="width: 22px; height: 2px; background: rgba(214,226,224,.2);"></div>
+      <div class="sg-lbl">من</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

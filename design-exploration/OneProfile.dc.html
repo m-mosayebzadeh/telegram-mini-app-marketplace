@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    .on { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .on-grain {
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 2px),
+                        repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px);
+    }
+  </style>
+</helmet>
+
+<div class="on" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #000; color: #fff;">
+
+  <!-- Scrolling down from the one-person screen does not open a "profile page";
+       the same image simply moves up and the facts arrive beneath it. There is
+       no second screen to design, and no back button to press. -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; height: 330px; background:
+              radial-gradient(80% 70% at 60% 30%, #6b5a4c 0%, #3a3028 48%, #14100d 100%);"></div>
+  <div class="on-grain" style="position: absolute; top: 0; left: 0; right: 0; height: 330px; opacity: .5;"></div>
+  <div style="position: absolute; top: 190px; left: 0; right: 0; height: 140px;
+              background: linear-gradient(0deg, #000 8%, rgba(0,0,0,0));"></div>
+
+  <div style="position: absolute; top: 240px; right: 24px;">
+    <div style="font-size: 44px; font-weight: 200; line-height: 1;">مهتاب</div>
+    <div style="margin-top: 10px; font-size: 12px; color: rgba(255,255,255,.55);">تهران · الان بیدار</div>
+  </div>
+
+  <div style="position: absolute; top: 352px; right: 24px; left: 24px; font-size: 15px; font-weight: 300;
+              line-height: 2.05; color: rgba(255,255,255,.8);">
+    سه سال است شب‌ها بیدارم. بیشتر آدم‌ها دنبال نصیحت نیستند؛ دنبال کسی‌اند که وسط حرفشان نپرد.
+  </div>
+
+  <!-- Numbers set as quietly as possible. In a product about people, a row of
+       coloured metric chips is the fastest way to make someone feel like a
+       listing - so these are the same weight as the body text. -->
+  <div style="position: absolute; top: 460px; right: 24px; left: 24px; display: flex; gap: 26px;
+              font-size: 12px; color: rgba(255,255,255,.5);">
+    <div>۴۸ گفتگو</div>
+    <div>امتیاز ۴٫۸</div>
+    <div>۹۴٪ پاسخ</div>
+  </div>
+
+  <!-- Content is full-bleed too. A locked piece is the image at full size with
+       the grain left in and the subject taken out: you can tell there is
+       something there, and you cannot see it. -->
+  <div style="position: absolute; top: 500px; right: 0; left: 0; height: 190px; display: flex; gap: 2px;">
+    <div style="flex: 2; background: radial-gradient(70% 70% at 40% 40%, #5a6b63, #1a201d);"></div>
+    <div style="flex: 1; position: relative; background: #1a1714;">
+      <div class="on-grain" style="position: absolute; inset: 0; opacity: .8;"></div>
+      <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                  font-size: 12px; color: rgba(255,255,255,.7);">۲۰</div>
+    </div>
+    <div style="flex: 1; position: relative; background: #191513;">
+      <div class="on-grain" style="position: absolute; inset: 0; opacity: .8;"></div>
+      <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                  font-size: 12px; color: rgba(255,255,255,.7);">۱۵</div>
+    </div>
+  </div>
+  <div style="position: absolute; top: 700px; right: 24px; font-size: 10.5px; color: rgba(255,255,255,.4);">
+    دو تکه قفل است
+  </div>
+
+  <!-- The offer is one line above the action, stated as a sentence rather than
+       broken into a table. -->
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 100px; display: flex;
+              justify-content: space-between; align-items: baseline;
+              border-top: 1px solid rgba(255,255,255,.16); padding-top: 16px;">
+    <div style="font-size: 13.5px; font-weight: 300; color: rgba(255,255,255,.72);">
+      نیم‌ساعت، در چهار بخش
+    </div>
+    <div style="font-size: 22px; font-weight: 200; color: #e8b984;">۱۰۰</div>
+  </div>
+
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 34px; min-height: 56px; border-radius: 4px;
+              background: #fff; color: #000; display: flex; align-items: center; justify-content: center;
+              font-size: 15px;">شروع کن</div>
+
+</div>
+</x-dc>
+</body>
+</html>

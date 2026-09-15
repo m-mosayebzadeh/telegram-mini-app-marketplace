@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;300;400;700&display=swap">
+  <style>
+    body { margin: 0; }
+    .lg { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .lg-rule { height: 1px; background: rgba(22,19,15,.22); }
+    .lg-speaker { font-size: 10px; letter-spacing: .24em; color: rgba(22,19,15,.42); }
+  </style>
+</helmet>
+
+<div class="lg" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #f4efe4; color: #16130f;">
+
+  <!-- A transcript, not a messenger. Nothing is in a bubble; each turn is a
+       paragraph with its speaker set above it in small caps. The price is
+       printed in the margin the way a script prints timings. -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; height: 72px; padding: 0 24px;
+              box-sizing: border-box; display: flex; align-items: center; justify-content: space-between;
+              border-bottom: 2px solid #16130f;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 30px; height: 38px; background: #d9cfbb;"></div>
+      <div>
+        <div style="font-size: 15px;">مهتاب</div>
+        <div style="margin-top: 3px; font-size: 10.5px; color: rgba(22,19,15,.5);">گفتگوی شبانه</div>
+      </div>
+    </div>
+    <div style="text-align: left;">
+      <div style="font-size: 16px; color: #b3341f;">۱۲:۰۴</div>
+      <div style="margin-top: 2px; font-size: 10px; color: rgba(22,19,15,.45);">مانده</div>
+    </div>
+  </div>
+
+  <!-- Block boundaries are printed like chapter breaks, which is honest: each
+       one is a quarter of the money, already spent. -->
+  <div style="position: absolute; top: 96px; right: 24px; left: 24px; display: flex; align-items: center; gap: 10px;">
+    <div class="lg-rule" style="flex-grow: 1;"></div>
+    <div style="font-size: 10px; letter-spacing: .2em; color: rgba(22,19,15,.42);">بلوک یکم — ۲۵ دراپ</div>
+  </div>
+
+  <div style="position: absolute; top: 128px; right: 24px; left: 24px;">
+    <div class="lg-speaker">مهتاب</div>
+    <div style="margin-top: 7px; font-size: 14.5px; line-height: 2;">
+      سلام. راستش هیچ‌وقت فکر نمی‌کردم یک روز پول بدهم که کسی واقعاً گوش بدهد.
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 240px; right: 24px; left: 24px;">
+    <div class="lg-speaker" style="color: #b3341f;">تـــو</div>
+    <div style="margin-top: 7px; font-size: 14.5px; line-height: 2;">
+      من هم فکر نمی‌کردم یک روز بابتش پول بگیرم. از کجا شروع کنیم؟
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 348px; right: 24px; left: 24px; display: flex; align-items: center; gap: 10px;">
+    <div class="lg-rule" style="flex-grow: 1;"></div>
+    <div style="font-size: 10px; letter-spacing: .2em; color: rgba(22,19,15,.42);">بلوک دوم — ۲۵ دراپ</div>
+  </div>
+
+  <div style="position: absolute; top: 380px; right: 24px; left: 24px;">
+    <div class="lg-speaker">مهتاب</div>
+    <div style="margin-top: 7px; font-size: 14.5px; line-height: 2;">
+      از جایی که هیچ‌کس نمی‌پرسد. مثلاً از اینکه چرا هیچ‌کدام از کارهایی که کردم را دوست ندارم.
+    </div>
+  </div>
+
+  <div style="position: absolute; top: 512px; right: 24px; left: 24px;">
+    <div class="lg-speaker" style="color: #b3341f;">تـــو</div>
+    <div style="margin-top: 7px; font-size: 14.5px; line-height: 2;">
+      پس از همان شروع کنیم.
+    </div>
+  </div>
+
+  <!-- Two blocks left, printed as ruled boxes at the foot of the page: a
+       receipt that is always in view. -->
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 120px; display: flex; gap: 4px;">
+    <div style="flex: 1; height: 6px; background: #16130f;"></div>
+    <div style="flex: 1; height: 6px; background: #16130f;"></div>
+    <div style="flex: 1; height: 6px; background: rgba(22,19,15,.16);"></div>
+    <div style="flex: 1; height: 6px; background: rgba(22,19,15,.16);"></div>
+  </div>
+
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 44px; display: flex; gap: 10px;
+              align-items: stretch;">
+    <div style="flex-grow: 1; min-height: 52px; border: 1px solid rgba(22,19,15,.3); display: flex;
+                align-items: center; padding: 0 16px; font-size: 13.5px; color: rgba(22,19,15,.38);">بنویس…</div>
+    <div style="width: 52px; min-height: 52px; background: #16130f; color: #f4efe4; display: flex;
+                align-items: center; justify-content: center; font-size: 18px;">←</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

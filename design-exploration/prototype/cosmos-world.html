@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#04080a">
+<title>Cosmos — نمونه‌ی جهان</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  /* =====================================================================
+     Cosmos / Orbit — نمونه‌ی چهارم. خودکفا: نه به سرور وصل است، نه به کدِ
+     محصول. داده ساختگی و ثابت.
+
+     زبانِ دیداری (هر معنی روی ویژگیِ متفاوتی سوار است تا قاطی نشوند):
+       جا             -> نزدیکیِ مکانی (رتبه‌ای، نه متری)
+       اندازه         -> حضور و فعالیت
+       درخششِ درونی   -> اعتماد و سابقه
+       حلقه‌ی دور      -> همین الان آنلاین (تنها معنیِ حلقه)
+       قمرها          -> محتوای پولیِ قفل‌شده
+
+     کارایی: در هر فریم فقط هفت خطِ استایل نوشته می‌شود — صحنه، سه لایه‌ی
+     عمقِ Orbها، و سه لایه‌ی ذرات. جای هیچ Orbـی بعد از ساخته شدن دست
+     نمی‌خورد و نفس کشیدنشان با انیمیشنِ خودِ مرورگر است.
+     ===================================================================== */
+
+  :root{
+    --fa:'Vazirmatn'; --en:'Sora';
+    --ink:#04080a; --fg:#e9f2f0; --warm:#f2b06a; --cool:#7ad7c8; --live:#8ce0a4;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; height:100%; overflow:hidden; background:var(--ink); color:var(--fg);
+    font-family:var(--fa),'Segoe UI',Tahoma,system-ui,sans-serif;
+    font-weight:300; -webkit-user-select:none; user-select:none; overscroll-behavior:none;
+  }
+  .en{ font-family:var(--en),var(--fa),system-ui,sans-serif; }
+  #app{ position:fixed; inset:0; touch-action:none; }
+
+  #ground{ position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(125% 72% at 50% 44%, #0e2025 0%, #071215 46%, #04080a 100%); }
+  .layer{ position:absolute; left:50%; top:50%; width:0; height:0; pointer-events:none;
+          will-change:transform; }
+  .dot{ position:absolute; border-radius:50%; background:#cfe6e2; }
+
+  #stage{ position:absolute; left:0; top:0; width:0; height:0;
+          transform-origin:0 0; will-change:transform; }
+  /* سه لایه‌ی عمق. نزدیک‌ترها موقعِ کشیدن بیشتر جابه‌جا می‌شوند — همین است
+     که جهان را از یک پوسترِ تخت به یک فضا تبدیل می‌کند. عمق از همان
+     رتبه‌ی نزدیکی می‌آید، پس معنیِ تازه‌ای اضافه نمی‌کند. */
+  .dlayer{ position:absolute; left:0; top:0; width:0; height:0; will-change:transform; }
+
+  .halo{ position:absolute; border-radius:50%; pointer-events:none;
+         transform:translate(-50%,-50%); transition:opacity .45s ease; }
+  .ghome{ position:absolute; transform:translate(-50%,-50%); border-radius:50%;
+          border:1px solid rgba(242,176,106,.45); opacity:0; transition:opacity .4s ease;
+          animation:breathe 3.6s ease-in-out infinite; pointer-events:none; }
+  @keyframes breathe{ 0%,100%{ transform:translate(-50%,-50%) scale(1);   opacity:.45 }
+                      50%   { transform:translate(-50%,-50%) scale(1.13); opacity:.12 } }
+  #stage.far .ghome{ opacity:1; }
+
+  .p{ position:absolute; left:0; top:0; will-change:transform; --d:0ms; }
+  .pi{ position:relative; display:flex; flex-direction:column; align-items:center;
+       transform:translate(-50%,-50%);
+       animation-name:drift; animation-timing-function:ease-in-out;
+       animation-iteration-count:infinite; transition:opacity .4s ease; }
+  @keyframes drift{
+    0%   { transform:translate(-50%,-50%) translate3d(0,0,0) }
+    25%  { transform:translate(-50%,-50%) translate3d(5px,-4px,0) }
+    50%  { transform:translate(-50%,-50%) translate3d(0,-8px,0) }
+    75%  { transform:translate(-50%,-50%) translate3d(-5px,-3px,0) }
+    100% { transform:translate(-50%,-50%) translate3d(0,0,0) }
+  }
+  .orbwrap{ position:relative; display:flex; align-items:center; justify-content:center;
+            transition:opacity .75s ease var(--d),
+                       transform .95s cubic-bezier(.2,.9,.25,1.04) var(--d); }
+  .orb{ border-radius:50%; display:flex; align-items:center; justify-content:center;
+        color:#f2fbf8; font-weight:200; position:relative; z-index:3;
+        transition:transform .44s cubic-bezier(.2,.9,.25,1.1); }
+
+  .live{ position:absolute; border-radius:50%; z-index:2;
+         border:1.5px solid rgba(140,224,164,.8);
+         animation:livepulse 2.6s ease-out infinite; }
+  @keyframes livepulse{ 0%{ transform:scale(1); opacity:.85 }
+                        70%,100%{ transform:scale(1.22); opacity:0 } }
+  .live2{ position:absolute; border-radius:50%; z-index:2;
+          border:1.5px solid rgba(140,224,164,.55); }
+
+  .moons{ position:absolute; left:50%; top:50%; z-index:1;
+          animation-name:orbit; animation-timing-function:linear;
+          animation-iteration-count:infinite; }
+  @keyframes orbit{ from{ transform:translate(-50%,-50%) rotate(0deg) }
+                    to  { transform:translate(-50%,-50%) rotate(360deg) } }
+  .mo{ position:absolute; inset:0; }
+  .mo i{ position:absolute; left:50%; top:0; width:13px; height:13px;
+         margin:-6.5px 0 0 -6.5px; border-radius:50%;
+         background:radial-gradient(circle at 32% 28%, #e7efec 0%, #a8b7b6 42%, #5d6b6c 100%);
+         box-shadow:0 0 0 1px rgba(4,8,10,.6), 0 2px 8px rgba(0,0,0,.5);
+         opacity:.62; transition:opacity .4s ease;
+         animation-name:selfspin; animation-timing-function:linear;
+         animation-iteration-count:infinite; }
+  @keyframes selfspin{ from{ transform:rotate(0deg) } to{ transform:rotate(-360deg) } }
+  .pi.on .mo i{ opacity:1; }
+
+  .lbl{ margin-top:9px; text-align:center; line-height:1.55; white-space:nowrap;
+        font-weight:300; color:rgba(233,242,240,.6);
+        transition:opacity .75s ease var(--d),
+                   transform .95s cubic-bezier(.2,.9,.25,1.04) var(--d); }
+  #stage.far .lbl{ opacity:0; }
+  #stage.far .p{ pointer-events:none; }
+  #stage.focus .pi{ opacity:.18; }
+  #stage.far   .pi{ opacity:1 !important; }
+  #stage.focus .pi.on{ opacity:1; }
+  .pi.on .orb{ transform:scale(1.5); }
+  .pi.on .lbl{ opacity:0; }
+
+  /* سه ثانیه‌ی اول: جهان از مرکزِ خانه به بیرون باز می‌شود. */
+  #stage.boot .orbwrap, #stage.boot .lbl{ opacity:0; transform:scale(.3); }
+  #stage.boot .halo, #stage.boot .ghome, #stage.boot .me{ opacity:0; }
+
+  .flare{ position:absolute; border-radius:50%; opacity:0; z-index:0; }
+  .pi.on .flare{ animation:flare 1.6s cubic-bezier(.15,.8,.3,1) forwards; }
+  .pi.on .flare:nth-of-type(2){ animation-delay:.11s }
+  .pi.on .flare:nth-of-type(3){ animation-delay:.22s }
+  @keyframes flare{ 0%{ transform:scale(.55); opacity:0 } 35%{ opacity:.6 }
+                    100%{ transform:scale(2.6); opacity:0 } }
+
+  /* خودِ تو. جهانی که خودت را در آن نبینی نقشه است، نه جهان. */
+  .me{ position:absolute; left:0; top:0; pointer-events:none; transition:opacity 1s ease .1s; }
+  .me .k{ position:relative; transform:translate(-50%,-50%); display:flex;
+          flex-direction:column; align-items:center; }
+  .me .b{ width:30px; height:30px; border-radius:50%;
+          background:radial-gradient(circle at 40% 34%, #fff2df, #f3b573 44%, #b9762f 100%);
+          box-shadow:0 0 26px rgba(242,176,106,.55); }
+  .me .r1,.me .r2{ position:absolute; border-radius:50%;
+                   border:1px solid rgba(242,176,106,.34); }
+  .me .r1{ width:52px; height:52px; top:-11px; }
+  .me .r2{ width:76px; height:76px; top:-23px;
+           animation:breathe2 4.2s ease-in-out infinite; }
+  @keyframes breathe2{ 0%,100%{ transform:scale(1); opacity:.42 }
+                       50%{ transform:scale(1.12); opacity:.1 } }
+  .me .t{ margin-top:13px; font-size:10.5px; letter-spacing:.24em;
+          color:rgba(242,176,106,.72); }
+
+  #peek{ position:absolute; left:50%; transform:translateX(-50%); text-align:center;
+         white-space:nowrap; pointer-events:none; opacity:0;
+         transition:opacity .34s ease .14s; }
+  #peek.on{ opacity:1; }
+  #peek.hid{ opacity:0; transition:opacity .2s ease; }
+  #peek .nm{ font-size:25px; font-weight:200; }
+  #peek .st{ margin-top:9px; font-size:11.5px; color:rgba(233,242,240,.5);
+             display:flex; align-items:center; justify-content:center; gap:7px; }
+  #peek .liv{ width:6px; height:6px; border-radius:50%; background:var(--live);
+              box-shadow:0 0 10px rgba(140,224,164,.9); }
+  #peek .bio{ margin-top:13px; font-size:13px; color:rgba(233,242,240,.78);
+              max-width:290px; white-space:normal; line-height:1.85; margin-inline:auto; }
+  #peek .pr{ margin-top:13px; font-size:12.5px; color:var(--cool); }
+
+  #pull{ position:absolute; left:50%; transform:translateX(-50%); text-align:center;
+         pointer-events:none; opacity:0; transition:opacity .3s ease .35s; }
+  #pull.on{ opacity:1; }
+  #pull .gr{ width:36px; height:3px; border-radius:2px; margin:0 auto;
+             background:rgba(122,215,200,.5); animation:pullup 1.9s ease-in-out infinite; }
+  #pull .tx{ margin-top:10px; font-size:10px; letter-spacing:.16em; color:rgba(233,242,240,.32); }
+  @keyframes pullup{ 0%,100%{ transform:translateY(0); opacity:.35 }
+                     50%{ transform:translateY(-7px); opacity:1 } }
+
+  #hud{ position:absolute; inset:0; pointer-events:none; }
+  #here{ position:absolute; top:calc(env(safe-area-inset-top,0px) + 20px); right:22px;
+         pointer-events:auto; padding:2px 0 6px; transition:opacity .3s ease; }
+  #here .t{ font-size:18px; font-weight:300; letter-spacing:.02em; }
+  #here .s{ margin-top:4px; font-size:10.5px; color:rgba(233,242,240,.4); }
+  #here .k{ margin-top:9px; font-size:10px; letter-spacing:.14em; color:var(--cool);
+            opacity:.72; display:flex; align-items:center; gap:6px; }
+  #here .k::before{ content:""; width:14px; height:1px; background:currentColor; }
+  #fontbtn{ position:absolute; top:calc(env(safe-area-inset-top,0px) + 20px); left:18px;
+            min-height:34px; display:flex; align-items:center; padding:0 13px; border-radius:17px;
+            border:1px solid rgba(233,242,240,.16); color:rgba(233,242,240,.5);
+            font-size:11px; pointer-events:auto; }
+
+  #enter{ position:absolute; left:0; right:0; top:40%; text-align:center; pointer-events:none;
+          opacity:0; }
+  #enter.go{ animation:entering 2.1s cubic-bezier(.16,.8,.3,1) forwards; }
+  @keyframes entering{
+    0%  { opacity:0; letter-spacing:.02em; transform:scale(.94) }
+    22%,62%{ opacity:1 }
+    100%{ opacity:0; letter-spacing:.42em; transform:scale(1.06) }
+  }
+  #enter .a{ font-size:40px; font-weight:200; }
+  #enter .b{ margin-top:10px; font-size:12px; color:rgba(233,242,240,.4); letter-spacing:.2em; }
+
+  #tune{ position:absolute; transform:translate(-50%,-50%); text-align:center;
+         pointer-events:none; opacity:0; transition:opacity .35s ease; }
+  #tune.on{ opacity:1; }
+  #tune .a{ font-size:26px; font-weight:200; }
+  #tune .b{ margin-top:7px; font-size:10.5px; letter-spacing:.2em; color:rgba(233,242,240,.45); }
+
+  #core{ position:absolute; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 70px);
+         width:64px; height:64px; margin-left:-32px; border-radius:50%;
+         border:1.5px solid rgba(242,176,106,.42);
+         box-shadow:0 0 44px rgba(242,176,106,.16), inset 0 0 22px rgba(242,176,106,.07);
+         pointer-events:auto; transition:transform .26s cubic-bezier(.2,.9,.3,1.2),
+                    border-color .26s ease, box-shadow .26s ease; }
+  #core::after{ content:""; position:absolute; left:50%; top:50%; width:20px; height:20px;
+                margin:-10px 0 0 -10px; border-radius:50%;
+                background:radial-gradient(circle at 42% 36%, #fff4e4, #f3b573 46%, #c07c33 100%);
+                box-shadow:0 0 22px rgba(246,190,130,.7);
+                transition:transform .26s cubic-bezier(.2,.9,.3,1.2), box-shadow .26s ease; }
+  #core.held{ transform:scale(.72); border-color:rgba(242,176,106,0);
+              box-shadow:0 0 70px rgba(242,176,106,.3); }
+  #core.held::after{ transform:scale(1.25); box-shadow:0 0 34px rgba(246,190,130,.95); }
+
+  #dial{ position:absolute; pointer-events:none; opacity:0; transform:scale(.86);
+         transform-origin:50% 50%;
+         transition:opacity .2s ease, transform .3s cubic-bezier(.2,.9,.3,1.25); }
+  #hud.open #dial{ opacity:1; transform:scale(1); }
+  #dial path{ fill:none; stroke-linecap:round;
+              transition:stroke-width .2s ease, stroke .2s ease, opacity .2s ease; }
+  .seg{ stroke:rgba(233,242,240,.26); stroke-width:2.5; }
+  .seg.hot{ stroke:var(--warm); stroke-width:6; }
+  .glow{ stroke:var(--warm); stroke-width:15; opacity:0; }
+  .glow.hot{ opacity:.14; }
+  #beam{ stroke:rgba(242,176,106,.38); stroke-width:1; opacity:0; transition:opacity .2s ease; }
+  #beam.on{ opacity:1; }
+  #rider{ fill:var(--warm); opacity:0; transition:opacity .2s ease; }
+  #rider.on{ opacity:1; }
+  #dlabel{ position:absolute; transform:translate(-50%,-50%); text-align:center;
+           pointer-events:none; opacity:0; transition:opacity .22s ease; }
+  #hud.open #dlabel{ opacity:1; }
+  #dlabel .a{ font-size:27px; font-weight:200; letter-spacing:.04em; transition:color .2s ease; }
+  #dlabel .b{ margin-top:7px; font-size:10px; letter-spacing:.3em; color:rgba(233,242,240,.32); }
+
+  #hint{ position:absolute; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 42px);
+         text-align:center; font-size:10px; letter-spacing:.16em;
+         color:rgba(233,242,240,.26); transition:opacity .3s ease; }
+  #hud.open #here, #hud.open #hint{ opacity:0; }
+
+  #act{ position:absolute; left:0; right:0; bottom:0;
+        padding:16px 18px calc(env(safe-area-inset-bottom,0px) + 16px);
+        background:linear-gradient(180deg, rgba(6,14,16,0), rgba(6,14,16,.94) 22%);
+        transform:translateY(112%); transition:transform .38s cubic-bezier(.2,.8,.2,1);
+        pointer-events:auto; }
+  #act.on{ transform:translateY(0); }
+  #act .of{ display:flex; align-items:center; gap:12px; min-height:52px; padding:0 16px;
+            border-radius:15px; background:rgba(233,242,240,.05);
+            border:1px solid rgba(233,242,240,.09); margin-bottom:7px; }
+  #act .of .t{ flex-grow:1; font-size:13.5px; }
+  #act .d{ font-size:10.5px; color:rgba(233,242,240,.4); }
+  #act .v{ font-size:14px; color:var(--cool); }
+  #act .two{ display:flex; gap:8px; margin-top:4px; }
+  #act .sec{ flex:1; min-height:50px; border-radius:25px; display:flex; align-items:center;
+             justify-content:center; font-size:13.5px; color:rgba(233,242,240,.72);
+             border:1px solid rgba(233,242,240,.18); }
+  #act .pri{ flex:1.4; min-height:50px; border-radius:25px; display:flex; align-items:center;
+             justify-content:center; font-size:14px; background:var(--cool); color:#05171a; }
+
+  @media (prefers-reduced-motion: reduce){ .pi,.ghome,.moons,.mo i,.live,.me .r2{ animation:none } }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="ground"></div>
+  <div class="layer" id="l1"></div>
+  <div class="layer" id="l2"></div>
+  <div class="layer" id="l3"></div>
+  <div id="stage" class="boot"></div>
+
+  <div id="hud">
+    <div id="here"><div class="t en"></div><div class="s"></div><div class="k"></div></div>
+    <div id="fontbtn">قلم ۱</div>
+    <div id="enter"><div class="a en"></div><div class="b"></div></div>
+    <div id="tune"><div class="a en"></div><div class="b"></div></div>
+    <div id="peek"><div class="nm"></div><div class="st"></div><div class="bio"></div><div class="pr"></div></div>
+    <div id="pull"><div class="gr"></div><div class="tx">برای پیشنهادها بالا بکش</div></div>
+
+    <svg id="dial" width="340" height="340" viewBox="-170 -170 340 340">
+      <line id="beam" x1="0" y1="0" x2="0" y2="0"></line>
+      <g id="glows"></g><g id="segs"></g>
+      <circle id="rider" cx="0" cy="0" r="4.5"></circle>
+    </svg>
+    <div id="dlabel"><div class="a"></div><div class="b en"></div></div>
+
+    <div id="core"></div>
+    <div id="hint">بکش و بگرد · هسته را نگه دار</div>
+  </div>
+
+  <div id="act"></div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const rng = seed => function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+  const fa   = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+  const pick = (r, a) => a[Math.floor(r() * a.length) % a.length];
+  const el   = id => document.getElementById(id);
+  /* لرزش: روی اندروید کار می‌کند (حتی وقتی اپ نصب شده باشد)، روی آیفون
+     اصلاً وجود ندارد. چیزی خراب نمی‌شود، فقط آنجا نیست. */
+  const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch(e){} };
+
+  const NAMES = ['مهتاب','نگار','آرش','رها','کیان','سوگند','بهار','نوید','پریسا','سامان',
+                 'یلدا','هومن','شبنم','کاوه','ترانه','بردیا','نازنین','فرهاد','آیدا','سپهر',
+                 'مینا','رامین','شیوا','بابک','دریا','کسری','هستی','امید','ژاله','پویا'];
+  const BIOS = ['شب‌ها بیدارم و وسط حرف کسی نمی‌پرم.',
+                'درباره‌ی کوه، شکست، و اینکه هیچ‌کدام آن‌قدر بزرگ نیستند.',
+                'فقط گوش می‌دهم. اگر لازم شد حرف می‌زنم.',
+                'از چیزهایی می‌پرسم که کسی نمی‌پرسد.',
+                'قهوه، کتاب، و سکوتِ ساعت سه.',
+                'هر چیزی جز نصیحت.','آدمِ حرف‌های نصفه‌کاره‌ام.','می‌خندم، ولی نه به همه‌چیز.'];
+  const OFFERS = ['گفتگوی شبانه','نیم‌ساعت حرف','یک ساعت بی‌واسطه','هم‌صحبتی صبح','حرفِ جدی'];
+  const PRICES = [60, 80, 100, 120, 150, 180, 240];
+  const HUES   = [['#2f6f68','#14403d'],['#3a5a70','#1a2c3a'],['#7a5238','#33201a'],
+                  ['#4a3d57','#221a2b'],['#2f5a4a','#152b24'],['#6e3c46','#2b171d']];
+  const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+
+  const GALAXIES = [
+    { id:'vega', en:'Vega',    faName:'وگا',    sub:'خانه‌ی تو',      x:0,     y:0,
+      n:30, tint:'122,215,200', form:'disc',   anon:false },
+    { id:'lyra', en:'Lyra',    faName:'لیرا',   sub:'کهکشان همسایه', x:2100,  y:-520,
+      n:27, tint:'108,168,222', form:'stream', anon:false },
+    { id:'mer',  en:'Meridian',faName:'مریدیان',sub:'کهکشان همسایه', x:-1900, y:1080,
+      n:24, tint:'206,152,108', form:'ring',   anon:false },
+    { id:'hal',  en:'Halcyon', faName:'هالسیون',sub:'کهکشان همسایه', x:900,   y:2150,
+      n:22, tint:'172,140,208', form:'spiral', anon:false },
+    { id:'now',  en:'Nowhere', faName:'ناکجا',  sub:'کسانی که جایی ثبت نکرده‌اند',
+      x:-2700, y:-2050, n:26, tint:'146,162,168', form:'scatter', anon:true }
+  ];
+
+  function place(form, i, r){
+    const a = i * GOLDEN, s = 80;
+    switch (form){
+      case 'stream': {
+        const rr = s * Math.sqrt(i + 1.7);
+        const x = Math.cos(a)*rr*2.0, y = Math.sin(a)*rr*.48, t = .42;
+        return [x*Math.cos(t) - y*Math.sin(t), x*Math.sin(t) + y*Math.cos(t)];
+      }
+      case 'ring': {
+        const rr = 330 + s*.85*Math.sqrt(i+1);
+        return [Math.cos(a)*rr, Math.sin(a)*rr];
+      }
+      case 'spiral': {
+        const arm = i % 3, t = Math.floor(i/3);
+        const th = arm*(Math.PI*2/3) + t*.44, rr = 110 + t*62 + (r()-.5)*26;
+        return [Math.cos(th)*rr, Math.sin(th)*rr];
+      }
+      case 'scatter': {
+        const rr = s*1.45*Math.sqrt(i+4) + (r()-.5)*90, th = a*1.37 + (r()-.5)*.6;
+        return [Math.cos(th)*rr, Math.sin(th)*rr];
+      }
+      default: {
+        const rr = s*Math.sqrt(i+1.7);
+        return [Math.cos(a)*rr, Math.sin(a)*rr];
+      }
+    }
+  }
+
+  const stage = el('stage'), hud = el('hud');
+  const DEPTHS = [1.09, 1.0, 0.93];            // نزدیک، میانه، دور
+  const dlayers = DEPTHS.map(f => {
+    const d = document.createElement('div');
+    d.className = 'dlayer';
+    stage.appendChild(d);
+    return d;
+  });
+  const depthOf = rank => rank < 8 ? 0 : rank < 18 ? 1 : 2;
+
+  let focusRec = null;
+
+  GALAXIES.forEach((g, gi) => {
+    const r = rng(4200 + gi * 131);
+    const hr = 1500 + g.n * 22;
+
+    const halo = document.createElement('div');
+    halo.className = 'halo';
+    halo.style.cssText = 'width:' + hr + 'px;height:' + hr + 'px;left:' + g.x +
+      'px;top:' + g.y + 'px;background:radial-gradient(circle, rgba(' + g.tint +
+      ',.12) 0%, rgba(' + g.tint + ',.04) 40%, rgba(0,0,0,0) 68%)';
+    dlayers[2].appendChild(halo);
+    g.haloEl = halo; g.baseHalo = 1;
+
+    if (g.id === 'vega'){
+      const hm = document.createElement('div');
+      hm.className = 'ghome';
+      hm.style.cssText = 'width:760px;height:760px;left:' + g.x + 'px;top:' + g.y + 'px';
+      dlayers[2].appendChild(hm);
+
+      const me = document.createElement('div');       // خودِ تو، در مرکزِ خانه
+      me.className = 'me';
+      me.style.transform = 'translate3d(' + g.x + 'px,' + g.y + 'px,0)';
+      me.innerHTML = '<div class="k"><div class="r2"></div><div class="r1"></div>' +
+                     '<div class="b"></div><div class="t">تو</div></div>';
+      dlayers[0].appendChild(me);
+    }
+
+    g.people = [];
+    for (let i = 0; i < g.n; i++){
+      const pos = place(g.form, i, r);
+      const px = g.x + pos[0], py = g.y + pos[1];
+
+      const presence = Math.pow(r(), 1.5);
+      const trust    = r();
+      const size     = Math.round(44 + presence * 32);
+      const nOffers  = 1 + Math.floor(r() * 3);
+      const nContent = r() < .45 ? 1 + Math.floor(r() * 3) : 0;
+
+      const offers = [];
+      for (let k = 0; k < nOffers; k++)
+        offers.push({ title: pick(r, OFFERS), price: pick(r, PRICES),
+                      mins: pick(r, [30,30,45,60]) });
+      offers.sort((a,b) => a.price - b.price);
+
+      const rec = {
+        name: g.anon ? 'یکی از ناکجا' : pick(r, NAMES),
+        bio:  g.anon ? 'اینجا کسی خودش را معرفی نمی‌کند.' : pick(r, BIOS),
+        online: r() < .42, offers, galaxy: g, anon: g.anon,
+        hue: pick(r, HUES), size, rank: i, depth: depthOf(i)
+      };
+
+      const node = document.createElement('div');
+      node.className = 'p';
+      node.style.transform = 'translate3d(' + px + 'px,' + py + 'px,0)';
+      const bootDelay = gi === 0 ? 140 + i * 42 : 900 + gi * 90 + i * 14;
+      node.style.setProperty('--d', Math.min(bootDelay, 2100) + 'ms');
+
+      const inner = document.createElement('div');
+      inner.className = 'pi';
+      inner.style.animationDuration = (10 + r()*9).toFixed(1) + 's';
+      inner.style.animationDelay    = (-r()*16).toFixed(1) + 's';
+      inner.style.opacity           = (1 - Math.min(.34, i * .013)).toFixed(2);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'orbwrap';
+      wrap.style.cssText = 'width:' + (size+56) + 'px;height:' + (size+56) + 'px';
+
+      for (let f = 0; f < 3; f++){
+        const fl = document.createElement('div');
+        fl.className = 'flare';
+        fl.style.cssText = 'width:' + (size+16) + 'px;height:' + (size+16) +
+          'px;border:1px solid rgba(' + g.tint + ',.5);border-radius:50%';
+        wrap.appendChild(fl);
+      }
+
+      /* نور از مرکزِ کهکشان می‌تابد، نه از یک زاویه‌ی ثابت. همین یک چیز
+         Orbها را از «دایره‌های چیده‌شده» به «اجرامِ یک منظومه» تبدیل می‌کند. */
+      const dx = g.x - px, dy = g.y - py;
+      const dl = Math.hypot(dx, dy) || 1;
+      const nx = dx / dl, ny = dy / dl;
+      const hx = (50 + nx * 27).toFixed(0), hy = (50 + ny * 27).toFixed(0);
+      const shine = (.06 + trust * .5).toFixed(2);
+
+      const orb = document.createElement('div');
+      orb.className = 'orb';
+      orb.style.cssText = 'width:' + size + 'px;height:' + size + 'px;font-size:' +
+        Math.round(size*.34) + 'px;background:radial-gradient(circle at ' + hx + '% ' + hy +
+        '%, rgba(255,255,255,' + shine + ') 0%, rgba(255,255,255,0) 56%), ' +
+        'linear-gradient(145deg,' + rec.hue[0] + ',' + rec.hue[1] + ');' +
+        'box-shadow:0 10px 30px rgba(0,0,0,.45), inset ' + (-nx*7).toFixed(1) + 'px ' +
+        (-ny*7).toFixed(1) + 'px 16px rgba(0,0,0,.46)' +
+        (trust > .6 ? ', 0 0 ' + Math.round(trust*26) + 'px rgba(' + g.tint + ',' +
+          (trust*.22).toFixed(2) + ')' : '');
+      orb.textContent = g.anon ? '' : rec.name[0];
+      wrap.appendChild(orb);
+
+      if (rec.online){
+        const l2 = document.createElement('div');
+        l2.className = 'live2';
+        l2.style.cssText = 'width:' + (size+11) + 'px;height:' + (size+11) + 'px';
+        wrap.appendChild(l2);
+        const l1 = document.createElement('div');
+        l1.className = 'live';
+        l1.style.cssText = 'width:' + (size+11) + 'px;height:' + (size+11) +
+          'px;animation-delay:' + (-r()*2.6).toFixed(1) + 's';
+        wrap.appendChild(l1);
+      }
+
+      if (nContent){
+        const md = size + 44;
+        const moons = document.createElement('div');
+        moons.className = 'moons';
+        moons.style.cssText = 'width:' + md + 'px;height:' + md + 'px;animation-duration:' +
+          (16 + r()*14).toFixed(1) + 's;animation-direction:' + (r() < .5 ? 'normal' : 'reverse');
+        for (let c = 0; c < nContent; c++){
+          const arm = document.createElement('div');
+          arm.className = 'mo';
+          arm.style.transform = 'rotate(' + (c * 360 / nContent).toFixed(0) + 'deg)';
+          const mi = document.createElement('i');
+          if (i < 12) mi.style.animationDuration = (5 + r()*5).toFixed(1) + 's';
+          arm.appendChild(mi);
+          moons.appendChild(arm);
+        }
+        wrap.appendChild(moons);
+      }
+
+      inner.appendChild(wrap);
+
+      if (!g.anon && i < 8){
+        const lb = document.createElement('div');
+        lb.className = 'lbl';
+        lb.style.fontSize = (i < 4 ? 12 : 11) + 'px';
+        lb.textContent = rec.name;
+        inner.appendChild(lb);
+      }
+
+      node.appendChild(inner);
+      dlayers[rec.depth].appendChild(node);
+      rec.node = node; rec.inner = inner; rec.x = px; rec.y = py;
+      node.__rec = rec;
+      g.people.push(rec);
+    }
+    g.live = g.people.length;
+  });
+
+  [['l1',140,.26,.9,.10],['l2',86,.54,1.3,.15],['l3',48,1,1.9,.2]].forEach(spec => {
+    const host = el(spec[0]);
+    host.dataset.f = spec[2];
+    const r = rng(spec[0].charCodeAt(1) * 991);
+    let html = '';
+    for (let i = 0; i < spec[1]; i++)
+      html += '<i class="dot" style="left:' + ((r()-.5)*7400).toFixed(0) + 'px;top:' +
+              ((r()-.5)*7400).toFixed(0) + 'px;width:' + spec[3] + 'px;height:' + spec[3] +
+              'px;opacity:' + (spec[4]*(.4+r()*.6)).toFixed(2) + '"></i>';
+    host.innerHTML = html;
+  });
+  const players = [].slice.call(document.querySelectorAll('.layer'));
+
+  // --- دوربین -----------------------------------------------------------
+  const cam = {x:0,y:0,z:1}, tgt = {x:0,y:0,z:1}, vel = {x:0,y:0};
+  const gRef = {x:0, y:0};                  // مرجعِ پارالاکس: مرکزِ کهکشانِ فعلی
+  let dragging = false, moved = false, mapMode = false, lastG = null, tunedG = null;
+
+  const nearestGalaxy = (wx, wy) => {
+    let best = GALAXIES[0], bd = Infinity;
+    for (let i = 0; i < GALAXIES.length; i++){
+      const g = GALAXIES[i], d = Math.hypot(g.x - wx, g.y - wy);
+      if (d < bd){ bd = d; best = g; }
+    }
+    return best;
+  };
+  /** جابه‌جاییِ عمودیِ اضافه‌ی یک لایه — برای وقتی جای واقعیِ روی صفحه لازم است. */
+  const shiftY = d => (cam.y - gRef.y) * (1 - DEPTHS[d]);
+
+  function frame(){
+    if (!dragging && !mapMode && !focusRec){
+      tgt.x += vel.x; tgt.y += vel.y;
+      vel.x *= .935; vel.y *= .935;
+      if (Math.abs(vel.x) < .02) vel.x = 0;
+      if (Math.abs(vel.y) < .02) vel.y = 0;
+    }
+    cam.x += (tgt.x - cam.x) * .14;
+    cam.y += (tgt.y - cam.y) * .14;
+    cam.z += (tgt.z - cam.z) * .08;
+
+    const near = nearestGalaxy(cam.x, cam.y);
+    gRef.x += (near.x - gRef.x) * .05;        // نرم، تا موقعِ سفر نپرد
+    gRef.y += (near.y - gRef.y) * .05;
+
+    stage.style.transform = 'translate3d(' + (innerWidth/2) + 'px,' + (innerHeight/2) +
+      'px,0) scale(' + cam.z + ') translate3d(' + (-cam.x) + 'px,' + (-cam.y) + 'px,0)';
+    for (let i = 0; i < dlayers.length; i++){
+      const f = DEPTHS[i];
+      dlayers[i].style.transform = 'translate3d(' +
+        ((cam.x-gRef.x)*(1-f)).toFixed(2) + 'px,' +
+        ((cam.y-gRef.y)*(1-f)).toFixed(2) + 'px,0)';
+    }
+    for (let i = 0; i < players.length; i++){
+      const f = +players[i].dataset.f;
+      players[i].style.transform = 'translate3d(' + (-cam.x*f).toFixed(1) + 'px,' +
+        (-cam.y*f).toFixed(1) + 'px,0)';
+    }
+
+    stage.classList.toggle('far', cam.z < .4);
+    updateWhere(near);
+    if (focusRec) positionPeek();
+    requestAnimationFrame(frame);
+  }
+
+  const hereT = document.querySelector('#here .t'), hereS = document.querySelector('#here .s'),
+        hereK = document.querySelector('#here .k');
+  const enterEl = el('enter'), tuneEl = el('tune');
+
+  function announce(a, b){
+    enterEl.querySelector('.a').textContent = a;
+    enterEl.querySelector('.b').textContent = b;
+    enterEl.classList.remove('go'); void enterEl.offsetWidth; enterEl.classList.add('go');
+  }
+  function setHalo(g, v){
+    const q = Math.round(v * 20) / 20;
+    if (g.baseHalo !== q){ g.baseHalo = q; g.haloEl.style.opacity = q; }
+  }
+
+  function updateWhere(best){
+    if (best !== lastG){
+      lastG = best;
+      hereT.textContent = best.en + ' (' + best.faName + ')';
+      hereS.textContent = best.sub + ' · ' + fa(best.live) + ' نفر';
+      if (!mapMode){ announce(best.en, best.faName); buzz(14); }
+    }
+    if (mapMode){
+      if (best !== tunedG){
+        tunedG = best;
+        tuneEl.querySelector('.a').textContent = best.en;
+        tuneEl.querySelector('.b').textContent = fa(best.live) + ' نفر';
+      }
+      tuneEl.style.left = (innerWidth/2 + (best.x - cam.x) * cam.z) + 'px';
+      tuneEl.style.top  = (innerHeight/2 + (best.y - cam.y) * cam.z
+                           - (1500 + best.n*22) * cam.z * .42) + 'px';
+      tuneEl.classList.add('on');
+      for (let i = 0; i < GALAXIES.length; i++)
+        setHalo(GALAXIES[i], GALAXIES[i] === best ? 1 : .3);
+    } else {
+      tuneEl.classList.remove('on'); tunedG = null;
+      // جهان به نزدیک شدنت واکنش نشان می‌دهد: هاله‌ی کهکشانی که در آن هستی
+      // روشن‌تر است، و هرچه دور می‌شوی کم‌نورتر می‌شود.
+      for (let i = 0; i < GALAXIES.length; i++){
+        const g = GALAXIES[i], d = Math.hypot(g.x - cam.x, g.y - cam.y);
+        setHalo(g, Math.max(.34, Math.min(1.25, 1.35 - d / 2600)));
+      }
+    }
+  }
+
+  // --- لمس ---------------------------------------------------------------
+  const app = el('app');
+  let px0 = 0, py0 = 0, dist = 0, sx0 = 0, sy0 = 0, gesture = '';
+  const onChrome = t => t && t.closest &&
+    (t.closest('#act') || t.closest('#core') || t.closest('#fontbtn') || t.closest('#here'));
+
+  app.addEventListener('pointerdown', e => {
+    if (onChrome(e.target)) return;
+    dragging = true; moved = false; dist = 0; gesture = '';
+    px0 = sx0 = e.clientX; py0 = sy0 = e.clientY; vel.x = vel.y = 0;
+    app.setPointerCapture(e.pointerId);
+  });
+  app.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - px0, dy = e.clientY - py0;
+    px0 = e.clientX; py0 = e.clientY;
+    dist += Math.abs(dx) + Math.abs(dy);
+    if (dist > 9) moved = true;
+
+    // وقتی کسی انتخاب شده، کشیدنِ عمودی یعنی «نزدیک‌تر بیاور» یا «رها کن»،
+    // نه چرخاندنِ جهان. تا جهتِ ژست معلوم نشده هیچ‌کدام اتفاق نمی‌افتد.
+    if (focusRec && !gesture){
+      const tx = e.clientX - sx0, ty = e.clientY - sy0;
+      if (Math.abs(ty) > 24 && Math.abs(ty) > Math.abs(tx) * 1.2){
+        gesture = 'v'; dragging = false;
+        if (ty < 0) openPanel(); else if (panelOpen) closePanel(); else unfocus();
+        return;
+      }
+      if (Math.abs(tx) > 24){ gesture = 'h'; unfocus(); }
+      else return;
+    }
+
+    tgt.x -= dx / cam.z; tgt.y -= dy / cam.z;
+    cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+    vel.x = -dx / cam.z; vel.y = -dy / cam.z;
+  });
+  app.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    dragging = false;
+    if (moved) return;
+    if (mapMode){
+      const wx = (e.clientX - innerWidth/2) / cam.z + cam.x;
+      const wy = (e.clientY - innerHeight/2) / cam.z + cam.y;
+      toWorld(nearestGalaxy(wx, wy));
+      return;
+    }
+    const t = document.elementFromPoint(e.clientX, e.clientY);
+    const pn = t && t.closest ? t.closest('.p') : null;
+    if (pn && pn.__rec){
+      if (pn.__rec === focusRec) panelOpen ? closePanel() : openPanel();
+      else focusOn(pn.__rec);
+    } else if (panelOpen) closePanel();
+    else unfocus();
+  });
+  app.addEventListener('pointercancel', () => { dragging = false; });
+
+  // --- مقیاس -------------------------------------------------------------
+  function toMap(){
+    unfocus(); mapMode = true; vel.x = vel.y = 0;
+    let sx = 0, sy = 0;
+    for (let i = 0; i < GALAXIES.length; i++){ sx += GALAXIES[i].x; sy += GALAXIES[i].y; }
+    tgt.x = sx / GALAXIES.length; tgt.y = sy / GALAXIES.length;
+    tgt.z = Math.max(.085, Math.min(innerWidth, innerHeight) / 7400);
+    syncHeader(); buzz(10);
+  }
+  function toWorld(g){
+    mapMode = false; tgt.x = g.x; tgt.y = g.y; tgt.z = 1;
+    syncHeader(); buzz(14);
+  }
+  function syncHeader(){ hereK.textContent = mapMode ? 'برای ورود بزن' : 'دیدِ کلیِ جهان'; }
+  el('here').addEventListener('click', () => {
+    if (mapMode) toWorld(tunedG || lastG || GALAXIES[0]); else toMap();
+  });
+
+  // --- تمرکز روی یک نفر --------------------------------------------------
+  const peek = el('peek'), act = el('act'), pull = el('pull');
+  let panelOpen = false;
+
+  function focusOn(rec){
+    if (focusRec === rec) return;
+    if (focusRec) focusRec.inner.classList.remove('on');
+    focusRec = rec;
+    rec.inner.classList.add('on');
+    stage.classList.add('focus');
+    buzz(9);
+
+    // با پارالاکس، جای دیده‌شده‌ی یک Orb کمی با جای واقعی‌اش فرق دارد؛
+    // هدفِ دوربین طوری حساب می‌شود که همان جای دیده‌شده وسط بیفتد.
+    const f = DEPTHS[rec.depth], g = rec.galaxy;
+    tgt.x = g.x + (rec.x - g.x) / f;
+    tgt.y = g.y + (rec.y - g.y) / f + innerHeight * .10;
+    tgt.z = 1; vel.x = vel.y = 0;
+
+    peek.querySelector('.nm').textContent = rec.name;
+    peek.querySelector('.st').innerHTML = rec.online
+      ? '<span class="liv"></span>الان بیدار است' : 'الان اینجا نیست';
+    peek.querySelector('.bio').textContent = rec.bio;
+    const lo = rec.offers[0].price, hi = rec.offers[rec.offers.length-1].price;
+    peek.querySelector('.pr').innerHTML = fa(rec.offers.length) + ' پیشنهاد · ' +
+      '<bdi dir="ltr">' + (lo === hi ? fa(lo) : fa(lo) + '–' + fa(hi)) +
+      ' <span class="en">Spark</span></bdi>';
+    peek.classList.add('on');
+
+    let html = '';
+    for (let i = 0; i < rec.offers.length; i++){
+      const o = rec.offers[i];
+      html += '<div class="of"><span class="t">' + o.title +
+              '<span class="d" style="display:block;margin-top:3px">' + fa(o.mins) +
+              ' دقیقه · چهار بخش</span></span><span class="v"><bdi dir="ltr">' +
+              fa(o.price) + ' <span class="en">Spark</span></bdi></span></div>';
+    }
+    html += '<div class="two"><div class="sec">پروفایل</div>' +
+            '<div class="pri">درخواست گفتگو</div></div>';
+    act.innerHTML = html;
+    panelOpen = false;
+    act.classList.remove('on');
+    peek.classList.remove('hid');
+    pull.classList.add('on');
+    el('hint').style.opacity = '0';
+  }
+
+  // مرحله‌ی دو. هیچ‌وقت هم‌زمان با مرحله‌ی یک دیده نمی‌شود.
+  function openPanel(){
+    if (!focusRec || panelOpen) return;
+    panelOpen = true; buzz(8);
+    act.classList.add('on');
+    pull.classList.remove('on');
+    peek.classList.add('hid');
+  }
+  function closePanel(){
+    if (!panelOpen) return;
+    panelOpen = false;
+    act.classList.remove('on');
+    peek.classList.remove('hid');
+    pull.classList.add('on');
+  }
+
+  function positionPeek(){
+    if (!focusRec) return;
+    const sy = innerHeight/2 + ((focusRec.y + shiftY(focusRec.depth)) - cam.y) * cam.z;
+    const h = peek.offsetHeight || 150;
+    const top = Math.min(sy + focusRec.size * .78 + 36, innerHeight - 168 - h);
+    peek.style.top = top + 'px';
+    pull.style.top = (top + h + 22) + 'px';
+  }
+
+  function unfocus(){
+    if (!focusRec) return;
+    focusRec.inner.classList.remove('on');
+    focusRec = null;
+    stage.classList.remove('focus');
+    peek.classList.remove('on'); peek.classList.remove('hid');
+    act.classList.remove('on');  pull.classList.remove('on');
+    panelOpen = false;
+    el('hint').style.opacity = '';
+  }
+  act.addEventListener('click', e => { if (e.target.closest('.sec')) unfocus(); });
+
+  // --- گردانه‌ی هسته ------------------------------------------------------
+  const core = el('core'), dial = el('dial'), dlabel = el('dlabel');
+  const SECTIONS = [
+    { fa:'کشف', en:'DISCOVER', a0:321, a1:355 },
+    { fa:'فعالیت', en:'ACTIVITY', a0:281, a1:315 },
+    { fa:'کیف', en:'WALLET', a0:225, a1:259 },
+    { fa:'من', en:'YOU', a0:185, a1:219 }
+  ];
+  const DR = 122;
+  const pol = (r, deg) => [r*Math.cos(deg*Math.PI/180), r*Math.sin(deg*Math.PI/180)];
+  const arc = (r, a0, a1) => {
+    const p0 = pol(r,a0), p1 = pol(r,a1);
+    return 'M ' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) + ' A ' + r + ' ' + r + ' 0 ' +
+           ((a1-a0) > 180 ? 1 : 0) + ' 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2);
+  };
+  const NS = 'http://www.w3.org/2000/svg';
+  const segEls = [], glowEls = [];
+  SECTIONS.forEach(s => {
+    const gp = document.createElementNS(NS,'path');
+    gp.setAttribute('d', arc(DR, s.a0, s.a1)); gp.setAttribute('class','glow');
+    el('glows').appendChild(gp); glowEls.push(gp);
+    const sp = document.createElementNS(NS,'path');
+    sp.setAttribute('d', arc(DR, s.a0, s.a1)); sp.setAttribute('class','seg');
+    el('segs').appendChild(sp); segEls.push(sp);
+  });
+  const beam = el('beam'), rider = el('rider');
+
+  const coreCenter = () => {
+    const b = core.getBoundingClientRect();
+    return { x: b.left + b.width/2, y: b.top + b.height/2 };
+  };
+  function layoutDial(){
+    const c = coreCenter();
+    dial.style.left = (c.x - 170) + 'px';  dial.style.top = (c.y - 170) + 'px';
+    dlabel.style.left = c.x + 'px';        dlabel.style.top = (c.y - DR - 56) + 'px';
+  }
+
+  let holdT = null, held = false, hot = -1;
+  function setHot(i){
+    if (i === hot) return;
+    hot = i;
+    if (hot >= 0) buzz(6);
+    segEls.forEach((s,k) => s.classList.toggle('hot', k === hot));
+    glowEls.forEach((s,k) => s.classList.toggle('hot', k === hot));
+    const a = dlabel.querySelector('.a'), b = dlabel.querySelector('.b');
+    if (hot < 0){
+      a.textContent = 'به سمتی بکش'; a.style.color = 'rgba(233,242,240,.34)';
+      b.textContent = ''; beam.classList.remove('on'); rider.classList.remove('on');
+    } else {
+      a.textContent = SECTIONS[hot].fa; a.style.color = 'var(--warm)';
+      b.textContent = SECTIONS[hot].en;
+      beam.classList.add('on'); rider.classList.add('on');
+    }
+  }
+  function moveRider(deg){
+    const p = pol(DR, deg);
+    rider.setAttribute('cx', p[0].toFixed(2)); rider.setAttribute('cy', p[1].toFixed(2));
+    const q = pol(DR - 16, deg);
+    beam.setAttribute('x2', q[0].toFixed(2)); beam.setAttribute('y2', q[1].toFixed(2));
+  }
+
+  core.addEventListener('pointerdown', e => {
+    held = false;
+    core.setPointerCapture(e.pointerId);
+    holdT = setTimeout(() => {
+      held = true; core.classList.add('held'); buzz(12);
+      layoutDial(); hot = -2; setHot(-1); hud.classList.add('open');
+    }, 180);
+  });
+  core.addEventListener('pointermove', e => {
+    if (!held) return;
+    const c = coreCenter();
+    const dx = e.clientX - c.x, dy = e.clientY - c.y;
+    if (Math.hypot(dx, dy) < 30){ setHot(-1); return; }
+    let deg = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (deg < 0) deg += 360;
+    moveRider(deg);
+    let found = -1;
+    SECTIONS.forEach((s,i) => { if (deg >= s.a0 - 3 && deg <= s.a1 + 3) found = i; });
+    setHot(found);
+  });
+  function coreUp(){
+    clearTimeout(holdT);
+    core.classList.remove('held');
+    if (held){
+      hud.classList.remove('open');
+      if (hot >= 0){ announce(SECTIONS[hot].fa, 'در این نمونه ساخته نشده'); buzz(16); }
+      segEls.forEach(s => s.classList.remove('hot'));
+      glowEls.forEach(s => s.classList.remove('hot'));
+    } else {
+      unfocus(); mapMode = false; syncHeader();
+      tgt.x = 0; tgt.y = 0; tgt.z = 1;
+    }
+    held = false; hot = -1;
+  }
+  core.addEventListener('pointerup', coreUp);
+  core.addEventListener('pointercancel', coreUp);
+  addEventListener('resize', layoutDial);
+  layoutDial();
+
+  // --- قلم --------------------------------------------------------------
+  const COMBOS = [['Vazirmatn','Sora','وزیرمتن + Sora'],
+                  ['Noto Kufi Arabic','Outfit','کوفی + Outfit'],
+                  ['Vazirmatn','Space Grotesk','وزیرمتن + Space Grotesk']];
+  let ci = 0;
+  const fb = el('fontbtn');
+  const applyFont = () => {
+    document.documentElement.style.setProperty('--fa', "'" + COMBOS[ci][0] + "'");
+    document.documentElement.style.setProperty('--en', "'" + COMBOS[ci][1] + "'");
+    fb.textContent = COMBOS[ci][2];
+  };
+  fb.addEventListener('click', () => { ci = (ci+1) % COMBOS.length; applyFont(); });
+  applyFont();
+
+  syncHeader();
+  requestAnimationFrame(frame);
+  // یک فریم صبر، تا حالتِ بسته واقعاً رنگ بخورد و بعد جهان باز شود.
+  requestAnimationFrame(() => requestAnimationFrame(() => stage.classList.remove('boot')));
+})();
+</script>
+</body>
+</html>

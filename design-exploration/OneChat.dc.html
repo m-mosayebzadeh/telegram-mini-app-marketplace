@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;600&display=swap">
+  <style>
+    body { margin: 0; }
+    .on { font-family: 'Vazirmatn', system-ui, sans-serif; }
+    .on-grain {
+      background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 2px),
+                        repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 3px);
+    }
+  </style>
+</helmet>
+
+<div class="on" dir="rtl" style="position: relative; width: 390px; height: 844px; overflow: hidden;
+  background: #000; color: #fff;">
+
+  <!-- Their face stays behind the conversation the whole time, dimmed almost to
+       nothing. You never stop being with a person, which is the thing a normal
+       messenger loses the moment the header collapses to a 32px circle. -->
+  <div style="position: absolute; inset: 0; background:
+              radial-gradient(80% 55% at 60% 22%, #6b5a4c 0%, #2a231d 45%, #0a0808 100%); opacity: .38;"></div>
+  <div class="on-grain" style="position: absolute; inset: 0; opacity: .45;"></div>
+
+  <!-- The single most important number on the screen, set as the largest thing
+       on it. The four marks under it are the blocks. -->
+  <div style="position: absolute; top: 56px; right: 24px; left: 24px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between;">
+      <div style="font-size: 14px; font-weight: 300; color: rgba(255,255,255,.66);">مهتاب</div>
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <div style="font-size: 34px; font-weight: 200; color: #e8b984;">۱۲:۰۴</div>
+      </div>
+    </div>
+    <div style="margin-top: 14px; display: flex; gap: 6px;">
+      <div style="flex: 1; height: 2px; background: rgba(232,185,132,.35);"></div>
+      <div style="flex: 1; height: 2px; background: #e8b984;"></div>
+      <div style="flex: 1; height: 2px; background: rgba(255,255,255,.18);"></div>
+      <div style="flex: 1; height: 2px; background: rgba(255,255,255,.18);"></div>
+    </div>
+    <div style="margin-top: 9px; font-size: 10.5px; color: rgba(255,255,255,.4);">
+      بخش دوم از چهار · ۵۰ دراپ فریز
+    </div>
+  </div>
+
+  <!-- No bubbles, no avatars, no timestamps per line. Two type colours carry
+       the whole distinction, and the text is set large enough to read at
+       arm's length in a dark room, which is when this product is used. -->
+  <div style="position: absolute; top: 200px; right: 24px; left: 24px; font-size: 17px; font-weight: 300;
+              line-height: 2; color: rgba(255,255,255,.55);">
+    سلام. راستش هیچ‌وقت فکر نمی‌کردم یک روز پول بدهم که کسی واقعاً گوش بدهد.
+  </div>
+
+  <div style="position: absolute; top: 320px; right: 24px; left: 24px; font-size: 17px; font-weight: 300;
+              line-height: 2; color: #fff;">
+    من هم فکر نمی‌کردم یک روز بابتش پول بگیرم. از کجا شروع کنیم؟
+  </div>
+
+  <div style="position: absolute; top: 432px; right: 24px; left: 24px; font-size: 17px; font-weight: 300;
+              line-height: 2; color: rgba(255,255,255,.55);">
+    از جایی که هیچ‌کس نمی‌پرسد. مثلاً از اینکه چرا هیچ‌کدام از کارهایی که کردم را دوست ندارم.
+  </div>
+
+  <div style="position: absolute; top: 576px; right: 24px; left: 24px; font-size: 17px; font-weight: 300;
+              line-height: 2; color: #fff;">
+    پس از همان شروع کنیم. وقت داریم.
+  </div>
+
+  <!-- Ending and extending both live behind one upward pull, not as two
+       buttons flanking the composer. Nothing that costs money is ever one
+       accidental tap away in this language. -->
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 112px; text-align: center;
+              font-size: 10.5px; color: rgba(255,255,255,.3);">برای تمدید یا پایان، بالا بکش</div>
+
+  <div style="position: absolute; left: 24px; right: 24px; bottom: 40px; display: flex; gap: 12px;
+              align-items: center; border-top: 1px solid rgba(255,255,255,.14); padding-top: 18px;">
+    <div style="flex-grow: 1; font-size: 15px; font-weight: 300; color: rgba(255,255,255,.3);">بنویس…</div>
+    <div style="width: 52px; height: 52px; border-radius: 50%; background: #fff; color: #000;
+                display: flex; align-items: center; justify-content: center; font-size: 20px;">←</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
