@@ -25,6 +25,20 @@ MAX_INTERESTS = 10
 MAX_BIO_LENGTH = 100
 
 
+#: How someone can be reached (see TECHNICAL_REQUIREMENTS.md section 24).
+#:
+#: OPEN — anyone may start a free text conversation.
+#: PAID — reaching this person means buying one of their offers.
+#:
+#: Left to each person rather than decided by us, because the thing that
+#: is actually scarce is a sought-after person's time, and only they know
+#: when it has become scarce. Someone new wants conversation and leaves
+#: the door open; someone in demand closes it. The market prices itself.
+CHAT_DOOR_OPEN = "open"
+CHAT_DOOR_PAID = "paid"
+CHAT_DOORS = (CHAT_DOOR_OPEN, CHAT_DOOR_PAID)
+
+
 class Profile(Base):
     __tablename__ = "profiles"
 
@@ -72,7 +86,18 @@ class Profile(Base):
     birthday_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
     birthday_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # Open by default: a product where nobody can reach anybody is not a
+    # product, and someone who wants the door shut is by definition someone
+    # who has already been found.
+    chat_door: Mapped[str] = mapped_column(
+        String(16), default=CHAT_DOOR_OPEN, server_default=CHAT_DOOR_OPEN, nullable=False
+    )
+
     __table_args__ = (
+        CheckConstraint(
+            "chat_door IN ('open', 'paid')",
+            name="ck_profile_chat_door",
+        ),
         CheckConstraint(
             "(birthday_month IS NULL AND birthday_day IS NULL AND birthday_year IS NULL) OR "
             "(birthday_month BETWEEN 1 AND 12 AND birthday_day BETWEEN 1 AND 31 "

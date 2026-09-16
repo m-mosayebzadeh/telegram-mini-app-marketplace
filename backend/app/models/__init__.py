@@ -14,6 +14,7 @@ from app.models.audience_group import AudienceGroup, AudienceGroupMember  # noqa
 from app.models.chat_message import ChatMessage  # noqa: F401
 from app.models.chat_session import ChatSession  # noqa: F401
 from app.models.content import Content  # noqa: F401
+from app.models.conversation import Conversation, ConversationParticipant  # noqa: F401
 from app.models.content_access import ContentOpenLog, ContentPurchase  # noqa: F401
 from app.models.credit_ledger import CreditLedgerEntry  # noqa: F401
 from app.models.follow import Follow  # noqa: F401

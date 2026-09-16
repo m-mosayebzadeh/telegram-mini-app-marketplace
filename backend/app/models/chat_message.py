@@ -19,7 +19,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.time import UTCDateTime, utcnow
@@ -42,7 +42,20 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    chat_session_id: Mapped[int] = mapped_column(ForeignKey("chat_sessions.id"), index=True)
+    # Messages belong to the CONVERSATION, not to a paid session. Free text
+    # exists with no session at all, and a session that ends does not take the
+    # thread with it — so the session was never the right owner.
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversations.id"), index=True
+    )
+    # Which paid session this message was written during, or NULL for one
+    # written in free time. Kept for two jobs: someone can remove a single
+    # past session from their own side without clearing the whole thread,
+    # and a complaint about a session needs to point at exactly the
+    # messages that belong to it.
+    chat_session_id: Mapped[int | None] = mapped_column(
+        ForeignKey("chat_sessions.id"), index=True, nullable=True
+    )
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
     type: Mapped[ChatMessageType] = mapped_column(
@@ -62,6 +75,8 @@ class ChatMessage(Base):
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
+
+    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
     __table_args__ = (
         # Each message type has exactly one valid shape — text carries

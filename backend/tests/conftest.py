@@ -35,10 +35,10 @@ from app.main import app
 # two requests racing each other are allowed to see, and those depend entirely
 # on how the database takes locks. Proving them on a different engine from the
 # one that will run them proves nothing.
-TEST_DATABASE_URL = os.environ.setdefault(
-    "TEST_DATABASE_URL",
-    "postgresql+psycopg://marketplace:devpass@localhost:5433/marketplace",
-)
+# Falls back to the same server the app itself is configured for, so a
+# developer who moved Postgres (a native install on 5432 rather than the
+# compose container on 5433) only has to say so once, in .env.
+TEST_DATABASE_URL = os.environ.setdefault("TEST_DATABASE_URL", settings.database_url)
 
 
 def _admin_engine():

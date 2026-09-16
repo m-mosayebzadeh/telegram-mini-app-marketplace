@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from app.core.config import SESSION_BLOCK_COUNT
 from app.core.rates import get_rates, lock_finances
 from app.core.time import utcnow
+from app.conversation.service import get_or_create_direct
 from app.models.chat_session import ChatSession, ChatSessionStatus
 from app.models.credit_ledger import CreditLedgerEntry, LedgerEntryType
 from app.models.offer import Offer
@@ -72,10 +73,16 @@ def start_session(db: Session, *, request_id: int, offer: Offer, buyer_id: int) 
     if balance < reserved_toman:
         raise InsufficientBalanceError(needed_toman=reserved_toman, available_toman=balance)
 
+    # The thread these two people have, created now if this is their first
+    # contact. A paid session never owns a conversation — it runs inside the
+    # one that already exists, or starts it.
+    conversation = get_or_create_direct(db, buyer_id, offer.provider_id)
+
     # opened_at is when the money was reserved. The clock itself does not
     # start until the provider says something (see start_clock below).
     chat_session = ChatSession(
         request_id=request_id,
+        conversation_id=conversation.id,
         reserved_blocks=SESSION_BLOCK_COUNT,
         block_duration_seconds=offer.block_duration_seconds,
         block_price_drops=offer.block_price_drops,

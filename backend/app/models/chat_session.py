@@ -149,15 +149,23 @@ class ChatSession(Base):
     archived_by_buyer: Mapped[bool] = mapped_column(Boolean, default=False)
     archived_by_provider: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    # Removing a conversation is one-sided, like archiving above it: each
-    # participant decides what to do with their own copy, and the other side's
-    # view is untouched. The messages themselves are never deleted — the other
-    # person is still reading them.
+    # Removing ONE past session from your own side. Clearing the whole thread
+    # is a different act and lives on ConversationParticipant.cleared_at; both
+    # exist because someone may want to tidy away a single paid session
+    # without losing the conversation it happened in.
     #
-    # Deliberately not one shared flag: a conversation both people took part in
-    # is not one person's to erase.
+    # Deliberately not one shared flag: a session both people took part in is
+    # not one person's to erase.
     deleted_by_buyer_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     deleted_by_provider_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    # The thread this paid stretch runs inside. Two people have one
+    # conversation for good; this session is a while within it during which
+    # money is held and the bought message types are unlocked.
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("conversations.id"), index=True
+    )
+    conversation: Mapped["Conversation"] = relationship(back_populates="sessions")
 
     # Lets code reach `session.request.buyer_id` /
     # `session.request.offer.provider_id` instead of separate queries.

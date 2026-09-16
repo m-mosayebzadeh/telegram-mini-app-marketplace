@@ -18,6 +18,7 @@ same as every other "only the people involved" check in this app.
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -33,10 +34,65 @@ from app.models.chat_message import (
     ChatMessage,
     ChatMessageType,
 )
-from app.models.chat_session import ChatSessionStatus
+from app.models.chat_session import ChatSession, ChatSessionStatus
+from app.models.conversation import ConversationParticipant
 from app.models.user import User
 
 router = APIRouter(prefix="/chat-sessions", tags=["chat-messages"])
+
+
+def list_conversation_messages(
+    db: Session, conversation_id: int, viewer_id: int
+) -> list[ChatMessage]:
+    """Every message of a thread that this person can still see, oldest
+    first.
+
+    Someone who cleared the conversation sees only what arrived afterwards,
+    and someone who removed a single past session does not see that
+    session's messages — both are one-sided, so this is per viewer rather
+    than per thread.
+    """
+    query = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.conversation_id == conversation_id)
+        .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
+    )
+
+    participant = db.scalar(
+        select(ConversationParticipant).where(
+            ConversationParticipant.conversation_id == conversation_id,
+            ConversationParticipant.user_id == viewer_id,
+        )
+    )
+    if participant is not None and participant.cleared_at is not None:
+        query = query.filter(ChatMessage.created_at > participant.cleared_at)
+
+    removed = removed_session_ids(db, conversation_id, viewer_id)
+    if removed:
+        query = query.filter(
+            or_(
+                ChatMessage.chat_session_id.is_(None),
+                ChatMessage.chat_session_id.not_in(removed),
+            )
+        )
+    return query.all()
+
+
+def removed_session_ids(db: Session, conversation_id: int, viewer_id: int) -> list[int]:
+    """The paid sessions in this thread that this person has removed from
+    their own side."""
+    sessions = db.scalars(
+        select(ChatSession).where(ChatSession.conversation_id == conversation_id)
+    ).all()
+    return [
+        s.id
+        for s in sessions
+        if (
+            s.deleted_by_buyer_at is not None
+            if s.request.buyer_id == viewer_id
+            else s.deleted_by_provider_at is not None
+        )
+    ]
 
 
 @router.get("/{session_id}/messages", response_model=list[ChatMessageOut])
@@ -50,13 +106,8 @@ def list_messages(
     stay; the frontend already takes a plain array (see
     frontend/src/components/chat/MessageList.tsx), so adding pagination
     later doesn't require touching it."""
-    get_participant_session(db, session_id, current_user.id)  # 404s for a stranger
-    return (
-        db.query(ChatMessage)
-        .filter(ChatMessage.chat_session_id == session_id)
-        .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
-        .all()
-    )
+    chat_session = get_participant_session(db, session_id, current_user.id)  # 404s for a stranger
+    return list_conversation_messages(db, chat_session.conversation_id, current_user.id)
 
 
 @router.post("/{session_id}/messages", response_model=ChatMessageOut, status_code=status.HTTP_201_CREATED)
@@ -135,6 +186,7 @@ def send_message(
         message_duration = duration_seconds
 
     message = ChatMessage(
+        conversation_id=chat_session.conversation_id,
         chat_session_id=session_id,
         sender_id=current_user.id,
         type=message_type,
@@ -170,10 +222,14 @@ def get_message_file(
     as a message that does not exist -- the caller cannot tell the
     difference and does not need to.
     """
-    get_participant_session(db, session_id, current_user.id)
+    chat_session = get_participant_session(db, session_id, current_user.id)
 
     message = db.get(ChatMessage, message_id)
-    if message is None or message.chat_session_id != session_id or message.file_path is None:
+    if (
+        message is None
+        or message.conversation_id != chat_session.conversation_id
+        or message.file_path is None
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found.")
 
     return FileResponse(message.file_path)

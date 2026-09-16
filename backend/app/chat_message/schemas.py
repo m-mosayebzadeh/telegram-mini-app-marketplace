@@ -5,7 +5,9 @@ from pydantic import BaseModel
 
 class ChatMessageOut(BaseModel):
     id: int
-    chat_session_id: int
+    conversation_id: int
+    # Which paid session this was written during; null for a free message.
+    chat_session_id: int | None
     sender_id: int
     type: str
     # Set for 'text' only; null otherwise.
