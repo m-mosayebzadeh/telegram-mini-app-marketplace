@@ -23,6 +23,8 @@ from app.admin.router import router as admin_router
 from app.audience_group.router import router as audience_group_router
 from app.chat_message.router import router as chat_message_router
 from app.chat_session.router import router as chat_session_router
+from app.conversation.router import router as conversation_router
+from app.block.router import router as block_router
 from app.content.router import router as content_router
 from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
@@ -79,6 +81,8 @@ app.include_router(request_router)
 app.include_router(wallet_router)
 app.include_router(withdrawal_router)
 app.include_router(admin_withdrawal_router)
+app.include_router(conversation_router)
+app.include_router(block_router)
 app.include_router(chat_session_router)
 app.include_router(chat_message_router)
 app.include_router(topup_router)

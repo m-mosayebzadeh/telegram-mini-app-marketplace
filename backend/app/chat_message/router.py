@@ -23,8 +23,10 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.chat_session.access import get_participant_session
+from app.conversation.service import touch
 from app.wallet.blocks import close_if_due, start_clock
 from app.chat_message.schemas import ChatMessageOut
+from app.chat_message.service import build_message
 from app.core.database import get_db
 from app.core.storage import save_content_file
 from app.models.chat_message import (
@@ -133,66 +135,14 @@ def send_message(
             status.HTTP_400_BAD_REQUEST, "This session is closed — the conversation is read-only."
         )
 
-    if message_type == ChatMessageType.TEXT:
-        if not text or not text.strip():
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "text is required for a text message.")
-        if len(text) > MAX_CHAT_MESSAGE_TEXT_LENGTH:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                f"text must be at most {MAX_CHAT_MESSAGE_TEXT_LENGTH} characters.",
-            )
-        file_path = None
-        message_duration = None
-
-    elif message_type == ChatMessageType.PHOTO:
-        if file is None:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "file is required for a photo message.")
-        file_path = save_content_file(current_user.id, file)
-        text = None
-        message_duration = None
-
-    elif message_type == ChatMessageType.VIDEO:
-        if file is None:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "file is required for a video message.")
-        if duration_seconds is None or not (0 < duration_seconds <= MAX_CHAT_VIDEO_DURATION_SECONDS):
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                f"duration_seconds must be between 1 and {MAX_CHAT_VIDEO_DURATION_SECONDS} for a video message.",
-            )
-        file_path = save_content_file(current_user.id, file)
-        text = None
-        message_duration = duration_seconds
-
-    else:  # VOICE
-        if duration_seconds is None or not (0 < duration_seconds <= MAX_CHAT_VOICE_DURATION_SECONDS):
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                f"duration_seconds must be between 1 and {MAX_CHAT_VOICE_DURATION_SECONDS} for a voice message.",
-            )
-        # Real audio now. A voice message used to store only its length,
-        # which meant the recipient had a bubble saying "8 seconds" and
-        # no way to hear the eight seconds -- a control that looked like
-        # a feature and was not one.
-        #
-        # The file stays OPTIONAL rather than required, because older
-        # messages recorded before this have no bytes and must keep
-        # rendering; the frontend shows those without a play control
-        # instead of offering one that cannot work.
-        if file is None:
-            file_path = None
-        else:
-            file_path = save_content_file(current_user.id, file)
-        text = None
-        message_duration = duration_seconds
-
-    message = ChatMessage(
+    message = build_message(
         conversation_id=chat_session.conversation_id,
         chat_session_id=session_id,
         sender_id=current_user.id,
-        type=message_type,
+        message_type=message_type,
         text=text,
-        file_path=file_path,
-        duration_seconds=message_duration,
+        duration_seconds=duration_seconds,
+        file=file,
     )
     db.add(message)
 
@@ -202,6 +152,7 @@ def send_message(
     if current_user.id == chat_session.request.offer.provider_id:
         start_clock(db, chat_session)
 
+    touch(chat_session.conversation, message.created_at)
     db.commit()
     db.refresh(message)
     return message
