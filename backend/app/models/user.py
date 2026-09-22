@@ -84,6 +84,17 @@ class User(Base):
     # Requests segment is what clears it, per the product decision
     # behind this (see TECHNICAL_REQUIREMENTS.md section 4) — unlike the
     # provider side, which is cleared per-offer.
+    #: The last time this person was seen using the app.
+    #:
+    #: Written on every authenticated request, which makes "online" a fact
+    #: rather than a guess — the world needs to know who is here right now,
+    #: and the ring around an orb means exactly this and nothing else.
+    #:
+    #: Only the minute matters, so the write is skipped when the stored
+    #: value is recent: a column updated on literally every request would
+    #: turn every read in the app into a write.
+    last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     sent_requests_last_viewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     # uselist=False is what tells SQLAlchemy "this side of the

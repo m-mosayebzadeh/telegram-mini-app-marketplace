@@ -10,6 +10,7 @@ import './styles/tokens.css'
 import './styles/base.css'
 import './styles/components/index.css'
 import './styles/theme.css'
+import './styles/cosmos.css'
 // Side-effect import: initializes i18next before anything renders, so
 // the very first render already has translations available (see
 // src/i18n/config.ts).

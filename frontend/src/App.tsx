@@ -9,6 +9,8 @@ import { LiveSessionBar } from './components/LiveSessionBar'
 import { MeProvider, useMe } from './lib/MeContext'
 import { needsDevLogin } from './lib/session'
 import Discover from './pages/Discover'
+import CosmosPreview from './pages/CosmosPreview'
+import Sky from './pages/Sky'
 import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
@@ -125,6 +127,11 @@ function AppShell() {
         {/* The app opens on the showcase, not on your own profile —
             see TABS above. */}
         <Route path="/" element={<Discover />} />
+        {/* Looking at the world's foundation on a real device.
+            Not a product screen; goes when the real sky arrives. */}
+        <Route path="/cosmos" element={<CosmosPreview />} />
+        {/* The world, with real people in it. */}
+        <Route path="/sky" element={<Sky />} />
         <Route path="/offers" element={<Discover />} />
         <Route path="/offers/new" element={<CreateOffer />} />
         <Route path="/offers/:id" element={<OfferDetail />} />

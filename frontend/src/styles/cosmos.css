@@ -1,0 +1,525 @@
+/**
+ * Cosmos — the world's visual foundation.
+ *
+ * This is the product's new surface (TECHNICAL_REQUIREMENTS.md sections 22
+ * and 26). It replaces the old light/dark card language screen by screen;
+ * until that migration finishes, both live side by side and a screen reads
+ * one or the other, never both.
+ *
+ * The rule the whole language rests on: ONE MEANING PER VISUAL PROPERTY.
+ * Two meanings sharing a property is how a world turns into noise, and the
+ * damage is invisible until people are already confused.
+ *
+ *   position      -> who is nearest to you (the sky decides, not this file)
+ *   size          -> presence: how alive this person is lately
+ *   inner glow    -> trust: a history of sessions that ended well
+ *   ring          -> online RIGHT NOW, and nothing else, ever
+ *
+ * Money is deliberately absent. An orb never shows that its person sells
+ * anything, because the moment the sky says who charges, it becomes a
+ * ranking of people — the paid ones desirable, the free ones available —
+ * and this is a product about meeting them (section 26).
+ *
+ * There is no light variant. This is a night sky; a white version of it
+ * is not the same product with different colours, it is a different idea.
+ */
+
+:root {
+  /* ---------- the ground ---------- */
+  --cos-ink: #04080a;
+  --cos-deep: #071215;
+  --cos-rise: #0e2025;
+
+  /* ---------- ink on it ---------- */
+  --cos-fg: #e9f2f0;
+  --cos-fg-soft: rgb(233 242 240 / 60%);
+  --cos-fg-faint: rgb(233 242 240 / 34%);
+
+  /* ---------- the three lights ----------
+     Warm is you and the things that are yours. Cool is the world.
+     Live is the one green in the app and it means one thing: here now. */
+  --cos-warm: #f2b06a;
+  --cos-warm-bright: #f6be82;
+  --cos-cool: #7ad7c8;
+  --cos-live: #8ce0a4;
+
+  --cos-danger: #ff6f6f;
+
+  /* ---------- type ----------
+     Two families: one for Persian, one for Latin. The pairing is still
+     being chosen, so it is a variable rather than a hardcoded name — the
+     whole app changes by editing these two lines.
+     Available: Vazirmatn / Noto Kufi Arabic, with Sora / Outfit /
+     Space Grotesk. */
+  --cos-font-fa: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --cos-font-en: 'Sora', var(--cos-font-fa);
+
+  /* ---------- motion ----------
+     Named after what they are for, so a screen never has to guess which
+     curve belongs to which kind of movement. */
+  --cos-ease-settle: cubic-bezier(0.2, 0.9, 0.25, 1.04);
+  --cos-ease-pop: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --cos-t-quick: 0.26s;
+  --cos-t-calm: 0.44s;
+  --cos-t-slow: 0.95s;
+}
+
+/* The page a world screen lives on. Fixed and unscrollable: the world is
+   panned, not scrolled, and a bouncing page underneath it feels broken. */
+.cos-screen {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--cos-ink);
+  color: var(--cos-fg);
+  font-family: var(--cos-font-fa);
+  font-weight: 300;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cos-en {
+  font-family: var(--cos-font-en);
+}
+
+/* Light falls from the middle of the sky rather than from a corner, which
+   is what stops the background reading as a flat dark rectangle. */
+.cos-ground {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    125% 72% at 50% 44%,
+    var(--cos-rise) 0%,
+    var(--cos-deep) 46%,
+    var(--cos-ink) 100%
+  );
+}
+
+/* Dust. Three layers that move at different rates while the world is
+   dragged, which is most of what makes the space feel deep. */
+.cos-dust {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.cos-dust i {
+  position: absolute;
+  border-radius: 50%;
+  background: #cfe6e2;
+}
+
+/* ---------- the orb ----------
+   Sized and lit from CSS variables the component sets, so that the whole
+   appearance of a person is four numbers and this file owns how they look.
+
+   --orb-size   px
+   --orb-shine  0..1, the inner light: trust
+   --orb-hx/hy  where that light falls from, in per cent
+   --orb-a/--orb-b  the two colours of the body
+   --orb-glow   0..1, how far the trust light spills past the edge
+*/
+.cos-orb-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--orb-size) + 56px);
+  height: calc(var(--orb-size) + 56px);
+}
+
+.cos-orb {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  border-radius: 50%;
+  color: #f2fbf8;
+  font-size: calc(var(--orb-size) * 0.34);
+  font-weight: 200;
+  background:
+    radial-gradient(
+      circle at var(--orb-hx) var(--orb-hy),
+      rgb(255 255 255 / calc(var(--orb-shine) * 100%)) 0%,
+      rgb(255 255 255 / 0%) 56%
+    ),
+    linear-gradient(145deg, var(--orb-a), var(--orb-b));
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 45%),
+    inset var(--orb-inset-x) var(--orb-inset-y) 16px rgb(0 0 0 / 46%),
+    0 0 calc(var(--orb-glow) * 26px) rgb(var(--orb-tint) / calc(var(--orb-glow) * 22%));
+  transition: transform var(--cos-t-calm) var(--cos-ease-pop);
+}
+
+/* A person who is here right now. The only thing a ring ever means. */
+.cos-orb-live,
+.cos-orb-live-pulse {
+  position: absolute;
+  z-index: 2;
+  border-radius: 50%;
+}
+
+.cos-orb-live {
+  width: calc(var(--orb-size) + 11px);
+  height: calc(var(--orb-size) + 11px);
+  border: 1.5px solid rgb(140 224 164 / 55%);
+}
+
+.cos-orb-live-pulse {
+  width: calc(var(--orb-size) + 11px);
+  height: calc(var(--orb-size) + 11px);
+  border: 1.5px solid rgb(140 224 164 / 80%);
+  animation: cos-live 2.6s ease-out infinite;
+}
+
+@keyframes cos-live {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  70%,
+  100% {
+    transform: scale(1.22);
+    opacity: 0;
+  }
+}
+
+/* Nothing in the sky is ever perfectly still. The amplitude is tiny on
+   purpose — enough to read as alive, not enough to make anything hard to
+   tap. Each orb is given its own duration and a negative delay so they
+   are never in step. */
+.cos-drift {
+  animation-name: cos-drift;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes cos-drift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: 5px -4px;
+  }
+  50% {
+    translate: 0 -8px;
+  }
+  75% {
+    translate: -5px -3px;
+  }
+}
+
+.cos-orb-name {
+  margin-top: 9px;
+  text-align: center;
+  line-height: 1.55;
+  white-space: nowrap;
+  font-weight: 300;
+  color: var(--cos-fg-soft);
+}
+
+/* Someone who has just arrived is not dim — dim reads as "nobody wanted
+   this person", which is a judgement the sky has no business making about
+   a stranger. They get their own look: clear, cool and unwritten. */
+.cos-orb-new .cos-orb {
+  background:
+    radial-gradient(
+      circle at var(--orb-hx) var(--orb-hy),
+      rgb(255 255 255 / 22%) 0%,
+      rgb(255 255 255 / 0%) 60%
+    ),
+    linear-gradient(145deg, #2b4a4d, #16292c);
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 45%),
+    inset 0 0 0 1px rgb(122 215 200 / 45%);
+}
+
+/* Motion is decoration here, not information: every meaning above is
+   carried by size, colour and shape as well. So it can all be switched
+   off for someone who asked for that, and nothing is lost. */
+@media (prefers-reduced-motion: reduce) {
+  .cos-drift,
+  .cos-orb-live-pulse {
+    animation: none;
+  }
+
+  .cos-orb-live-pulse {
+    opacity: 0.5;
+  }
+}
+
+/* ---------- the sky ----------
+   The scene is one element the camera moves, holding three depth layers
+   that move a little more or less than it does. Nothing inside them is
+   ever touched again after it is placed. */
+.cos-scene,
+.cos-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+
+.cos-star {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.cos-star-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  translate: -50% -50%;
+  transition: opacity var(--cos-t-calm) ease;
+}
+
+/* When somebody is chosen the rest of the world steps back. Opacity
+   rather than blur: a blur of fifty elements is the one thing guaranteed
+   to drop frames on a cheap phone. */
+.cos-star-inner.is-dimmed {
+  opacity: 0.18;
+}
+
+.cos-star-inner.is-chosen .cos-orb {
+  transform: scale(1.5);
+}
+
+.cos-star-inner.is-chosen .cos-orb-name {
+  opacity: 0;
+}
+
+.cos-centre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cos-message {
+  position: relative;
+  max-width: 280px;
+  margin: auto;
+  text-align: center;
+  color: var(--cos-fg-soft);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* ---------- stage one: a look ----------
+   Deliberately not a card and deliberately without a single button. It
+   says who this is and nothing else; deciding comes next, and never at
+   the same time. */
+.cos-peek {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 27vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 24px;
+  pointer-events: none;
+  text-align: center;
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+
+@keyframes cos-rise {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+.cos-peek-name {
+  font-size: 20px;
+  font-weight: 300;
+}
+
+.cos-peek-live {
+  font-size: 12px;
+  color: var(--cos-live);
+}
+
+.cos-peek-line {
+  margin: 2px 0 0;
+  max-width: 300px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--cos-fg-soft);
+}
+
+.cos-peek-hint {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--cos-fg-faint);
+}
+
+/* ---------- stage two: what you can do ----------
+   Anchored to the bottom, because a ring of buttons around a floating orb
+   loses its top half off the screen and puts the rest where no thumb
+   reaches. */
+.cos-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgb(4 8 10 / 96%) 62%, rgb(4 8 10 / 0%));
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+
+.cos-actions-who {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.cos-actions-name {
+  font-size: 17px;
+  font-weight: 300;
+}
+
+.cos-actions-line {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--cos-fg-soft);
+}
+
+.cos-action {
+  min-height: 48px;
+  border: 1px solid rgb(233 242 240 / 16%);
+  border-radius: 14px;
+  background: rgb(233 242 240 / 5%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: 15px;
+}
+
+.cos-action-primary {
+  border-color: rgb(242 176 106 / 55%);
+  background: rgb(242 176 106 / 12%);
+  color: var(--cos-warm-bright);
+}
+
+.cos-action-quiet {
+  min-height: 42px;
+  border-color: transparent;
+  background: none;
+  color: var(--cos-fg-faint);
+  font-size: 13px;
+}
+
+/* ---------- the core ----------
+   The one control the world has. It sits low and centred because that is
+   where a thumb rests, and it opens upwards because below it is off the
+   screen and under the hand. */
+.cos-core-area {
+  position: absolute;
+  left: 50%;
+  bottom: calc(26px + env(safe-area-inset-bottom));
+  translate: -50%;
+  width: 0;
+  height: 0;
+}
+
+.cos-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgb(242 176 106 / 45%);
+  background: radial-gradient(circle at 50% 42%, rgb(242 176 106 / 18%), rgb(4 8 10 / 90%) 70%);
+  box-shadow:
+    0 0 44px rgb(242 176 106 / 16%),
+    inset 0 0 22px rgb(242 176 106 / 7%);
+  transition:
+    transform var(--cos-t-quick) var(--cos-ease-pop),
+    box-shadow var(--cos-t-quick) ease;
+}
+
+.cos-core.is-held {
+  transform: scale(1.06);
+  box-shadow: 0 0 70px rgb(242 176 106 / 30%);
+}
+
+.cos-core-eye {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--cos-warm-bright);
+  box-shadow: 0 0 22px rgb(246 190 130 / 70%);
+  transition: transform var(--cos-t-quick) var(--cos-ease-pop);
+}
+
+.cos-core.is-held .cos-core-eye {
+  transform: scale(1.25);
+}
+
+.cos-core-arcs {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Each section is a point of light rather than a labelled button: four
+   labels around a circle means three of them are sideways. */
+.cos-core-arc {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: rgb(233 242 240 / 30%);
+  transition:
+    background var(--cos-t-quick) ease,
+    transform var(--cos-t-quick) var(--cos-ease-pop);
+}
+
+.cos-core-arc.is-hot {
+  background: var(--cos-warm-bright);
+  transform: scale(1.7);
+  box-shadow: 0 0 18px rgb(246 190 130 / 80%);
+}
+
+/* The one label. Fixed position, changing text. */
+.cos-core-label {
+  position: absolute;
+  left: 50%;
+  top: -128px;
+  translate: -50%;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--cos-fg);
+  text-shadow: 0 2px 12px rgb(4 8 10 / 90%);
+  pointer-events: none;
+}

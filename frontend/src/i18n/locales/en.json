@@ -655,5 +655,18 @@
       "disputed": "under review",
       "settled": "settled"
     }
+  },
+  "sky": {
+    "empty": "Nobody here yet. Look again in a while.",
+    "hereNow": "Here right now",
+    "pullUp": "Pull up",
+    "viewProfile": "View profile",
+    "sayHello": "Say hello",
+    "back": "Never mind",
+    "chooseHint": "Drag and release",
+    "conversations": "Conversations",
+    "activity": "Activity",
+    "randomChat": "Random chat",
+    "me": "Me"
   }
 }

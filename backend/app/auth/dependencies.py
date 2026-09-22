@@ -9,12 +9,15 @@ route — each route just asks for a `User` and gets one, or the request
 never reaches it.
 """
 
+from datetime import timedelta
+
 from fastapi import Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth.telegram import TelegramAuthError, TelegramUser, validate_init_data
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.time import utcnow
 from app.models.admin_grant import AdminGrant
 from app.models.role import Role
 from app.models.user import User
@@ -56,6 +59,7 @@ def get_current_user(
         db.query(User).filter(User.telegram_id == telegram_user.id).first()
     )
     if existing_user is not None:
+        _touch_last_seen(db, existing_user)
         return existing_user
 
     # First time we've seen this telegram_id — create our own user record.
@@ -82,11 +86,48 @@ def get_current_user(
         first_name=telegram_user.first_name or "New User",
         last_name=telegram_user.last_name,
         username=prefilled_username,
+        # Somebody whose very first request this is, is here right now —
+        # leaving it null would show a person who just arrived as away.
+        last_seen_at=utcnow(),
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)  # loads DB-generated fields, e.g. `id` and `joined_at`
     return new_user
+
+
+#: How stale "last seen" is allowed to get before it is written again.
+#:
+#: Without it, every read in the app would become a write, which is a
+#: remarkable amount of database traffic to buy a number nobody reads to
+#: the second. A minute is finer than the world can show anyway.
+LAST_SEEN_WRITE_EVERY = timedelta(minutes=1)
+
+#: How recently somebody must have been seen to count as here RIGHT NOW.
+#:
+#: Generous on purpose: somebody reading a long message has not left, and
+#: a ring that blinks out while they are mid-sentence is worse than one
+#: that lingers a few minutes after they really have gone.
+ONLINE_WITHIN = timedelta(minutes=5)
+
+
+def _touch_last_seen(db: Session, user: User) -> None:
+    now = utcnow()
+    if user.last_seen_at is not None and now - user.last_seen_at < LAST_SEEN_WRITE_EVERY:
+        return
+    user.last_seen_at = now
+    db.commit()
+
+
+def is_online(user: User, *, now=None) -> bool:
+    """Whether this person is here at this moment.
+
+    Read from the stored time rather than tracked by anything that ticks,
+    the same as every other deadline in this app.
+    """
+    if user.last_seen_at is None:
+        return False
+    return (now or utcnow()) - user.last_seen_at <= ONLINE_WITHIN
 
 
 def is_owner(user: User) -> bool:
