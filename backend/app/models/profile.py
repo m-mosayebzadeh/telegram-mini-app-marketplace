@@ -39,6 +39,27 @@ CHAT_DOOR_PAID = "paid"
 CHAT_DOORS = (CHAT_DOOR_OPEN, CHAT_DOOR_PAID)
 
 
+#: Gender. Optional everywhere except the door into random chat, which
+#: cannot match "who do you want to meet" against nothing.
+#:
+#: Three values, and the third is a refusal rather than an identity.
+#: The list stops here on purpose: an option is only worth offering if
+#: the *search* side can use it, and someone who picks a value nobody
+#: ever searches for is never matched at all — which is worse for them
+#: than not having had the option.
+#:
+#: UNSAID is not the same as NULL, and the difference matters. NULL means
+#: nobody has asked yet; signup deliberately asks for almost nothing
+#: (TECHNICAL_REQUIREMENTS.md section 28), so most profiles start there.
+#: UNSAID means they were asked and declined — they are through the door,
+#: and the matcher pairs them only with people whose search says it does
+#: not matter.
+GENDER_MALE = "male"
+GENDER_FEMALE = "female"
+GENDER_UNSAID = "unsaid"
+GENDERS = (GENDER_MALE, GENDER_FEMALE, GENDER_UNSAID)
+
+
 class Profile(Base):
     __tablename__ = "profiles"
 
@@ -86,6 +107,24 @@ class Profile(Base):
     birthday_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
     birthday_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # None until asked. See GENDERS above — note that NULL and UNSAID
+    # mean different things.
+    gender: Mapped[str | None] = mapped_column(String(16), nullable=True)
+
+    # Hide the birth YEAR from everyone else. Day and month stay visible,
+    # because the nice part of a birthday is that people can wish you one.
+    #
+    # The system still reads the real year for age matching. That is not a
+    # loophole, it is the point: the reason people leave a birth year
+    # blank is that they do not want their age public, not that they mind
+    # being matched by it. Hiding it answers the real objection, where
+    # simply not collecting it answered the wrong one. The interface must
+    # say so plainly — a match found by an age nobody could see reads as
+    # deceptive if it was never mentioned.
+    hide_birth_year: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+
     # Open by default: a product where nobody can reach anybody is not a
     # product, and someone who wants the door shut is by definition someone
     # who has already been found.
@@ -97,6 +136,12 @@ class Profile(Base):
         CheckConstraint(
             "chat_door IN ('open', 'paid')",
             name="ck_profile_chat_door",
+        ),
+        CheckConstraint(
+            "gender IS NULL OR gender IN ("
+            + ", ".join(f"'{g}'" for g in GENDERS)
+            + ")",
+            name="ck_profile_gender",
         ),
         CheckConstraint(
             "(birthday_month IS NULL AND birthday_day IS NULL AND birthday_year IS NULL) OR "

@@ -17,7 +17,7 @@ from app.core.database import get_db
 from app.core.storage import delete_avatar_file, save_avatar_file
 from app.models.follow import Follow, FollowStatus
 from app.models.offer import Offer
-from app.models.profile import MAX_INTERESTS, Profile
+from app.models.profile import GENDERS, MAX_INTERESTS, Profile
 from app.models.profile_photo import ProfilePhoto
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
@@ -76,6 +76,8 @@ def _to_profile_out(db: Session, profile: Profile) -> ProfileOut:
         birthday_month=profile.birthday_month,
         birthday_day=profile.birthday_day,
         birthday_year=profile.birthday_year,
+        gender=profile.gender,
+        hide_birth_year=profile.hide_birth_year,
     )
 
 
@@ -116,6 +118,10 @@ def upsert_my_profile(
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST, "birthday_year requires birthday_month/birthday_day to be set too."
         )
+    if payload.gender is not None and payload.gender not in GENDERS:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, f"gender must be one of {', '.join(GENDERS)}."
+        )
     if payload.birthday_month is not None and payload.birthday_day is not None:
         # ProfileUpdate's Field(ge=..., le=...) only bounds each of
         # birthday_month/birthday_day/birthday_year independently — it
@@ -145,6 +151,8 @@ def upsert_my_profile(
     profile.birthday_month = payload.birthday_month
     profile.birthday_day = payload.birthday_day
     profile.birthday_year = payload.birthday_year
+    profile.gender = payload.gender
+    profile.hide_birth_year = payload.hide_birth_year
     # is_trusted is intentionally untouched here — see ProfileUpdate's
     # docstring; this endpoint can never grant it.
 
@@ -272,7 +280,13 @@ def read_public_profile(
         is_trusted=profile.is_trusted if profile else False,
         birthday_month=profile.birthday_month if profile else None,
         birthday_day=profile.birthday_day if profile else None,
-        birthday_year=profile.birthday_year if profile else None,
+        # The year is withheld here and nowhere else: the owner's own
+        # GET /profile/me still returns it, and the matcher still reads
+        # the column directly. Hiding is about other people's eyes.
+        birthday_year=(
+            profile.birthday_year if profile and not profile.hide_birth_year else None
+        ),
+        gender=profile.gender if profile else None,
         followers_count=_followers_count(db, user_id),
         following_count=_following_count(db, user_id),
         follow_status=_follow_status(db, viewer_id=current_user.id, target_id=user_id),

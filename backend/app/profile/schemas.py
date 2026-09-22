@@ -10,7 +10,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.models.profile import MAX_BIO_LENGTH
+from app.models.profile import GENDERS, MAX_BIO_LENGTH
 
 
 class ProfileUpdate(BaseModel):
@@ -30,6 +30,14 @@ class ProfileUpdate(BaseModel):
     birthday_month: int | None = Field(default=None, ge=1, le=12)
     birthday_day: int | None = Field(default=None, ge=1, le=31)
     birthday_year: int | None = Field(default=None, ge=1900, le=2100)
+    # One of GENDERS, or None for "not said". Checked against that tuple
+    # in app/profile/router.py rather than with a Literal here, so the
+    # database CHECK and the API stay defined in one place.
+    gender: str | None = Field(default=None, max_length=16)
+    # Hides the birth YEAR from everyone else; day and month stay
+    # visible. See Profile.hide_birth_year (app/models/profile.py) —
+    # matching still uses the real year, and the interface has to say so.
+    hide_birth_year: bool = False
 
     # Deliberately no is_trusted here — see Profile.is_trusted's
     # docstring. A profile owner can never set their own trust badge
@@ -59,6 +67,8 @@ class ProfileOut(BaseModel):
     birthday_month: int | None
     birthday_day: int | None
     birthday_year: int | None
+    gender: str | None
+    hide_birth_year: bool
 
     # Lets FastAPI build this schema directly from a Profile ORM object
     # (profile.id, profile.avatar_url, ...) instead of requiring a plain
@@ -85,7 +95,10 @@ class PublicProfileOut(BaseModel):
     is_trusted: bool
     birthday_month: int | None
     birthday_day: int | None
+    # None when the owner hid it, which is indistinguishable from never
+    # having set one — deliberately, since "hidden" is itself private.
     birthday_year: int | None
+    gender: str | None
     # Only counts ACCEPTED follows (see app/models/follow.py) — a
     # pending follow request isn't a real follower yet.
     followers_count: int
