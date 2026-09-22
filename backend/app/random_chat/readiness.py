@@ -12,7 +12,7 @@ Only two, and only because matching cannot work without them:
 
 - **gender**, because "who do you want to meet" has nothing to compare
   against otherwise;
-- **birth year**, because the age range does not either.
+- **birth date**, because the age range does not either.
 
 Everything else people are asked at this point — who they want today,
 which age range, which interests — is a *search* preference, not a fact
@@ -63,10 +63,15 @@ def age_from_birth_year(birth_year: int | None, *, today: date | None = None) ->
     """
     Age in whole years, or None when the year was never given.
 
-    Deliberately coarse. Only the year is known, so this is "how old they
-    turn this year" rather than a real age — which is all an age *range*
-    ever needed, and it is the reason the door asks for one number instead
-    of a full date.
+    Deliberately coarse: "how old they turn this year" rather than a real
+    age to the day, which is all an age *range* ever needed.
+
+    The door collects a full birth date, not just a year (section 28.1).
+    Asking only for the year was proposed and rejected: people withhold
+    their birth year because they do not want their age public, not
+    because typing a date is hard — so the year is collected and can be
+    hidden instead, which keeps the day and month that make a birthday
+    worth having.
 
     `today` is injectable so tests do not drift as real years pass.
     """

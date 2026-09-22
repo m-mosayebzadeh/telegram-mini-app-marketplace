@@ -157,3 +157,21 @@ def touch(conversation: Conversation, when: datetime | None = None) -> None:
     """Records that something was said, so the chat list can be ordered
     without reading the messages table."""
     conversation.last_message_at = when or utcnow()
+
+
+def kept_random_thread(db: Session, conversation_id: int, user_id: int) -> bool:
+    """Whether this person asked to keep someone they met at random here.
+
+    Lives on this side rather than in the random-chat module because it
+    answers a question about a CONVERSATION — whether it belongs in
+    somebody's list — and the chat list should not have to know how two
+    people happened to meet.
+    """
+    from app.models.random_chat import RandomChatSession
+
+    session = db.scalar(
+        select(RandomChatSession)
+        .where(RandomChatSession.conversation_id == conversation_id)
+        .order_by(RandomChatSession.started_at.desc())
+    )
+    return session is not None and session.kept_by(user_id)

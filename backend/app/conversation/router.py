@@ -26,6 +26,7 @@ from app.conversation.schemas import (
 )
 from app.conversation.service import (
     active_paid_session,
+    kept_random_thread,
     capabilities_now,
     get_or_create_direct,
     touch,
@@ -186,9 +187,13 @@ def list_conversations(
     for participant in rows:
         conversation = participant.conversation
         if conversation.last_message_at is None:
-            # Nothing said yet. A thread created by paying for a session
-            # still belongs in the list, because the buyer is waiting in it.
-            if active_paid_session(db, conversation.id) is None:
+            # Nothing said yet. Two things still make an empty thread worth
+            # showing: a paid session, because the buyer is waiting in it,
+            # and a random meeting this person asked to keep — saying "keep
+            # this one" is itself the act that makes the thread theirs.
+            if active_paid_session(db, conversation.id) is None and not kept_random_thread(
+                db, conversation.id, current_user.id
+            ):
                 continue
         elif not participant.sees_message_at(conversation.last_message_at):
             continue
