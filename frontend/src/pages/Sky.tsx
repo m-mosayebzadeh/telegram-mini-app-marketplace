@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Orb } from '../components/cosmos/Orb'
 import { SpaceGround, DUST_LAYERS, seededRandom } from '../components/cosmos/SpaceGround'
+import { Orbits } from '../components/cosmos/Orbits'
 import { CoreNav } from '../components/cosmos/CoreNav'
 import { IconActivity, IconChats, IconEcho, IconMe } from '../components/cosmos/icons'
 import { lightTowardsCentre, place } from '../lib/phyllotaxis'
@@ -38,10 +39,12 @@ import { formatApiError } from '../lib/api'
  *    never receives one. Working out what was tapped is therefore our
  *    job, from the coordinates.
  *
- * Choosing somebody happens in two stages and they are never on screen at
- * once: a look first, actions second, and the actions always inside the
- * thumb's reach rather than around a floating orb where the top of a
- * circular menu falls off the screen.
+ * Choosing somebody is ONE state, not two. It used to be a look followed
+ * by a swipe up into a card of buttons, and the swipe was never found.
+ * Holding a person now shows everything at once, which it can afford to
+ * do because none of it is a panel covering the world: the name is on the
+ * face, and the two things you can do stand in the light falling from it.
+ * See "holding somebody" in cosmos.css for why.
  */
 
 /** How fast a flick keeps travelling, and when it is considered stopped. */
@@ -85,7 +88,11 @@ const DETAIL_EVERY_MS = 110
 /** How far from an orb's centre still counts as hitting it. */
 const HIT_RADIUS = 46
 
-type Stage = 'none' | 'looking' | 'acting'
+/** How far above the middle a held person is lifted, as a share of the
+ *  screen. Enough to leave room for their name and their light beneath
+ *  them; not so much that they end up at the top of the screen with
+ *  everything about them at the bottom, which is what it used to do. */
+const HOLD_LIFT = 0.1
 
 interface Star extends SkyPerson {
   x: number
@@ -103,7 +110,6 @@ export default function Sky() {
   const [people, setPeople] = useState<SkyPerson[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
-  const [stage, setStage] = useState<Stage>('none')
   /** Who is close enough to be a person rather than a shape. Written from
    *  the camera loop, but only when the answer actually changes — a set
    *  that is the same set is not a re-render. */
@@ -168,7 +174,7 @@ export default function Sky() {
       const tgt = target.current
       const vel = velocity.current
 
-      if (!dragging.current && stage === 'none') {
+      if (!dragging.current && selected === null) {
         tgt.x += vel.x
         tgt.y += vel.y
         vel.x *= FRICTION
@@ -231,7 +237,7 @@ export default function Sky() {
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, stars])
+  }, [selected, stars])
 
   /** Collects the dust layers the ground rendered, so the loop can move
    *  them. They belong to SpaceGround, which has no idea a camera exists. */
@@ -288,22 +294,11 @@ export default function Sky() {
       moved.current = true
     }
 
-    // While somebody is chosen, a vertical drag means "bring them closer"
-    // or "let them go" rather than turning the world. Neither happens
-    // until the gesture's direction is clear.
-    if (stage !== 'none') {
-      const totalY = event.clientY - start.current.y
-      const totalX = event.clientX - start.current.x
-      if (Math.abs(totalY) > 24 && Math.abs(totalY) > Math.abs(totalX) * 1.2) {
-        dragging.current = false
-        if (totalY < 0) setStage('acting')
-        else if (stage === 'acting') setStage('looking')
-        else unfocus()
-        return
-      }
-      if (Math.abs(totalX) > 24) unfocus()
-      else return
-    }
+    // Pulling the world away from somebody lets go of them, and then the
+    // same gesture carries on panning. No direction to learn and nothing
+    // to aim at: you simply leave, which is what the movement already
+    // means everywhere else.
+    if (selected !== null && moved.current) release()
 
     // Divided by the zoom so the world always travels exactly as far as
     // the finger did. Pulled out, a pixel on screen is more than a pixel
@@ -323,17 +318,14 @@ export default function Sky() {
     if (moved.current) return
 
     const hit = hitTest(event.clientX, event.clientY)
-    if (hit) {
-      if (hit.user_id === selected) setStage(stage === 'acting' ? 'looking' : 'acting')
-      else focusOn(hit)
-    } else {
-      unfocus()
-    }
+    // Tap to hold, tap again to let go. Symmetric, so there is nothing to
+    // remember — and it is the reason there is no "never mind" button.
+    if (!hit || hit.user_id === selected) release()
+    else hold(hit)
   }
 
-  function focusOn(star: Star) {
+  function hold(star: Star) {
     setSelected(star.user_id)
-    setStage('looking')
     // Bring them to the upper middle of the screen. Doing it this way
     // rather than zooming is what solves an orb near the screen's edge:
     // wherever they were, they end up somewhere there is room to show
@@ -348,12 +340,11 @@ export default function Sky() {
     // an answer, not a journey. Only Sol's long trips get the slow ease.
     velocity.current = { x: 0, y: 0 }
     gliding.current = false
-    target.current = { x: star.x, y: star.y + innerHeight * 0.16, z: camera.current.z }
+    target.current = { x: star.x, y: star.y + innerHeight * HOLD_LIFT, z: camera.current.z }
   }
 
-  function unfocus() {
+  function release() {
     setSelected(null)
-    setStage('none')
   }
 
   if (error) {
@@ -379,6 +370,11 @@ export default function Sky() {
       <SpaceGround />
 
       <div className="cos-scene" ref={sceneRef}>
+        {/* Outside the depth layers on purpose: the orbits are the world's
+            own frame of reference, so they must not drift against the
+            people standing on them. */}
+        <Orbits />
+
         {[0, 1, 2].map((layer) => (
           <div
             className="cos-layer"
@@ -423,6 +419,19 @@ export default function Sky() {
                         of the flow as well, so a body's position never
                         shifts when its name arrives. */}
                     <span className="cos-orb-name">{star.display_name}</span>
+
+                    {/* Held: who they are, ON them. A name three hundred
+                        pixels below the face it belongs to is a second
+                        thing to connect by hand, not a label. */}
+                    {selected === star.user_id && (
+                      <span className="cos-hold-name">
+                        <span className="cos-hold-who">{star.display_name}</span>
+                        {star.online && (
+                          <span className="cos-hold-live">{t('sky.hereNow')}</span>
+                        )}
+                        {star.tagline && <p className="cos-hold-line">{star.tagline}</p>}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -442,7 +451,7 @@ export default function Sky() {
 
       {/* The one control the world has. Hidden while somebody is chosen:
           never two things asking for the same thumb. */}
-      {stage === 'none' && (
+      {selected === null && (
         <CoreNav
           // On the world itself a tap brings the camera home rather than
           // navigating: going to where you already are is not a journey.
@@ -495,48 +504,27 @@ export default function Sky() {
         />
       )}
 
-      {/* Stage one: a look. No buttons at all — just who they are. */}
-      {chosen && stage === 'looking' && (
-        <div className="cos-peek" data-chrome>
-          <span className="cos-peek-name">{chosen.display_name}</span>
-          {chosen.online && <span className="cos-peek-live">{t('sky.hereNow')}</span>}
-          {chosen.tagline && <p className="cos-peek-line">{chosen.tagline}</p>}
-          <span className="cos-peek-hint">{t('sky.pullUp')}</span>
-        </div>
-      )}
-
-      {/* Stage two: what you can do, always within reach of a thumb. The
-          card above is gone by now — never two things at once. */}
-      {chosen && stage === 'acting' && (
-        <div className="cos-actions" data-chrome>
-          <div className="cos-actions-who">
-            <Orb
-              initial={chosen.initial}
-              presence={chosen.presence}
-              trust={chosen.trust}
-              online={chosen.online}
-              isNew={chosen.is_new}
-              seed={chosen.user_id}
-            />
-            <div>
-              <div className="cos-actions-name">{chosen.display_name}</div>
-              {chosen.tagline && <div className="cos-actions-line">{chosen.tagline}</div>}
-            </div>
-          </div>
-          <button className="cos-action" onClick={() => navigate(`/profiles/${chosen.user_id}`)}>
+      {/* The two things you can do. No card behind them: a panel would
+          be a lid closing over the world, and the world is why you are
+          here. Nothing repeats what is already on the person's face
+          either — their name and their line are up there, on them. */}
+      {chosen && (
+        <div className="cos-hold-do" data-chrome>
+          <button
+            className="cos-hold-see"
+            onClick={() => navigate(`/profiles/${chosen.user_id}`)}
+          >
             {t('sky.viewProfile')}
           </button>
           <button
-            className="cos-action cos-action-primary"
+            className="cos-hold-say"
             onClick={() => navigate(`/conversations/with/${chosen.user_id}`)}
           >
             {t('sky.sayHello')}
           </button>
-          <button className="cos-action cos-action-quiet" onClick={unfocus}>
-            {t('sky.back')}
-          </button>
         </div>
       )}
+
     </div>
   )
 }

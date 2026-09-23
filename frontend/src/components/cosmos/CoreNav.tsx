@@ -64,6 +64,9 @@ const COMMIT_DISTANCE = 46
 /** How far out the bodies sit, in px. Far enough to clear Sol's corona,
  *  close enough that the far ones stay inside a thumb's arc. */
 const ORBIT = 126
+/** The ring in cosmos.css opens to exactly twice this. If one moves the
+ *  other has to, or the bodies stop standing on their own orbit and the
+ *  gesture loses the only thing that explains it. */
 
 /**
  * The span they occupy, in degrees, where 0 points right and 90 points
@@ -83,6 +86,33 @@ const ARC_END = 30
  *  narrower than half the distance between two bodies, which is what
  *  leaves a real gap between them rather than a boundary. */
 const CATCH_DEGREES = 15
+
+/**
+ * The path the light takes from Sol to whatever it is reaching.
+ *
+ * A bowed curve rather than a straight line, and the bow is what makes it
+ * read as something thrown by a star rather than as a pointer drawn on
+ * top of one. Light from a rotating body leaves along a curve; a ruled
+ * line is a diagram of a connection, a curve is the connection happening.
+ *
+ * The bow always falls on the same side of the direction of travel, so
+ * sweeping from one body to the next makes the arc swing across rather
+ * than flip, which would read as a glitch.
+ */
+function flarePath(degrees: number, reach: number): string {
+  const end = offsetFor(degrees, reach)
+  const length = Math.hypot(end.x, end.y) || 1
+  // Perpendicular to the direction of travel, one consistent way round.
+  const acrossX = -end.y / length
+  const acrossY = end.x / length
+  // Shallower on a short throw, or a near body gets a loop instead of an
+  // arc; proportional to the distance, so it looks like one gesture at
+  // every angle.
+  const bow = length * 0.22
+  const bendX = end.x / 2 + acrossX * bow
+  const bendY = end.y / 2 + acrossY * bow
+  return `M0 0 Q ${bendX.toFixed(1)} ${bendY.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}`
+}
 
 /** Screen offset from Sol's centre.
  *  `sin` is negated exactly once, here: screen coordinates grow downwards,
@@ -185,36 +215,71 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
     }
   }
 
-  // The beam stops short of a body it is lighting, so the light looks
-  // like it is entering rather than crossing over the top of it.
-  const beam = aim === null ? null : offsetFor(aim, hot === null ? ORBIT + 18 : ORBIT - 30)
+  // The flare stops short of a body it is lighting, so the light looks
+  // like it is entering rather than crossing over the top of it. Reaching
+  // into a gap it overshoots instead, which is how empty space is made to
+  // feel empty rather than broken.
+  const flare = aim === null ? null : flarePath(aim, hot === null ? ORBIT + 20 : ORBIT - 34)
 
   return (
     <div className={`cos-core-area${held ? ' is-open' : ''}`} data-chrome>
+      {/* The orbit. Outside the held-only block on purpose: it is visible
+          at rest as a close halo, and opening it out to where the bodies
+          stand is the whole explanation of what holding Sol does. */}
+      <div className="cos-core-ring" aria-hidden="true" />
+
       {held && (
         <>
           <div className="cos-core-veil" aria-hidden="true" />
 
           {/* The light on its way. Under the bodies, so it arrives at
-              them rather than passing over them. */}
-          <svg className="cos-beam" viewBox="-170 -170 340 340" aria-hidden="true">
+              them rather than passing over them.
+
+              Three strokes of the same curve: a wide blurred one that is
+              the glow in the air, a mid one that is the body of the
+              flare, and a hairline of near-white that is its hot core.
+              One stroke cannot be both soft and sharp, and a flare that
+              is only one of those is either a smear or a wire. */}
+          <svg className="cos-beam" viewBox="-190 -190 380 380" aria-hidden="true">
             <defs>
-              <linearGradient id="cos-beam-fade" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="var(--cos-warm)" stopOpacity="0" />
-                <stop offset="100%" stopColor="var(--cos-warm)" stopOpacity="0.9" />
+              <linearGradient id="cos-flare" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#ffd9a2" stopOpacity="0" />
+                <stop offset="42%" stopColor="#ffc987" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="#fff3dc" stopOpacity="1" />
               </linearGradient>
+              <filter id="cos-flare-air" x="-60%" y="-60%" width="220%" height="220%">
+                <feGaussianBlur stdDeviation="5" />
+              </filter>
             </defs>
-            {beam && (
-              <line
-                x1="0"
-                y1="0"
-                x2={beam.x}
-                y2={beam.y}
-                stroke="url(#cos-beam-fade)"
-                strokeWidth={hot === null ? 1.5 : 2.5}
-                strokeLinecap="round"
-                opacity={hot === null ? 0.45 : 1}
-              />
+            {flare && (
+              <g opacity={hot === null ? 0.4 : 1}>
+                <path
+                  d={flare}
+                  fill="none"
+                  stroke="url(#cos-flare)"
+                  strokeWidth={hot === null ? 5 : 9}
+                  strokeLinecap="round"
+                  filter="url(#cos-flare-air)"
+                  opacity="0.75"
+                />
+                <path
+                  d={flare}
+                  fill="none"
+                  stroke="url(#cos-flare)"
+                  strokeWidth={hot === null ? 1.6 : 2.8}
+                  strokeLinecap="round"
+                />
+                {hot !== null && (
+                  <path
+                    d={flare}
+                    fill="none"
+                    stroke="#fffaf0"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    opacity="0.8"
+                  />
+                )}
+              </g>
             )}
           </svg>
 
@@ -270,8 +335,9 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
         }}
         tabIndex={0}
       >
-        <span className="cos-core-surface" aria-hidden="true" />
         <span className="cos-core-corona" aria-hidden="true" />
+        <span className="cos-core-surface" aria-hidden="true" />
+        <span className="cos-core-rim" aria-hidden="true" />
         <span className="cos-core-eye" aria-hidden="true" />
       </div>
     </div>
