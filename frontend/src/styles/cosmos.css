@@ -54,6 +54,45 @@
   --cos-font-fa: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
   --cos-font-en: 'Sora', var(--cos-font-fa);
 
+  /* ---------- the type scale ----------
+     Seven roles and nothing between them. A size without a role is how a
+     system stops being one: the tenth screen invents a tenth size, and
+     after that no two screens agree.
+
+     Named by JOB, not by number, so a screen picks a role rather than a
+     measurement — and so the whole app can be re-tuned by editing seven
+     lines here.
+
+       caption  the quietest thing that is still text: hints, counters
+       label    a field's name, a section's name, a small status
+       body     the workhorse; most sentences on most screens
+       read     body that is meant to be read rather than scanned
+       lead     a name, a primary button, the thing a screen is about
+       title    one per screen at most
+       display  a number or a word that IS the screen (a countdown)
+
+     Line heights ride with the size because Persian needs more room
+     than Latin at the same size — 1.8 for anything that is a sentence,
+     tighter only where the text is a single word or a number. */
+  --cos-text-caption: 11px;
+  --cos-text-label: 12px;
+  --cos-text-body: 13px;
+  --cos-text-read: 15px;
+  --cos-text-lead: 17px;
+  --cos-text-title: 20px;
+  --cos-text-display: 46px;
+
+  --cos-leading-tight: 1.3;
+  --cos-leading-normal: 1.6;
+  --cos-leading-read: 1.8;
+
+  /* ---------- radius ----------
+     Radius encodes how big a thing is, not how important. Three steps
+     and a circle; anything else is decoration pretending to be meaning. */
+  --cos-radius-sm: 10px;
+  --cos-radius-md: 14px;
+  --cos-radius-pill: 22px;
+
   /* ---------- motion ----------
      Named after what they are for, so a screen never has to guess which
      curve belongs to which kind of movement. */
@@ -221,13 +260,33 @@
   }
 }
 
+/* A name belongs to a body, and only while you are near enough to be
+   asking whose body it is.
+
+   Taken out of the flow on purpose: in the flow, a name arriving pushed
+   its own orb upwards, so approaching a crowd made the crowd shuffle.
+   Out of it, the body never moves and only the name fades. */
 .cos-orb-name {
-  margin-top: 9px;
+  position: absolute;
+  inset-block-start: 100%;
+  margin-block-start: 3px;
   text-align: center;
-  line-height: 1.55;
+  font-size: var(--cos-text-label);
+  line-height: var(--cos-leading-tight);
   white-space: nowrap;
   font-weight: 300;
   color: var(--cos-fg-soft);
+  pointer-events: none;
+  opacity: 0;
+  translate: 0 -4px;
+  transition:
+    opacity var(--cos-t-calm) ease,
+    translate var(--cos-t-calm) var(--cos-ease-settle);
+}
+
+.cos-star-inner.is-near .cos-orb-name {
+  opacity: 1;
+  translate: 0 0;
 }
 
 /* Someone who has just arrived is not dim — dim reads as "nobody wanted
@@ -264,6 +323,12 @@
    The scene is one element the camera moves, holding three depth layers
    that move a little more or less than it does. Nothing inside them is
    ever touched again after it is placed. */
+/* One stacking context for the whole world, so an orb's z-index stays a
+   matter between orbs and can never outrank the chrome above it. */
+.cos-scene {
+  isolation: isolate;
+}
+
 .cos-scene,
 .cos-layer {
   position: absolute;
@@ -282,6 +347,7 @@
 }
 
 .cos-star-inner {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -316,8 +382,8 @@
   margin: auto;
   text-align: center;
   color: var(--cos-fg-soft);
-  font-size: 14px;
-  line-height: 1.8;
+  font-size: var(--cos-text-read);
+  line-height: var(--cos-leading-read);
 }
 
 /* ---------- stage one: a look ----------
@@ -347,26 +413,26 @@
 }
 
 .cos-peek-name {
-  font-size: 20px;
+  font-size: var(--cos-text-title);
   font-weight: 300;
 }
 
 .cos-peek-live {
-  font-size: 12px;
+  font-size: var(--cos-text-label);
   color: var(--cos-live);
 }
 
 .cos-peek-line {
   margin: 2px 0 0;
   max-width: 300px;
-  font-size: 13px;
-  line-height: 1.8;
+  font-size: var(--cos-text-body);
+  line-height: var(--cos-leading-read);
   color: var(--cos-fg-soft);
 }
 
 .cos-peek-hint {
   margin-top: 10px;
-  font-size: 11px;
+  font-size: var(--cos-text-caption);
   color: var(--cos-fg-faint);
 }
 
@@ -395,25 +461,25 @@
 }
 
 .cos-actions-name {
-  font-size: 17px;
+  font-size: var(--cos-text-lead);
   font-weight: 300;
 }
 
 .cos-actions-line {
   margin-top: 2px;
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: var(--cos-text-label);
+  line-height: var(--cos-leading-read);
   color: var(--cos-fg-soft);
 }
 
 .cos-action {
   min-height: 48px;
   border: 1px solid rgb(233 242 240 / 16%);
-  border-radius: 14px;
+  border-radius: var(--cos-radius-md);
   background: rgb(233 242 240 / 5%);
   color: var(--cos-fg);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--cos-text-read);
 }
 
 .cos-action-primary {
@@ -423,103 +489,663 @@
 }
 
 .cos-action-quiet {
-  min-height: 42px;
+  /* Quiet, not small: a secondary action is still something a thumb has
+     to land on, so it keeps the 44px floor like everything else. */
+  min-height: 44px;
   border-color: transparent;
   background: none;
   color: var(--cos-fg-faint);
-  font-size: 13px;
+  font-size: var(--cos-text-body);
 }
 
 /* ---------- the core ----------
    The one control the world has. It sits low and centred because that is
    where a thumb rests, and it opens upwards because below it is off the
-   screen and under the hand. */
+   screen and under the hand.
+
+   This box is zero by zero and Sol is centred ON it, so this offset is
+   Sol's CENTRE, not its lower edge. At the old value the centre sat
+   twenty-six pixels up and the lower half of a sixty-eight pixel star was
+   simply off the bottom of the screen — which is what "half of it isn't
+   there" meant, and no amount of extra light was ever going to fix it.
+   Half the diameter, plus real clearance underneath. */
 .cos-core-area {
+  --cos-sol: 68px;
+
   position: absolute;
   left: 50%;
-  bottom: calc(26px + env(safe-area-inset-bottom));
+  bottom: calc(30px + (var(--cos-sol) / 2) + env(safe-area-inset-bottom));
   translate: -50%;
   width: 0;
   height: 0;
 }
 
+/* ---------- Sol ----------
+   The brightest object in the world, and the only one that is yours.
+
+   Four layers, because a star is not one colour. A body that goes from
+   white at the centre to copper at the rim; a surface of slow turbulence
+   over it so the light is never perfectly even; a corona spilling well
+   past the edge so the space around Sol is lit rather than merely next to
+   it; and a hot white eye that is almost the only pure white in the app.
+   A single flat gradient reads as paint, and that was the problem with
+   the version before this one. */
 .cos-core {
   position: absolute;
   left: 50%;
   top: 50%;
   translate: -50% -50%;
-  width: 58px;
-  height: 58px;
+  width: var(--cos-sol);
+  height: var(--cos-sol);
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
   border-radius: 50%;
-  border: 1px solid rgb(242 176 106 / 45%);
-  background: radial-gradient(circle at 50% 42%, rgb(242 176 106 / 18%), rgb(4 8 10 / 90%) 70%);
+  /* The stops crowd towards the rim, which is what gives a sphere its
+     edge. Spread evenly it reads as a glow with no surface.
+
+     The rim stops at a lit amber rather than running down into brown:
+     brown is a colour a star cannot be, and the previous version ended
+     at near-chocolate, which is why the whole thing read as a bead
+     instead of as the brightest object in the world. */
+  /* The white core is kept SMALL. Spread across a quarter of the disc it
+     washed the whole star out to a pale bead the colour of sand, which is
+     what was on the screen. A star is a tight white centre and a fierce
+     coloured body; the brightness belongs in the light it throws, not in
+     how much of the disc is white. */
+  background:
+    radial-gradient(
+      circle at 42% 36%,
+      #ffffff 0%,
+      #fff9e8 11%,
+      #ffe2a6 29%,
+      #ffc266 51%,
+      #f89b2f 73%,
+      #dd7a15 90%,
+      #b85f0c 100%
+    );
+  /* Four rings of light, out to a hundred and forty pixels. This is the
+     whole answer to "I cannot tell where to put my finger": nothing else
+     on the screen throws light, so the lit patch IS the target, and it
+     has to be unmistakable before the eye ever reaches the disc. */
   box-shadow:
-    0 0 44px rgb(242 176 106 / 16%),
-    inset 0 0 22px rgb(242 176 106 / 7%);
+    0 0 0 1px rgb(255 246 226 / 85%),
+    0 0 20px rgb(255 209 150 / 90%),
+    0 0 52px rgb(252 184 112 / 50%),
+    0 0 104px rgb(250 176 106 / 26%),
+    0 0 150px rgb(248 166 92 / 13%);
   transition:
-    transform var(--cos-t-quick) var(--cos-ease-pop),
+    scale var(--cos-t-quick) var(--cos-ease-pop),
     box-shadow var(--cos-t-quick) ease;
 }
 
-.cos-core.is-held {
-  transform: scale(1.06);
-  box-shadow: 0 0 70px rgb(242 176 106 / 30%);
+/* Turbulence. Two soft lobes drifting slowly over the body: enough to
+   stop the surface reading as a printed circle, far too slow to notice
+   as motion. */
+.cos-core-surface {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 30% at 30% 34%, rgb(255 252 240 / 70%) 0%, rgb(255 252 240 / 0%) 100%),
+    radial-gradient(30% 26% at 72% 64%, rgb(255 170 70 / 40%) 0%, rgb(255 170 70 / 0%) 100%);
+  /* Screen, not soft-light. Soft-light pushed the darker lobe towards
+     grey and left the surface looking dirty rather than turbulent; a star
+     only ever adds light to itself. */
+  mix-blend-mode: screen;
+  opacity: 0.45;
+  animation: cos-sol-churn 18s linear infinite;
+}
+
+@keyframes cos-sol-churn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* The light that leaves it. Sized well past the body, so what is around
+   Sol is lit by it. */
+.cos-core-corona {
+  position: absolute;
+  inset: -62px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgb(255 202 140 / 34%) 0%,
+    rgb(250 184 116 / 13%) 40%,
+    rgb(242 176 106 / 0%) 70%
+  );
+  animation: cos-sol-breathe 5.5s ease-in-out infinite;
+}
+
+@keyframes cos-sol-breathe {
+  0%,
+  100% {
+    scale: 1;
+    opacity: 0.82;
+  }
+
+  50% {
+    scale: 1.12;
+    opacity: 1;
+  }
 }
 
 .cos-core-eye {
-  width: 13px;
-  height: 13px;
+  position: relative;
+  z-index: 1;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: var(--cos-warm-bright);
-  box-shadow: 0 0 22px rgb(246 190 130 / 70%);
-  transition: transform var(--cos-t-quick) var(--cos-ease-pop);
+  background: radial-gradient(circle, #ffffff 0%, #fffaec 40%, rgb(255 246 228 / 0%) 100%);
+  transition: scale var(--cos-t-quick) var(--cos-ease-pop);
+}
+
+/* Pressed: smaller and hotter, because that is what a thumb pushing into
+   a light would do to it. */
+.cos-core.is-held {
+  scale: 0.88;
+  box-shadow:
+    0 0 0 1px rgb(255 250 238 / 95%),
+    0 0 30px rgb(255 216 165 / 100%),
+    0 0 78px rgb(252 184 112 / 60%),
+    0 0 150px rgb(250 176 106 / 30%);
 }
 
 .cos-core.is-held .cos-core-eye {
-  transform: scale(1.25);
+  scale: 1.35;
 }
 
-.cos-core-arcs {
+/* The light on its way somewhere. */
+.cos-beam {
   position: absolute;
   left: 50%;
   top: 50%;
+  width: 340px;
+  height: 340px;
+  margin: -170px 0 0 -170px;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* ---------- the places in the system ----------
+   Bodies, not chips. Each is dark until Sol's beam reaches it, and then
+   it lights FROM THE SIDE FACING SOL — which is why `--lit-x/y` is
+   different for every one of them. Nothing glows from a halo bolted
+   around the outside; the light arrives, enters, and leaves through the
+   mark. */
+.cos-core-orbit {
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
   width: 0;
   height: 0;
   pointer-events: none;
 }
 
-/* Each section is a point of light rather than a labelled button: four
-   labels around a circle means three of them are sideways. */
-.cos-core-arc {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: rgb(233 242 240 / 30%);
-  transition:
-    background var(--cos-t-quick) ease,
-    transform var(--cos-t-quick) var(--cos-ease-pop);
-}
-
-.cos-core-arc.is-hot {
-  background: var(--cos-warm-bright);
-  transform: scale(1.7);
-  box-shadow: 0 0 18px rgb(246 190 130 / 80%);
-}
-
-/* The one label. Fixed position, changing text. */
-.cos-core-label {
-  position: absolute;
-  left: 50%;
-  top: -128px;
-  translate: -50%;
-  white-space: nowrap;
-  font-size: 14px;
-  color: var(--cos-fg);
-  text-shadow: 0 2px 12px rgb(4 8 10 / 90%);
+/* While the system is open the world steps back — genuinely back, not
+   politely. The previous veil faded to nothing well before it reached the
+   bodies in the arc, so four thin marks were competing with a field of lit
+   orbs and losing. A menu you cannot read is not a menu. */
+.cos-core-veil {
+  position: fixed;
+  inset: 0;
   pointer-events: none;
+  background:
+    /* Sol's own light landing on the dark. Placed where Sol is, so the
+       thing you are holding visibly lights the space it opened. */
+    radial-gradient(
+      44% 26% at 50% 93%,
+      rgb(255 186 112 / 13%) 0%,
+      rgb(255 186 112 / 4%) 46%,
+      rgb(255 186 112 / 0%) 100%
+    ),
+    linear-gradient(
+      to top,
+      rgb(2 5 6 / 97%) 0%,
+      rgb(2 5 6 / 93%) 24%,
+      rgb(3 7 9 / 72%) 54%,
+      rgb(3 7 9 / 44%) 100%
+    );
+  animation: cos-veil var(--cos-t-quick) ease;
+}
+
+@keyframes cos-veil {
+  from {
+    opacity: 0;
+  }
+}
+
+.cos-sat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 60px;
+  margin: -30px 0 0 -30px;
+  transition: scale var(--cos-t-calm) var(--cos-ease-settle);
+}
+
+/* No container, on purpose. A bordered circle around each mark turned
+   four bodies in a star system into four buttons in a menu — and once the
+   light arrives from Sol, the circle was the thing catching it instead of
+   the mark. What is left is the mark itself, standing in a pool of light
+   that only exists while the beam is on it. */
+.cos-sat-body {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  /* Nearly full strength. At the old fifty-five per cent these were four
+     faint scratches on a busy sky and nobody could tell what any of them
+     was — which is the opposite of what a mark is for. A mark that is not
+     yet chosen is still a mark that has to be read. */
+  color: rgb(243 250 248 / 98%);
+  /* Its own shadow, so the stroke holds up over anything behind it. Not a
+     border and not a plate: just the dark the mark sits in. */
+  filter: drop-shadow(0 0 7px rgb(4 8 10 / 95%)) drop-shadow(0 1px 2px rgb(4 8 10 / 80%));
+  transition: color var(--cos-t-calm) ease, scale var(--cos-t-quick) var(--cos-ease-pop);
+}
+
+/* The dark the mark stands in. Deepest at the centre and gone by the rim,
+   so it reads as the mark's own shadow rather than as a disc behind it —
+   which is what the circle we removed used to look like. */
+.cos-sat-body::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgb(4 8 10 / 88%) 0%,
+    rgb(4 8 10 / 62%) 46%,
+    rgb(4 8 10 / 0%) 76%
+  );
+  z-index: -1;
+}
+
+/* The pool. Centred on the side facing Sol, because that is where the
+   light comes in — a body on the left is lit on its right. */
+.cos-sat-body::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at var(--lit-x) var(--lit-y),
+    rgb(255 210 150 / 46%) 0%,
+    rgb(245 180 110 / 17%) 42%,
+    rgb(242 176 106 / 0%) 72%
+  );
+  opacity: 0;
+  transition: opacity var(--cos-t-quick) ease;
+}
+
+/* Lit: the inside fills with the light that just arrived, brightest where
+   it entered. The mark goes near-white because it is being shone
+   through, and the rim picks up a thin line of the same light. */
+.cos-sat.is-lit {
+  scale: 1.1;
+}
+
+.cos-sat.is-lit .cos-sat-body {
+  color: #fff3df;
+  scale: 1.06;
+  filter: drop-shadow(0 0 10px rgb(255 197 126 / 55%));
+}
+
+.cos-sat.is-lit .cos-sat-body::before {
+  opacity: 1;
+}
+
+/* Named where it sits. A mark nobody can name yet is a mark nobody aims
+   at, and every one of these is upright because they all live above Sol. */
+/* Readable at rest, at full strength. A name at eleven pixels and a third
+   of its colour is a name nobody reads, which made the whole arc a
+   guessing game: you had to sweep onto something to find out what it was.
+   These are the only four words on the screen; they can afford to be
+   legible. */
+.cos-sat-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--cos-text-body);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: rgb(240 247 245 / 96%);
+  text-shadow:
+    0 0 10px rgb(2 5 6 / 100%),
+    0 1px 3px rgb(2 5 6 / 95%);
+  white-space: nowrap;
+  transition: color var(--cos-t-quick) ease;
+}
+
+.cos-sat.is-lit .cos-sat-tag {
+  color: var(--cos-warm-bright);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-sat,
+  .cos-core-veil,
+  .cos-core-corona {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ---------- a sheet, in the world's language ----------
+   The older pale sheet still exists and still works; it simply cannot
+   appear on a night sky without looking like a different product. */
+
+.cos-sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+}
+
+.cos-sheet-veil {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgb(2 5 6 / 62%);
+  animation: cos-veil var(--cos-t-quick) ease;
+}
+
+.cos-sheet {
+  position: relative;
+  width: 100%;
+  padding: 10px 18px calc(20px + env(safe-area-inset-bottom));
+  border-start-start-radius: 24px;
+  border-start-end-radius: 24px;
+  border-block-start: 1px solid rgb(233 242 240 / 10%);
+  background: #0a161a;
+  animation: cos-sheet-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+
+@keyframes cos-sheet-rise {
+  from {
+    translate: 0 100%;
+  }
+}
+
+.cos-sheet-grab {
+  display: block;
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 2px;
+  background: rgb(233 242 240 / 18%);
+}
+
+.cos-sheet-title {
+  margin: 0 0 16px;
+  font-size: var(--cos-text-lead);
+  font-weight: 300;
+}
+
+.cos-sheet-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cos-sheet-row {
+  min-height: 54px;
+  padding-inline: 18px;
+  border: 1px solid rgb(233 242 240 / 12%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(233 242 240 / 4%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-read);
+  text-align: start;
+  transition: border-color var(--cos-t-quick) ease, background var(--cos-t-quick) ease;
+}
+
+.cos-sheet-row.is-on {
+  border-color: rgb(122 215 200 / 55%);
+  background: rgb(122 215 200 / 10%);
+  color: var(--cos-cool);
+}
+
+.cos-sheet-row:active {
+  scale: 0.99;
+}
+
+/* Day, month, year. Three plain selects rather than a custom wheel: the
+   platform's own picker is the one a person already knows, it reaches the
+   keyboard and the screen reader for free, and it cannot trap a thumb. */
+.cos-sheet-date {
+  display: flex;
+  gap: 8px;
+}
+
+.cos-select {
+  flex: 1;
+  min-height: 54px;
+  padding-inline: 12px;
+  border: 1px solid rgb(233 242 240 / 12%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(233 242 240 / 4%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-read);
+}
+
+.cos-select option {
+  background: #0a161a;
+  color: var(--cos-fg);
+}
+
+.cos-sheet-note {
+  margin: 14px 0 0;
+  font-size: var(--cos-text-label);
+  line-height: var(--cos-leading-read);
+  color: var(--cos-fg-faint);
+}
+
+.cos-sheet-save {
+  width: 100%;
+  margin-block-start: 16px;
+}
+
+/* ---------- the door's two questions ----------
+   Rows rather than sentences: something that can be answered has to look
+   like something that can be pressed. */
+.cos-gate-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 20px;
+}
+
+.cos-gate-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding-inline: 18px;
+  border: 1px solid rgb(242 176 106 / 34%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(242 176 106 / 7%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-read);
+  transition: border-color var(--cos-t-quick) ease, background var(--cos-t-quick) ease;
+}
+
+.cos-gate-row:active {
+  scale: 0.99;
+  background: rgb(242 176 106 / 12%);
+}
+
+.cos-gate-failed {
+  position: static;
+  margin-block-start: 12px;
+}
+
+/* One quiet word under the name, for a place whose name does not explain
+   itself. Smaller and dimmer than the name on purpose: the name is what
+   people will end up saying, and this is only here until they do. */
+/* The plain word for a name that does not explain itself, in brackets on
+   the same line. On its own line it read as a second label with a gap
+   between them, which is what it looked like. */
+/* The small word that says what Echo is. Shown ONLY on the body the beam
+   is touching.
+
+   It is the longest label in the arc by a wide margin, and standing next
+   to its neighbours all the time it ran straight into them — two names
+   overlapping is worse than one name missing. On the lit body there is no
+   competition, because the beam is on exactly one thing at a time. */
+.cos-sat-sub {
+  display: none;
+  font-style: normal;
+  font-size: var(--cos-text-label);
+  color: rgb(246 196 142 / 88%);
+}
+
+.cos-sat.is-lit .cos-sat-sub {
+  display: inline;
+}
+
+/* ---------- the icon comparison page ----------
+   Not product styling. Deletable with the page it serves. */
+.cos-icons {
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+.cos-icons-body {
+  position: relative;
+  padding: calc(24px + env(safe-area-inset-top)) 18px
+    calc(24px + env(safe-area-inset-bottom));
+}
+
+.cos-icons-note {
+  margin: 0 0 24px;
+  font-size: var(--cos-text-label);
+  line-height: var(--cos-leading-read);
+  color: var(--cos-fg-faint);
+}
+
+.cos-icons-row {
+  display: grid;
+  grid-template-columns: 24px auto auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding-block: 18px;
+  border-block-end: 1px solid rgb(233 242 240 / 8%);
+}
+
+.cos-icons-id {
+  font-size: var(--cos-text-lead);
+  color: var(--cos-fg-faint);
+}
+
+.cos-icons-pair {
+  display: flex;
+  gap: 8px;
+}
+
+.cos-icons-body-dark,
+.cos-icons-body-lit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.cos-icons-body-dark {
+  border: 1px solid rgb(233 242 240 / 20%);
+  background: #0d1a1e;
+  color: rgb(233 242 240 / 62%);
+}
+
+.cos-icons-body-lit {
+  border: 1px solid rgb(255 214 156 / 62%);
+  color: #fff6e6;
+  background:
+    radial-gradient(
+      circle at 30% 50%,
+      rgb(255 208 145 / 68%) 0%,
+      rgb(214 137 54 / 34%) 46%,
+      rgb(70 38 12 / 52%) 100%
+    ),
+    #0d1a1e;
+  box-shadow: inset 0 0 18px rgb(255 206 143 / 30%);
+}
+
+.cos-icons-big {
+  color: var(--cos-warm-bright);
+}
+
+.cos-icons-idea {
+  font-size: var(--cos-text-label);
+  line-height: var(--cos-leading-read);
+  color: var(--cos-fg-soft);
+}
+
+/* A face on a body.
+   It arrives blurred and transparent and resolves in place, which is what
+   makes a slow connection read as something approaching rather than
+   something broken. The body's own lighting stays on top of it, so a
+   photograph is the orb's SURFACE rather than a sticker on it — and the
+   letter underneath remains, so a photo that never arrives leaves
+   something legible behind. */
+.cos-orb-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  opacity: 0;
+  scale: 1.04;
+  filter: blur(7px) saturate(0.85);
+  transition:
+    opacity var(--cos-t-slow) ease,
+    filter var(--cos-t-slow) ease,
+    scale var(--cos-t-slow) var(--cos-ease-settle);
+}
+
+.cos-orb-photo.is-here {
+  opacity: 0.88;
+  scale: 1;
+  filter: blur(0) saturate(0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-orb-photo {
+    transition: opacity var(--cos-t-quick) ease;
+  }
+}
+
+/* The floor Sol stands on.
+   Permanent and quiet, unlike the veil that appears while the system is
+   open. Without it the crowd runs right down to the bottom edge and the
+   one control the world has competes with twenty faces for the same
+   corner of the screen. */
+.cos-floor {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  z-index: 8;
+  height: 210px;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgb(4 8 10 / 92%) 0%,
+    rgb(4 8 10 / 64%) 38%,
+    rgb(4 8 10 / 0%) 100%
+  );
 }

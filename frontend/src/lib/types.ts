@@ -253,6 +253,10 @@ export interface PublicProfile {
   birthday_month: number | null
   birthday_day: number | null
   birthday_year: number | null
+  // 'male' | 'female' | 'unsaid', or null when nobody has asked yet —
+  // which is not the same thing as 'unsaid'. Signup deliberately does not
+  // ask; Echo's door does.
+  gender: string | null
   followers_count: number
   following_count: number
   follow_status: 'not_following' | 'pending' | 'accepted'

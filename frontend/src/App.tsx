@@ -11,6 +11,8 @@ import { needsDevLogin } from './lib/session'
 import Discover from './pages/Discover'
 import CosmosPreview from './pages/CosmosPreview'
 import Sky from './pages/Sky'
+import Echo from './pages/Echo'
+import EchoIcons from './pages/EchoIcons'
 import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
@@ -113,7 +115,15 @@ function AppShell() {
   // bottom of the screen. Showing the tab bar over it would offer four
   // ways to leave a conversation the user is in the middle of, and cost
   // a row of messages to do it.
-  const immersive = location.pathname.startsWith('/chat-sessions/')
+  //
+  // The world's screens are immersive for a different reason: they carry
+  // their own navigation. The core at the bottom IS the nav, and a second
+  // bar underneath it would be two navigations arguing over the same
+  // corner of the screen — plus it sits exactly where the core opens.
+  const COSMOS = ['/sky', '/echo', '/echo-icons', '/cosmos']
+  const immersive =
+    location.pathname.startsWith('/chat-sessions/') ||
+    COSMOS.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))
 
   return (
     // Each page reserves its own room for the nav bar through
@@ -132,6 +142,8 @@ function AppShell() {
         <Route path="/cosmos" element={<CosmosPreview />} />
         {/* The world, with real people in it. */}
         <Route path="/sky" element={<Sky />} />
+        <Route path="/echo" element={<Echo />} />
+        <Route path="/echo-icons" element={<EchoIcons />} />
         <Route path="/offers" element={<Discover />} />
         <Route path="/offers/new" element={<CreateOffer />} />
         <Route path="/offers/:id" element={<OfferDetail />} />

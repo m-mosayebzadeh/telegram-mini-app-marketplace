@@ -23,7 +23,10 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 
 /** How far apart the places are. Tuned against the orb sizes so the
  *  nearest few have room to breathe and nothing collides. */
-const SPACING = 96
+// Raised from 96: at the old value a field of thirty orbs read as a
+// crowd with their names running into each other's bodies. Space is what
+// makes a group of things look arranged rather than spilled.
+const SPACING = 124
 
 /** A small offset so the first person is not exactly on top of the
  *  viewer's own position at the centre. */

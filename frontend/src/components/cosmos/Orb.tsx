@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 
 /**
  * How the world draws a person.
@@ -59,6 +59,18 @@ export interface OrbProps {
    *  up. Passing it is what makes a group of orbs read as one lit scene
    *  instead of a row of stickers. */
   lightFrom?: { x: number; y: number }
+  /**
+   * Their photograph, and whether this orb is near enough to be worth
+   * fetching it.
+   *
+   * Detail arrives with proximity (TECHNICAL_REQUIREMENTS.md section 29):
+   * a face is the most expensive thing on the screen and the least useful
+   * at the far edge, so a distant orb never asks for one. Nothing is
+   * pre-loaded and nothing is waited for — the sky is complete before any
+   * photograph exists, and each one fades in over the body it lands on.
+   */
+  photoUrl?: string | null
+  near?: boolean
   /** Seconds for one drift cycle, and how far into it to start. Given per
    *  orb so a sky never breathes in unison. */
   driftSeconds?: number
@@ -73,11 +85,26 @@ export function Orb({
   online = false,
   isNew = false,
   seed = 0,
+  photoUrl = null,
+  near = false,
   lightFrom = { x: 0, y: -1 },
   driftSeconds,
   driftDelaySeconds = 0,
   className,
 }: OrbProps) {
+  // Only flips once, when the bytes are actually there. Until then the
+  // body shows through, which is why nothing ever looks like it is
+  // waiting for a network.
+  const [arrived, setArrived] = useState(false)
+  // Once a face has been asked for it stays in the document forever, and
+  // only its opacity follows the camera. Unmounting it on the way out
+  // would throw the bytes away, snap it off screen instead of letting it
+  // fade, and fetch it all over again on the way back.
+  const [asked, setAsked] = useState(false)
+  const has = photoUrl !== null && photoUrl !== ''
+  if (near && has && !asked) setAsked(true)
+  const showPhoto = arrived && near && has
+
   const clamped = clamp01(presence)
   const size = Math.round(MIN_SIZE + clamped * (MAX_SIZE - MIN_SIZE))
   const light = clamp01(trust)
@@ -125,7 +152,22 @@ export function Orb({
           <span className="cos-orb-live-pulse" aria-hidden="true" />
         </>
       )}
-      <span className="cos-orb">{initial}</span>
+      <span className="cos-orb">
+        {/* The letter stays underneath. A photograph that never arrives
+            leaves something legible behind rather than a grey disc. */}
+        {initial}
+        {asked && (
+          <img
+            className={`cos-orb-photo${showPhoto ? ' is-here' : ''}`}
+            src={photoUrl ?? undefined}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            onLoad={() => setArrived(true)}
+          />
+        )}
+      </span>
     </div>
   )
 }

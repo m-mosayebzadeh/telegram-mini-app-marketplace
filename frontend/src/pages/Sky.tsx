@@ -4,7 +4,20 @@ import { useTranslation } from 'react-i18next'
 import { Orb } from '../components/cosmos/Orb'
 import { SpaceGround, DUST_LAYERS, seededRandom } from '../components/cosmos/SpaceGround'
 import { CoreNav } from '../components/cosmos/CoreNav'
-import { LAYER_DEPTH, lightTowardsCentre, place } from '../lib/phyllotaxis'
+import { IconActivity, IconChats, IconEcho, IconMe } from '../components/cosmos/icons'
+import { lightTowardsCentre, place } from '../lib/phyllotaxis'
+import {
+  NOBODY,
+  anchorOf,
+  detailAround,
+  hasArrived,
+  hitTest as hitTestAt,
+  layerShift,
+  sameIds,
+  stepCamera,
+  type Camera,
+  type View,
+} from '../lib/camera'
 import { fetchSky, type SkyPerson } from '../lib/skyApi'
 import { formatApiError } from '../lib/api'
 
@@ -34,13 +47,40 @@ import { formatApiError } from '../lib/api'
 /** How fast a flick keeps travelling, and when it is considered stopped. */
 const FRICTION = 0.935
 const STILL = 0.02
-/** How quickly the camera catches up with where it is heading. Low enough
- *  to feel like weight, high enough not to feel like lag. */
-const CAMERA_EASE = 0.14
-
 /** A movement bigger than this is a drag, not a tap. In CSS pixels, and
  *  generous: fingers move a little on every tap. */
 const DRAG_SLOP = 9
+
+/**
+ * Detail follows the camera, not the list.
+ *
+ * Who carries a name and a face is a question about where you are looking
+ * right now, so it is measured from the middle of the screen and asked
+ * again as the camera moves. Going towards somebody brings them into
+ * focus; leaving lets them fade back to a shape. The earlier version fixed
+ * the set at "the ten nearest in the list", which never changed however
+ * far you travelled — the world had detail in exactly one place.
+ *
+ * The thresholds themselves live in lib/camera.ts, with the arithmetic
+ * they belong to.
+ */
+
+/** How much of the bottom of the screen belongs to Sol and its system.
+ *  Home has to sit in the middle of what is LEFT, or the densest and best
+ *  part of the world ends up hidden behind the one control it has. */
+const FLOOR = 190
+
+/** How far out the camera pulls to show the whole sky at once. */
+const WIDE_SCALE = 0.42
+
+/** Two speeds. Dragging needs to feel attached to the finger; travelling
+ *  home is a journey and reads better slow enough to watch. */
+const CAMERA_EASE_DRAG = 0.14
+const CAMERA_EASE_GLIDE = 0.045
+
+/** How often the question is asked again. Sixty times a second would be
+ *  sixty re-renders a second; nine is already faster than the eye. */
+const DETAIL_EVERY_MS = 110
 
 /** How far from an orb's centre still counts as hitting it. */
 const HIT_RADIUS = 46
@@ -64,6 +104,10 @@ export default function Sky() {
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
   const [stage, setStage] = useState<Stage>('none')
+  /** Who is close enough to be a person rather than a shape. Written from
+   *  the camera loop, but only when the answer actually changes — a set
+   *  that is the same set is not a re-render. */
+  const [detail, setDetail] = useState<ReadonlySet<number>>(NOBODY)
 
   const appRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<HTMLDivElement>(null)
@@ -72,13 +116,21 @@ export default function Sky() {
 
   // The camera lives in a ref, not in state: it changes sixty times a
   // second and not one of those changes should re-render React.
-  const camera = useRef({ x: 0, y: 0 })
-  const target = useRef({ x: 0, y: 0 })
+  const camera = useRef<Camera>({ x: 0, y: 0, z: 1 })
+  const target = useRef<Camera>({ x: 0, y: 0, z: 1 })
+  /** True while the camera is travelling somewhere on its own rather than
+   *  following a finger. Only the speed differs. */
+  const gliding = useRef(false)
   const velocity = useRef({ x: 0, y: 0 })
   const dragging = useRef(false)
   const moved = useRef(false)
   const last = useRef({ x: 0, y: 0 })
   const start = useRef({ x: 0, y: 0 })
+  /** A mirror of `detail` the loop can read without being re-created every
+   *  time it changes, and the clock that keeps it from being asked too
+   *  often. */
+  const detailRef = useRef<ReadonlySet<number>>(NOBODY)
+  const detailAt = useRef(0)
 
   useEffect(() => {
     fetchSky()
@@ -102,6 +154,12 @@ export default function Sky() {
 
   const chosen = stars.find((star) => star.user_id === selected) ?? null
 
+  /** The glass, as the arithmetic sees it. Read fresh every time rather
+   *  than remembered: a phone is rotated, and a keyboard opens. */
+  function view(): View {
+    return { width: innerWidth, height: innerHeight, floor: FLOOR }
+  }
+
   /** The camera loop. The only place any of this writes style. */
   useEffect(() => {
     let frame = 0
@@ -119,24 +177,33 @@ export default function Sky() {
         if (Math.abs(vel.y) < STILL) vel.y = 0
       }
 
-      cam.x += (tgt.x - cam.x) * CAMERA_EASE
-      cam.y += (tgt.y - cam.y) * CAMERA_EASE
+      const ease = gliding.current ? CAMERA_EASE_GLIDE : CAMERA_EASE_DRAG
+      Object.assign(cam, stepCamera(cam, tgt, ease))
+      // Arrived: hand the camera back so the next drag is immediate
+      // rather than syrupy.
+      if (gliding.current && hasArrived(cam, tgt)) gliding.current = false
 
       const scene = sceneRef.current
       if (scene) {
-        scene.style.transform = `translate3d(${innerWidth / 2}px, ${
-          innerHeight / 2
-        }px, 0) translate3d(${-cam.x}px, ${-cam.y}px, 0)`
+        // The vertical anchor is the middle of the space Sol does not
+        // occupy, which is what keeps the centre of the world in sight.
+        const anchor = anchorOf(view())
+        scene.style.transform = `translate3d(${anchor.x}px, ${anchor.y}px, 0) scale(${cam.z.toFixed(
+          3,
+        )}) translate3d(${-cam.x}px, ${-cam.y}px, 0)`
       }
       // Nearer layers move further than the camera, which is what reads
-      // as depth rather than as a flat poster sliding about.
+      // as depth rather than as a flat poster sliding about. The sign
+      // matters and was wrong: the scene already subtracts the camera
+      // once, so a layer has to subtract the REMAINDER of its depth, and
+      // adding it instead made the near layer the slowest of the three.
       for (let index = 0; index < layerRefs.current.length; index += 1) {
         const layer = layerRefs.current[index]
         if (!layer) continue
-        const factor = LAYER_DEPTH[index] - 1
-        layer.style.transform = `translate3d(${(cam.x * factor).toFixed(1)}px, ${(
-          cam.y * factor
-        ).toFixed(1)}px, 0)`
+        const shift = layerShift(index, cam)
+        layer.style.transform = `translate3d(${shift.x.toFixed(1)}px, ${shift.y.toFixed(
+          1,
+        )}px, 0)`
       }
       for (let index = 0; index < dustRefs.current.length; index += 1) {
         const dust = dustRefs.current[index]
@@ -147,11 +214,24 @@ export default function Sky() {
         ).toFixed(1)}px, 0)`
       }
 
+      // Detail is the one thing here that touches React, so it is asked
+      // on a clock of its own and only reported when the answer moved.
+      const now = performance.now()
+      if (now - detailAt.current >= DETAIL_EVERY_MS) {
+        detailAt.current = now
+        const next = detailAround(stars, cam, view(), detailRef.current)
+        if (!sameIds(next, detailRef.current)) {
+          detailRef.current = next
+          setDetail(next)
+        }
+      }
+
       frame = requestAnimationFrame(step)
     }
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
-  }, [stage])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, stars])
 
   /** Collects the dust layers the ground rendered, so the loop can move
    *  them. They belong to SpaceGround, which has no idea a camera exists. */
@@ -163,24 +243,32 @@ export default function Sky() {
 
   /** What is under this point on the screen, worked out by hand because
    *  pointer capture means a click never reaches an orb. */
+  /**
+   * What is under this point.
+   *
+   * Has to reproduce the scene's transform exactly — the same vertical
+   * anchor and the same zoom — because the two are the only description
+   * of where anything actually is. When they drifted apart, taps landed
+   * on whatever used to be there.
+   *
+   * The catch radius follows the zoom too: pulled out, everything is
+   * smaller, and a fixed radius would have one finger covering six
+   * people.
+   */
   function hitTest(clientX: number, clientY: number): Star | null {
-    const cam = camera.current
-    let best: Star | null = null
-    let bestDistance = HIT_RADIUS
-    for (const star of stars) {
-      const factor = LAYER_DEPTH[star.layer]
-      const screenX = innerWidth / 2 + (star.x - cam.x) * factor
-      const screenY = innerHeight / 2 + (star.y - cam.y) * factor
-      const distance = Math.hypot(clientX - screenX, clientY - screenY)
-      if (distance < bestDistance) {
-        bestDistance = distance
-        best = star
-      }
-    }
-    return best
+    return hitTestAt(
+      stars,
+      camera.current,
+      view(),
+      { x: clientX, y: clientY },
+      HIT_RADIUS,
+    ) as Star | null
   }
 
   function onPointerDown(event: React.PointerEvent) {
+    // Touching the world takes the camera back off autopilot at once —
+    // a glide that keeps going under a finger feels like a stuck screen.
+    gliding.current = false
     if ((event.target as HTMLElement).closest('[data-chrome]')) return
     dragging.current = true
     moved.current = false
@@ -217,11 +305,16 @@ export default function Sky() {
       else return
     }
 
-    target.current.x -= dx
-    target.current.y -= dy
-    camera.current.x -= dx
-    camera.current.y -= dy
-    velocity.current = { x: -dx, y: -dy }
+    // Divided by the zoom so the world always travels exactly as far as
+    // the finger did. Pulled out, a pixel on screen is more than a pixel
+    // of world, and without this the drag feels glued while zoomed in and
+    // slippery while zoomed out.
+    const z = camera.current.z
+    target.current.x -= dx / z
+    target.current.y -= dy / z
+    camera.current.x -= dx / z
+    camera.current.y -= dy / z
+    velocity.current = { x: -dx / z, y: -dy / z }
   }
 
   function onPointerUp(event: React.PointerEvent) {
@@ -245,7 +338,17 @@ export default function Sky() {
     // rather than zooming is what solves an orb near the screen's edge:
     // wherever they were, they end up somewhere there is room to show
     // something about them.
-    target.current = { x: star.x, y: star.y + innerHeight * 0.16 }
+    //
+    // The zoom is carried over deliberately. Leaving it out of this object
+    // set it to nothing, every arithmetic on it from that moment produced
+    // nothing, and the scene's scale became a value the browser could not
+    // read — so the world stopped moving and stopped answering taps until
+    // the screen was left and come back to. That was the freeze.
+    // Not a glide: going to somebody you just pointed at should feel like
+    // an answer, not a journey. Only Sol's long trips get the slow ease.
+    velocity.current = { x: 0, y: 0 }
+    gliding.current = false
+    target.current = { x: star.x, y: star.y + innerHeight * 0.16, z: camera.current.z }
   }
 
   function unfocus() {
@@ -295,6 +398,7 @@ export default function Sky() {
                   <div
                     className={[
                       'cos-star-inner',
+                      detail.has(star.user_id) ? 'is-near' : '',
                       selected === null ? '' : selected === star.user_id ? 'is-chosen' : 'is-dimmed',
                     ]
                       .filter(Boolean)
@@ -310,7 +414,14 @@ export default function Sky() {
                       lightFrom={lightTowardsCentre(star.x, star.y)}
                       driftSeconds={star.driftSeconds}
                       driftDelaySeconds={star.driftDelay}
+                      photoUrl={star.avatar_url}
+                      near={detail.has(star.user_id)}
                     />
+                    {/* Always in the document, never always visible: the
+                        name fades with distance, and a name that is
+                        mounted and unmounted cannot fade. It is taken out
+                        of the flow as well, so a body's position never
+                        shifts when its name arrives. */}
                     <span className="cos-orb-name">{star.display_name}</span>
                   </div>
                 </div>
@@ -318,6 +429,10 @@ export default function Sky() {
           </div>
         ))}
       </div>
+
+      {/* Quiet ground under Sol, so the crowd never runs into the one
+          control the world has. */}
+      <div className="cos-floor" aria-hidden="true" />
 
       {people !== null && people.length === 0 && (
         <p className="cos-message" data-chrome>
@@ -329,11 +444,53 @@ export default function Sky() {
           never two things asking for the same thumb. */}
       {stage === 'none' && (
         <CoreNav
+          // On the world itself a tap brings the camera home rather than
+          // navigating: going to where you already are is not a journey.
+          // The easing in the loop turns it into a glide by itself.
+          // Two stages, because a tap should always do the most useful
+          // thing available. Anywhere in the world it brings you home;
+          // once you are already home there is nothing left to come back
+          // to, so it pulls out instead and shows the whole sky. Tapping
+          // again from out there brings you back in.
+          onTap={() => {
+            const cam = camera.current
+            const home = Math.hypot(cam.x, cam.y) < 60
+            const wide = cam.z < 0.9
+            velocity.current = { x: 0, y: 0 }
+            gliding.current = true
+            target.current =
+              home && !wide ? { x: 0, y: 0, z: WIDE_SCALE } : { x: 0, y: 0, z: 1 }
+          }}
           sections={[
-            { id: 'chats', label: t('sky.conversations'), onChoose: () => navigate('/chats') },
-            { id: 'random', label: t('sky.randomChat'), onChoose: () => navigate('/random') },
-            { id: 'activity', label: t('sky.activity'), onChoose: () => navigate('/activity') },
-            { id: 'me', label: t('sky.me'), onChoose: () => navigate('/profile') },
+            {
+              id: 'chats',
+              label: t('sky.conversations'),
+              icon: <IconChats size={32} />,
+              onChoose: () => navigate('/chats'),
+            },
+            {
+              // The only section with a name of its own, so the label
+              // leads with the mark and the name and says what it does
+              // underneath — that is the word people will end up using.
+              id: 'echo',
+              name: t('sky.echoName'),
+              sub: t('sky.echoSub'),
+              label: t('sky.randomChat'),
+              icon: <IconEcho size={32} />,
+              onChoose: () => navigate('/echo'),
+            },
+            {
+              id: 'activity',
+              label: t('sky.activity'),
+              icon: <IconActivity size={32} />,
+              onChoose: () => navigate('/activity'),
+            },
+            {
+              id: 'me',
+              label: t('sky.me'),
+              icon: <IconMe size={32} />,
+              onChoose: () => navigate('/profile'),
+            },
           ]}
         />
       )}

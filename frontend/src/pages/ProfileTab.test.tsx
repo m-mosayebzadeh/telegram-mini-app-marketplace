@@ -38,6 +38,7 @@ vi.mock('react-router-dom', async (original) => ({
 
 function profile(overrides: Partial<PublicProfile> = {}): PublicProfile {
   return {
+    gender: null,
     user_id: 1,
     display_name: 'Alice',
     username: null,

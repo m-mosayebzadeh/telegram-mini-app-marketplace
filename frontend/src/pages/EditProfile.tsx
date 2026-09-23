@@ -6,6 +6,7 @@ import { formatBirthday } from '../lib/jalali'
 import { ErrorState, PageHeader, SkeletonRows, useToast } from '../components/ui'
 import { IconCheck, IconChevron } from '../components/icons'
 import { BirthdaySheet, type BirthdayValue } from '../components/profile/BirthdaySheet'
+import { GenderSheet } from '../components/profile/GenderSheet'
 import { InterestsSheet } from '../components/profile/InterestsSheet'
 import { UsernameSheet } from '../components/profile/UsernameSheet'
 import { useMe } from '../lib/MeContext'
@@ -17,7 +18,7 @@ const MAX_INTERESTS = 10
 const MAX_BIO = 100
 
 /** Which sheet is open, if any. */
-type OpenSheet = 'username' | 'birthday' | 'interests' | null
+type OpenSheet = 'username' | 'birthday' | 'interests' | 'gender' | null
 
 /**
  * Editing your own profile.
@@ -46,6 +47,12 @@ export default function EditProfile() {
   const [username, setUsername] = useState('')
   const [birthday, setBirthday] = useState<BirthdayValue>({ month: null, day: null, year: null })
   const [interests, setInterests] = useState<string[]>([])
+  // Held in state and written back on every save even when untouched.
+  // The profile endpoint replaces the whole object, so a field this
+  // screen does not know about is a field this screen deletes — and
+  // gender is usually set at Echo's door rather than here.
+  const [gender, setGender] = useState<string | null>(null)
+  const [hideBirthYear] = useState(false)
 
   const [sheet, setSheet] = useState<OpenSheet>(null)
   const [usernameError, setUsernameError] = useState<string | null>(null)
@@ -71,6 +78,7 @@ export default function EditProfile() {
           day: loaded.birthday_day,
           year: loaded.birthday_year,
         })
+        setGender(loaded.gender ?? null)
       })
       .catch((err) => setLoadError(formatApiError(err)))
   }
@@ -88,6 +96,8 @@ export default function EditProfile() {
     bio?: string
     interests?: string[]
     birthday?: BirthdayValue
+    gender?: string | null
+    hideBirthYear?: boolean
   }): Promise<boolean> {
     const nextBirthday = next.birthday ?? birthday
     setBusy(true)
@@ -100,6 +110,8 @@ export default function EditProfile() {
           birthday_month: nextBirthday.month,
           birthday_day: nextBirthday.day,
           birthday_year: nextBirthday.year,
+          gender: next.gender !== undefined ? next.gender : gender,
+          hide_birth_year: next.hideBirthYear ?? hideBirthYear,
         }),
       })
       return true
@@ -257,6 +269,16 @@ export default function EditProfile() {
               </span>
             </button>
 
+            <button className="ui-row" onClick={() => setSheet('gender')}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('profilePage.genderLabel')}</span>
+              </span>
+              <span className="ui-row-trailing">
+                {gender ? t(`echo.gender.${gender}`) : t('profilePage.notSet')}
+                <IconChevron size={20} className="ui-row-chevron" />
+              </span>
+            </button>
+
             <button className="ui-row" onClick={() => setSheet('birthday')}>
               <span className="ui-row-main">
                 <span className="ui-row-title">{t('profilePage.birthdayLabel')}</span>
@@ -302,6 +324,21 @@ export default function EditProfile() {
             setSheet(null)
           }}
           onSave={saveUsername}
+        />
+      )}
+
+      {sheet === 'gender' && (
+        <GenderSheet
+          value={gender}
+          saving={busy}
+          onClose={() => setSheet(null)}
+          onSave={async (next) => {
+            if (await saveProfile({ gender: next })) {
+              setGender(next)
+              setSheet(null)
+              load()
+            }
+          }}
         />
       )}
 

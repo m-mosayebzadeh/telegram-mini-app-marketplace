@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "typecheck": "tsc -b --force",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm run test"
   },
   "dependencies": {
     "@telegram-apps/sdk-react": "^3.3.9",
