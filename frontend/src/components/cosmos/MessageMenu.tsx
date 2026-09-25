@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { reactionRow } from '../../lib/emoji'
 import { EmojiPanel } from './EmojiPanel'
+import { Emoji } from '../../lib/emojiImage'
 
 export type MessageAction = 'reply' | 'copy' | 'edit' | 'delete'
 
@@ -94,7 +95,7 @@ export function MessageMenu({ anchor, mine, actions, chosen, onReact, onAction, 
               onClick={() => onReact(emoji)}
               aria-label={emoji}
             >
-              {emoji}
+              <Emoji glyph={emoji} size={28} />
             </button>
           ))}
           <button

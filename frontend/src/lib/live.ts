@@ -25,6 +25,7 @@ export type LiveEvent =
   | { type: 'edited'; conversation_id: number; message: ConversationMessage }
   | { type: 'deleted'; conversation_id: number; message_ids: number[] }
   | { type: 'reactions'; conversation_id: number; message_id: number; reactions: Reaction[] }
+  | { type: 'typing'; conversation_id: number; user_id: number }
 
 type Listener = (event: LiveEvent) => void
 
@@ -197,6 +198,35 @@ if (typeof window !== 'undefined') {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') reconnectNow()
   })
+}
+
+/** How often "typing…" is said while somebody keeps typing. The other
+ *  screen shows it for a little longer than this (TYPING_SHOWN_MS), so a
+ *  steady typist reads as one continuous "typing…", not a flicker. */
+export const TYPING_EVERY_MS = 3000
+export const TYPING_SHOWN_MS = 5000
+
+const lastTyping = new Map<number, number>()
+
+/**
+ * Tells the others in a thread that you are typing.
+ *
+ * Called on every keystroke and sent at most every few seconds. Never
+ * queued: if the line is down the signal is simply lost, which is right —
+ * by the time it could be delivered it would be a lie.
+ */
+export function sayTyping(conversationId: number, now = Date.now()): void {
+  const last = lastTyping.get(conversationId) ?? 0
+  if (now - last < TYPING_EVERY_MS) return
+  if (!socket || socket.readyState !== WebSocket.OPEN) return
+  lastTyping.set(conversationId, now)
+  socket.send(JSON.stringify({ type: 'typing', conversation_id: conversationId }))
+}
+
+/** A message was just sent: the next keystroke is a new burst of typing
+ *  and should be announced at once. */
+export function doneTyping(conversationId: number): void {
+  lastTyping.delete(conversationId)
 }
 
 /** Start hearing events. Returns the function that stops. */

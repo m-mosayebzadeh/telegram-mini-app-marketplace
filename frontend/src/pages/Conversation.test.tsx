@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   api: vi.fn(),
   blob: vi.fn(),
   t: (key: string) => key,
+  /** The screen's live-connection listener, so a test can push events. */
+  live: null as null | ((event: unknown) => void),
 }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.t, i18n: { language: 'fa' } }),
@@ -20,7 +22,15 @@ vi.mock('../lib/api', async (original) => ({
 }))
 // The live connection is exercised on its own (lib/thread.test.ts); here
 // it only has to stay out of the way.
-vi.mock('../lib/live', () => ({ subscribe: () => () => {} }))
+vi.mock('../lib/live', () => ({
+  subscribe: (listener: (event: unknown) => void) => {
+    mocks.live = listener
+    return () => {}
+  },
+  sayTyping: vi.fn(),
+  doneTyping: vi.fn(),
+  TYPING_SHOWN_MS: 5000,
+}))
 vi.mock('../lib/MeContext', () => ({
   useMe: () => ({ me: { id: 1 } }),
 }))
@@ -426,5 +436,70 @@ describe('on a computer', () => {
       bubble.dispatchEvent(mouse('contextmenu', 2))
     })
     expect(document.querySelector('.cos-menu')).not.toBeNull()
+  })
+})
+
+describe('typing', () => {
+  let host: HTMLDivElement
+  let root: Root
+
+  beforeEach(() => {
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    mocks.api.mockReset()
+    Element.prototype.scrollIntoView = vi.fn()
+    mocks.api.mockImplementation((path: string) => {
+      if (path === '/conversations/10') return Promise.resolve(thread())
+      if (path === '/conversations/10/messages') return Promise.resolve([])
+      return Promise.resolve(undefined)
+    })
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  it('shows "typing" under the name, and drops it when their message arrives', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/conversations/10']}>
+          <Routes>
+            <Route path="/conversations/:id" element={<Conversation />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    })
+    await act(async () => {})
+    await act(async () => {})
+
+    await act(async () => {
+      mocks.live?.({ type: 'typing', conversation_id: 10, user_id: SARA })
+    })
+    expect(host.querySelector('.cos-talk-typing')?.textContent).toBe('talk.typing')
+
+    await act(async () => {
+      mocks.live?.({ type: 'message', conversation_id: 10, message: message(5, SARA, 'hey') })
+    })
+    expect(host.querySelector('.cos-talk-typing')).toBeNull()
+  })
+
+  it('ignores typing from another conversation', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/conversations/10']}>
+          <Routes>
+            <Route path="/conversations/:id" element={<Conversation />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    })
+    await act(async () => {})
+    await act(async () => {})
+    await act(async () => {
+      mocks.live?.({ type: 'typing', conversation_id: 99, user_id: SARA })
+    })
+    expect(host.querySelector('.cos-talk-typing')).toBeNull()
   })
 })

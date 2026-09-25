@@ -783,7 +783,8 @@
       "sure_other": "Are you sure you want to delete these {{count}} messages?",
       "alsoFor": "Also delete for {{name}}",
       "confirm": "Delete"
-    }
+    },
+    "typing": "typing…"
   },
   "report": {
     "title": "Report {{name}}",
@@ -809,14 +810,17 @@
   "emoji": {
     "all": "All emoji",
     "groups": {
-      "faces": "Faces",
-      "hands": "Hands and people",
-      "hearts": "Hearts",
-      "nature": "Nature",
+      "smileys": "Smileys and emotion",
+      "people": "People and body",
+      "animals": "Animals and nature",
       "food": "Food and drink",
-      "activity": "Activities and travel",
-      "things": "Objects and symbols"
+      "travel": "Travel and places",
+      "activities": "Activities",
+      "objects": "Objects",
+      "symbols": "Symbols",
+      "flags": "Flags"
     },
-    "retry": "Didn't load — try again"
+    "retry": "Didn't load — try again",
+    "tones": "Skin tone"
   }
 }

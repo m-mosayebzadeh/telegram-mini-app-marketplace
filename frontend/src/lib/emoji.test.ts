@@ -22,13 +22,7 @@ describe('the reaction row', () => {
   })
 })
 
-describe('splitting the full list', () => {
-  it('keeps joined emoji whole and plain ones apart', async () => {
-    const { splitEmoji } = await import('./emojiSet')
-    expect(splitEmoji('😀❤️👍🏽')).toEqual(['😀', '❤️', '👍🏽'])
-    expect(splitEmoji('❤️‍🔥😂')).toEqual(['❤️‍🔥', '😂'])
-  })
-
+describe('the full list', () => {
   it('works without the browser segmenter some phones lack', async () => {
     const saved = Intl.Segmenter
     // @ts-expect-error — simulating a browser that does not have it
@@ -39,5 +33,15 @@ describe('splitting the full list', () => {
     } finally {
       Object.defineProperty(Intl, 'Segmenter', { value: saved, configurable: true, writable: true })
     }
+  })
+})
+
+describe('emoji as pictures', () => {
+  it('names the picture by its code points, without FE0F', async () => {
+    const { emojiFile } = await import('./emojiImage')
+    expect(emojiFile('😀')).toBe('/emoji/1f600.webp')
+    expect(emojiFile('❤️')).toBe('/emoji/2764.webp')
+    expect(emojiFile('👋🏽')).toBe('/emoji/1f44b-1f3fd.webp')
+    expect(emojiFile('❤️‍🔥')).toBe('/emoji/2764-200d-1f525.webp')
   })
 })

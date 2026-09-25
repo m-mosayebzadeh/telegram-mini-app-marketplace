@@ -2470,3 +2470,79 @@
   color: var(--cos-fg-soft);
   font: inherit;
 }
+
+/* "typing…" under the name in the header. */
+.cos-talk-who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.cos-talk-typing {
+  font-size: var(--cos-text-label);
+  color: var(--cos-warm);
+  animation: cos-typing 1.4s ease-in-out infinite;
+}
+
+@keyframes cos-typing {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-talk-typing {
+    animation: none;
+  }
+}
+
+/* Emoji as pictures (lib/emojiImage.tsx). Inline ones sit on the text's
+   baseline like a letter would, and never stretch the line they are on. */
+.cos-emoji-img {
+  display: inline-block;
+  vertical-align: -0.28em;
+  object-fit: contain;
+  user-select: none;
+}
+
+.cos-bubble .cos-emoji-img {
+  width: 1.35em;
+  height: 1.35em;
+  margin: 0 0.04em;
+}
+
+.cos-emoji .cos-emoji-img,
+.cos-menu-reaction .cos-emoji-img {
+  vertical-align: middle;
+}
+
+/* Skin tones, opened by holding an emoji that has them. */
+.cos-tone-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+}
+
+.cos-tone-row {
+  position: fixed;
+  display: flex;
+  width: 276px;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--cos-rise);
+  border: 1px solid rgb(233 242 240 / 12%);
+  box-shadow: 0 12px 34px rgb(0 0 0 / 50%);
+  direction: ltr;
+  animation: cos-menu-in 0.16s var(--cos-ease-settle) both;
+}
+
+.cos-tone-row .cos-emoji {
+  flex: 1;
+}
+
+@media (pointer: coarse) {
+  .cos-emoji {
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+}

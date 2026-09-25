@@ -6,7 +6,7 @@ import { ReportSheet } from '../components/cosmos/ReportSheet'
 import { VoiceNote } from '../components/cosmos/VoiceNote'
 import { MediaViewer } from '../components/chat/MediaViewer'
 import { ApiError, formatApiError } from '../lib/api'
-import { subscribe } from '../lib/live'
+import { TYPING_SHOWN_MS, doneTyping, sayTyping, subscribe } from '../lib/live'
 import {
   deliveryOf,
   laterOf,
@@ -22,6 +22,7 @@ import {
   type ShownMessage,
 } from '../lib/thread'
 import { recordEmojiUse } from '../lib/emoji'
+import { Emoji, EmojiText } from '../lib/emojiImage'
 import { useHold } from '../lib/useHold'
 import { MessageMenu, type MessageAction } from '../components/cosmos/MessageMenu'
 import { DeleteDialog } from '../components/cosmos/DeleteDialog'
@@ -102,6 +103,10 @@ export default function Conversation() {
   const [emojiOpen, setEmojiOpen] = useState(false)
   /** A short confirmation, like "copied". */
   const [notice, setNotice] = useState<string | null>(null)
+  /** Whether the other person is writing right now, from their "typing…"
+   *  signals; it lapses on its own a few seconds after the last one. */
+  const [theyType, setTheyType] = useState(false)
+  const typingTimer = useRef<number | undefined>(undefined)
   const noticeTimer = useRef<number | undefined>(undefined)
 
   const endRef = useRef<HTMLDivElement>(null)
@@ -257,6 +262,7 @@ export default function Conversation() {
     if (!text || !thread) return
     setDraft('')
     setEmojiOpen(false)
+    doneTyping(thread.id)
 
     if (editing) {
       const target = editing
@@ -441,7 +447,19 @@ export default function Conversation() {
         return
       }
       if (event.conversation_id !== threadId) return
+      if (event.type === 'typing') {
+        if (event.user_id === me?.id) return
+        setTheyType(true)
+        window.clearTimeout(typingTimer.current)
+        typingTimer.current = window.setTimeout(() => setTheyType(false), TYPING_SHOWN_MS)
+        return
+      }
       if (event.type === 'message') {
+        // Their message has arrived, so whatever they were typing is done.
+        if (event.message.sender_id !== me?.id) {
+          window.clearTimeout(typingTimer.current)
+          setTheyType(false)
+        }
         setMessages((current) => placeMessage(current, event.message))
         // Counted as read only if it could have been: a phone in a pocket
         // with the app in the background has read nothing.
@@ -490,6 +508,7 @@ export default function Conversation() {
     const urls = localUrls.current
     return () => {
       window.clearTimeout(retryRef.current)
+      window.clearTimeout(typingTimer.current)
       for (const url of urls) URL.revokeObjectURL(url)
     }
   }, [])
@@ -626,7 +645,12 @@ export default function Conversation() {
             />
           </svg>
         </button>
-        <span className="cos-talk-who">{other?.display_name ?? ''}</span>
+        <span className="cos-talk-who">
+          {other?.display_name ?? ''}
+          {/* Under the name, where Telegram puts it, and quiet: the header
+              is orientation, and this is a detail of it. */}
+          {theyType && <span className="cos-talk-typing">{t('talk.typing')}</span>}
+        </span>
       </header>
 
       <div className="cos-talk-thread">
@@ -658,14 +682,16 @@ export default function Conversation() {
                     {nameOf(message.reply_to.sender_id)}
                   </span>
                   <span className="cos-bubble-quote-text">
-                    {message.reply_to.type === 'text'
-                      ? message.reply_to.text
-                      : t(`talk.kinds.${message.reply_to.type}`)}
+                    {message.reply_to.type === 'text' ? (
+                      <EmojiText text={message.reply_to.text ?? ''} size={16} />
+                    ) : (
+                      t(`talk.kinds.${message.reply_to.type}`)
+                    )}
                   </span>
                 </button>
               )}
 
-              {message.type === 'text' && message.text}
+              {message.type === 'text' && message.text && <EmojiText text={message.text} />}
 
               {message.type === 'photo' && thread && (
                 <MessagePhoto
@@ -706,7 +732,7 @@ export default function Conversation() {
                     aria-pressed={reaction.mine}
                     data-control
                   >
-                    {reaction.emoji}
+                    <Emoji glyph={reaction.emoji} size={20} />
                     {reaction.count > 1 && <span className="cos-reaction-count">{reaction.count.toLocaleString(i18n.language)}</span>}
                   </button>
                 ))}
@@ -857,7 +883,11 @@ export default function Conversation() {
             className="cos-talk-field"
             rows={1}
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              setDraft(event.target.value)
+              // Editing an old message is not "typing" to the other side.
+              if (thread && !editing && event.target.value.trim()) sayTyping(thread.id)
+            }}
             onKeyDown={(event) => {
               // Mid-way through composing a character in an input method
               // (Persian on some keyboards, Chinese, Japanese) Enter

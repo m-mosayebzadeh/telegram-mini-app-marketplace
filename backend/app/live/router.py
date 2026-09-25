@@ -27,6 +27,8 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import find_user_by_credentials
 from app.core.database import get_db
 from app.live.hub import hub
+from app.live.typing import TypingGate, typing_targets
+from starlette.concurrency import run_in_threadpool
 
 router = APIRouter(tags=["live"])
 
@@ -71,13 +73,33 @@ async def live(websocket: WebSocket, db: Session = Depends(get_db)) -> None:
     connection = hub.register(user_id)
     try:
         await websocket.send_json({"type": "ready"})
-        await _pump(websocket, connection)
+        await _pump(websocket, connection, db)
     finally:
         hub.unregister(connection)
 
 
-async def _pump(websocket: WebSocket, connection) -> None:
-    """Sends queued events and answers pings, until either side stops."""
+async def _pump(websocket: WebSocket, connection, db: Session) -> None:
+    """Sends queued events, answers pings and passes on "typing…", until
+    either side stops."""
+    gate = TypingGate()
+    bind = db.get_bind()
+
+    async def typing(conversation_id: int) -> None:
+        if gate.too_soon(conversation_id):
+            return
+        targets = gate.cached(conversation_id)
+        if targets is None:
+            # The database is sync, so it is asked off the event loop, in a
+            # session of its own that opens and closes around the one
+            # question. Sharing the request's session broke when the socket
+            # closed mid-question: the cancelled task closed the session
+            # while the worker thread was still inside it.
+            targets = await run_in_threadpool(_ask_targets, bind, conversation_id, connection.user_id)
+            gate.remember(conversation_id, targets)
+        hub.publish(
+            targets,
+            {"type": "typing", "conversation_id": conversation_id, "user_id": connection.user_id},
+        )
 
     async def outgoing() -> None:
         while True:
@@ -96,8 +118,12 @@ async def _pump(websocket: WebSocket, connection) -> None:
                 message = json.loads(raw)
             except ValueError:
                 continue
-            if isinstance(message, dict) and message.get("type") == "ping":
+            if not isinstance(message, dict):
+                continue
+            if message.get("type") == "ping":
                 await websocket.send_json({"type": "pong"})
+            elif message.get("type") == "typing" and isinstance(message.get("conversation_id"), int):
+                await typing(message["conversation_id"])
 
     tasks = [asyncio.create_task(outgoing()), asyncio.create_task(incoming())]
     try:
@@ -107,6 +133,11 @@ async def _pump(websocket: WebSocket, connection) -> None:
             task.cancel()
         # Collect the cancellations so no task is left with an unread error.
         await asyncio.gather(*tasks, return_exceptions=True)
+
+
+def _ask_targets(bind, conversation_id: int, user_id: int) -> list[int]:
+    with Session(bind) as session:
+        return typing_targets(session, conversation_id, user_id)
 
 
 async def _close(websocket: WebSocket, code: int) -> None:

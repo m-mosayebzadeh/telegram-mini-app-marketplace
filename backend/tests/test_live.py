@@ -191,3 +191,58 @@ def test_hiding_a_message_for_yourself_is_not_announced_to_the_other(client, db_
         assert live.receive_json() == {"type": "pong"}
     finally:
         socket.__exit__(None, None, None)
+
+
+# --- "typing…" ---------------------------------------------------------
+
+
+def test_the_other_person_sees_typing(client, db_session):
+    thread, _ = _pair(client, db_session, 7040, 7041)
+    s1, writer = _connect(client, 7040)
+    s2, reader = _connect(client, 7041)
+    try:
+        writer.send_json({"type": "typing", "conversation_id": thread})
+        event = reader.receive_json()
+        assert event["type"] == "typing" and event["conversation_id"] == thread
+    finally:
+        s1.__exit__(None, None, None)
+        s2.__exit__(None, None, None)
+
+
+def test_a_stranger_cannot_send_typing_into_a_thread(client, db_session):
+    thread, _ = _pair(client, db_session, 7042, 7043)
+    client.get("/me", headers=_auth(7044))
+    s1, stranger = _connect(client, 7044)
+    s2, reader = _connect(client, 7043)
+    try:
+        stranger.send_json({"type": "typing", "conversation_id": thread})
+        stranger.send_json({"type": "ping"})
+        assert stranger.receive_json() == {"type": "pong"}
+        reader.send_json({"type": "ping"})
+        assert reader.receive_json() == {"type": "pong"}
+    finally:
+        s1.__exit__(None, None, None)
+        s2.__exit__(None, None, None)
+
+
+def test_typing_is_not_passed_on_across_a_block(client, db_session):
+    thread, other = _pair(client, db_session, 7045, 7046)
+    assert client.post("/blocks", json={"user_id": other.id}, headers=_auth(7045)).status_code == 204
+    s1, writer = _connect(client, 7045)
+    s2, reader = _connect(client, 7046)
+    try:
+        writer.send_json({"type": "typing", "conversation_id": thread})
+        reader.send_json({"type": "ping"})
+        assert reader.receive_json() == {"type": "pong"}
+    finally:
+        s1.__exit__(None, None, None)
+        s2.__exit__(None, None, None)
+
+
+def test_a_flood_of_typing_is_thinned_out():
+    from app.live.typing import MIN_INTERVAL_SECONDS, TypingGate
+
+    gate = TypingGate()
+    assert gate.too_soon(1, now=100.0) is False
+    assert gate.too_soon(1, now=100.5) is True
+    assert gate.too_soon(1, now=100.0 + MIN_INTERVAL_SECONDS) is False
