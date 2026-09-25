@@ -23,15 +23,33 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 from app.core.time import UTCDateTime, utcnow
 
-#: One reason, chosen with one tap. The list is short on purpose: a free
-#: text box produces reports nobody can triage, and a long list produces
-#: reports filed under the wrong heading.
+#: One reason, chosen with one tap. The list is short on purpose: a long
+#: list produces reports filed under the wrong heading. A few words of the
+#: reporter's own can go with it (see Report.note), but the reason is what
+#: staff sort by, so it stays a choice rather than free text.
+#:
+#: OFF_APP_PAYMENT is its own reason rather than a kind of "scam": asking
+#: somebody to pay outside the app is the specific move the whole product
+#: exists to protect people from, it is the first step of most scams here,
+#: and it can be seen and reported before anybody has lost anything.
+REPORT_OFF_APP_PAYMENT = "off_app_payment"
 REPORT_INSULT = "insult"
 REPORT_SEXUAL = "sexual"
 REPORT_SCAM = "scam"
 REPORT_SPAM = "spam"
 REPORT_OTHER = "other"
-REPORT_REASONS = (REPORT_INSULT, REPORT_SEXUAL, REPORT_SCAM, REPORT_SPAM, REPORT_OTHER)
+REPORT_REASONS = (
+    REPORT_OFF_APP_PAYMENT,
+    REPORT_INSULT,
+    REPORT_SEXUAL,
+    REPORT_SCAM,
+    REPORT_SPAM,
+    REPORT_OTHER,
+)
+
+#: How much the reporter may add in their own words. Short: a sentence of
+#: context helps staff, a page of it is a complaint nobody reads.
+MAX_REPORT_NOTE = 500
 
 #: What a suspension takes away. Scoped rather than all-or-nothing, so the
 #: answer to "was rude to strangers" is not the same as "defrauded
@@ -52,7 +70,11 @@ class Report(Base):
     #: report that pointed at a session would vanish with the session.
     reported_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
 
-    reason: Mapped[str] = mapped_column(String(16))
+    reason: Mapped[str] = mapped_column(String(24))
+
+    #: A few words of the reporter's own, next to the reason they picked.
+    #: Optional — the reason alone is enough to act on.
+    note: Mapped[str | None] = mapped_column(String(MAX_REPORT_NOTE), nullable=True)
 
     #: The conversation it happened in, so staff open exactly that one
     #: rather than hunting. Because staff access to conversations is
@@ -73,7 +95,7 @@ class Report(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "reason IN ('insult', 'sexual', 'scam', 'spam', 'other')",
+            "reason IN ('off_app_payment', 'insult', 'sexual', 'scam', 'spam', 'other')",
             name="ck_report_reason",
         ),
         CheckConstraint("reporter_id <> reported_user_id", name="ck_report_not_self"),

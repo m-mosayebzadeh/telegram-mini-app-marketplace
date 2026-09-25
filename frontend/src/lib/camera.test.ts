@@ -7,10 +7,12 @@ import {
   detailRadii,
   hasArrived,
   hitTest,
+  isWide,
   layerShift,
   sameIds,
   screenOf,
   stepCamera,
+  worldAt,
   type Body,
   type Camera,
   type View,
@@ -194,5 +196,25 @@ describe('the camera moving', () => {
   it('has not arrived while it is still travelling', () => {
     expect(hasArrived({ x: 0, y: 0, z: 1 }, { x: 300, y: 0, z: 1 })).toBe(false)
     expect(hasArrived({ x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 0.42 })).toBe(false)
+  })
+})
+
+describe('the map, pulled out', () => {
+  const view = { width: 400, height: 860, floor: 190 }
+
+  it('is wide below the threshold and a place above it', () => {
+    expect(isWide({ x: 0, y: 0, z: 0.42 })).toBe(true)
+    expect(isWide({ x: 0, y: 0, z: 1 })).toBe(false)
+  })
+
+  it('finds the world point under a screen point, exactly undoing screenOf', () => {
+    // Round trip on the middle layer, which is the one worldAt answers for.
+    const cam = { x: 120, y: -80, z: 0.42 }
+    const body: Body = { user_id: 1, x: 300, y: 150, layer: 1 }
+    const onScreen = screenOf(body, { ...cam }, view)
+    // The middle layer has no parallax, so screenOf used cam as-is.
+    const back = worldAt(onScreen, cam, view)
+    expect(back.x).toBeCloseTo(body.x, 6)
+    expect(back.y).toBeCloseTo(body.y, 6)
   })
 })

@@ -36,3 +36,23 @@ describe('message bubble sides', () => {
     expect(css).not.toContain('border-end-start-radius')
   })
 })
+
+/**
+ * The same rule, on the world's own conversation screen.
+ *
+ * It was broken there on its first version — written with logical sides,
+ * so under Persian your own messages landed on the left — which is exactly
+ * the mistake the rule above exists to stop. Hence the same guard, on the
+ * stylesheet the new screen actually uses.
+ */
+const cosmos = readFileSync('src/styles/cosmos.css', 'utf8')
+
+describe('message sides on the conversation screen', () => {
+  it('puts yours on the right under a right-to-left language', () => {
+    expect(cosmos).toMatch(/\[dir='rtl'\]\s*\.cos-bubble\.is-mine\s*\{\s*align-self:\s*flex-start/)
+  })
+
+  it('puts theirs on the left under a right-to-left language', () => {
+    expect(cosmos).toMatch(/\[dir='rtl'\]\s*\.cos-bubble\s*\{\s*align-self:\s*flex-end/)
+  })
+})

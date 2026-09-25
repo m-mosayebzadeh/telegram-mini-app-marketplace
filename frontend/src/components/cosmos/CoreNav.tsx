@@ -39,6 +39,13 @@ export interface CoreSection {
    *  whose name does not explain itself. */
   sub?: string
   icon?: ReactNode
+  /** Something new is waiting in this place.
+   *
+   *  It shows as a single lit point on Sol's own ring, which is the one
+   *  thing on this screen that is always visible — so "is anything
+   *  waiting for me?" is answered without a tap, a trip to the top of the
+   *  screen, or a bell (section 29.8). */
+  alert?: boolean
   onChoose: () => void
 }
 
@@ -123,6 +130,11 @@ function offsetFor(degrees: number, radius: number): { x: number; y: number } {
 }
 
 export function CoreNav({ sections, onTap }: CoreNavProps) {
+  /* The point rides the ring rather than floating beside it, so when the
+     ring opens outwards it travels with it and comes to rest ON the body
+     it belongs to. The notification does not disappear and get replaced
+     by a badge somewhere else — it turns out to have been sitting on that
+     body's orbit the whole time. */
   const { t } = useTranslation()
   const [held, setHeld] = useState(false)
   const [hot, setHot] = useState<number | null>(null)
@@ -227,6 +239,24 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
           at rest as a close halo, and opening it out to where the bodies
           stand is the whole explanation of what holding Sol does. */}
       <div className="cos-core-ring" aria-hidden="true" />
+
+      {sections.map((section, index) =>
+        section.alert ? (
+          <span
+            className="cos-core-mark"
+            key={`mark-${section.id}`}
+            aria-hidden="true"
+            style={
+              {
+                // The angle is the body's own. The radius is a variable
+                // the stylesheet changes when the ring opens, which is
+                // what carries the point outwards with it.
+                '--mark-angle': `${angleFor(index)}deg`,
+              } as React.CSSProperties
+            }
+          />
+        ) : null,
+      )}
 
       {held && (
         <>

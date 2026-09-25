@@ -117,6 +117,35 @@ export function screenOf(body: Body, cam: Camera, view: View): { x: number; y: n
   }
 }
 
+/**
+ * Below this zoom the camera is pulled out to see the whole sky, and the
+ * world is a MAP rather than a place: you look at it, you do not reach
+ * into it. One threshold in one place, so "am I pulled out" can never mean
+ * two slightly different things on the same screen.
+ */
+export const WIDE_BELOW = 0.9
+
+export function isWide(cam: Camera): boolean {
+  return cam.z < WIDE_BELOW
+}
+
+/**
+ * The point in the world under a point on the screen — `screenOf` run
+ * backwards, for the middle depth layer.
+ *
+ * Used to go back in towards wherever you touched the map. The middle
+ * layer is the right one to answer for: the near and far layers are
+ * offset from it by a few pixels of parallax, which is invisible at the
+ * scale of "come in around here".
+ */
+export function worldAt(point: { x: number; y: number }, cam: Camera, view: View): { x: number; y: number } {
+  const anchor = anchorOf(view)
+  return {
+    x: cam.x + (point.x - anchor.x) / cam.z,
+    y: cam.y + (point.y - anchor.y) / cam.z,
+  }
+}
+
 /** Who, if anybody, is under this point on the screen. */
 export function hitTest(
   bodies: readonly Body[],

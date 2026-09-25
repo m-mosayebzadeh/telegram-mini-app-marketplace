@@ -297,7 +297,10 @@ describe('Echo, when somebody arrives', () => {
     )
     await render()
 
-    expect(mocks.navigate).toHaveBeenCalledWith('/echo/42', { replace: true })
+    // The thread the matcher created, by its id. Echo already knows which
+    // one, and `replace` means going back from the conversation returns to
+    // the world rather than to a search that has already finished.
+    expect(mocks.navigate).toHaveBeenCalledWith('/conversations/7', { replace: true })
   })
 })
 

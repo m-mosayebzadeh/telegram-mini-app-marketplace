@@ -5,6 +5,7 @@ import { Orb } from '../components/cosmos/Orb'
 import { SpaceGround, DUST_LAYERS, seededRandom } from '../components/cosmos/SpaceGround'
 import { Orbits } from '../components/cosmos/Orbits'
 import { CoreNav } from '../components/cosmos/CoreNav'
+import { SkyHeader } from '../components/cosmos/SkyHeader'
 import { IconActivity, IconChats, IconEcho, IconMe } from '../components/cosmos/icons'
 import { lightTowardsCentre, place } from '../lib/phyllotaxis'
 import {
@@ -13,6 +14,8 @@ import {
   detailAround,
   hasArrived,
   hitTest as hitTestAt,
+  isWide,
+  worldAt,
   layerShift,
   sameIds,
   stepCamera,
@@ -114,6 +117,10 @@ export default function Sky() {
    *  the camera loop, but only when the answer actually changes — a set
    *  that is the same set is not a re-render. */
   const [detail, setDetail] = useState<ReadonlySet<number>>(NOBODY)
+  /** True only while a finger is actually moving the world. The header
+   *  steps back during that, and a class is cheaper than a re-render on
+   *  every frame. */
+  const panning = useRef(false)
 
   const appRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<HTMLDivElement>(null)
@@ -292,6 +299,10 @@ export default function Sky() {
 
     if (Math.abs(event.clientX - start.current.x) + Math.abs(event.clientY - start.current.y) > DRAG_SLOP) {
       moved.current = true
+      if (!panning.current) {
+        panning.current = true
+        appRef.current?.classList.add('is-panning')
+      }
     }
 
     // Pulling the world away from somebody lets go of them, and then the
@@ -315,7 +326,24 @@ export default function Sky() {
   function onPointerUp(event: React.PointerEvent) {
     if (!dragging.current) return
     dragging.current = false
+    // The world has stopped moving, so the header comes back.
+    if (panning.current) {
+      panning.current = false
+      appRef.current?.classList.remove('is-panning')
+    }
     if (moved.current) return
+
+    // Pulled out, the world is a map rather than a place. You look at it;
+    // you do not reach into it — people are too small to aim at, and
+    // holding one out here would open a conversation with somebody you
+    // could barely see. A touch means "take me back in, around here".
+    if (isWide(target.current)) {
+      const there = worldAt({ x: event.clientX, y: event.clientY }, camera.current, view())
+      velocity.current = { x: 0, y: 0 }
+      gliding.current = true
+      target.current = { x: there.x, y: there.y, z: 1 }
+      return
+    }
 
     const hit = hitTest(event.clientX, event.clientY)
     // Tap to hold, tap again to let go. Symmetric, so there is nothing to
@@ -365,9 +393,20 @@ export default function Sky() {
       onPointerUp={onPointerUp}
       onPointerCancel={() => {
         dragging.current = false
+        // A gesture that ends off the edge of the screen still has to give
+        // the header back, or it stays dimmed for good.
+        panning.current = false
+        appRef.current?.classList.remove('is-panning')
       }}
     >
       <SpaceGround />
+
+      {people !== null && people.length > 0 && (
+        <SkyHeader
+          around={people.length}
+          present={people.filter((person) => person.online).length}
+        />
+      )}
 
       <div className="cos-scene" ref={sceneRef}>
         {/* Outside the depth layers on purpose: the orbits are the world's
@@ -420,18 +459,6 @@ export default function Sky() {
                         shifts when its name arrives. */}
                     <span className="cos-orb-name">{star.display_name}</span>
 
-                    {/* Held: who they are, ON them. A name three hundred
-                        pixels below the face it belongs to is a second
-                        thing to connect by hand, not a label. */}
-                    {selected === star.user_id && (
-                      <span className="cos-hold-name">
-                        <span className="cos-hold-who">{star.display_name}</span>
-                        {star.online && (
-                          <span className="cos-hold-live">{t('sky.hereNow')}</span>
-                        )}
-                        {star.tagline && <p className="cos-hold-line">{star.tagline}</p>}
-                      </span>
-                    )}
                   </div>
                 </div>
               ))}
@@ -464,9 +491,13 @@ export default function Sky() {
           onTap={() => {
             const cam = camera.current
             const home = Math.hypot(cam.x, cam.y) < 60
-            const wide = cam.z < 0.9
+            const wide = isWide(cam)
             velocity.current = { x: 0, y: 0 }
             gliding.current = true
+            // Whoever was being held is let go on the way out: the map
+            // cannot hold anybody, and coming back in should not find a
+            // conversation still half-open.
+            release()
             target.current =
               home && !wide ? { x: 0, y: 0, z: WIDE_SCALE } : { x: 0, y: 0, z: 1 }
           }}

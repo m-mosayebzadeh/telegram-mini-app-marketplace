@@ -12,7 +12,9 @@ messages land here too.
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -33,6 +35,7 @@ from app.conversation.service import (
 )
 from app.core.database import get_db
 from app.core.time import utcnow
+from app.live.events import announce_message, announce_read
 from app.models.block import Block
 from app.models.chat_message import ChatMessage, ChatMessageType
 from app.models.conversation import (
@@ -161,6 +164,10 @@ def serialize(
             )
         ),
         last_text=last_message.text if visible_preview else None,
+        others_read_at=max(
+            (p.last_read_at for p in others if p.last_read_at is not None),
+            default=None,
+        ),
     )
 
 
@@ -284,10 +291,16 @@ def send_message(
     text: str | None = Form(None),
     duration_seconds: int | None = Form(None),
     file: UploadFile | None = File(None),
+    client_id: str | None = Form(None, max_length=64),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatMessage:
     """Says something in a thread.
+
+    `client_id` makes sending safe to repeat: the same one twice from the
+    same person returns the first message instead of saving a second (see
+    ChatMessage.client_id). The phone repeats a send whenever it never saw
+    the answer, so without this a weak connection doubles messages.
 
     What may be said is decided by the thread's capabilities at this exact
     moment — free text always, and the rest only while a paid session is
@@ -295,6 +308,11 @@ def send_message(
     composer is a convenience and this is the rule.
     """
     conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
+
+    if client_id:
+        already = _already_sent(db, current_user.id, client_id)
+        if already is not None:
+            return already
 
     if conversation.kind == CONVERSATION_DIRECT:
         other_user_id = conversation.other_user_id(current_user.id)
@@ -320,8 +338,18 @@ def send_message(
         duration_seconds=duration_seconds,
         file=file,
     )
-    db.add(message)
-    db.flush()
+    message.client_id = client_id
+    try:
+        # Inside a savepoint so that losing a race with an identical retry
+        # (both passed the check above at once) undoes only this insert.
+        with db.begin_nested():
+            db.add(message)
+            db.flush()
+    except IntegrityError:
+        already = _already_sent(db, current_user.id, client_id) if client_id else None
+        if already is None:
+            raise
+        return already
 
     touch(conversation, message.created_at)
     # Writing brings the thread back for the sender; their own message is
@@ -332,7 +360,48 @@ def send_message(
 
     db.commit()
     db.refresh(message)
+    announce_message(conversation, message)
     return message
+
+
+def _already_sent(db: Session, sender_id: int, client_id: str) -> ChatMessage | None:
+    return db.scalar(
+        select(ChatMessage).where(
+            ChatMessage.sender_id == sender_id, ChatMessage.client_id == client_id
+        )
+    )
+
+
+@router.get("/{conversation_id}/messages/{message_id}/file")
+def get_message_file(
+    conversation_id: int,
+    message_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    """The bytes of a photograph or voice note in a conversation.
+
+    Held to exactly the same rule as the message list: if this person
+    cannot see the message — because it is not their conversation, or
+    because they cleared the thread before it — they cannot fetch its file
+    either. A file that stayed reachable after its message was hidden would
+    make "clear this conversation" a lie.
+
+    A stranger, a missing message and a message with no file all get the
+    same 404. The caller cannot tell them apart and does not need to.
+    """
+    _, participant = _participant_or_404(db, conversation_id, current_user.id)
+
+    message = db.get(ChatMessage, message_id)
+    if (
+        message is None
+        or message.conversation_id != conversation_id
+        or message.file_path is None
+        or not participant.sees_message_at(message.created_at)
+    ):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "File not found.")
+
+    return FileResponse(message.file_path)
 
 
 @router.post("/{conversation_id}/read", status_code=status.HTTP_204_NO_CONTENT)
@@ -341,9 +410,10 @@ def mark_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
-    _, participant = _participant_or_404(db, conversation_id, current_user.id)
+    conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
     participant.last_read_at = utcnow()
     db.commit()
+    announce_read(conversation, current_user.id, participant.last_read_at)
 
 
 @router.post("/{conversation_id}/archive", status_code=status.HTTP_204_NO_CONTENT)

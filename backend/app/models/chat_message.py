@@ -18,7 +18,7 @@ work. New voice messages always carry audio.
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, Enum, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -76,6 +76,26 @@ class ChatMessage(Base):
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, index=True)
 
+    #: Whether this message carried a card number, a Sheba, a phone number
+    #: or a handle — something that moves money or the conversation off the
+    #: app (see app/chat_message/payment_details.py).
+    #:
+    #: Stored on the message rather than recomputed, for two readers. The
+    #: conversation shows its warning under the first such message, once.
+    #: And staff look for accounts that hand these to many DIFFERENT
+    #: strangers, which is the shape a scam has and a friendship does not.
+    flagged_payment: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+    #: A name the sender's phone gave this message before sending it.
+    #:
+    #: On a weak connection a message can reach the server while the answer
+    #: never makes it back, and the phone, seeing no answer, sends it again.
+    #: Without this the other person gets it twice. With it, the second
+    #: arrival is recognised as the first and simply answered again.
+    #: Unique per sender, not globally: two phones choosing the same name
+    #: is harmless, one phone reusing a name is a retry.
+    client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
     __table_args__ = (
@@ -90,4 +110,5 @@ class ChatMessage(Base):
             "(type = 'voice' AND duration_seconds IS NOT NULL AND text IS NULL)",
             name="ck_chat_message_fields_match_type",
         ),
+        UniqueConstraint("sender_id", "client_id", name="uq_chat_message_sender_client_id"),
     )

@@ -1,12 +1,34 @@
 import react from '@vitejs/plugin-react'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 // From 'vitest/config' (a superset of vite's) rather than plain 'vite'
 // — that's what makes the `test` block below type-check; it has no
 // effect on `vite dev`/`vite build`, which don't look at that block.
 import { defineConfig } from 'vitest/config'
 
+/**
+ * Serve over https, for testing on a phone.
+ *
+ * Browsers only hand a page the microphone (and the camera) when it is a
+ * secure context. localhost counts; a network address like
+ * http://192.168.x.x does not — so on a phone the voice button had
+ * nothing to record with. `npm run dev:phone` turns this on.
+ *
+ * Chosen with vite's own --mode rather than an environment variable, so
+ * the same command works on Windows and everywhere else without an extra
+ * tool to set the variable.
+ *
+ * Off by default, because the Telegram path goes through an ngrok tunnel
+ * that is already https and forwards to plain http here; serving https in
+ * that case would break the tunnel.
+ *
+ * The certificate is generated on the fly into node_modules and never
+ * touches the repository — certificates are not to be committed. The
+ * phone shows a one-time warning about it, which is expected for a
+ * development certificate.
+ */
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => ({
+  plugins: mode === 'phone' ? [react(), basicSsl()] : [react()],
   test: {
     environment: 'jsdom',
   },
@@ -35,6 +57,9 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
+        // The live connection (src/lib/live.ts) is a websocket under the
+        // same prefix, and the proxy only forwards the upgrade when asked.
+        ws: true,
       },
       // Profile avatars are the one thing served as a plain public
       // static file (see backend/app/main.py's StaticFiles mount) — no
@@ -45,4 +70,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

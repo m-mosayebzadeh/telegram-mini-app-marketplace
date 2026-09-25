@@ -11,6 +11,7 @@ import { needsDevLogin } from './lib/session'
 import Discover from './pages/Discover'
 import CosmosPreview from './pages/CosmosPreview'
 import Sky from './pages/Sky'
+import Conversation from './pages/Conversation'
 import Echo from './pages/Echo'
 import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
@@ -119,7 +120,7 @@ function AppShell() {
   // their own navigation. The core at the bottom IS the nav, and a second
   // bar underneath it would be two navigations arguing over the same
   // corner of the screen — plus it sits exactly where the core opens.
-  const COSMOS = ['/sky', '/echo', '/cosmos']
+  const COSMOS = ['/sky', '/echo', '/cosmos', '/conversations']
   const immersive =
     location.pathname.startsWith('/chat-sessions/') ||
     COSMOS.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))
@@ -142,6 +143,11 @@ function AppShell() {
         {/* The world, with real people in it. */}
         <Route path="/sky" element={<Sky />} />
         <Route path="/echo" element={<Echo />} />
+        {/* Two ways in: by person, from the world, which opens the
+            one thread those two have; and by thread, from the chat
+            list and from Echo, which already know which one. */}
+        <Route path="/conversations/with/:userId" element={<Conversation />} />
+        <Route path="/conversations/:id" element={<Conversation />} />
         <Route path="/offers" element={<Discover />} />
         <Route path="/offers/new" element={<CreateOffer />} />
         <Route path="/offers/:id" element={<OfferDetail />} />

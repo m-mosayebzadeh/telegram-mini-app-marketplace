@@ -291,9 +291,12 @@ def join_pool(
             joined_at=utcnow(),
             active=True,
         )
-        db.add(ticket)
         try:
+            # Added inside the savepoint for the same reason as in
+            # conversation/service.py: added outside, a losing row survives
+            # the rollback and the lookup below flushes it again.
             with db.begin_nested():
+                db.add(ticket)
                 db.flush()
         except IntegrityError:
             # Two taps landing together. The unique index is the real

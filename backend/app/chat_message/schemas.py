@@ -16,6 +16,13 @@ class ChatMessageOut(BaseModel):
     # 'photo' — a photo has no duration.
     duration_seconds: int | None
     created_at: datetime
+    #: This message carried a card number, Sheba, phone number or handle.
+    #: The conversation shows its warning under the first one of these.
+    flagged_payment: bool = False
+    #: The sender's own name for this message (see ChatMessage.client_id).
+    #: Lets the sender's phone match the confirmed message to the one it
+    #: has been showing with a clock since before it was sent.
+    client_id: str | None = None
 
     # Deliberately no file_path field — never exposed directly (same
     # rule as Content.original_file_path). A 'photo'/'video' message's

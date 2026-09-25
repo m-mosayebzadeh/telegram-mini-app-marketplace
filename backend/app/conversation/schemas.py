@@ -43,6 +43,13 @@ class ConversationOut(BaseModel):
     #: text, or when there is nothing to show yet.
     last_text: str | None
 
+    #: The furthest point anybody else has read this thread up to. Your own
+    #: messages sent at or before it show as seen. The latest of the others
+    #: rather than the earliest, the same as Telegram in a group: "somebody
+    #: has read it" is the useful fact, and waiting for everyone would leave
+    #: a large room's messages unseen forever.
+    others_read_at: datetime | None = None
+
 
 class OpenConversationIn(BaseModel):
     user_id: int

@@ -108,9 +108,14 @@ export default function Echo() {
 
   // Somebody arrived. The conversation is a screen of its own; this one
   // has done its job the moment there is a person to hand over.
+  //
+  // Straight into the thread the matcher created, by its id — Echo
+  // already knows which one, so there is nothing to look up. `replace`
+  // means going back from the conversation returns to the world rather
+  // than to a search screen that has already finished.
   useEffect(() => {
     if (status?.matched) {
-      navigate(`/echo/${status.matched.session_id}`, { replace: true })
+      navigate(`/conversations/${status.matched.conversation_id}`, { replace: true })
     }
   }, [status, navigate])
 

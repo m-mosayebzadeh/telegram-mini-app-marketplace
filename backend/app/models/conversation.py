@@ -61,10 +61,14 @@ CAP_VIDEO = "video"
 CAP_CALL_VOICE = "call_voice"
 CAP_CALL_VIDEO = "call_video"
 
-#: What anyone can do, with anyone, for free. Deliberately small: free
-#: messaging exists so the world is not full of locked doors, not so that
-#: a paid session has nothing left to offer.
-FREE_CAPABILITIES = (CAP_TEXT, CAP_STICKER)
+#: What anyone can do, with anyone, for free.
+#:
+#: Voice and photographs joined text here by the owner's decision: many
+#: people would rather speak than type, and nobody pays to send a voice
+#: note or a picture — so holding them back sold nothing and only made the
+#: free conversation worse. What a paid session sells is the guarantee
+#: around paying a stranger, and later the calls; not the message types.
+FREE_CAPABILITIES = (CAP_TEXT, CAP_STICKER, CAP_VOICE, CAP_PHOTO)
 
 #: What a paid session adds while it is running. The calls are absent on
 #: purpose — they are not built yet, and listing a capability nothing can

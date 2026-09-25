@@ -10,6 +10,7 @@ routes cannot drift into disagreeing about what a valid voice message is.
 
 from fastapi import HTTPException, UploadFile, status
 
+from app.chat_message.payment_details import find_payment_details
 from app.core.storage import save_content_file
 from app.models.chat_message import (
     MAX_CHAT_MESSAGE_TEXT_LENGTH,
@@ -126,4 +127,7 @@ def build_message(
         text=text,
         file_path=file_path,
         duration_seconds=message_duration,
+        # Only text can carry a card number. Never a reason to refuse the
+        # message — see payment_details for why this warns and nothing more.
+        flagged_payment=bool(find_payment_details(text)),
     )

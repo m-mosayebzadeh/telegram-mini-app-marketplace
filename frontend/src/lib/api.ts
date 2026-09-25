@@ -74,7 +74,7 @@ let cachedInitData: string | null = null
  * entries, or localStorage — which is exactly what "plain browser, no
  * Telegram" looks like, so that throw is what triggers the fallback.
  */
-async function getInitData(): Promise<string> {
+export async function getInitData(): Promise<string> {
   if (cachedInitData) return cachedInitData
 
   try {

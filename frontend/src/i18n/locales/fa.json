@@ -669,7 +669,13 @@
     "randomChat": "چت تصادفی",
     "me": "من",
     "echoName": "اِکو",
-    "echoSub": "تصادفی"
+    "echoSub": "تصادفی",
+    "peopleAround_one": "{{n}} نفر",
+    "peopleAround_other": "{{n}} نفر",
+    "hereNowCount_one": "{{n}} نفر همین حالا اینجا",
+    "hereNowCount_other": "{{n}} نفر همین حالا اینجا",
+    "galaxyLocal": "کهکشان وگا",
+    "galaxyWord": "Galaxy"
   },
   "echo": {
     "back": "بازگشت",
@@ -733,5 +739,45 @@
     "monthLabel": "ماه",
     "yearLabel": "سال",
     "save": "ذخیره"
+  },
+  "talk": {
+    "back": "بازگشت",
+    "send": "فرستادن",
+    "placeholder": "چیزی بنویس…",
+    "nothingYet": "هنوز چیزی بینِ تو و {{name}} گفته نشده. اولین جمله با توست.",
+    "photo": "فرستادن عکس",
+    "voice": "ضبط ویس",
+    "recording": "در حال ضبط…",
+    "cancel": "لغو",
+    "openPhoto": "باز کردن عکس",
+    "noMicrophone": "اجازه‌ی میکروفون داده نشد.",
+    "paymentWarning": "اگر بیرون از اپ پول بدهی، ما نمی‌توانیم برش گردانیم. برای پرداخت امن، از پیشنهادهای خودِ اپ استفاده کن.",
+    "report": "گزارش",
+    "reported": "گزارش شد",
+    "microphoneUnavailable": "ضبط صدا روی این صفحه در دسترس نیست. اپ را از نشانی امن (https) باز کن.",
+    "sending": "در حال ارسال",
+    "sent": "ارسال شد",
+    "seen": "دیده شد"
+  },
+  "report": {
+    "title": "گزارش {{name}}",
+    "why": "چرا؟",
+    "send": "فرستادن گزارش",
+    "noteLabel": "چیزی اضافه کنی؟ (اختیاری)",
+    "notePlaceholder": "اگر لازم است، کوتاه بنویس چه شد.",
+    "reasons": {
+      "off_app_payment": "خواست بیرون از اپ پول بدهم",
+      "scam": "کلاهبرداری",
+      "insult": "توهین",
+      "sexual": "محتوای جنسی",
+      "spam": "تبلیغ",
+      "other": "چیز دیگر"
+    }
+  },
+  "voice": {
+    "play": "پخش",
+    "pause": "مکث",
+    "position": "جای پخش",
+    "speed": "سرعت پخش"
   }
 }

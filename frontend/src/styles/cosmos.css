@@ -510,96 +510,6 @@
   }
 }
 
-/* Their light, falling down the screen towards the things you can do with
-   them. This is what the empty middle of the screen is for: it is not a
-   gap between a face and a panel, it is the distance the light travels. */
-.cos-star-inner.is-chosen::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 260px;
-  height: 460px;
-  translate: -50% 0;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    rgb(150 220 210 / 9%) 0%,
-    rgb(140 210 202 / 4%) 34%,
-    rgb(140 210 202 / 0%) 100%
-  );
-  mask: radial-gradient(60% 100% at 50% 0%, #000 0%, transparent 100%);
-  -webkit-mask: radial-gradient(60% 100% at 50% 0%, #000 0%, transparent 100%);
-  animation: cos-hold-fall var(--cos-t-slow) ease;
-}
-
-@keyframes cos-hold-fall {
-  from {
-    opacity: 0;
-  }
-}
-
-/* Their name, on them. Not a caption at the far end of the screen. */
-.cos-hold-name {
-  position: absolute;
-  inset-block-start: calc(50% + 100px);
-  inset-inline-start: 50%;
-  translate: -50% 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  width: 250px;
-  pointer-events: none;
-  animation: cos-hold-rise var(--cos-t-calm) var(--cos-ease-settle);
-}
-
-@keyframes cos-hold-rise {
-  from {
-    opacity: 0;
-    translate: -50% 10px;
-  }
-}
-
-.cos-hold-who {
-  font-size: var(--cos-text-lead);
-  font-weight: 400;
-  line-height: var(--cos-leading-tight);
-  color: var(--cos-fg);
-  text-shadow: 0 1px 10px rgb(2 5 6 / 90%);
-  white-space: nowrap;
-}
-
-.cos-hold-live {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--cos-text-caption);
-  color: var(--cos-live);
-}
-
-.cos-hold-live::before {
-  content: '';
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--cos-live);
-  box-shadow: 0 0 8px rgb(140 224 164 / 80%);
-}
-
-.cos-hold-line {
-  margin: 2px 0 0;
-  text-align: center;
-  font-size: var(--cos-text-body);
-  line-height: var(--cos-leading-read);
-  color: var(--cos-fg-soft);
-  text-shadow: 0 1px 10px rgb(2 5 6 / 90%);
-}
-
-/* The two things you can do, in the thumb's own third of the screen and
-   standing in the light that fell to them. No card behind them: a panel
-   would be a lid closing over the world, and the world is the reason you
-   are here. */
 .cos-hold-do {
   position: absolute;
   inset-inline: 20px;
@@ -666,8 +576,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cos-star-inner.is-chosen::before,
-  .cos-star-inner.is-chosen::after,
-  .cos-hold-name,
   .cos-hold-do {
     animation: none;
   }
@@ -1418,4 +1326,659 @@
       rgb(4 9 12 / 46%) 28%,
       rgb(4 9 12 / 0%) 62%
     );
+}
+
+/* ---------- the header ----------
+   A top for the screen without a title bar. No background, no rule, no
+   pressable thing inside it — the moment one appeared there would be two
+   navigation systems on one screen, which is the reason a bottom tab bar
+   was rejected in the first place (section 29.8). */
+.cos-header {
+  position: absolute;
+  inset-inline-start: 20px;
+  inset-block-start: calc(16px + env(safe-area-inset-top));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+  /* Behind everything that can be touched, and over nothing: it sits on
+     the sky the way a name is written on a map. */
+  z-index: 1;
+  transition: opacity var(--cos-t-calm) ease;
+}
+
+/* While the world is being dragged the text steps back to almost
+   nothing. Attention belongs to what is moving, and a caption held at
+   full strength over it is just something in the way. */
+.cos-screen.is-panning .cos-header {
+  opacity: 0.18;
+}
+
+.cos-header-place {
+  font-size: 17px;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  color: var(--cos-fg);
+  text-shadow: 0 2px 18px rgb(4 8 10 / 85%);
+}
+
+.cos-header-count {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--cos-fg-faint);
+  text-shadow: 0 2px 14px rgb(4 8 10 / 85%);
+}
+
+.cos-header-sep {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentcolor;
+  opacity: 0.6;
+}
+
+/* The one green this app has, the same one that rings a person who is
+   here. Two places, one meaning. */
+.cos-header-live {
+  font-style: normal;
+  color: var(--cos-live);
+}
+
+/* ---------- something waiting ----------
+   A single lit point standing on Sol's ring.
+
+   It is not a badge and not a bell. Sol is the one object always on this
+   screen, so putting the answer on its ring means "is anything waiting
+   for me?" is answered with no movement at all — and the top corners of a
+   phone, where a bell would go, are the hardest place on the device to
+   reach.
+
+   The point sits at its destination's own angle and rides the same radius
+   the ring does, so holding Sol carries it outwards and sets it down on
+   the body it belongs to. Nothing vanishes and reappears elsewhere: it
+   turns out to have been on that body's orbit all along. */
+.cos-core-mark {
+  --mark-radius: 58px;
+
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: #fff6e2;
+  box-shadow:
+    0 0 10px rgb(255 214 158 / 95%),
+    0 0 22px rgb(255 178 104 / 70%);
+  /* Polar placement: turn to the body's angle, step out to the ring, then
+     turn back so the point itself is never rotated. The negative sign is
+     the same screen-coordinates flip the rest of this system uses once —
+     positive degrees point up. */
+  transform: rotate(calc(var(--mark-angle) * -1)) translateX(var(--mark-radius))
+    rotate(var(--mark-angle));
+  animation: cos-mark-breathe 2.8s ease-in-out infinite;
+  transition: transform var(--cos-t-calm) var(--cos-ease-settle);
+}
+
+/* Half of the opened ring's 252px, so the point lands exactly where the
+   body stands. Three numbers are one decision — ORBIT in CoreNav.tsx, the
+   ring's open size, and this — and they move together or the whole idea
+   comes apart. */
+.cos-core-area.is-open .cos-core-mark {
+  --mark-radius: 126px;
+}
+
+@keyframes cos-mark-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-core-mark {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* The galaxy's name, and how it is said here beside it.
+
+   Arriving somewhere is an event, so the name falls into place from
+   above rather than appearing. It is the only thing on this screen that
+   says "you have travelled" — without it, moving between galaxies would
+   be a silent text swap. */
+.cos-header-place {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  animation: cos-header-arrive 0.62s var(--cos-ease-settle) backwards;
+}
+
+@keyframes cos-header-arrive {
+  from {
+    opacity: 0;
+    translate: 0 -14px;
+  }
+}
+
+.cos-header-name {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--cos-fg);
+}
+
+.cos-header-local {
+  font-style: normal;
+  font-size: var(--cos-text-small);
+  color: var(--cos-fg-faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-header-place {
+    animation: none;
+  }
+}
+
+/* ---------- talking to somebody ----------
+   The quietest screen in the product, and deliberately so. The world is
+   the identity; a conversation is a utility, and restraint here is right
+   where it would be lifeless out there.
+
+   The sky stays behind it, unmoving. Leaving the world to talk to
+   somebody should not feel like leaving the application. */
+.cos-talk {
+  display: flex;
+  flex-direction: column;
+  /* A conversation is read, not panned, so this one world screen scrolls
+     like an ordinary page. */
+  touch-action: auto;
+}
+
+.cos-talk-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: calc(10px + env(safe-area-inset-top)) 8px 10px;
+}
+
+.cos-talk-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--cos-fg-soft);
+}
+
+.cos-talk-who {
+  font-size: var(--cos-text-read);
+  font-weight: 400;
+}
+
+.cos-talk-thread {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 16px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.cos-talk-empty {
+  margin: auto;
+  max-width: 260px;
+  text-align: center;
+  font-size: var(--cos-text-small);
+  line-height: var(--cos-leading-read);
+  color: var(--cos-fg-faint);
+}
+
+/* Yours on the RIGHT, theirs on the LEFT, in every language.
+
+   This is one of the very few things in the product that is physical
+   rather than logical, and it has been got wrong twice. People read a
+   conversation by which side a message is on before they read a word of
+   it, and that habit comes from every messenger they already use — not
+   from the direction of the script. Written with logical sides it mirrors
+   under Persian and puts your own messages on the left, where they read
+   as the other person talking. The owner has corrected this before; the
+   old chat screen has the same rule for the same reason.
+
+   So the defaults below are for left-to-right, and the rtl block swaps
+   them back. chat-sides.test.ts checks the stylesheet itself, because
+   "fixing" these into logical properties looks correct in review and only
+   breaks on a Persian screen. */
+.cos-bubble {
+  position: relative;
+  align-self: flex-start;
+  max-width: 76%;
+  padding: 10px 14px 20px;
+  border-radius: 16px;
+  background: rgb(233 242 240 / 7%);
+  color: var(--cos-fg);
+  font-size: var(--cos-text-read);
+  line-height: var(--cos-leading-read);
+  overflow-wrap: anywhere;
+  /* Lines stay lines. Without this, a message written on three lines
+     arrives as one run-on sentence — the reader sees something other than
+     what was sent. */
+  white-space: pre-wrap;
+}
+
+.cos-bubble.is-mine {
+  align-self: flex-end;
+  /* A breath of Sol's warmth, not a solid amber block: your own messages
+     should be recognisable at a glance without shouting over theirs. */
+  background: rgb(242 176 106 / 14%);
+}
+
+[dir='rtl'] .cos-bubble {
+  align-self: flex-end;
+}
+
+[dir='rtl'] .cos-bubble.is-mine {
+  align-self: flex-start;
+}
+
+.cos-bubble-time {
+  position: absolute;
+  inset-inline-end: 12px;
+  inset-block-end: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--cos-fg-faint);
+  /* The time and its ticks read left to right in every language, the way
+     a clock does; mirrored, the ticks would sit on the wrong side. */
+  direction: ltr;
+  white-space: nowrap;
+}
+
+/* Room for the time and its ticks, so a one-word message is never
+   narrower than its own time stamp. */
+.cos-bubble {
+  min-width: 76px;
+}
+
+.cos-bubble.is-mine {
+  min-width: 96px;
+}
+
+.cos-tick {
+  flex: none;
+}
+
+/* Sent: as quiet as the time beside it. Seen: Sol's warmth — never green,
+   which in this product means only "here right now". */
+.cos-tick.is-seen {
+  color: #f9b45f;
+}
+
+.cos-tick.is-sending .cos-tick-hand {
+  transform-origin: 8px 8px;
+  animation: cos-tick-turn 1.6s linear infinite;
+}
+
+@keyframes cos-tick-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-tick.is-sending .cos-tick-hand {
+    animation: none;
+  }
+}
+
+.cos-talk-say {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgb(4 8 10 / 96%) 60%, rgb(4 8 10 / 0%));
+}
+
+.cos-talk-field {
+  flex: 1;
+  min-height: 46px;
+  /* A text box, not a line: it grows with what is written (the page sets
+     its height) and wraps like the message it will become. */
+  padding: 12px 16px;
+  resize: none;
+  line-height: 1.5;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  border: 1px solid rgb(233 242 240 / 14%);
+  border-radius: var(--cos-radius-pill);
+  background: rgb(233 242 240 / 5%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-read);
+}
+
+.cos-talk-field:focus {
+  outline: none;
+  border-color: rgb(242 176 106 / 45%);
+}
+
+.cos-talk-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border: none;
+  border-radius: 50%;
+  color: #2b1704;
+  background: linear-gradient(160deg, #ffdda6 0%, #f9b45f 46%, #eb9433 100%);
+  box-shadow: 0 0 22px rgb(255 178 100 / 30%);
+  transition: opacity var(--cos-t-quick) ease;
+}
+
+.cos-talk-send:disabled {
+  opacity: 0.3;
+}
+
+/* The arrow points the way the language runs. */
+[dir='rtl'] .cos-talk-send svg,
+[dir='rtl'] .cos-talk-back svg {
+  transform: scaleX(-1);
+}
+
+/* ---------- conversation: media, tools, and the payment warning ---------- */
+
+.cos-talk-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cos-bubble-photo {
+  display: block;
+  margin: -4px -8px 4px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: none;
+}
+
+.cos-bubble-photo img {
+  display: block;
+  max-width: 240px;
+  max-height: 300px;
+  object-fit: cover;
+}
+
+/* A placeholder the size a photograph will be, so the thread does not
+   jump when it arrives. */
+.cos-bubble-photo-wait {
+  display: block;
+  width: 200px;
+  height: 150px;
+  background: rgb(233 242 240 / 6%);
+}
+
+.cos-talk-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 46px;
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--cos-fg-soft);
+}
+
+.cos-talk-recording {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: var(--cos-radius-pill);
+  background: rgb(255 111 111 / 8%);
+  color: var(--cos-fg);
+  font-size: var(--cos-text-read);
+}
+
+.cos-talk-rec-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cos-danger);
+  animation: cos-mark-breathe 1.2s ease-in-out infinite;
+}
+
+.cos-talk-rec-cancel {
+  margin-inline-start: auto;
+  border: none;
+  background: none;
+  color: var(--cos-fg-faint);
+  font: inherit;
+  font-size: var(--cos-text-small);
+}
+
+.cos-talk-send.is-recording {
+  box-shadow: 0 0 0 4px rgb(255 111 111 / 25%), 0 0 22px rgb(255 178 100 / 30%);
+}
+
+.cos-talk-error {
+  position: relative;
+  z-index: 2;
+  margin: 0 16px 4px;
+  font-size: var(--cos-text-small);
+  color: var(--cos-danger);
+}
+
+/* The line under a card number.
+
+   It protects rather than accuses: two friends settling a bill are doing
+   nothing wrong. So it is not red, not an alarm and not a banner across
+   the conversation — it sits under the one message it is about, in a
+   calm cool tone, with a shield rather than a warning triangle. The
+   shield is the thing this product actually sells, and this is the moment
+   to show where it ends. */
+.cos-talk-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 92%;
+  align-self: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgb(122 215 200 / 7%);
+  border: 1px solid rgb(122 215 200 / 18%);
+}
+
+.cos-talk-warning-mark {
+  flex: none;
+  margin-top: 2px;
+  color: var(--cos-cool);
+}
+
+.cos-talk-warning-text {
+  flex: 1;
+  margin: 0;
+  font-size: var(--cos-text-small);
+  line-height: var(--cos-leading-read);
+  color: var(--cos-fg-soft);
+}
+
+.cos-talk-warning-report,
+.cos-talk-warning-done {
+  flex: none;
+  align-self: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--cos-radius-pill);
+  font: inherit;
+  font-size: var(--cos-text-small);
+}
+
+.cos-talk-warning-report {
+  border: 1px solid rgb(233 242 240 / 20%);
+  background: none;
+  color: var(--cos-fg);
+}
+
+.cos-talk-warning-done {
+  display: flex;
+  align-items: center;
+  color: var(--cos-cool);
+}
+
+/* ---------- reporting ---------- */
+
+.cos-report-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.cos-report-reason {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--cos-radius-pill);
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.cos-report-reason.is-on {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft, rgb(242 176 106 / 14%));
+}
+
+.cos-report-note {
+  min-height: 88px;
+  resize: none;
+}
+
+/* ---------- a voice note ----------
+   The shape of the voice itself, a way to move through it, and speed —
+   the three things that make a voice note feel finished rather than
+   merely playable. */
+/* Left to right in every language, like a strip of tape. The play mark
+   is never mirrored either: a triangle pointing left means "back", not
+   "play". This is the convention every messenger keeps in Persian and
+   Arabic, and the one Material's own right-to-left guidance sets for
+   anything that plays over time. */
+.cos-voice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+  padding-block-end: 4px;
+  direction: ltr;
+}
+
+.cos-voice-play {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  color: var(--cos-ink);
+  background: var(--cos-cool);
+}
+
+.cos-voice.is-mine .cos-voice-play {
+  background: var(--cos-warm);
+}
+
+.cos-voice-play:disabled {
+  opacity: 0.4;
+}
+
+.cos-voice-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* The bars. Touch and drag anywhere on them to move through the note, so
+   the whole shape is the control rather than a thin track under it. */
+.cos-voice-shape {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.cos-voice-shape i {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: rgb(233 242 240 / 28%);
+  transition: background 0.12s linear;
+}
+
+.cos-voice-shape i.is-played {
+  background: var(--cos-cool);
+}
+
+.cos-voice.is-mine .cos-voice-shape i.is-played {
+  background: var(--cos-warm-bright);
+}
+
+.cos-voice-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cos-voice-time {
+  font-size: 11px;
+  color: var(--cos-fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.cos-voice-speed {
+  min-width: 36px;
+  min-height: 22px;
+  padding: 0 7px;
+  border: none;
+  border-radius: var(--cos-radius-pill);
+  background: rgb(233 242 240 / 10%);
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: 11px;
+}
+
+.cos-talk-rec-clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--cos-fg);
 }

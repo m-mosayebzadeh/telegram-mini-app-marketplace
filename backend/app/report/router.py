@@ -25,6 +25,7 @@ from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.conversation import Conversation
 from app.models.report import (
+    MAX_REPORT_NOTE,
     REPORT_REASONS,
     SUSPENSION_SCOPES,
     Report,
@@ -39,6 +40,8 @@ admin_router = APIRouter(prefix="/admin/reports", tags=["admin"])
 class ReportIn(BaseModel):
     reported_user_id: int
     reason: str
+    #: A few words of their own. Optional; the reason is what gets acted on.
+    note: str | None = Field(default=None, max_length=MAX_REPORT_NOTE)
     #: Where it happened, so staff open exactly that conversation instead
     #: of hunting for it.
     conversation_id: int | None = None
@@ -73,6 +76,9 @@ def create_report(
             reporter_id=current_user.id,
             reported_user_id=payload.reported_user_id,
             reason=payload.reason,
+            # An empty note is no note, rather than a blank row for staff
+            # to open and find nothing in.
+            note=(payload.note or "").strip() or None,
             conversation_id=payload.conversation_id,
         )
     )
@@ -146,6 +152,7 @@ class ReportOut(BaseModel):
     id: int
     reporter_id: int
     reason: str
+    note: str | None
     conversation_id: int | None
     created_at: str
     reviewed_at: str | None
@@ -167,6 +174,7 @@ def list_reports_for_user(
             id=r.id,
             reporter_id=r.reporter_id,
             reason=r.reason,
+            note=r.note,
             conversation_id=r.conversation_id,
             created_at=r.created_at.isoformat(),
             reviewed_at=r.reviewed_at.isoformat() if r.reviewed_at else None,
@@ -309,3 +317,76 @@ def lift(
     if suspension is not None:
         db.delete(suspension)
         db.commit()
+
+
+#: How many DIFFERENT people somebody must have sent payment details to
+#: before staff see them. Two friends settling a bill is one person; a
+#: dinner split three ways is two. At three separate strangers it has
+#: stopped being a coincidence of friendship and started looking like a
+#: routine — the shape a scam has.
+PAYMENT_SIGNAL_THRESHOLD = 3
+
+
+class PaymentSignalOut(BaseModel):
+    user_id: int
+    display_name: str
+    username: str | None
+    #: The number that matters: how many separate conversations.
+    distinct_conversations: int
+    messages: int
+    last_at: str
+
+
+@admin_router.get("/payment-signals", response_model=list[PaymentSignalOut])
+def list_payment_signals(
+    limit: int = 50,
+    _: User = Depends(require_admin("moderation.reports")),
+    db: Session = Depends(get_db),
+) -> list[PaymentSignalOut]:
+    """Accounts that keep handing payment details to strangers.
+
+    Nobody reported these people; the pattern did. That is the point of it:
+    most people who are cheated never report anything, so a list built
+    only from reports sees the scams that have already failed.
+
+    It is a signal for a person to look at and nothing more. No account is
+    restricted by appearing here — the same rule as everything else in
+    moderation: an automatic punishment is never permanent, and a
+    permanent one is never automatic.
+
+    Counted by DISTINCT conversations rather than messages, because one
+    person repeating their card number to one friend is one relationship,
+    while the same number sent to ten strangers is a routine.
+    """
+    from app.models.chat_message import ChatMessage
+
+    rows = db.execute(
+        select(
+            ChatMessage.sender_id,
+            func.count(func.distinct(ChatMessage.conversation_id)).label("conversations"),
+            func.count(ChatMessage.id).label("messages"),
+            func.max(ChatMessage.created_at).label("last_at"),
+        )
+        .where(ChatMessage.flagged_payment.is_(True))
+        .group_by(ChatMessage.sender_id)
+        .having(func.count(func.distinct(ChatMessage.conversation_id)) >= PAYMENT_SIGNAL_THRESHOLD)
+        .order_by(func.count(func.distinct(ChatMessage.conversation_id)).desc())
+        .limit(limit)
+    ).all()
+
+    users = {
+        user.id: user
+        for user in db.scalars(select(User).where(User.id.in_([row[0] for row in rows])))
+    }
+    return [
+        PaymentSignalOut(
+            user_id=sender_id,
+            display_name=users[sender_id].display_name,
+            username=users[sender_id].username,
+            distinct_conversations=conversations,
+            messages=messages,
+            last_at=last_at.isoformat(),
+        )
+        for sender_id, conversations, messages, last_at in rows
+        if sender_id in users
+    ]

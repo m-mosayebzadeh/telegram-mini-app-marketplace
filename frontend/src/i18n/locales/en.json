@@ -669,7 +669,13 @@
     "randomChat": "Random chat",
     "me": "Me",
     "echoName": "Echo",
-    "echoSub": "Random"
+    "echoSub": "Random",
+    "peopleAround_one": "{{n}} person",
+    "peopleAround_other": "{{n}} people",
+    "hereNowCount_one": "{{n}} here right now",
+    "hereNowCount_other": "{{n}} here right now",
+    "galaxyLocal": "",
+    "galaxyWord": "Galaxy"
   },
   "echo": {
     "back": "Back",
@@ -733,5 +739,45 @@
     "monthLabel": "Month",
     "yearLabel": "Year",
     "save": "Save"
+  },
+  "talk": {
+    "back": "Back",
+    "send": "Send",
+    "placeholder": "Say something…",
+    "nothingYet": "Nothing said between you and {{name}} yet. The first line is yours.",
+    "photo": "Send a photo",
+    "voice": "Record a voice note",
+    "recording": "Recording…",
+    "cancel": "Cancel",
+    "openPhoto": "Open photo",
+    "noMicrophone": "Microphone access was not allowed.",
+    "paymentWarning": "If you pay outside the app, we can't get it back. To pay safely, use an offer in the app.",
+    "report": "Report",
+    "reported": "Reported",
+    "microphoneUnavailable": "Voice recording isn't available on this page. Open the app from a secure (https) address.",
+    "sending": "Sending",
+    "sent": "Sent",
+    "seen": "Seen"
+  },
+  "report": {
+    "title": "Report {{name}}",
+    "why": "Why?",
+    "send": "Send report",
+    "noteLabel": "Anything to add? (optional)",
+    "notePlaceholder": "If it helps, say briefly what happened.",
+    "reasons": {
+      "off_app_payment": "Asked me to pay outside the app",
+      "scam": "Scam",
+      "insult": "Insulting",
+      "sexual": "Sexual content",
+      "spam": "Spam",
+      "other": "Something else"
+    }
+  },
+  "voice": {
+    "play": "Play",
+    "pause": "Pause",
+    "position": "Position",
+    "speed": "Playback speed"
   }
 }

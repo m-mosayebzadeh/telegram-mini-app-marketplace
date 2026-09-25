@@ -58,11 +58,20 @@ def get_or_create_direct(
         base_capabilities=list(FREE_CAPABILITIES),
         created_at=utcnow(),
     )
-    db.add(conversation)
     try:
         # A nested block so losing the race rolls back only this insert,
         # leaving whatever else the caller has done in the session intact.
+        #
+        # The add has to happen INSIDE the block, not before it. Added
+        # outside, the losing row survives the rollback as a pending object,
+        # and the very next query — the one looking for the winner — flushes
+        # it again, fails again, and takes the whole request down with it.
+        # Added inside, the rollback removes it from the session entirely.
+        # That was a real failure: the chat screen opening twice at once
+        # (which React does on purpose in development, and a double tap
+        # does in production) returned an error instead of the thread.
         with db.begin_nested():
+            db.add(conversation)
             db.flush()
     except IntegrityError:
         found = get_direct(db, one_user_id, other_user_id)

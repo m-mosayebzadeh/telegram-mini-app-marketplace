@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.live.events import announce_message
 from app.auth.dependencies import get_current_user
 from app.chat_session.access import get_participant_session
 from app.conversation.service import touch
@@ -155,6 +156,7 @@ def send_message(
     touch(chat_session.conversation, message.created_at)
     db.commit()
     db.refresh(message)
+    announce_message(chat_session.conversation, message)
     return message
 
 

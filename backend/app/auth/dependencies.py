@@ -197,3 +197,27 @@ def require_admin(scope: str):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized.")
 
     return _dependency
+
+
+def find_user_by_credentials(db: Session, credentials: str) -> User | None:
+    """The existing person these sign-in credentials belong to, or None.
+
+    For the live connection (app/live/router.py), which cannot carry the
+    header every other request uses — a browser opens a socket with no
+    way to add one — and so receives the same credentials as its first
+    message instead. Kept here, beside get_current_user, so that the only
+    code that knows credentials are Telegram's is still this module: the
+    day sign-in changes, the socket changes with it for free.
+
+    Never creates anybody. Somebody who has never made an ordinary request
+    has nothing to be told about.
+    """
+    try:
+        telegram_user = validate_init_data(
+            init_data=credentials,
+            bot_token=settings.telegram_bot_token,
+            max_age_seconds=settings.telegram_auth_max_age_seconds,
+        )
+    except TelegramAuthError:
+        return None
+    return db.query(User).filter(User.telegram_id == telegram_user.id).first()
