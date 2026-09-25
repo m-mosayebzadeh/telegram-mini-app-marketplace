@@ -164,4 +164,4 @@ class BuyerSummaryOut(BaseModel):
     # released to its provider yet or not (see Transaction.status) — the
     # money already left their wallet the moment they paid, in both
     # cases, so both count as "spent" from a trust-signal point of view.
-    total_drops_spent: int
+    total_photons_spent: int

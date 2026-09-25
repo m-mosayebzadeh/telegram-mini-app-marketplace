@@ -70,7 +70,7 @@
 /* ---------- the deal ---------- */
 
 /* Price and duration side by side, because neither number means
-   anything on its own — 250 Drop is only cheap or expensive against the
+   anything on its own — 250 Photon is only cheap or expensive against the
    time it buys. */
 .of-deal {
   display: grid;

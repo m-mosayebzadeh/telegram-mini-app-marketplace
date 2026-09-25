@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch, formatApiError } from '../lib/api'
 import { PageHeader, Button, ErrorState } from '../components/ui'
-import { IconChevron, IconDrop } from '../components/icons'
+import { IconChevron, IconPhoton } from '../components/icons'
 import type { Balance } from '../lib/types'
 
 /**
@@ -58,15 +58,15 @@ export default function WalletPage() {
                   <span className="wl-balance-amount tabular">
                     {t('wallet.tomanAmount', { amount: format(balance.balance_toman) })}
                   </span>
-                  <span className="wl-balance-drop tabular">
-                    <IconDrop size={18} />
-                    {balance.balance_drops_equivalent.toLocaleString(i18n.language)}
+                  <span className="wl-balance-photon tabular">
+                    <IconPhoton size={18} />
+                    {balance.balance_photons_equivalent.toLocaleString(i18n.language)}
                   </span>
                 </>
               ) : (
                 <>
                   <span className="ui-skeleton wl-skeleton-amount" />
-                  <span className="ui-skeleton wl-skeleton-drop" />
+                  <span className="ui-skeleton wl-skeleton-photon" />
                 </>
               )}
             </section>

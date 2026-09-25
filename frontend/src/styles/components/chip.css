@@ -125,11 +125,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- drop balance chip ---------- */
+/* ---------- photon balance chip ---------- */
 
 /* Sits in the trailing slot of every tab root's header. The mark comes
    beside the number, never instead of it. */
-.ui-drop {
+.ui-photon {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -143,25 +143,30 @@
   white-space: nowrap;
 }
 
-.ui-drop:active {
+.ui-photon:active {
   transform: scale(0.97);
 }
 
-/* Always filled, always accent — it is the product's own currency
-   symbol, not a decorative icon. */
-.ui-drop-icon {
+/* Always filled, always warm — it is the product's own currency symbol,
+   not a decorative icon. Its gradient reads these three. */
+.ui-photon-icon {
   flex-shrink: 0;
-  fill: var(--color-accent);
+  --photon-light: #ffe2b0;
+  --photon-mid: #f9b45f;
+  --photon-deep: #df8428;
 }
 
-/* On an accent surface the mark takes that surface's ink instead. */
-.ui-chip-active .ui-drop-icon,
-.ui-btn-primary .ui-drop-icon {
-  fill: var(--color-on-accent);
+/* On an accent surface the mark takes that surface's ink instead, or the
+   warm disc would vanish into a warm button. */
+.ui-chip-active .ui-photon-icon,
+.ui-btn-primary .ui-photon-icon {
+  --photon-light: var(--color-on-accent);
+  --photon-mid: var(--color-on-accent);
+  --photon-deep: var(--color-on-accent);
 }
 
 /* Over a photo. */
-.ui-person-price .ui-drop {
+.ui-person-price .ui-photon {
   height: 28px;
   background: var(--color-scrim);
   color: var(--color-on-scrim);
@@ -169,6 +174,6 @@
   font-weight: 700;
 }
 
-.ui-person-price .ui-drop-icon {
+.ui-person-price .ui-photon-icon {
   fill: var(--color-on-scrim);
 }

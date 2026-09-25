@@ -11,7 +11,7 @@ import {
   useToast,
 } from '../components/ui'
 import { Sheet } from '../components/ui/Sheet'
-import { DropAmount } from '../components/ui/Drop'
+import { PhotonAmount } from '../components/ui/Photon'
 import { IconChat, IconMore, IconPersonFallback } from '../components/icons'
 import type { ChatSession } from '../lib/types'
 
@@ -130,7 +130,7 @@ export default function Chats() {
                       <span className="ch-offer-title" dir="auto">
                         {session.offer_title}
                       </span>
-                      <DropAmount amount={session.price_drops} locale={i18n.language} size={16} />
+                      <PhotonAmount amount={session.price_photons} locale={i18n.language} size={16} />
                     </span>
                   </span>
 

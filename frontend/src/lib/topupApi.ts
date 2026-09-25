@@ -15,10 +15,10 @@ export function listMyTopUpRequests(): Promise<TopUpRequest[]> {
   return apiFetch<TopUpRequest[]>('/topup/requests/mine')
 }
 
-export function createTopUpRequest(file: File, requestedDrops: number): Promise<TopUpRequest> {
+export function createTopUpRequest(file: File, requestedPhotons: number): Promise<TopUpRequest> {
   const form = new FormData()
   form.append('file', file)
-  form.append('requested_drops', String(requestedDrops))
+  form.append('requested_photons', String(requestedPhotons))
   return apiFetch<TopUpRequest>('/topup/requests', { method: 'POST', body: form })
 }
 

@@ -5,7 +5,7 @@ import { computePriceBreakdown } from '../lib/priceBreakdown'
 import type { PricingConfig } from '../lib/types'
 
 /**
- * A caption under a Drop price, saying what that price means in Toman — but a
+ * A caption under a Photon price, saying what that price means in Toman — but a
  * different thing depending on who is looking (see priceBreakdown.ts for why
  * each side gets a single number and not a breakdown):
  *
@@ -20,10 +20,10 @@ import type { PricingConfig } from '../lib/types'
  * its own: the price is the headline and this is its footnote.
  */
 export function PriceBreakdown({
-  priceDrops,
+  pricePhotons,
   audience = 'buyer',
 }: {
-  priceDrops: number
+  pricePhotons: number
   audience?: 'buyer' | 'provider'
 }) {
   const { t } = useTranslation()
@@ -39,13 +39,13 @@ export function PriceBreakdown({
       active = false
     }
   }, [])
-  if (!pricing || priceDrops <= 0) return null
+  if (!pricing || pricePhotons <= 0) return null
 
   const isProvider = audience === 'provider'
   const commissionPercent = isProvider ? pricing.chat_commission_percent : 0
   const breakdown = computePriceBreakdown(
-    priceDrops,
-    pricing.drop_to_toman_rate,
+    pricePhotons,
+    pricing.photon_to_toman_rate,
     commissionPercent,
   )
   const toman = isProvider ? breakdown.netProviderToman : breakdown.grossPriceToman

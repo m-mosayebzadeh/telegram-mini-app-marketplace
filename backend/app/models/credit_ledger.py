@@ -8,8 +8,8 @@ means every Toman that ever moves is individually recorded and
 auditable: "where did this balance come from?" always has a real,
 traceable answer, instead of just trusting a number nobody can explain.
 
-The ledger's accounting unit is Toman, not Drops. They are the same
-money at two scales -- the peg is fixed at 1 Drop = 1000 Toman -- and
+The ledger's accounting unit is Toman, not Photons. They are the same
+money at two scales -- the peg is fixed at 1 Photon = 1000 Toman -- and
 keeping the ledger in whole Toman is what makes a percentage split exact
 to within one Toman (see TECHNICAL_REQUIREMENTS.md, 14).
 """

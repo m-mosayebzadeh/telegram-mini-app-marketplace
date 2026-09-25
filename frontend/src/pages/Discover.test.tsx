@@ -22,7 +22,7 @@ function offer(overrides: Partial<Offer> & Pick<Offer, 'id'>): Offer {
   return {
     provider_id: overrides.id,
     service_type: 'chat',
-    price_drops: 100,
+    price_photons: 100,
     session_duration_seconds: 1800,
     title: 'Chat with me',
     description: 'A nice chat',
@@ -45,7 +45,7 @@ function offer(overrides: Partial<Offer> & Pick<Offer, 'id'>): Offer {
 
 const balance = {
   balance_toman: 250000,
-  balance_drops_equivalent: 1240,
+  balance_photons_equivalent: 1240,
   pending_toman: 0,
   withdrawal_pending_toman: 0,
   in_flight_toman: 0,
@@ -111,8 +111,8 @@ describe('Discover', () => {
 
   it('reorders by price when the cheapest chip is picked', async () => {
     respond([
-      offer({ id: 1, price_drops: 500, created_at: '2026-03-01T00:00:00Z' }),
-      offer({ id: 2, price_drops: 120, created_at: '2026-01-01T00:00:00Z' }),
+      offer({ id: 1, price_photons: 500, created_at: '2026-03-01T00:00:00Z' }),
+      offer({ id: 2, price_photons: 120, created_at: '2026-01-01T00:00:00Z' }),
     ])
     await render()
 
@@ -200,8 +200,8 @@ describe('Discover', () => {
     await render()
 
     expect(cardNames()).toEqual(['User 1'])
-    // The card's own price chip is also a .ui-drop, so this has to ask
+    // The card's own price chip is also a .ui-photon, so this has to ask
     // about the header's one specifically.
-    expect(container.querySelector('.ui-header .ui-drop')).toBeNull()
+    expect(container.querySelector('.ui-header .ui-photon')).toBeNull()
   })
 })

@@ -15,7 +15,7 @@ import { IconShieldLock } from '../components/icons'
 import { digitsOnly } from '../lib/format'
 import { useMe } from '../lib/MeContext'
 
-/** "مالی → کارمزدها" — edit the Drop-to-Toman peg and every commission
+/** "مالی → کارمزدها" — edit the Photon-to-Toman peg and every commission
  * percentage (see backend/app/models/platform_rates.py).
  * Access (owner or "finance.rates") comes from the session-wide check
  * in MeContext, not a fetch of its own. */
@@ -45,7 +45,7 @@ export default function AdminRates() {
     setLoadError(null)
     getPlatformRates()
       .then((r) => {
-        setStarRate(String(r.drop_to_toman_rate))
+        setStarRate(String(r.photon_to_toman_rate))
         setChatPercent(String(r.chat_commission_percent))
         setContentPercent(String(r.content_commission_percent))
         setWithdrawalPercent(String(r.withdrawal_commission_percent))
@@ -64,7 +64,7 @@ export default function AdminRates() {
     setBusy(true)
     try {
       await updatePlatformRates({
-        drop_to_toman_rate: Number(starRate),
+        photon_to_toman_rate: Number(starRate),
         chat_commission_percent: Number(chatPercent),
         content_commission_percent: Number(contentPercent),
         minimum_withdrawal_toman: Number(minimum),
@@ -136,11 +136,11 @@ export default function AdminRates() {
           <div className="co-form">
             <RateField
               id="rate-star"
-              label={t('admin.ratesDropLabel')}
+              label={t('admin.ratesPhotonLabel')}
               unit={t('finance.tomanUnit')}
               value={starRate}
               onChange={setStarRate}
-              hint={t('admin.ratesDropHint')}
+              hint={t('admin.ratesPhotonHint')}
             />
           </div>
         </section>

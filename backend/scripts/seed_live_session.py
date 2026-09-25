@@ -57,7 +57,7 @@ DEMO_MESSAGES = [
 ]
 
 DEFAULT_MINUTES = 40
-DEFAULT_PRICE_DROPS = 100
+DEFAULT_PRICE_PHOTONS = 100
 DEFAULT_ELAPSED_MINUTES = 12
 
 
@@ -101,8 +101,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--minutes', type=int, default=DEFAULT_MINUTES,
                         help='session length in minutes (must split into whole blocks)')
-    parser.add_argument('--price', type=int, default=DEFAULT_PRICE_DROPS,
-                        help='session price in Drops (must split into whole blocks)')
+    parser.add_argument('--price', type=int, default=DEFAULT_PRICE_PHOTONS,
+                        help='session price in Photons (must split into whole blocks)')
     parser.add_argument('--elapsed', type=int, default=DEFAULT_ELAPSED_MINUTES,
                         help='how many minutes into the session to place it')
     parser.add_argument('--waiting', action='store_true',
@@ -129,7 +129,7 @@ def main() -> None:
 
         offer = Offer(
             provider_id=provider.id,
-            price_drops=args.price,
+            price_photons=args.price,
             session_duration_seconds=args.minutes * 60,
             title='گپ درباره فیلم و سریال',
             description='یک گفتگوی راحت درباره‌ی فیلم‌ها و سریال‌هایی که این روزها دیده‌ایم.',
@@ -183,9 +183,9 @@ def main() -> None:
         block_minutes = args.minutes / chat_session.reserved_blocks
         print()
         print(f'session #{chat_session.id} — Sara (buyer) with Bob (provider)')
-        print(f'  {args.minutes} minutes, {args.price} Drops')
+        print(f'  {args.minutes} minutes, {args.price} Photons')
         print(f'  {chat_session.reserved_blocks} blocks of {block_minutes:g} min, '
-              f'{chat_session.block_price_drops} Drops each')
+              f'{chat_session.block_price_photons} Photons each')
         if not args.waiting:
             print(f'  placed {args.elapsed} minutes in — '
                   f'block {int(args.elapsed // block_minutes) + 1} is running')

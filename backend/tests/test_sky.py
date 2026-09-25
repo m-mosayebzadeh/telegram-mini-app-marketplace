@@ -135,3 +135,76 @@ def test_being_in_the_app_is_what_makes_you_online(client, db_session):
 
     sky = client.get("/sky", headers=_auth(7050)).json()
     assert sky[0]["online"] is True
+
+
+# --- moons: "has something to show" (section 29.14) ---------------------
+
+
+def _content(db_session, owner, audience="public", deleted=False):
+    from app.models.content import Content, ContentAudience, ContentType
+
+    db_session.add(
+        Content(
+            user_id=owner.id,
+            content_type=ContentType.PHOTO,
+            original_file_path="x.jpg",
+            audience_type=ContentAudience(audience),
+            audience_user_id=owner.id if audience == "user" else None,
+            deleted_at=utcnow() if deleted else None,
+        )
+    )
+    db_session.commit()
+
+
+def _offer(db_session, owner, active=True):
+    from app.models.offer import Offer, OfferStatus
+
+    db_session.add(
+        Offer(
+            provider_id=owner.id,
+            price_photons=40,
+            session_duration_seconds=600,
+            title="t",
+            description="d",
+            status=OfferStatus.ACTIVE if active else OfferStatus.INACTIVE,
+        )
+    )
+    db_session.commit()
+
+
+def _moons(client, viewer, name):
+    sky = client.get("/sky", headers=_auth(viewer)).json()
+    return next(p["moons"] for p in sky if p["display_name"] == name)
+
+
+def test_somebody_with_nothing_to_show_has_no_moons(client, db_session):
+    _someone(client, db_session, 7201, "Ali")
+    _someone(client, db_session, 7202, "Sara")
+    assert _moons(client, 7201, "Sara") == 0
+
+
+def test_content_and_offers_both_become_moons(client, db_session):
+    """Free and paid alike, so a moon never means "this one sells"."""
+    _someone(client, db_session, 7203, "Ali")
+    sara = _someone(client, db_session, 7204, "Sara")
+    _content(db_session, sara)
+    _offer(db_session, sara)
+    assert _moons(client, 7203, "Sara") == 2
+
+
+def test_never_more_than_three_moons(client, db_session):
+    _someone(client, db_session, 7205, "Ali")
+    sara = _someone(client, db_session, 7206, "Sara")
+    for _ in range(5):
+        _content(db_session, sara)
+    assert _moons(client, 7205, "Sara") == 3
+
+
+def test_only_what_everyone_can_see_counts(client, db_session):
+    """A moon that leads to nothing is a promise the app does not keep."""
+    _someone(client, db_session, 7207, "Ali")
+    sara = _someone(client, db_session, 7208, "Sara")
+    _content(db_session, sara, audience="user")
+    _content(db_session, sara, deleted=True)
+    _offer(db_session, sara, active=False)
+    assert _moons(client, 7207, "Sara") == 0

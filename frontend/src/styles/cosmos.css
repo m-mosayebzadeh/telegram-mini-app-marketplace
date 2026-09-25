@@ -2546,3 +2546,80 @@
     user-select: none;
   }
 }
+
+/* ---------- moons: "has something to show" ----------
+   Up to three, only on the orbs you are near. Each rides an ellipse (its
+   path is set per moon in Orb.tsx) tilted a little off level, spends the
+   first half of its orbit in front of the body and the second half behind
+   it, and turns slowly on itself. Pale moonlight: never green, never a
+   ring, so it cannot be read as "online". */
+.cos-moons {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.cos-moon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  offset-rotate: 0deg;
+  offset-distance: 0%;
+  animation-name: cos-moon-orbit;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  z-index: 4;
+}
+
+.cos-moon i {
+  display: block;
+  width: var(--moon-size);
+  height: var(--moon-size);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 30%, #ffffff 0%, #e4ebee 38%, #9aa7ad 72%, #5f6b71 100%);
+  box-shadow: 0 0 6px rgb(228 235 238 / 45%);
+  animation: cos-moon-spin 6s linear infinite;
+}
+
+/* In front for the lower half of the ellipse, behind for the upper half,
+   and a touch smaller and dimmer while behind, as a far thing would be. */
+@keyframes cos-moon-orbit {
+  0% {
+    offset-distance: 0%;
+    z-index: 4;
+    scale: 1;
+    opacity: 1;
+  }
+  49.9% {
+    z-index: 4;
+  }
+  50% {
+    z-index: 1;
+    scale: 0.8;
+    opacity: 0.75;
+  }
+  99.9% {
+    z-index: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@keyframes cos-moon-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-moon,
+  .cos-moon i {
+    animation: none;
+  }
+}

@@ -8,8 +8,8 @@ export interface BankAccount {
   iban: string
 }
 export interface WithdrawalQuote {
-  drops: number
-  drop_rate: number
+  photons: number
+  photon_rate: number
   fee_percent: number
   minimum_toman: number
   gross_toman: number
@@ -44,10 +44,10 @@ export interface Withdrawal
 export const bankAccounts = () =>
   apiFetch<BankAccount[]>('/wallet/bank-accounts')
 export const withdrawals = () => apiFetch<Withdrawal[]>('/wallet/withdrawals')
-export const quoteWithdrawal = (drops: number) =>
+export const quoteWithdrawal = (photons: number) =>
   apiFetch<WithdrawalQuote>('/wallet/withdrawals/quote', {
     method: 'POST',
-    body: JSON.stringify({ drops }),
+    body: JSON.stringify({ photons }),
   })
 export function financeError(error: unknown, t: TFunction): string {
   if (error instanceof ApiError) {

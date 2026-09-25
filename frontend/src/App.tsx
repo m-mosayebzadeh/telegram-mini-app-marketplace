@@ -60,7 +60,7 @@ import AdminRoleMembers from './pages/AdminRoleMembers'
  *
  * "My offers" / "My requests" / "Wallet" have no tab of their own: offer
  * and request management live in the Activity tab, and the wallet is
- * reached from the Drop chip in each tab root's header and from the
+ * reached from the Photon chip in each tab root's header and from the
  * profile. Their routes stay below so existing deep links keep working.
  */
 const TABS = [

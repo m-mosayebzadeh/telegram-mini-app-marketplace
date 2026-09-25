@@ -14,7 +14,7 @@ from app.models.chat_session import ChatSession
 from app.wallet.blocks import EndReason
 from tests.helpers import give_wallet_balance, sign_init_data
 
-RATE = 1000  # Toman per Drop, the fixed peg
+RATE = 1000  # Toman per Photon, the fixed peg
 
 
 def _auth(telegram_id: int, first_name: str = "Test") -> dict:
@@ -29,7 +29,7 @@ def _running_session(client, db_session, *, seconds_in=0):
     offer = client.post(
         "/offers",
         headers=provider,
-        json={"price_drops": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
+        json={"price_photons": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
     ).json()
     request = client.post("/requests", headers=buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{request['id']}/accept", headers=provider)
@@ -75,7 +75,7 @@ def test_the_session_stops_at_the_boundary_and_the_rest_comes_back(client, db_se
     assert body["status"] == "closed"
     assert body["consumed_blocks"] == 2
     assert body["end_reason"] == EndReason.BUYER_CLOSED
-    # 50 Drops in the wallet, 40 reserved, 20 consumed.
+    # 50 Photons in the wallet, 40 reserved, 20 consumed.
     assert client.get("/wallet/balance", headers=buyer).json()["balance_toman"] == 30 * RATE
 
 
@@ -207,7 +207,7 @@ def test_a_session_that_has_not_started_cannot_be_stopped_this_way(client, db_se
     offer = client.post(
         "/offers",
         headers=provider,
-        json={"price_drops": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
+        json={"price_photons": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
     ).json()
     request = client.post("/requests", headers=buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{request['id']}/accept", headers=provider)

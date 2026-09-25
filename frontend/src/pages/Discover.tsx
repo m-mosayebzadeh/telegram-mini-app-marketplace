@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { apiFetch, formatApiError } from '../lib/api'
 import type { Balance, Offer } from '../lib/types'
 import { PageHeader, EmptyState, ErrorState } from '../components/ui'
-import { DropChip } from '../components/ui/Drop'
+import { PhotonChip } from '../components/ui/Photon'
 import { PersonCard } from '../components/ui/PersonCard'
 import { IconDiscover } from '../components/icons'
 
@@ -93,7 +93,7 @@ export default function Discover() {
     // truth for every other filter.
     return [...filtered].sort((a, b) =>
       sort === 'cheapest'
-        ? a.price_drops - b.price_drops
+        ? a.price_photons - b.price_photons
         : Date.parse(b.created_at) - Date.parse(a.created_at),
     )
   }, [offers, interest, sort])
@@ -104,8 +104,8 @@ export default function Discover() {
         title={t('tabs.discover')}
         action={
           balance && (
-            <DropChip
-              amount={balance.balance_drops_equivalent}
+            <PhotonChip
+              amount={balance.balance_photons_equivalent}
               locale={i18n.language}
               onClick={() => navigate('/wallet')}
               label={t('wallet.title')}

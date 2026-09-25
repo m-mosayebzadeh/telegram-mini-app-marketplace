@@ -37,7 +37,7 @@ class ChatSessionOut(BaseModel):
     other_participant: ChatSessionParticipantOut
 
     offer_title: str
-    price_drops: int
+    price_photons: int
     # The length the session actually runs for. No longer decoration: the
     # session closes itself at the end of its last block.
     session_duration_seconds: int
@@ -45,7 +45,7 @@ class ChatSessionOut(BaseModel):
     # --- the block plan, frozen at the start (see app/wallet/blocks.py) ---
     reserved_blocks: int
     block_duration_seconds: int
-    block_price_drops: int
+    block_price_photons: int
     #: When the clock actually started — the provider's first message. None
     #: means the session is reserved and still waiting for them to arrive; the
     #: buyer may write in the meantime and it costs nothing.

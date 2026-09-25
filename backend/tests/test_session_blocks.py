@@ -17,14 +17,14 @@ from app.models.transaction import Transaction
 from app.wallet.blocks import EndReason, close_and_settle, close_if_due, consumed_blocks_for
 from tests.helpers import give_wallet_balance, sign_init_data
 
-RATE = 1000  # Toman per Drop, the fixed peg
+RATE = 1000  # Toman per Photon, the fixed peg
 
 
 def _auth(telegram_id: int, first_name: str = "Test") -> dict:
     return {"X-Telegram-Init-Data": sign_init_data({"id": telegram_id, "first_name": first_name})}
 
 
-def _running_session(client, db_session, *, price_drops=40, duration=1800, provider_speaks=True):
+def _running_session(client, db_session, *, price_photons=40, duration=1800, provider_speaks=True):
     """A provider, a buyer, an accepted request, and a session under way."""
     provider, buyer = _auth(1, "Alice"), _auth(2, "Bob")
     client.get("/me", headers=provider)
@@ -33,7 +33,7 @@ def _running_session(client, db_session, *, price_drops=40, duration=1800, provi
         "/offers",
         headers=provider,
         json={
-            "price_drops": price_drops,
+            "price_photons": price_photons,
             "session_duration_seconds": duration,
             "title": "Chat",
             "description": "Chat",
@@ -41,7 +41,7 @@ def _running_session(client, db_session, *, price_drops=40, duration=1800, provi
     ).json()
     request = client.post("/requests", headers=buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{request['id']}/accept", headers=provider)
-    give_wallet_balance(db_session, buyer_id, amount_toman=price_drops * RATE)
+    give_wallet_balance(db_session, buyer_id, amount_toman=price_photons * RATE)
     client.post(f"/requests/{request['id']}/pay", headers=buyer)
 
     chat_session = db_session.query(ChatSession).filter_by(request_id=request["id"]).one()
@@ -91,7 +91,7 @@ def test_a_buyer_who_cannot_cover_the_whole_session_cannot_start_it(client, db_s
     offer = client.post(
         "/offers",
         headers=provider,
-        json={"price_drops": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
+        json={"price_photons": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
     ).json()
     request = client.post("/requests", headers=buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{request['id']}/accept", headers=provider)
@@ -174,9 +174,9 @@ def test_what_was_used_becomes_a_pending_transaction_with_its_commission(client,
     db_session.commit()
 
     transaction = db_session.query(Transaction).filter_by(request_id=chat_session.request_id).one()
-    assert transaction.gross_price_drops == 20  # two blocks of ten
-    assert transaction.commission_drops == 2  # the 10% chat commission
-    assert transaction.net_provider_drops == 18
+    assert transaction.gross_price_photons == 20  # two blocks of ten
+    assert transaction.commission_photons == 2  # the 10% chat commission
+    assert transaction.net_provider_photons == 18
     assert transaction.status.value == "pending"  # the settlement window still applies
     # The provider is owed it but cannot spend it yet.
     wallet = client.get("/wallet/balance", headers=provider).json()

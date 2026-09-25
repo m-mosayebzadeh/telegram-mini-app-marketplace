@@ -55,7 +55,7 @@ def get_my_balance(
     paid_but_unsettled = get_buyer_in_flight_toman(db, current_user.id)
     return BalanceOut(
         balance_toman=balance_toman,
-        balance_drops_equivalent=balance_toman // get_rates(db).drop_to_toman_rate,
+        balance_photons_equivalent=balance_toman // get_rates(db).photon_to_toman_rate,
         pending_toman=earned_but_held,
         withdrawal_pending_toman=queued_withdrawals,
         in_flight_toman=earned_but_held + queued_withdrawals + paid_but_unsettled,
@@ -81,13 +81,13 @@ def wallet_history(
     # Reading the history is also a moment to let anything due settle, the
     # same lazy sweep the balance does.
     release_due_chat_transactions(db, current_user.id)
-    rate = get_rates(db).drop_to_toman_rate
+    rate = get_rates(db).photon_to_toman_rate
     return [
         WalletHistoryOut(
             kind=row.kind.value,
             status=row.status.value,
-            amount_drops=row.amount_drops,
-            amount_toman=row.amount_drops * rate,
+            amount_photons=row.amount_photons,
+            amount_toman=row.amount_photons * rate,
             at=row.at,
             subject=row.subject,
             chat_session_id=row.chat_session_id,

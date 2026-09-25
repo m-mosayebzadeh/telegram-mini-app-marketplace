@@ -33,7 +33,7 @@ function offer(overrides: Partial<Offer> = {}): Offer {
     id: 7,
     provider_id: 1,
     service_type: 'chat',
-    price_drops: 250,
+    price_photons: 250,
     session_duration_seconds: 1800,
     title: 'Chat with me',
     description: 'x',
@@ -51,7 +51,7 @@ function activity(overrides: Partial<RequestActivity> = {}): RequestActivity {
     id: 21,
     offer_id: 7,
     offer_title: 'Chat with me',
-    offer_price_drops: 250,
+    offer_price_photons: 250,
     direction: 'sent',
     status: 'pending',
     reason: null,
@@ -69,7 +69,7 @@ function respond(over: Record<string, unknown> = {}) {
     '/offers?provider_id=1': [offer()],
     '/requests/activity': [activity()],
     '/chat-sessions/mine': [] as ChatSession[],
-    '/wallet/balance': { balance_drops_equivalent: 1240 },
+    '/wallet/balance': { balance_photons_equivalent: 1240 },
     ...over,
   }
   mocks.api.mockImplementation((path: string) => {

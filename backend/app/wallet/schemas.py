@@ -7,11 +7,11 @@ class BalanceOut(BaseModel):
     withdrawal_pending_toman: int = 0
     # Spendable right now — the sum of this user's own ledger entries.
     balance_toman: int
-    # A display-only figure ("about how many Drops can I spend right
+    # A display-only figure ("about how many Photons can I spend right
     # now"), computed with floor division. Never used to decide whether a
     # charge succeeds -- every real charge is computed from the priced
-    # item's own Drop amount (see app/wallet/service.py), not from this.
-    balance_drops_equivalent: int
+    # item's own Photon amount (see app/wallet/service.py), not from this.
+    balance_photons_equivalent: int
     # Earned as a provider from CHAT_REQUEST transactions, but not yet
     # spendable — held until the paid-for chat session closes cleanly
     # (see release_transaction() in app/wallet/service.py). Always 0
@@ -38,11 +38,11 @@ class TransactionOut(BaseModel):
     provider_id: int
     request_id: int | None
     content_id: int | None
-    gross_price_drops: int
+    gross_price_photons: int
     commission_rate_percent: int
-    commission_drops: int
-    net_provider_drops: int
-    drop_to_toman_rate: int
+    commission_photons: int
+    net_provider_photons: int
+    photon_to_toman_rate: int
     gross_price_toman: int
     commission_toman: int
     net_provider_toman: int
@@ -56,7 +56,7 @@ class WalletHistoryOut(BaseModel):
     """One thing that happened to this wallet.
 
     Deliberately says nothing about who was on the other side: a list that
-    reads "25 Drops from Sara" is a problem the moment someone glances at the
+    reads "25 Photons from Sara" is a problem the moment someone glances at the
     screen. What it was about is here, because a history that cannot be checked
     against anything is not a history; who it was with is one tap away, on the
     thing itself.
@@ -69,7 +69,7 @@ class WalletHistoryOut(BaseModel):
     #: the last can still change, which is why it is shown at all.
     status: str
     #: Positive came in, negative went out.
-    amount_drops: int
+    amount_photons: int
     amount_toman: int
     at: datetime
     #: An offer's title, when there is one. Never a person's name.

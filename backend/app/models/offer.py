@@ -40,8 +40,8 @@ class Offer(Base):
     # The price of ONE session, not a rate. It must divide evenly by
     # SESSION_BLOCK_COUNT, because a session is sold and settled one block at a
     # time and a block price that needed rounding would put a fraction of a
-    # Drop somewhere on every single session.
-    price_drops: Mapped[int] = mapped_column(Integer)
+    # Photon somewhere on every single session.
+    price_photons: Mapped[int] = mapped_column(Integer)
     # How long that session runs. This used to be decoration — the old model
     # said explicitly that nothing read it — and is now a real commitment: the
     # session opens for exactly this long and closes itself at the end of the
@@ -84,7 +84,7 @@ class Offer(Base):
         # Enforced here as well as in the schema: these two invariants are what
         # let every later block calculation be plain integer arithmetic.
         CheckConstraint(
-            f'price_drops > 0 AND price_drops % {SESSION_BLOCK_COUNT} = 0',
+            f'price_photons > 0 AND price_photons % {SESSION_BLOCK_COUNT} = 0',
             name='ck_offer_price_divides_into_blocks',
         ),
         CheckConstraint(
@@ -99,9 +99,9 @@ class Offer(Base):
         return self.session_duration_seconds // SESSION_BLOCK_COUNT
 
     @property
-    def block_price_drops(self) -> int:
+    def block_price_photons(self) -> int:
         """What one block of this offer's session costs."""
-        return self.price_drops // SESSION_BLOCK_COUNT
+        return self.price_photons // SESSION_BLOCK_COUNT
 
     # When the provider last opened THIS offer's own incoming-requests
     # list (GET /requests?offer_id=..., see app/request/router.py's

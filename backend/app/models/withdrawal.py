@@ -24,8 +24,8 @@ class Withdrawal(Base):
     holder_name: Mapped[str] = mapped_column(String(128))
     card_number: Mapped[str] = mapped_column(String(16))
     iban: Mapped[str] = mapped_column(String(26))
-    drops: Mapped[int] = mapped_column(Integer)
-    drop_rate: Mapped[int] = mapped_column(Integer)
+    photons: Mapped[int] = mapped_column(Integer)
+    photon_rate: Mapped[int] = mapped_column(Integer)
     fee_percent: Mapped[int] = mapped_column(Integer)
     minimum_toman: Mapped[int] = mapped_column(Integer)
     gross_toman: Mapped[int] = mapped_column(Integer)
@@ -40,7 +40,7 @@ class Withdrawal(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'idempotency_key', name='uq_withdrawal_retry'),
         CheckConstraint("status IN ('pending','processing','bank_pending','paid','rejected','failed','cancelled')", name='ck_withdrawal_status'),
-        CheckConstraint('drops > 0 AND drop_rate > 0 AND gross_toman = drops * drop_rate AND fee_toman >= 0 AND net_toman > 0 AND fee_toman + net_toman = gross_toman', name='ck_withdrawal_amounts'),
+        CheckConstraint('photons > 0 AND photon_rate > 0 AND gross_toman = photons * photon_rate AND fee_toman >= 0 AND net_toman > 0 AND fee_toman + net_toman = gross_toman', name='ck_withdrawal_amounts'),
         CheckConstraint("status != 'paid' OR (reference IS NOT NULL AND length(trim(reference)) > 0)", name='ck_withdrawal_paid_reference'),
     )
 

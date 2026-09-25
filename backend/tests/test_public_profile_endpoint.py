@@ -170,7 +170,7 @@ def test_provider_summary_tracks_response_and_rejection_rate(client):
     offer = client.post(
         "/offers",
         headers=auth_alice,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat with me", "description": "Chat"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat with me", "description": "Chat"},
     ).json()
 
     bob_request = client.post(
@@ -208,11 +208,11 @@ def test_provider_summary_counts_completed_services(client, db_session):
         data={
             "content_type": "photo",
             "is_paid": "true",
-            "price_drops": "10",
+            "price_photons": "10",
             "audience_type": "public",
         },
     ).json()
-    give_wallet_balance(db_session, bob["id"], amount_toman=10 * settings.drop_to_toman_rate)
+    give_wallet_balance(db_session, bob["id"], amount_toman=10 * settings.photon_to_toman_rate)
     client.post(f"/content/{content['id']}/purchase", headers=auth_bob)
 
     response = client.get(f"/profiles/{alice['id']}/provider-summary", headers=auth_bob)
@@ -235,7 +235,7 @@ def test_buyer_summary_for_a_brand_new_user(client):
     body = response.json()
     assert body["status"] == "new"
     assert body["completed_transactions_count"] == 0
-    assert body["total_drops_spent"] == 0
+    assert body["total_photons_spent"] == 0
 
 
 def test_buyer_summary_for_a_nonexistent_user_returns_404(client):
@@ -261,11 +261,11 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
         data={
             "content_type": "photo",
             "is_paid": "true",
-            "price_drops": "10",
+            "price_photons": "10",
             "audience_type": "public",
         },
     ).json()
-    give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.drop_to_toman_rate)
+    give_wallet_balance(db_session, bob["id"], amount_toman=200 * settings.photon_to_toman_rate)
     client.post(f"/content/{content['id']}/purchase", headers=auth_bob)
 
     # A chat that is still running has RESERVED money rather than spent it —
@@ -274,7 +274,7 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
     offer = client.post(
         "/offers",
         headers=auth_alice,
-        json={"price_drops": 20, "session_duration_seconds": 1800, "title": "Chat", "description": "Chat"},
+        json={"price_photons": 20, "session_duration_seconds": 1800, "title": "Chat", "description": "Chat"},
     ).json()
     req = client.post("/requests", headers=auth_bob, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/accept", headers=auth_alice)
@@ -285,4 +285,4 @@ def test_buyer_summary_counts_pending_and_succeeded_spend(client, db_session):
     body = response.json()
     assert body["status"] == "established"  # the content purchase completed
     assert body["completed_transactions_count"] == 1  # only the content, not the still-pending chat
-    assert body["total_drops_spent"] == 10  # the content only; the chat has not settled
+    assert body["total_photons_spent"] == 10  # the content only; the chat has not settled

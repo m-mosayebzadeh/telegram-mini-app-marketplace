@@ -25,11 +25,11 @@ function session(overrides: Partial<ChatSession> = {}): ChatSession {
     my_role: 'buyer',
     other_participant: { user_id: 2, display_name: 'Bob', username: null, avatar_url: null },
     offer_title: 'A chat about films',
-    price_drops: 100,
+    price_photons: 100,
     session_duration_seconds: 2400,
     reserved_blocks: 4,
     block_duration_seconds: 600,
-    block_price_drops: 25,
+    block_price_photons: 25,
     started_at: null,
     ends_at: null,
     close_at_block_end_by_user_id: null,
@@ -110,7 +110,7 @@ describe('SessionSheet', () => {
     await renderSheet(session())
 
     expect(document.body.textContent).toContain('"blocks":4')
-    expect(document.body.textContent).toContain('"drops":25')
+    expect(document.body.textContent).toContain('"photons":25')
   })
 
   it('makes ending the session a danger action, never the filled one', async () => {

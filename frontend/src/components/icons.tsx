@@ -1,3 +1,4 @@
+import { useId } from 'react'
 /**
  * Small, minimal line icons for the bottom nav (see App.tsx) — not a
  * copy of Telegram's own icon assets (no access to those files, and no
@@ -271,29 +272,51 @@ export function IconSettings({ size = 24, className }: IconProps) {
   )
 }
 
-/** Drop — the product's currency mark. Always FILLED and always accent;
- *  never drawn as an outline, and never used in place of the number it
- *  sits beside. See docs/design-system/01-foundations.md#دراپ. */
-export function IconDrop({ size = 18, className }: IconProps) {
+/**
+ * Photon — the product's currency mark: a warm disc of light with a wave
+ * running through it. Light is both a particle and a wave; the disc says
+ * "a coin", the wave says "of this world". Chosen by the owner from three
+ * drawings (TECHNICAL_REQUIREMENTS.md 29.14).
+ *
+ * Always filled and never used in place of the number it sits beside. The
+ * colours come from CSS variables rather than being fixed here, so one
+ * mark serves the page ground, a photo scrim and an accent button: on an
+ * accent surface the stylesheet turns it to that surface's ink.
+ */
+export function IconPhoton({ size = 18, className }: IconProps) {
+  // A gradient and a mask are referenced by id, and two marks on one page
+  // must not share ids or the second quietly borrows the first's.
+  const id = useId().replace(/:/g, '')
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      // The class supplies the fill, so one mark serves the accent
-      // surface, the scrim and the page ground without branching here.
-      className={className ? `ui-drop-icon ${className}` : 'ui-drop-icon'}
+      className={className ? `ui-photon-icon ${className}` : 'ui-photon-icon'}
       aria-hidden="true"
     >
-      <path d="M12 2.8C12 2.8 5.9 9.6 5.9 14a6.1 6.1 0 0 0 12.2 0c0-4.4-6.1-11.2-6.1-11.2Z" />
-      {/* The flame core. Below 20px it is dropped entirely — at that size
-          it turns into a smudge and the silhouette reads better alone. */}
+      <defs>
+        <linearGradient id={`${id}-g`} x1="0.15" y1="0" x2="0.85" y2="1">
+          <stop offset="0" stopColor="var(--photon-light, #ffe2b0)" />
+          <stop offset="0.45" stopColor="var(--photon-mid, #f9b45f)" />
+          <stop offset="1" stopColor="var(--photon-deep, #df8428)" />
+        </linearGradient>
+        <mask id={`${id}-m`}>
+          <rect width="24" height="24" fill="#fff" />
+          {/* Thicker at small sizes, or the wave closes up into a smudge. */}
+          <path
+            d="M2.3 13.1c3-5.6 6-5.6 9.7-1.1s6.8 4.5 9.7-1.1"
+            fill="none"
+            stroke="#000"
+            strokeWidth={size < 20 ? 2.4 : 1.95}
+            strokeLinecap="round"
+          />
+        </mask>
+      </defs>
+      <circle cx="12" cy="12" r="10.1" fill={`url(#${id}-g)`} mask={`url(#${id}-m)`} />
+      {/* The glint. Below 20px it only muddies the disc, so it goes. */}
       {size >= 20 && (
-        <path
-          d="M12 9.6c0 0-2.6 2.9-2.6 4.8a2.6 2.6 0 0 0 5.2 0c0-1.9-2.6-4.8-2.6-4.8Z"
-          fill="var(--color-bg)"
-          opacity="0.9"
-        />
+        <ellipse cx="8.6" cy="6.4" rx="3" ry="1.6" fill="#fff" opacity="0.55" transform="rotate(-28 8.6 6.4)" />
       )}
     </svg>
   )

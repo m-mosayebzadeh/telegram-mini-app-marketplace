@@ -44,7 +44,7 @@ export interface Me {
 export interface Balance {
   withdrawal_pending_toman: number
   balance_toman: number
-  balance_drops_equivalent: number
+  balance_photons_equivalent: number
   pending_toman: number
   /** Everything that exists but is not available right now, as one figure —
    * a chat still running, earnings inside the release grace period, and any
@@ -73,7 +73,7 @@ export interface Offer {
   id: number
   provider_id: number
   service_type: string
-  price_drops: number
+  price_photons: number
   session_duration_seconds: number
   title: string
   description: string
@@ -100,7 +100,7 @@ export interface RequestActivity {
   id: number
   offer_id: number
   offer_title: string
-  offer_price_drops: number
+  offer_price_photons: number
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled'
   reason: string | null
   created_at: string
@@ -159,7 +159,7 @@ export interface ChatSession {
   my_role: 'buyer' | 'provider'
   other_participant: ChatSessionParticipant
   offer_title: string
-  price_drops: number
+  price_photons: number
   /** How long the session actually runs. A commitment now, not a hint: it
    *  closes itself at the end of its last block. */
   session_duration_seconds: number
@@ -167,7 +167,7 @@ export interface ChatSession {
   // --- the block plan, frozen when the session started ---
   reserved_blocks: number
   block_duration_seconds: number
-  block_price_drops: number
+  block_price_photons: number
   /** When the clock actually started — the provider's first message. null
    *  means the session is reserved and still waiting for them to arrive; the
    *  buyer may write in the meantime and it costs nothing. */
@@ -222,11 +222,11 @@ export interface Transaction {
   provider_id: number
   request_id: number | null
   content_id: number | null
-  gross_price_drops: number
+  gross_price_photons: number
   commission_rate_percent: number
-  commission_drops: number
-  net_provider_drops: number
-  drop_to_toman_rate: number
+  commission_photons: number
+  net_provider_photons: number
+  photon_to_toman_rate: number
   gross_price_toman: number
   commission_toman: number
   net_provider_toman: number
@@ -281,7 +281,7 @@ export interface Content {
   content_type: 'photo' | 'short_video'
   duration_seconds: number | null
   is_paid: boolean
-  price_drops: number | null
+  price_photons: number | null
   has_spoiler: boolean
   audience_type: 'public' | 'followers' | 'user' | 'group'
   is_pinned: boolean
@@ -308,12 +308,12 @@ export interface MyProfile {
   birthday_year: number | null
 }
 
-/** GET /pricing — the Drop-to-Toman peg and the commission percentages,
+/** GET /pricing — the Photon-to-Toman peg and the commission percentages,
  * used to show a price breakdown without a round trip per keystroke (see
  * lib/priceBreakdown.ts). The peg is fixed rather than a market rate, so
  * it never has to be frozen per transaction. */
 export interface PricingConfig {
-  drop_to_toman_rate: number
+  photon_to_toman_rate: number
   chat_commission_percent: number
   content_commission_percent: number
   withdrawal_commission_percent: number
@@ -366,7 +366,7 @@ export interface BuyerSummary {
   status: 'established' | 'new'
   joined_at: string
   completed_transactions_count: number
-  total_drops_spent: number
+  total_photons_spent: number
 }
 
 /** GET /topup/card-info — see backend/app/topup/schemas.py's
@@ -382,8 +382,8 @@ export interface TopUpCardInfo {
 export interface TopUpRequest {
   id: number
   user_id: number
-  requested_drops: number
-  drop_rate_at_request: number
+  requested_photons: number
+  photon_rate_at_request: number
   requested_toman_amount: number
   status: 'pending' | 'approved' | 'rejected'
   final_toman_amount: number | null
@@ -474,7 +474,7 @@ export interface AdminChatSession {
  * transactions/top-ups; past ones already stored their own frozen
  * rate/commission and never change retroactively. */
 export interface PlatformRates {
-  drop_to_toman_rate: number
+  photon_to_toman_rate: number
   chat_commission_percent: number
   content_commission_percent: number
   withdrawal_commission_percent: number
@@ -503,7 +503,7 @@ export interface WalletHistoryRow {
   /** Anything but "settled" can still change, which is why it is shown. */
   status: 'in_progress' | 'awaiting_settlement' | 'disputed' | 'settled'
   /** Positive came in, negative went out. */
-  amount_drops: number
+  amount_photons: number
   amount_toman: number
   at: string
   /** An offer's title, when there is one. Never a person's name. */

@@ -74,7 +74,7 @@ def test_has_unseen_requests_is_false_for_a_provider_with_no_requests(client):
     client.post(
         "/offers",
         headers=auth,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
     )
 
     response = client.get("/me", headers=auth)
@@ -89,7 +89,7 @@ def test_has_unseen_requests_is_true_once_a_request_arrives(client):
     offer = client.post(
         "/offers",
         headers=auth_a,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
     ).json()
 
     client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
@@ -106,7 +106,7 @@ def test_has_unseen_requests_clears_once_that_offers_request_list_is_opened(clie
     offer = client.post(
         "/offers",
         headers=auth_a,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
     ).json()
     client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
 
@@ -130,7 +130,7 @@ def test_unseen_sent_updates_is_zero_while_a_sent_request_is_still_pending(clien
     offer = client.post(
         "/offers",
         headers=auth_a,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
     ).json()
 
     client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
@@ -148,7 +148,7 @@ def test_unseen_sent_updates_counts_a_request_that_just_got_accepted(client):
     offer = client.post(
         "/offers",
         headers=auth_a,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
     ).json()
     req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
 
@@ -165,7 +165,7 @@ def test_unseen_sent_updates_clears_once_the_requests_activity_feed_is_opened(cl
     offer = client.post(
         "/offers",
         headers=auth_a,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
     ).json()
     req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/accept", headers=auth_a)
@@ -187,7 +187,7 @@ def test_unseen_sent_updates_is_unaffected_by_the_providers_own_notifications(cl
     offer = client.post(
         "/offers",
         headers=auth_a,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "title": "Chat", "description": "d"},
     ).json()
     req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
 
@@ -250,7 +250,7 @@ def test_pricing_config_matches_current_settings(client):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["drop_to_toman_rate"] == settings.drop_to_toman_rate
+    assert body["photon_to_toman_rate"] == settings.photon_to_toman_rate
     assert body["chat_commission_percent"] == settings.chat_commission_percent
     assert body["content_commission_percent"] == settings.content_commission_percent
     assert body["withdrawal_commission_percent"] == 0

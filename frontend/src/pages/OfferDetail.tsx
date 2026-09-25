@@ -42,7 +42,7 @@ export default function OfferDetail() {
   const [sessions, setSessions] = useState<ChatSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [balance, setBalance] = useState<Balance | null>(null)
-  const [dropToTomanRate, setDropToTomanRate] = useState<number | null>(null)
+  const [photonToTomanRate, setPhotonToTomanRate] = useState<number | null>(null)
   const [sending, setSending] = useState(false)
   const [busyRequestId, setBusyRequestId] = useState<number | null>(null)
   const [refusal, setRefusal] = useState<Refusal | null>(null)
@@ -89,16 +89,16 @@ export default function OfferDetail() {
       .then(setBalance)
       .catch(() => setBalance(null))
     getPricingConfig()
-      .then((config) => setDropToTomanRate(config.drop_to_toman_rate))
-      .catch(() => setDropToTomanRate(null))
+      .then((config) => setPhotonToTomanRate(config.photon_to_toman_rate))
+      .catch(() => setPhotonToTomanRate(null))
   }, [isOwner, offer])
 
   // Payment only happens once the provider accepts, so a request is free
   // to send with an empty wallet — which used to mean a buyer could send
   // one that was doomed to fail at payment time, with no warning. This
   // is that warning, raised before the request is even created.
-  const missingDrops =
-    offer && balance ? Math.max(0, offer.price_drops - balance.balance_drops_equivalent) : 0
+  const missingPhotons =
+    offer && balance ? Math.max(0, offer.price_photons - balance.balance_photons_equivalent) : 0
 
   async function sendRequest() {
     setSending(true)
@@ -130,7 +130,7 @@ export default function OfferDetail() {
   }
 
   function handleRequestClick() {
-    if (missingDrops > 0) {
+    if (missingPhotons > 0) {
       setRefusal({ kind: 'funds' })
       return
     }
@@ -205,13 +205,13 @@ export default function OfferDetail() {
         <ConfirmDialog
           title={t('offers.insufficientBalanceTitle')}
           text={t('offers.insufficientBalanceMessage', {
-            drops: missingDrops,
-            toman: (missingDrops * (dropToTomanRate ?? 0)),
+            photons: missingPhotons,
+            toman: (missingPhotons * (photonToTomanRate ?? 0)),
           })}
           confirmLabel={t('offers.quickTopUpButton')}
           onCancel={() => setRefusal(null)}
           onConfirm={() =>
-            navigate('/wallet/topup', { state: { prefillDrops: missingDrops, from: `/offers/${id}` } })
+            navigate('/wallet/topup', { state: { prefillPhotons: missingPhotons, from: `/offers/${id}` } })
           }
         />
       )}

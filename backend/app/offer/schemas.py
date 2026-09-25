@@ -15,15 +15,15 @@ def _must_divide_into_blocks(value: int, what: str) -> int:
 
 
 class OfferCreate(BaseModel):
-    price_drops: int = Field(gt=0)
+    price_photons: int = Field(gt=0)
     session_duration_seconds: int = Field(gt=0)
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(min_length=1, max_length=2000)
 
-    @field_validator('price_drops')
+    @field_validator('price_photons')
     @classmethod
     def _price_in_whole_blocks(cls, value: int) -> int:
-        return _must_divide_into_blocks(value, 'price_drops')
+        return _must_divide_into_blocks(value, 'price_photons')
 
     @field_validator('session_duration_seconds')
     @classmethod
@@ -39,15 +39,15 @@ class OfferUpdate(BaseModel):
     TECHNICAL_REQUIREMENTS.md section 4.
     """
 
-    price_drops: int | None = Field(default=None, gt=0)
+    price_photons: int | None = Field(default=None, gt=0)
     session_duration_seconds: int | None = Field(default=None, gt=0)
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = Field(default=None, min_length=1, max_length=2000)
 
-    @field_validator('price_drops')
+    @field_validator('price_photons')
     @classmethod
     def _price_in_whole_blocks(cls, value: int | None) -> int | None:
-        return value if value is None else _must_divide_into_blocks(value, 'price_drops')
+        return value if value is None else _must_divide_into_blocks(value, 'price_photons')
 
     @field_validator('session_duration_seconds')
     @classmethod
@@ -80,7 +80,7 @@ class OfferOut(BaseModel):
     id: int
     provider_id: int
     service_type: str
-    price_drops: int
+    price_photons: int
     session_duration_seconds: int
     title: str
     description: str

@@ -23,7 +23,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 
 def _create_offer(client, auth: dict, **overrides):
     payload = {
-        "price_drops": 40,
+        "price_photons": 40,
         "session_duration_seconds": 1800,
         "title": "Chat with me",
         "description": "A nice chat",
@@ -38,7 +38,7 @@ def _open_paid_session(client, db_session, auth_provider, auth_buyer, buyer_id, 
     req = client.post("/requests", headers=auth_buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/accept", headers=auth_provider)
     give_wallet_balance(
-        db_session, buyer_id, amount_toman=offer["price_drops"] * settings.drop_to_toman_rate
+        db_session, buyer_id, amount_toman=offer["price_photons"] * settings.photon_to_toman_rate
     )
     client.post(f"/requests/{req['id']}/pay", headers=auth_buyer)
     return client.get("/chat-sessions/mine", headers=auth_buyer).json()[0]

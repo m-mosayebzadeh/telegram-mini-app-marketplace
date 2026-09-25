@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch, formatApiError } from '../lib/api'
 import { PageHeader, ErrorState, SkeletonRows, StatList } from '../components/ui'
-import { DropAmount } from '../components/ui/Drop'
+import { PhotonAmount } from '../components/ui/Photon'
 import type { BuyerSummary as BuyerSummaryType } from '../lib/types'
 
 /**
@@ -58,8 +58,8 @@ export default function BuyerSummary() {
                 value: summary.completed_transactions_count.toLocaleString(i18n.language),
               },
               {
-                label: t('buyerSummary.totalDropsSpent'),
-                value: <DropAmount amount={summary.total_drops_spent} locale={i18n.language} size={16} />,
+                label: t('buyerSummary.totalPhotonsSpent'),
+                value: <PhotonAmount amount={summary.total_photons_spent} locale={i18n.language} size={16} />,
               },
             ]}
           />

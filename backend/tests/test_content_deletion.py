@@ -17,20 +17,20 @@ from app.models.content_access import ContentPurchase
 from tests.helpers import give_wallet_balance, sign_init_data
 from tests.test_content_endpoints import _upload
 
-RATE = 1000  # Toman per Drop, the fixed peg
+RATE = 1000  # Toman per Photon, the fixed peg
 
 
 def _auth(telegram_id: int, first_name: str = "Test") -> dict:
     return {"X-Telegram-Init-Data": sign_init_data({"id": telegram_id, "first_name": first_name})}
 
 
-def _sold_content(client, db_session, *, price_drops=10):
+def _sold_content(client, db_session, *, price_photons=10):
     """A paid item, and one buyer who owns it."""
     seller, buyer = _auth(1, "Alice"), _auth(2, "Bob")
     client.get("/me", headers=seller)
     buyer_id = client.get("/me", headers=buyer).json()["id"]
-    item = _upload(client, seller, is_paid=True, price_drops=price_drops).json()
-    give_wallet_balance(db_session, buyer_id, amount_toman=price_drops * RATE)
+    item = _upload(client, seller, is_paid=True, price_photons=price_photons).json()
+    give_wallet_balance(db_session, buyer_id, amount_toman=price_photons * RATE)
     assert client.post(f"/content/{item['id']}/purchase", headers=buyer).status_code == 201
     return item, seller, buyer
 
@@ -38,7 +38,7 @@ def _sold_content(client, db_session, *, price_drops=10):
 def test_content_nobody_bought_is_really_gone(client, db_session):
     seller = _auth(1, "Alice")
     client.get("/me", headers=seller)
-    item = _upload(client, seller, is_paid=True, price_drops=10).json()
+    item = _upload(client, seller, is_paid=True, price_photons=10).json()
     stored = db_session.get(Content, item["id"])
     file_path = Path(stored.original_file_path)
     assert file_path.exists()

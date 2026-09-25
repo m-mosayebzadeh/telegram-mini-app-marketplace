@@ -71,14 +71,14 @@ def test_create_topup_request_freezes_rate_and_amount(client):
     response = client.post(
         "/topup/requests",
         headers=BUYER_HEADER,
-        data={"requested_drops": "50"},
+        data={"requested_photons": "50"},
         files=_receipt_file(),
     )
     assert response.status_code == 201
     body = response.json()
-    assert body["requested_drops"] == 50
-    assert body["drop_rate_at_request"] == settings.drop_to_toman_rate
-    assert body["requested_toman_amount"] == 50 * settings.drop_to_toman_rate
+    assert body["requested_photons"] == 50
+    assert body["photon_rate_at_request"] == settings.photon_to_toman_rate
+    assert body["requested_toman_amount"] == 50 * settings.photon_to_toman_rate
     assert body["status"] == "pending"
 
 
@@ -86,7 +86,7 @@ def test_requested_stars_must_be_positive(client):
     response = client.post(
         "/topup/requests",
         headers=BUYER_HEADER,
-        data={"requested_drops": "0"},
+        data={"requested_photons": "0"},
         files=_receipt_file(),
     )
     assert response.status_code == 400
@@ -143,7 +143,7 @@ def test_assigning_role_to_unknown_user_404s(client):
 
 def test_approve_credits_the_requesters_wallet(client):
     create = client.post(
-        "/topup/requests", headers=BUYER_HEADER, data={"requested_drops": "10"}, files=_receipt_file()
+        "/topup/requests", headers=BUYER_HEADER, data={"requested_photons": "10"}, files=_receipt_file()
     )
     request_id = create.json()["id"]
 
@@ -166,7 +166,7 @@ def test_approve_credits_the_requesters_wallet(client):
 
 def test_reject_records_reason_and_never_touches_the_wallet(client):
     create = client.post(
-        "/topup/requests", headers=BUYER_HEADER, data={"requested_drops": "10"}, files=_receipt_file()
+        "/topup/requests", headers=BUYER_HEADER, data={"requested_photons": "10"}, files=_receipt_file()
     )
     request_id = create.json()["id"]
     before = client.get("/wallet/balance", headers=BUYER_HEADER).json()["balance_toman"]
@@ -187,7 +187,7 @@ def test_reject_records_reason_and_never_touches_the_wallet(client):
 
 def test_already_reviewed_request_cannot_be_reviewed_again(client):
     create = client.post(
-        "/topup/requests", headers=BUYER_HEADER, data={"requested_drops": "10"}, files=_receipt_file()
+        "/topup/requests", headers=BUYER_HEADER, data={"requested_photons": "10"}, files=_receipt_file()
     )
     request_id = create.json()["id"]
     client.post(
@@ -207,7 +207,7 @@ def test_already_reviewed_request_cannot_be_reviewed_again(client):
 
 def test_receipt_only_visible_to_requester_and_admins(client):
     create = client.post(
-        "/topup/requests", headers=BUYER_HEADER, data={"requested_drops": "10"}, files=_receipt_file()
+        "/topup/requests", headers=BUYER_HEADER, data={"requested_photons": "10"}, files=_receipt_file()
     )
     request_id = create.json()["id"]
 
@@ -222,7 +222,7 @@ def test_receipt_visible_to_a_scoped_finance_topups_role_holder(client):
     directly, which stopped existing once the role-based redesign moved
     scopes onto Role instead (see app/topup/router.py)."""
     create = client.post(
-        "/topup/requests", headers=BUYER_HEADER, data={"requested_drops": "10"}, files=_receipt_file()
+        "/topup/requests", headers=BUYER_HEADER, data={"requested_photons": "10"}, files=_receipt_file()
     )
     request_id = create.json()["id"]
 
@@ -279,7 +279,7 @@ def test_rates_default_from_settings(client):
     response = client.get("/admin/rates", headers=OWNER_HEADER)
     assert response.status_code == 200
     body = response.json()
-    assert body["drop_to_toman_rate"] == settings.drop_to_toman_rate
+    assert body["photon_to_toman_rate"] == settings.photon_to_toman_rate
     assert body["chat_commission_percent"] == settings.chat_commission_percent
     assert body["content_commission_percent"] == settings.content_commission_percent
     # The withdrawal lever exists but is deliberately off — a provider is
@@ -301,7 +301,7 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
         "/admin/rates",
         headers=OWNER_HEADER,
         json={
-            "drop_to_toman_rate": 5000,
+            "photon_to_toman_rate": 5000,
             "chat_commission_percent": 15,
             "content_commission_percent": 8,
             "withdrawal_commission_percent": 12,
@@ -312,11 +312,11 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
         },
     )
     assert update.status_code == 200
-    assert update.json()["drop_to_toman_rate"] == 5000
+    assert update.json()["photon_to_toman_rate"] == 5000
 
     pricing = client.get("/pricing", headers=BUYER_HEADER)
     assert pricing.json() == {
-        "drop_to_toman_rate": 5000,
+        "photon_to_toman_rate": 5000,
         "chat_commission_percent": 15,
         "content_commission_percent": 8,
         "withdrawal_commission_percent": 12,
@@ -525,7 +525,7 @@ def test_admin_can_list_and_delete_a_users_offer(client):
         "/offers",
         headers=BUYER_HEADER,
         json={
-            "price_drops": 12,
+            "price_photons": 12,
             "session_duration_seconds": 1800,
             "title": "Chat with me",
             "description": "A nice chat",
@@ -550,7 +550,7 @@ def test_admin_delete_offer_still_blocks_on_an_open_accepted_request(client):
         "/offers",
         headers=BUYER_HEADER,
         json={
-            "price_drops": 12,
+            "price_photons": 12,
             "session_duration_seconds": 1800,
             "title": "Chat with me",
             "description": "A nice chat",
@@ -586,7 +586,7 @@ def test_admin_requests_list_includes_both_sent_and_received(client):
         "/offers",
         headers=BUYER_HEADER,
         json={
-            "price_drops": 12,
+            "price_photons": 12,
             "session_duration_seconds": 1800,
             "title": "Chat with me",
             "description": "A nice chat",
@@ -598,4 +598,4 @@ def test_admin_requests_list_includes_both_sent_and_received(client):
     assert len(rows) == 1
     assert rows[0]["direction"] == "received"
     assert rows[0]["counterpart_user_id"] == client.get("/me", headers=OTHER_HEADER).json()["id"]
-    assert rows[0]["offer_price_drops"] == 12
+    assert rows[0]["offer_price_photons"] == 12

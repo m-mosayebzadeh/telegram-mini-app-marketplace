@@ -20,7 +20,7 @@ import {
   ErrorState,
   useToast,
 } from '../components/ui'
-import { IconDrop, IconHeart, IconLock, IconPin, IconTrash } from '../components/icons'
+import { IconPhoton, IconHeart, IconLock, IconPin, IconTrash } from '../components/icons'
 import type { Content } from '../lib/types'
 
 /**
@@ -225,8 +225,8 @@ export default function ContentDetail() {
               <Button variant="primary" size="md" loading={busy} onClick={reveal}>
                 {needsPurchase ? (
                   <>
-                    <IconDrop size={18} />
-                    {t('content.lockedPayToUnlock', { price: content.price_drops })}
+                    <IconPhoton size={18} />
+                    {t('content.lockedPayToUnlock', { price: content.price_photons })}
                   </>
                 ) : (
                   t('content.lockedTapToUnlock')

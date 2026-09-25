@@ -15,7 +15,7 @@ export interface UploadContentInput {
   contentType: 'photo' | 'short_video'
   durationSeconds?: number
   isPaid: boolean
-  priceDrops?: number
+  pricePhotons?: number
   hasSpoiler: boolean
   audienceType: 'public' | 'followers' | 'user' | 'group'
   audienceUserId?: number
@@ -52,7 +52,7 @@ export async function uploadContent(input: UploadContentInput): Promise<Content>
   form.append('content_type', input.contentType)
   if (input.durationSeconds != null) form.append('duration_seconds', String(input.durationSeconds))
   form.append('is_paid', String(input.isPaid))
-  if (input.priceDrops != null) form.append('price_drops', String(input.priceDrops))
+  if (input.pricePhotons != null) form.append('price_photons', String(input.pricePhotons))
   form.append('has_spoiler', String(input.hasSpoiler))
   form.append('audience_type', input.audienceType)
   if (input.audienceUserId != null) form.append('audience_user_id', String(input.audienceUserId))

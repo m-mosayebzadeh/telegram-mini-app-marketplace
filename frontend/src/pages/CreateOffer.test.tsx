@@ -81,8 +81,8 @@ afterEach(() => {
 
 describe('creating an offer', () => {
   it('refuses a price that will not split into whole blocks', () => {
-    // A session is settled one block at a time, so 42 Drops would leave a
-    // half Drop in every single settlement.
+    // A session is settled one block at a time, so 42 Photons would leave a
+    // half Photon in every single settlement.
     fill({ price: '42', duration: 30 })
 
     expect(container.textContent).toContain('offers.priceMustFitBlocks')
@@ -99,7 +99,7 @@ describe('creating an offer', () => {
   it('spells out what a buyer is actually buying', () => {
     fill({ price: '100', duration: 30 })
 
-    // Four blocks of 7 minutes 30 seconds at 25 Drops each. The length is
+    // Four blocks of 7 minutes 30 seconds at 25 Photons each. The length is
     // said in minutes AND seconds rather than as "7.5 minutes", which is
     // not a number anyone thinks in.
     expect(container.textContent).toContain('offers.blockBreakdown')
@@ -134,6 +134,6 @@ describe('creating an offer', () => {
 
     const body = JSON.parse(mocks.api.mock.calls[0][1].body)
     expect(body.session_duration_seconds).toBe(1800)
-    expect(body.price_drops).toBe(100)
+    expect(body.price_photons).toBe(100)
   })
 })

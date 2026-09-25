@@ -13,7 +13,7 @@ vi.mock('react-i18next', () => ({
 }))
 
 const START = new Date('2026-01-01T12:00:00Z')
-/** Four blocks of 10 minutes at 25 Drops each — a 40-minute, 100-Drop
+/** Four blocks of 10 minutes at 25 Photons each — a 40-minute, 100-Photon
  *  session, which is one of the offered presets. */
 const BLOCK_MS = 10 * 60 * 1000
 
@@ -29,11 +29,11 @@ function session(overrides: Partial<ChatSession> = {}): ChatSession {
     my_role: 'buyer',
     other_participant: { user_id: 2, display_name: 'Alice', username: null, avatar_url: null },
     offer_title: 'Chat',
-    price_drops: 100,
+    price_photons: 100,
     session_duration_seconds: 2400,
     reserved_blocks: 4,
     block_duration_seconds: 600,
-    block_price_drops: 25,
+    block_price_photons: 25,
     started_at: START.toISOString(),
     ends_at: new Date(START.getTime() + 4 * BLOCK_MS).toISOString(),
     close_at_block_end_by_user_id: null,
@@ -131,7 +131,7 @@ describe('BlockBar', () => {
     await act(async () => {
       vi.advanceTimersByTime(1000)
     })
-    expect(container.querySelector('.bb-amount')?.textContent).toContain('"drops":25')
+    expect(container.querySelector('.bb-amount')?.textContent).toContain('"photons":25')
 
     // Four seconds, then gone: an event, not a readout.
     await act(async () => {

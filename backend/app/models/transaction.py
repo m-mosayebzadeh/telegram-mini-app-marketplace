@@ -13,11 +13,11 @@ forever -- see split_commission() in app/wallet/service.py. If the
 platform's commission percentage changes later, past transactions must
 NOT change retroactively; only future ones use the new values.
 
-The Drop-to-Toman rate is stored per transaction too, but for a weaker
+The Photon-to-Toman rate is stored per transaction too, but for a weaker
 reason than it used to have: it is a fixed peg now, not a market rate, so
 there is nothing to protect a past transaction from. It stays because a
 peg CAN be redenominated one day, and an old row that cannot say what a
-Drop was worth at the time would be unauditable.
+Photon was worth at the time would be unauditable.
 """
 
 import enum
@@ -76,21 +76,21 @@ class Transaction(Base):
     request_id: Mapped[int | None] = mapped_column(ForeignKey("requests.id"), nullable=True)
     content_id: Mapped[int | None] = mapped_column(ForeignKey("contents.id"), nullable=True)
 
-    # --- the Drop-denominated split (the authoritative numbers) ---
+    # --- the Photon-denominated split (the authoritative numbers) ---
     # Copied from the Offer/Content's price at the moment of payment, not
     # read live from it later — the source could theoretically change
     # (though business rules already block editing a live offer; this is
     # just extra safety for content, which has no such lock).
-    gross_price_drops: Mapped[int] = mapped_column(Integer)
+    gross_price_photons: Mapped[int] = mapped_column(Integer)
     commission_rate_percent: Mapped[int] = mapped_column(Integer)
-    commission_drops: Mapped[int] = mapped_column(Integer)
-    net_provider_drops: Mapped[int] = mapped_column(Integer)
+    commission_photons: Mapped[int] = mapped_column(Integer)
+    net_provider_photons: Mapped[int] = mapped_column(Integer)
 
-    # --- the Toman figures, derived from the Drop split above using the
+    # --- the Toman figures, derived from the Photon split above using the
     # rate recorded here (see module docstring) -- purely for the wallet
     # ledger and for display; never re-derived later from whatever the
     # current rate happens to be ---
-    drop_to_toman_rate: Mapped[int] = mapped_column(Integer)
+    photon_to_toman_rate: Mapped[int] = mapped_column(Integer)
     gross_price_toman: Mapped[int] = mapped_column(Integer)
     commission_toman: Mapped[int] = mapped_column(Integer)
     net_provider_toman: Mapped[int] = mapped_column(Integer)
@@ -120,13 +120,13 @@ class Transaction(Base):
             "(kind = 'content_purchase' AND content_id IS NOT NULL AND request_id IS NULL)",
             name="ck_transaction_target_matches_kind",
         ),
-        # The Drop split must always account for the whole gross price —
+        # The Photon split must always account for the whole gross price —
         # this is what guarantees rounding never creates or destroys a
-        # Drop (see split_commission()'s "rounds in the provider's
+        # Photon (see split_commission()'s "rounds in the provider's
         # favor" rule: the commission side loses the fraction, the net
         # side never does, so they always add back up exactly).
         CheckConstraint(
-            "commission_drops + net_provider_drops = gross_price_drops",
+            "commission_photons + net_provider_photons = gross_price_photons",
             name="ck_drop_split_sums_to_gross",
         ),
     )

@@ -17,7 +17,7 @@ type Filter = 'all' | 'in' | 'out' | 'pending'
  * amount's own sign and colour, so a credit and a debit are told apart without
  * reading either label.
  *
- * Deliberately absent: who was on the other side. A list that reads "25 Drops
+ * Deliberately absent: who was on the other side. A list that reads "25 Photons
  * from Sara" is a problem the moment someone glances at the screen. What it
  * was about is here; who it was with is one tap away, on the thing itself.
  *
@@ -43,8 +43,8 @@ export default function WalletHistory() {
 
   const shown = useMemo(() => {
     if (!rows) return null
-    if (filter === 'in') return rows.filter((row) => row.amount_drops > 0)
-    if (filter === 'out') return rows.filter((row) => row.amount_drops < 0)
+    if (filter === 'in') return rows.filter((row) => row.amount_photons > 0)
+    if (filter === 'out') return rows.filter((row) => row.amount_photons < 0)
     if (filter === 'pending') return rows.filter((row) => row.status !== 'settled')
     return rows
   }, [rows, filter])
@@ -87,7 +87,7 @@ export default function WalletHistory() {
         ) : (
           <div className="ui-list">
             {shown.map((row, index) => {
-              const credit = row.amount_drops > 0
+              const credit = row.amount_photons > 0
               const target = row.chat_session_id ?? row.content_id
               const Row = target ? 'button' : 'div'
               return (
@@ -110,7 +110,7 @@ export default function WalletHistory() {
                     <span className={`wh-amount tabular${credit ? ' wh-amount-credit' : ''}`}>
                       <bdi>
                         {credit ? '+' : '−'}
-                        {t('history.drops', { amount: Math.abs(row.amount_drops) })}
+                        {t('history.photons', { amount: Math.abs(row.amount_photons) })}
                       </bdi>
                     </span>
                     {/* Money that has not finished moving says so. Without it,

@@ -15,7 +15,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 
 def _create_offer(client, auth: dict, **overrides):
     payload = {
-        "price_drops": 12,
+        "price_photons": 12,
         "session_duration_seconds": 1800,
         "title": "Chat with me",
         "description": "A nice chat",
@@ -47,7 +47,7 @@ def test_create_offer_requires_a_title(client):
     response = client.post(
         "/offers",
         headers=auth,
-        json={"price_drops": 12, "session_duration_seconds": 1800, "description": "A nice chat"},
+        json={"price_photons": 12, "session_duration_seconds": 1800, "description": "A nice chat"},
     )
 
     assert response.status_code == 422
@@ -57,7 +57,7 @@ def test_create_offer_rejects_non_positive_price(client):
     auth = _auth_header(1, "Alice")
     _login(client, 1, "Alice")
 
-    response = _create_offer(client, auth, price_drops=0)
+    response = _create_offer(client, auth, price_photons=0)
 
     assert response.status_code == 422
 
@@ -360,10 +360,10 @@ def test_offer_is_editable_before_any_request(client):
     _login(client, 1, "Alice")
     offer = _create_offer(client, auth).json()
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_drops": 96})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_photons": 96})
 
     assert response.status_code == 200
-    assert response.json()["price_drops"] == 96
+    assert response.json()["price_photons"] == 96
 
 
 def test_offer_is_locked_once_it_has_a_pending_request(client):
@@ -374,7 +374,7 @@ def test_offer_is_locked_once_it_has_a_pending_request(client):
     offer = _create_offer(client, auth_a).json()
     client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]})
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 96})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_photons": 96})
 
     assert response.status_code == 400
 
@@ -388,7 +388,7 @@ def test_offer_is_editable_again_after_its_only_request_is_rejected(client):
     req = client.post("/requests", headers=auth_b, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/reject", headers=auth_a, json={"reason": "no thanks"})
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_drops": 96})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth_a, json={"price_photons": 96})
 
     assert response.status_code == 200
 
@@ -523,26 +523,26 @@ def test_my_request_status_is_null_on_a_different_offer_from_the_same_provider(c
 # A session is sold and settled one block at a time, so both the price and the
 # length have to split into whole blocks. Enforcing it at the edge is what lets
 # every later block calculation be plain integer arithmetic, with no fraction
-# of a Drop anywhere.
+# of a Photon anywhere.
 
 
-@pytest.mark.parametrize("price_drops", [1, 2, 3, 5, 42, 99])
-def test_a_price_that_is_not_whole_blocks_is_rejected(client, price_drops):
+@pytest.mark.parametrize("price_photons", [1, 2, 3, 5, 42, 99])
+def test_a_price_that_is_not_whole_blocks_is_rejected(client, price_photons):
     auth = _auth_header(1, "Alice")
 
-    response = _create_offer(client, auth, price_drops=price_drops)
+    response = _create_offer(client, auth, price_photons=price_photons)
 
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize("price_drops", [4, 8, 12, 100, 1000])
-def test_a_price_in_whole_blocks_is_accepted(client, price_drops):
+@pytest.mark.parametrize("price_photons", [4, 8, 12, 100, 1000])
+def test_a_price_in_whole_blocks_is_accepted(client, price_photons):
     auth = _auth_header(1, "Alice")
 
-    response = _create_offer(client, auth, price_drops=price_drops)
+    response = _create_offer(client, auth, price_photons=price_photons)
 
     assert response.status_code == 201
-    assert response.json()["price_drops"] == price_drops
+    assert response.json()["price_photons"] == price_photons
 
 
 def test_every_whole_minute_is_a_valid_session_length(client):
@@ -556,7 +556,7 @@ def test_every_whole_minute_is_a_valid_session_length(client):
             "/offers",
             headers=auth,
             json={
-                "price_drops": 40,
+                "price_photons": 40,
                 "session_duration_seconds": minutes * 60,
                 "title": "Chat",
                 "description": "Chat",
@@ -573,7 +573,7 @@ def test_a_duration_that_is_not_whole_blocks_is_rejected(client):
         "/offers",
         headers=auth,
         json={
-            "price_drops": 40,
+            "price_photons": 40,
             "session_duration_seconds": 30,  # 7.5 seconds a block
             "title": "Chat",
             "description": "Chat",
@@ -587,12 +587,12 @@ def test_editing_an_offer_into_uneven_blocks_is_rejected(client):
     """The rule has to hold on the way in AND on the way through: an offer
     edited to an odd price would break block settlement just as badly."""
     auth = _auth_header(1, "Alice")
-    offer = _create_offer(client, auth, price_drops=40).json()
+    offer = _create_offer(client, auth, price_photons=40).json()
 
-    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_drops": 41})
+    response = client.patch(f"/offers/{offer['id']}", headers=auth, json={"price_photons": 41})
 
     assert response.status_code == 422
-    assert client.get(f"/offers/{offer['id']}", headers=auth).json()["price_drops"] == 40
+    assert client.get(f"/offers/{offer['id']}", headers=auth).json()["price_photons"] == 40
 
 
 def test_block_size_is_derived_not_stored(client, db_session):
@@ -605,7 +605,7 @@ def test_block_size_is_derived_not_stored(client, db_session):
         "/offers",
         headers=auth,
         json={
-            "price_drops": 100,
+            "price_photons": 100,
             "session_duration_seconds": 30 * 60,
             "title": "Chat",
             "description": "Chat",
@@ -613,5 +613,5 @@ def test_block_size_is_derived_not_stored(client, db_session):
     ).json()["id"]
 
     offer = db_session.get(Offer, offer_id)
-    assert offer.block_price_drops == 25
+    assert offer.block_price_photons == 25
     assert offer.block_duration_seconds == 450  # 7.5 minutes

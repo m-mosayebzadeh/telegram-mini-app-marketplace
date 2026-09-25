@@ -47,7 +47,7 @@ describe('i18n config', () => {
     // The translation declares "{{toman, number}}" and the call site
     // passes a plain number, so no screen has to remember to localise
     // one — which is exactly how Persian text ended up reading
-    // "10٪ کارمزد" beside "۲۵ دراپ".
+    // "10٪ کارمزد" beside "۲۵ فوتون".
     await i18n.changeLanguage('fa')
     expect(i18n.t('wallet.pendingValue', { toman: 90000 })).toContain('۹۰٬۰۰۰')
 

@@ -22,7 +22,7 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 
 def _create_offer(client, auth: dict, **overrides):
     payload = {
-        "price_drops": 40,
+        "price_photons": 40,
         "session_duration_seconds": 1800,
         "title": "Chat with me",
         "description": "A nice chat",
@@ -42,7 +42,7 @@ def _open_paid_session(client, db_session, auth_provider, auth_buyer, buyer_id, 
     req = client.post("/requests", headers=auth_buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{req['id']}/accept", headers=auth_provider)
     give_wallet_balance(
-        db_session, buyer_id, amount_toman=offer["price_drops"] * settings.drop_to_toman_rate
+        db_session, buyer_id, amount_toman=offer["price_photons"] * settings.photon_to_toman_rate
     )
     client.post(f"/requests/{req['id']}/pay", headers=auth_buyer)
     session = client.get("/chat-sessions/mine", headers=auth_buyer).json()[0]
@@ -71,12 +71,12 @@ def test_session_is_enriched_with_offer_and_role_info(client, db_session):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_drops=40, session_duration_seconds=1800)
+    offer = _create_offer(client, auth_a, price_photons=40, session_duration_seconds=1800)
 
     session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
 
     assert session["offer_title"] == "Chat with me"
-    assert session["price_drops"] == 40
+    assert session["price_photons"] == 40
     assert session["session_duration_seconds"] == 1800
     assert session["disputed"] is False
     # Nothing has been bought yet: a session reserves money and only settles
@@ -86,7 +86,7 @@ def test_session_is_enriched_with_offer_and_role_info(client, db_session):
     assert session["transaction_id"] is None
     assert session["reserved_blocks"] == 4
     assert session["block_duration_seconds"] == 450  # 30 minutes in four
-    assert session["block_price_drops"] == 10
+    assert session["block_price_photons"] == 10
     assert session["ends_at"] is not None
 
 
@@ -216,17 +216,17 @@ def test_closing_does_not_release_funds_immediately(client, db_session):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_drops=40)
+    offer = _create_offer(client, auth_a, price_photons=40)
     session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
 
     client.post(f"/chat-sessions/{session['id']}/close", headers=auth_b)
 
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
     assert alice_wallet["balance_toman"] == 0
-    # Closing after seconds means one block of four was used: 10 Drops, less
+    # Closing after seconds means one block of four was used: 10 Photons, less
     # the 10% commission, leaves 9 for the provider. The other three blocks
     # went straight back to the buyer, with nothing to wait for.
-    assert alice_wallet["pending_toman"] == 9 * settings.drop_to_toman_rate
+    assert alice_wallet["pending_toman"] == 9 * settings.photon_to_toman_rate
 
 
 # --- grace-period auto-release ------------------------------------------
@@ -237,7 +237,7 @@ def test_balance_check_before_grace_period_keeps_funds_pending(client, db_sessio
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_drops=40)
+    offer = _create_offer(client, auth_a, price_photons=40)
     session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
     client.post(f"/chat-sessions/{session['id']}/close", headers=auth_b)
     _age_session(db_session, session["id"], hours=settings.chat_release_grace_hours - 1)
@@ -245,7 +245,7 @@ def test_balance_check_before_grace_period_keeps_funds_pending(client, db_sessio
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 9 * settings.drop_to_toman_rate
+    assert alice_wallet["pending_toman"] == 9 * settings.photon_to_toman_rate
 
 
 def test_balance_check_after_grace_period_releases_funds(client, db_session):
@@ -253,14 +253,14 @@ def test_balance_check_after_grace_period_releases_funds(client, db_session):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_drops=40)
+    offer = _create_offer(client, auth_a, price_photons=40)
     session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
     client.post(f"/chat-sessions/{session['id']}/close", headers=auth_b)
     _age_session(db_session, session["id"], hours=settings.chat_release_grace_hours + 1)
 
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
-    assert alice_wallet["balance_toman"] == 9 * settings.drop_to_toman_rate
+    assert alice_wallet["balance_toman"] == 9 * settings.photon_to_toman_rate
     assert alice_wallet["pending_toman"] == 0
 
 
@@ -303,7 +303,7 @@ def test_disputing_prevents_the_grace_period_release(client, db_session):
     auth_b = _auth_header(2, "Bob")
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    offer = _create_offer(client, auth_a, price_drops=40)
+    offer = _create_offer(client, auth_a, price_photons=40)
     session = _open_paid_session(client, db_session, auth_a, auth_b, bob["id"], offer)
     client.post(f"/chat-sessions/{session['id']}/close", headers=auth_b)
     client.post(f"/chat-sessions/{session['id']}/dispute", headers=auth_a)
@@ -312,7 +312,7 @@ def test_disputing_prevents_the_grace_period_release(client, db_session):
     alice_wallet = client.get("/wallet/balance", headers=auth_a).json()
 
     assert alice_wallet["balance_toman"] == 0
-    assert alice_wallet["pending_toman"] == 9 * settings.drop_to_toman_rate
+    assert alice_wallet["pending_toman"] == 9 * settings.photon_to_toman_rate
 
 
 def test_cannot_dispute_the_same_session_twice(client, db_session):

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Sheet } from '../ui/Sheet'
 import { Button } from '../ui/Button'
 import { StatList, type Stat } from '../ui/StatList'
-import { DropAmount } from '../ui/Drop'
+import { PhotonAmount } from '../ui/Photon'
 import { IconBan, IconFlag } from '../icons'
 import type { ChatSession } from '../../lib/types'
 
@@ -57,10 +57,10 @@ export function SessionSheet({
     { label: t('chatSession.offerTitle'), value: session.offer_title },
     {
       label: t('chatSession.priceLabel'),
-      value: <DropAmount amount={session.price_drops} locale={i18n.language} size={16} />,
+      value: <PhotonAmount amount={session.price_photons} locale={i18n.language} size={16} />,
       note: t('chatSession.priceNote', {
         blocks: session.reserved_blocks,
-        drops: session.block_price_drops,
+        photons: session.block_price_photons,
       }),
     },
     {

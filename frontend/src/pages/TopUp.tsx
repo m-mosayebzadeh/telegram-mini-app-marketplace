@@ -28,8 +28,8 @@ export default function TopUp() {
   // Arriving from the offer page's "insufficient balance" dialog carries
   // exactly how much is missing, so this screen opens with the amount
   // already filled in rather than making someone work it out again.
-  const navState = location.state as { prefillDrops?: number; from?: string } | null
-  const prefillDrops = navState?.prefillDrops ?? null
+  const navState = location.state as { prefillPhotons?: number; from?: string } | null
+  const prefillPhotons = navState?.prefillPhotons ?? null
   const from = navState?.from
   const back = from && /^\/offers\/\d+$/.test(from) ? from : '/wallet'
 
@@ -41,14 +41,14 @@ export default function TopUp() {
   // --- card-to-card ---
   const [receipt, setReceipt] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [directAmount, setDirectAmount] = useState(prefillDrops ? String(prefillDrops) : '')
+  const [directAmount, setDirectAmount] = useState(prefillPhotons ? String(prefillPhotons) : '')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   function load() {
     setError(null)
     getPricingConfig()
-      .then((config) => setRate(config.drop_to_toman_rate))
+      .then((config) => setRate(config.photon_to_toman_rate))
       .catch((err) => setError(formatApiError(err)))
     getTopUpCardInfo()
       .then(setCardInfo)

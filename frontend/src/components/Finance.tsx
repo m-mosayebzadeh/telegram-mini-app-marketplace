@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DropAmount } from './ui/Drop'
+import { PhotonAmount } from './ui/Photon'
 import type { Withdrawal, WithdrawalQuote } from '../lib/withdrawalApi'
 
 export function MoneySummary({
@@ -45,7 +45,7 @@ export function WithdrawalCard({
       </div>
       <p>
         {new Date(row.created_at).toLocaleString(i18n.language)} ·{' '}
-        <DropAmount amount={row.drops} locale={i18n.language} size={16} />
+        <PhotonAmount amount={row.photons} locale={i18n.language} size={16} />
       </p>
       <p>{row.holder_name}</p>
       <p>

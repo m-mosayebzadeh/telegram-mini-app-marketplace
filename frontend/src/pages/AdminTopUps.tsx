@@ -12,7 +12,7 @@ import {
   Segments,
   SkeletonRows,
 } from '../components/ui'
-import { IconDrop, IconPersonFallback, IconShieldLock } from '../components/icons'
+import { IconPhoton, IconPersonFallback, IconShieldLock } from '../components/icons'
 import { digitsOnly } from '../lib/format'
 import { Sheet } from '../components/ui/Sheet'
 import { fetchTopUpReceiptBlobUrl } from '../lib/topupApi'
@@ -192,8 +192,8 @@ export default function AdminTopUps() {
                     {/* The two figures that have to match the receipt:
                         what they asked for, and what that costs. */}
                     <span className="ui-row-subtitle tu-history-amount tabular">
-                      <IconDrop size={16} />
-                      {r.requested_drops.toLocaleString(i18n.language)}
+                      <IconPhoton size={16} />
+                      {r.requested_photons.toLocaleString(i18n.language)}
                       <span className="of-own-dot" aria-hidden="true" />
                       {t('wallet.tomanAmount', {
                         amount: r.requested_toman_amount,

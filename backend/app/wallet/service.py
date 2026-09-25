@@ -49,9 +49,9 @@ def get_balance_toman(db: Session, user_id: int) -> int:
     return int(total)
 
 
-def split_commission(gross_price_drops: int, commission_rate_percent: int) -> tuple[int, int]:
+def split_commission(gross_price_photons: int, commission_rate_percent: int) -> tuple[int, int]:
     """
-    Splits a Star price into (commission_drops, net_provider_drops).
+    Splits a Star price into (commission_photons, net_provider_photons).
 
     Stars are a whole unit — there's no such thing as half a Star — so a
     percentage that doesn't divide evenly (e.g. 10% of 25 Stars = 2.5)
@@ -60,13 +60,13 @@ def split_commission(gross_price_drops: int, commission_rate_percent: int) -> tu
     would otherwise lose always ends up on the provider's side, never
     the platform's — a provider is never shortchanged by a rounding rule
     they have no say in. This also guarantees
-    commission_drops + net_provider_drops always equals gross_price_drops
+    commission_photons + net_provider_photons always equals gross_price_photons
     exactly (enforced again at the database level — see Transaction's
     ck_drop_split_sums_to_gross).
     """
-    commission_drops = (gross_price_drops * commission_rate_percent) // 100
-    net_provider_drops = gross_price_drops - commission_drops
-    return commission_drops, net_provider_drops
+    commission_photons = (gross_price_photons * commission_rate_percent) // 100
+    net_provider_photons = gross_price_photons - commission_photons
+    return commission_photons, net_provider_photons
 
 
 def pay_for_item(
@@ -75,7 +75,7 @@ def pay_for_item(
     kind: TransactionKind,
     buyer_id: int,
     provider_id: int,
-    gross_price_drops: int,
+    gross_price_photons: int,
     request_id: int | None = None,
     content_id: int | None = None,
 ) -> Transaction:
@@ -120,13 +120,13 @@ def pay_for_item(
         if kind == TransactionKind.CONTENT_PURCHASE
         else rates.chat_commission_percent
     )
-    commission_drops, net_provider_drops = split_commission(
-        gross_price_drops, commission_rate_percent
+    commission_photons, net_provider_photons = split_commission(
+        gross_price_photons, commission_rate_percent
     )
-    rate = rates.drop_to_toman_rate
-    gross_toman = gross_price_drops * rate
-    commission_toman = commission_drops * rate
-    net_toman = net_provider_drops * rate
+    rate = rates.photon_to_toman_rate
+    gross_toman = gross_price_photons * rate
+    commission_toman = commission_photons * rate
+    net_toman = net_provider_photons * rate
 
     balance = get_balance_toman(db, buyer_id)
     if balance < gross_toman:
@@ -140,11 +140,11 @@ def pay_for_item(
         provider_id=provider_id,
         request_id=request_id,
         content_id=content_id,
-        gross_price_drops=gross_price_drops,
+        gross_price_photons=gross_price_photons,
         commission_rate_percent=commission_rate_percent,
-        commission_drops=commission_drops,
-        net_provider_drops=net_provider_drops,
-        drop_to_toman_rate=rate,
+        commission_photons=commission_photons,
+        net_provider_photons=net_provider_photons,
+        photon_to_toman_rate=rate,
         gross_price_toman=gross_toman,
         commission_toman=commission_toman,
         net_provider_toman=net_toman,

@@ -143,7 +143,7 @@ def create_offer(
 
     offer = Offer(
         provider_id=current_user.id,
-        price_drops=payload.price_drops,
+        price_photons=payload.price_photons,
         session_duration_seconds=payload.session_duration_seconds,
         title=payload.title,
         description=payload.description,
@@ -359,8 +359,8 @@ def update_offer(
             "Delete it and create a new offer instead.",
         )
 
-    if payload.price_drops is not None:
-        offer.price_drops = payload.price_drops
+    if payload.price_photons is not None:
+        offer.price_photons = payload.price_photons
     if payload.session_duration_seconds is not None:
         offer.session_duration_seconds = payload.session_duration_seconds
     if payload.title is not None:

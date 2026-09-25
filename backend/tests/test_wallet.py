@@ -30,7 +30,7 @@ def _auth_header(telegram_id: int, first_name: str = "Test") -> dict:
 
 
 @pytest.mark.parametrize(
-    "gross_drops,commission_percent,expected_commission,expected_net",
+    "gross_photons,commission_percent,expected_commission,expected_net",
     [
         (40, 10, 4, 36),  # divides evenly
         (25, 10, 2, 23),  # 2.5 -> rounds DOWN; the extra half-star goes to the provider
@@ -40,17 +40,17 @@ def _auth_header(telegram_id: int, first_name: str = "Test") -> dict:
     ],
 )
 def test_split_commission_rounds_in_providers_favor(
-    gross_drops, commission_percent, expected_commission, expected_net
+    gross_photons, commission_percent, expected_commission, expected_net
 ):
-    commission_drops, net_provider_drops = split_commission(gross_drops, commission_percent)
+    commission_photons, net_provider_photons = split_commission(gross_photons, commission_percent)
 
-    assert commission_drops == expected_commission
-    assert net_provider_drops == expected_net
+    assert commission_photons == expected_commission
+    assert net_provider_photons == expected_net
     # The split must always account for the whole price, no matter how
     # the rounding falls -- the same invariant Transaction's
     # ck_drop_split_sums_to_gross CHECK constraint enforces at the
     # database level.
-    assert commission_drops + net_provider_drops == gross_drops
+    assert commission_photons + net_provider_photons == gross_photons
 
 
 # --- GET /wallet/balance ----------------------------------------------------
@@ -65,7 +65,7 @@ def test_balance_is_zero_for_a_brand_new_user(client):
     assert response.status_code == 200
     assert response.json() == {
         "balance_toman": 0,
-        "balance_drops_equivalent": 0,
+        "balance_photons_equivalent": 0,
         "pending_toman": 0,
         "withdrawal_pending_toman": 0,
         "in_flight_toman": 0,
@@ -81,7 +81,7 @@ def test_balance_reflects_ledger_entries(client, db_session):
     response = client.get("/wallet/balance", headers=auth).json()
 
     assert response["balance_toman"] == 120_000
-    assert response["balance_drops_equivalent"] == 120_000 // settings.drop_to_toman_rate
+    assert response["balance_photons_equivalent"] == 120_000 // settings.photon_to_toman_rate
 
 
 # --- what may leave the platform (get_withdrawable_toman) -------------------
@@ -105,7 +105,7 @@ def _sale(db_session, provider_id: int, buyer_id: int, *, amount_toman: int) -> 
     offer = Offer(
         provider_id=provider_id,
         service_type=OfferServiceType.CHAT,
-        price_drops=12,
+        price_photons=12,
         session_duration_seconds=1200,
         title="Test offer",
         description="Test offer",
@@ -121,11 +121,11 @@ def _sale(db_session, provider_id: int, buyer_id: int, *, amount_toman: int) -> 
         buyer_id=buyer_id,
         provider_id=provider_id,
         request_id=request.id,
-        gross_price_drops=10,
+        gross_price_photons=10,
         commission_rate_percent=0,
-        commission_drops=0,
-        net_provider_drops=10,
-        drop_to_toman_rate=amount_toman // 10,
+        commission_photons=0,
+        net_provider_photons=10,
+        photon_to_toman_rate=amount_toman // 10,
         gross_price_toman=amount_toman,
         commission_toman=0,
         net_provider_toman=amount_toman,
@@ -179,8 +179,8 @@ def _queue_withdrawal(db_session, user_id: int, *, amount_toman: int) -> Withdra
         holder_name=bank.holder_name,
         card_number=bank.card_number,
         iban=bank.iban,
-        drops=amount_toman // 1000,
-        drop_rate=1000,
+        photons=amount_toman // 1000,
+        photon_rate=1000,
         fee_percent=0,
         minimum_toman=1,
         gross_toman=amount_toman,

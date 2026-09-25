@@ -40,7 +40,7 @@ def get_card_info(
 @router.post("/requests", response_model=TopUpRequestOut, status_code=status.HTTP_201_CREATED)
 def create_topup_request(
     file: UploadFile = File(...),
-    requested_drops: int = Form(...),
+    requested_photons: int = Form(...),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> TopUpRequest:
@@ -50,18 +50,18 @@ def create_topup_request(
     rate change between submission and admin review never silently
     changes what the user thought they were asking for.
     """
-    if requested_drops <= 0:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "requested_drops must be positive.")
+    if requested_photons <= 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "requested_photons must be positive.")
 
     receipt_path = save_receipt_file(current_user.id, file)
-    rate = get_rates(db).drop_to_toman_rate
+    rate = get_rates(db).photon_to_toman_rate
 
     topup_request = TopUpRequest(
         user_id=current_user.id,
         receipt_file_path=receipt_path,
-        requested_drops=requested_drops,
-        drop_rate_at_request=rate,
-        requested_toman_amount=requested_drops * rate,
+        requested_photons=requested_photons,
+        photon_rate_at_request=rate,
+        requested_toman_amount=requested_photons * rate,
     )
     db.add(topup_request)
     db.commit()

@@ -15,7 +15,7 @@ interface PageHeaderProps {
    */
   onBack?: () => void
   /** The trailing slot: a settings button on a tab root, an overflow
-   *  action on an inner page, the Drop balance chip on a tab root. */
+   *  action on an inner page, the Photon balance chip on a tab root. */
   action?: ReactNode
 }
 

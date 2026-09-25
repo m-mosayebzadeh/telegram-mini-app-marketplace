@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { Offer } from '../../lib/types'
-import { IconCheck, IconDrop, IconPersonFallback } from '../icons'
+import { IconCheck, IconPhoton, IconPersonFallback } from '../icons'
 
 interface PersonCardProps {
   offer: Offer
@@ -55,9 +55,9 @@ export function PersonCard({ offer, locale, onClick }: PersonCardProps) {
           )}
 
           <span className="ui-person-price">
-            <span className="ui-drop tabular">
-              <IconDrop size={14} />
-              {offer.price_drops.toLocaleString(locale)}
+            <span className="ui-photon tabular">
+              <IconPhoton size={14} />
+              {offer.price_photons.toLocaleString(locale)}
             </span>
           </span>
 

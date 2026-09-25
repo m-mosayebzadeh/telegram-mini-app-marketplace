@@ -13,7 +13,7 @@ from app.core.time import utcnow
 from app.models.chat_session import ChatSession
 from tests.helpers import give_wallet_balance, sign_init_data
 
-RATE = 1000  # Toman per Drop, the fixed peg
+RATE = 1000  # Toman per Photon, the fixed peg
 
 
 def _auth(telegram_id: int, first_name: str = "Test") -> dict:
@@ -28,7 +28,7 @@ def _settled_session(client, db_session):
     offer = client.post(
         "/offers",
         headers=provider,
-        json={"price_drops": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
+        json={"price_photons": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
     ).json()
     request = client.post("/requests", headers=buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{request['id']}/accept", headers=provider)
@@ -91,7 +91,7 @@ def test_a_running_conversation_cannot_be_removed(client, db_session):
     offer = client.post(
         "/offers",
         headers=provider,
-        json={"price_drops": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
+        json={"price_photons": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
     ).json()
     request = client.post("/requests", headers=buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{request['id']}/accept", headers=provider)
@@ -115,7 +115,7 @@ def test_it_cannot_be_removed_while_the_money_is_unsettled(client, db_session):
     offer = client.post(
         "/offers",
         headers=provider,
-        json={"price_drops": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
+        json={"price_photons": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
     ).json()
     request = client.post("/requests", headers=buyer, json={"offer_id": offer["id"]}).json()
     client.post(f"/requests/{request['id']}/accept", headers=provider)

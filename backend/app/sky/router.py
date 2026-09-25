@@ -23,6 +23,13 @@ property so they can never be mistaken for one another (section 22):
 anything, because the moment the sky shows that, it becomes a ranking of
 people — the paid ones desirable, the free ones available — and this is a
 product about meeting them (section 26).
+
+A fourth thing rides on moons (section 29.14, the owner's decision):
+
+  showcase -> moons   up to three: this person has something to show
+
+Content and offers count alike, free and paid alike, so a moon never means
+"this one sells" — only "there is more to see here".
 """
 
 from datetime import timedelta
@@ -92,6 +99,8 @@ class SkyPersonOut(BaseModel):
     trust: float
     online: bool
     is_new: bool
+    #: How many moons circle them, 0 to 3: things they have to show.
+    moons: int = 0
 
 
 @router.get("", response_model=list[SkyPersonOut])
@@ -171,6 +180,7 @@ def get_sky(
         )
     }
     avatars = get_current_avatar_urls(db, [p[0].id for p in people])
+    moons = _showcase_counts(db, [p[0].id for p in people])
 
     return [
         SkyPersonOut(
@@ -184,9 +194,51 @@ def get_sky(
             trust=round(trust, 3),
             online=online,
             is_new=is_new,
+            moons=min(MAX_MOONS, moons.get(user.id, 0)),
         )
         for user, online, presence, trust, is_new in people
     ]
+
+
+#: The most moons one person gets. More than three reads as clutter at the
+#: size an orb is drawn, and turns "has something to show" into a count
+#: to compete on.
+MAX_MOONS = 3
+
+
+def _showcase_counts(db: Session, user_ids: list[int]) -> dict[int, int]:
+    """How many things each of these people has to show: public content
+    that has not been deleted, and offers that are open.
+
+    Only public content counts. A picture shared with one person or one
+    group is not something the rest of the sky can see, and a moon that
+    leads to nothing is a promise the app does not keep.
+
+    Two grouped queries for the whole page of sky, never one per person.
+    """
+    if not user_ids:
+        return {}
+    from app.models.content import Content, ContentAudience
+    from app.models.offer import Offer, OfferStatus
+
+    counts: dict[int, int] = {}
+    for owner, count in db.execute(
+        select(Content.user_id, func.count(Content.id))
+        .where(
+            Content.user_id.in_(user_ids),
+            Content.deleted_at.is_(None),
+            Content.audience_type == ContentAudience.PUBLIC,
+        )
+        .group_by(Content.user_id)
+    ).all():
+        counts[owner] = counts.get(owner, 0) + count
+    for owner, count in db.execute(
+        select(Offer.provider_id, func.count(Offer.id))
+        .where(Offer.provider_id.in_(user_ids), Offer.status == OfferStatus.ACTIVE)
+        .group_by(Offer.provider_id)
+    ).all():
+        counts[owner] = counts.get(owner, 0) + count
+    return counts
 
 
 def _blocked_either_way(db: Session, user_id: int) -> set[int]:

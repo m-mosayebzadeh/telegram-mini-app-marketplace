@@ -264,7 +264,7 @@ def list_activity_requests(
                 id=request.id,
                 offer_id=offer.id,
                 offer_title=offer.title,
-                offer_price_drops=offer.price_drops,
+                offer_price_photons=offer.price_photons,
                 status=request.status.value,
                 reason=request.reason,
                 created_at=request.created_at,

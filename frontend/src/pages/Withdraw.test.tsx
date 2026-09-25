@@ -36,8 +36,8 @@ vi.mock('../lib/MeContext', () => ({
 }))
 
 const quote = {
-  drops: 200,
-  drop_rate: 2500,
+  photons: 200,
+  photon_rate: 2500,
   fee_percent: 10,
   minimum_toman: 500000,
   gross_toman: 500000,

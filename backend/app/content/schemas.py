@@ -17,7 +17,7 @@ class ContentOut(BaseModel):
     content_type: str
     duration_seconds: int | None
     is_paid: bool
-    price_drops: int | None
+    price_photons: int | None
     has_spoiler: bool
     audience_type: str
     is_pinned: bool
@@ -25,7 +25,7 @@ class ContentOut(BaseModel):
     # Whether *this* viewer can currently see the real content — computed
     # per-request (see app/content/access.py), not a stored column. Lets
     # the frontend decide what to render (plain image, "tap to reveal",
-    # or "tap to unlock for N Drops") without a second request.
+    # or "tap to unlock for N Photons") without a second request.
     can_see_original: bool
     #: How many people have bought this. Shown to the owner before they delete
     #: it, because deleting is a different act once somebody has paid.

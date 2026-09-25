@@ -8,7 +8,7 @@ import {
   SkeletonRows,
   StatList,
 } from '../components/ui'
-import { DropAmount } from '../components/ui/Drop'
+import { PhotonAmount } from '../components/ui/Photon'
 import { apiFetch, ApiError } from '../lib/api'
 import {
   bankAccounts,
@@ -36,7 +36,7 @@ export default function Withdraw() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const [draft] = useState(initialDraft)
-  const [drops, setDrops] = useState<string>(draft.drops || '')
+  const [photons, setPhotons] = useState<string>(draft.photons || '')
   const [bankId, setBankId] = useState<string>(draft.bankId || '')
   const [retryKey, setRetryKey] = useState<string>(
     draft.retryKey || crypto.randomUUID(),
@@ -51,9 +51,9 @@ export default function Withdraw() {
   useEffect(() => {
     sessionStorage.setItem(
       draftKey,
-      JSON.stringify({ drops, bankId, retryKey }),
+      JSON.stringify({ photons, bankId, retryKey }),
     )
-  }, [drops, bankId, retryKey])
+  }, [photons, bankId, retryKey])
   const load = useCallback(() => {
     Promise.all([bankAccounts(), withdrawals()])
       .then(([b, r]) => {
@@ -75,7 +75,7 @@ export default function Withdraw() {
     setError('')
     setNotice('')
     try {
-      setQuote(await quoteWithdrawal(Number(drops)))
+      setQuote(await quoteWithdrawal(Number(photons)))
     } catch (e) {
       setError(financeError(e, t))
     } finally {
@@ -90,14 +90,14 @@ export default function Withdraw() {
       await apiFetch('/wallet/withdrawals', {
         method: 'POST',
         body: JSON.stringify({
-          drops: quote.drops,
+          photons: quote.photons,
           bank_account_id: Number(bankId),
           quote_token: quote.quote_token,
           idempotency_key: retryKey,
         }),
       })
       setQuote(null)
-      setDrops('')
+      setPhotons('')
       setRetryKey(crypto.randomUUID())
       setNotice(t('finance.submitted'))
       load()
@@ -130,10 +130,10 @@ export default function Withdraw() {
   }
   const selected = banks.find((b) => b.id === Number(bankId))
   const valid =
-    /^\d+$/.test(drops) &&
-    Number.isSafeInteger(Number(drops)) &&
-    Number(drops) > 0 &&
-    Number(drops) <= 1_000_000_000 &&
+    /^\d+$/.test(photons) &&
+    Number.isSafeInteger(Number(photons)) &&
+    Number(photons) > 0 &&
+    Number(photons) <= 1_000_000_000 &&
     !!selected
   return (
     <div className="ui-page">
@@ -142,16 +142,16 @@ export default function Withdraw() {
       <div className="ui-page-body">
         <div className="co-form">
           <label className="ui-field" htmlFor="withdraw-amount">
-            <span className="ui-field-label">{t('finance.drops')}</span>
+            <span className="ui-field-label">{t('finance.photons')}</span>
             <input
               id="withdraw-amount"
               className="ui-input ui-input-numeric wd-amount"
               inputMode="numeric"
               disabled={busy}
-              value={drops}
+              value={photons}
               onChange={(e) => {
                 changed()
-                setDrops(digits(e.target.value))
+                setPhotons(digits(e.target.value))
               }}
             />
           </label>
@@ -197,10 +197,10 @@ export default function Withdraw() {
             <StatList
               stats={[
                 {
-                  label: t('finance.drops'),
-                  value: <DropAmount amount={quote.drops} locale={i18n.language} size={16} />,
+                  label: t('finance.photons'),
+                  value: <PhotonAmount amount={quote.photons} locale={i18n.language} size={16} />,
                   note: t('finance.rate', {
-                    amount: quote.drop_rate,
+                    amount: quote.photon_rate,
                   }),
                 },
                 {

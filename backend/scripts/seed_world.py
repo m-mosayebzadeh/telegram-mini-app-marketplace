@@ -191,7 +191,7 @@ def seed(db, rng: random.Random) -> None:
                 provider_id=user.id,
                 # Must divide into four equal blocks — the offer table
                 # enforces it, because a session is priced per block.
-                price_drops=rng.choice([60, 80, 100, 160]),
+                price_photons=rng.choice([60, 80, 100, 160]),
                 session_duration_seconds=1800,
                 title="گفتگو",
                 description="گفتگوی آزمایشی",

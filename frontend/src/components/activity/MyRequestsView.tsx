@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../ui/Button'
 import { EmptyState, SkeletonRows } from '../ui/States'
-import { DropAmount } from '../ui/Drop'
+import { PhotonAmount } from '../ui/Photon'
 import { IconDiscover, IconPersonFallback } from '../icons'
 import { getRequestAction } from '../../lib/requestActions'
 import { nextUtcMidnight } from '../../lib/dailyQuota'
@@ -102,8 +102,8 @@ export function MyRequestsView({
                     <span className="ac-request-offer-title" dir="auto">
                       {request.offer_title}
                     </span>
-                    <DropAmount
-                      amount={request.offer_price_drops}
+                    <PhotonAmount
+                      amount={request.offer_price_photons}
                       locale={i18n.language}
                       size={16}
                     />

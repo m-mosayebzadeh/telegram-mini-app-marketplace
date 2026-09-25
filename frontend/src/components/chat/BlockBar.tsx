@@ -56,7 +56,7 @@ export function BlockBar({ session, onOpenDetails }: BlockBarProps) {
       : Math.min(session.reserved_blocks, Math.floor(elapsed / blockMs))
   const remainingMs = endsAt == null ? null : Math.max(0, endsAt - now)
 
-  const amount = useAmountOnBlockChange(consumed, session.block_price_drops)
+  const amount = useAmountOnBlockChange(consumed, session.block_price_photons)
 
   const waiting = started == null && session.status === 'open'
 
@@ -108,7 +108,7 @@ export function BlockBar({ session, onOpenDetails }: BlockBarProps) {
         {/* Shown only as a block turns over, then gone. */}
         {amount != null && (
           <span className="bb-amount tabular" role="status">
-            {t('chatSession.spentSoFar', { drops: amount })}
+            {t('chatSession.spentSoFar', { photons: amount })}
           </span>
         )}
       </span>

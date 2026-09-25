@@ -16,7 +16,7 @@ def _defaults():
     same numbers the app was configured with; the withdrawal commission starts
     at zero on purpose (see PlatformRates' docstring).
     """
-    return dict(id=SINGLETON_ID, drop_to_toman_rate=settings.drop_to_toman_rate,
+    return dict(id=SINGLETON_ID, photon_to_toman_rate=settings.photon_to_toman_rate,
                 chat_commission_percent=settings.chat_commission_percent,
                 content_commission_percent=settings.content_commission_percent,
                 withdrawal_commission_percent=0, complaint_commission_percent=0,

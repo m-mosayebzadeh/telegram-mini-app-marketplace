@@ -22,7 +22,7 @@ vi.mock('../lib/api', async (original) => ({
   apiFetch: mocks.api,
 }))
 vi.mock('../lib/pricing', () => ({
-  getPricingConfig: () => Promise.resolve({ drop_to_toman_rate: 500, chat_commission_percent: 10 }),
+  getPricingConfig: () => Promise.resolve({ photon_to_toman_rate: 500, chat_commission_percent: 10 }),
 }))
 vi.mock('../lib/topupApi', () => ({
   createTopUpRequest: mocks.createTopUpRequest,
@@ -91,12 +91,12 @@ describe('TopUp — card to card', () => {
     expect(number?.textContent).toBe('6037 9972 0000 1234')
   })
 
-  it('computes the Toman line from the Drop amount and never asks for it', async () => {
+  it('computes the Toman line from the Photon amount and never asks for it', async () => {
     await render()
 
     type('#topup-direct-amount', '250')
 
-    // 250 Drop at 500 Toman each. The mock renders the interpolation
+    // 250 Photon at 500 Toman each. The mock renders the interpolation
     // object verbatim; the real t() formats and localises it.
     expect(container.textContent).toContain('"amount":125000')
     expect(container.textContent).toContain('topup.transferLabel')
@@ -125,14 +125,14 @@ describe('TopUp — card to card', () => {
   })
 
   it('opens with the amount the offer page said was missing', async () => {
-    await render({ prefillDrops: 400 })
+    await render({ prefillPhotons: 400 })
 
     expect(container.querySelector<HTMLInputElement>('#topup-direct-amount')!.value).toBe('400')
     expect(container.textContent).toContain('"amount":200000')
   })
 
   it('goes back to the offer it was sent from, not to the wallet', async () => {
-    await render({ prefillDrops: 400, from: '/offers/5' })
+    await render({ prefillPhotons: 400, from: '/offers/5' })
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>('.ui-header-back')!.click()

@@ -38,7 +38,7 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
   const [contentType, setContentType] = useState<'photo' | 'short_video'>('photo')
   const [durationSeconds, setDurationSeconds] = useState('')
   const [isPaid, setIsPaid] = useState(false)
-  const [priceDrops, setPriceDrops] = useState('')
+  const [pricePhotons, setPricePhotons] = useState('')
   const [hasSpoiler, setHasSpoiler] = useState(false)
   const [audienceType, setAudienceType] = useState<'public' | 'followers'>('public')
   const [busy, setBusy] = useState(false)
@@ -74,7 +74,7 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
         contentType,
         durationSeconds: contentType === 'short_video' ? Number(durationSeconds) : undefined,
         isPaid,
-        priceDrops: isPaid ? Number(priceDrops) : undefined,
+        pricePhotons: isPaid ? Number(pricePhotons) : undefined,
         // Paid always implies a spoiler on the backend too (see
         // ck_paid_implies_spoiler) — reflecting that here just avoids a
         // pointless round trip when the checkbox was left unchecked.
@@ -158,7 +158,7 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
       </div>
       {isPaid && (
         <div className="hp-field">
-          <NumberField header={t('content.priceLabel')} value={priceDrops} onChange={setPriceDrops} />
+          <NumberField header={t('content.priceLabel')} value={pricePhotons} onChange={setPricePhotons} />
         </div>
       )}
       {!isPaid && (

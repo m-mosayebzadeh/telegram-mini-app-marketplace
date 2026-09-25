@@ -11,7 +11,7 @@ import {
   SkeletonRows,
   useToast,
 } from '../components/ui'
-import { DropChip } from '../components/ui/Drop'
+import { PhotonChip } from '../components/ui/Photon'
 import { MyOffersView } from '../components/activity/MyOffersView'
 import { MyRequestsView } from '../components/activity/MyRequestsView'
 import type { Balance, ChatSession, Offer, RequestActivity } from '../lib/types'
@@ -169,8 +169,8 @@ export default function Activity() {
         title={t('tabs.activity')}
         action={
           balance && (
-            <DropChip
-              amount={balance.balance_drops_equivalent}
+            <PhotonChip
+              amount={balance.balance_photons_equivalent}
               locale={i18n.language}
               onClick={() => navigate('/wallet')}
               label={t('wallet.title')}

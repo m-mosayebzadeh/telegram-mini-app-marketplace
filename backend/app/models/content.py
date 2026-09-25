@@ -83,9 +83,9 @@ class Content(Base):
     original_file_path: Mapped[str] = mapped_column(String(500))
 
     is_paid: Mapped[bool] = mapped_column(Boolean, default=False)
-    # Only meaningful when is_paid is True. A Drop amount, like every
+    # Only meaningful when is_paid is True. A Photon amount, like every
     # other price in the product (see TECHNICAL_REQUIREMENTS.md, 14).
-    price_drops: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    price_photons: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     # Whether this item is shown behind a spoiler overlay by default.
     # Forced to True whenever is_paid is True (see the CHECK constraint
@@ -133,8 +133,8 @@ class Content(Base):
         CheckConstraint("NOT is_paid OR has_spoiler", name="ck_paid_implies_spoiler"),
         # Price only makes sense together with is_paid.
         CheckConstraint(
-            "(is_paid AND price_drops IS NOT NULL) OR "
-            "(NOT is_paid AND price_drops IS NULL)",
+            "(is_paid AND price_photons IS NOT NULL) OR "
+            "(NOT is_paid AND price_photons IS NULL)",
             name="ck_price_matches_is_paid",
         ),
         # duration_seconds only makes sense for a video, and must fit

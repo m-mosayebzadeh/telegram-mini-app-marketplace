@@ -451,6 +451,7 @@ export default function Sky() {
                       driftDelaySeconds={star.driftDelay}
                       photoUrl={star.avatar_url}
                       near={detail.has(star.user_id)}
+                      moons={star.moons ?? 0}
                     />
                     {/* Always in the document, never always visible: the
                         name fades with distance, and a name that is

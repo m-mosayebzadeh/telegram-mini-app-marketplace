@@ -52,7 +52,7 @@ class ChatSession(Base):
     # sold as.
     reserved_blocks: Mapped[int] = mapped_column(Integer, default=0)
     block_duration_seconds: Mapped[int] = mapped_column(Integer, default=0)
-    block_price_drops: Mapped[int] = mapped_column(Integer, default=0)
+    block_price_photons: Mapped[int] = mapped_column(Integer, default=0)
     block_price_toman: Mapped[int] = mapped_column(Integer, default=0)
 
     # --- the money, in Toman, which is what the ledger speaks -------------

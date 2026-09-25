@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '../ui/Button'
 import { Sheet } from '../ui/Sheet'
 import { EmptyState, SkeletonRows } from '../ui/States'
-import { DropAmount } from '../ui/Drop'
+import { PhotonAmount } from '../ui/Photon'
 import { IconChevron, IconPersonFallback, IconUsers } from '../icons'
 import type { ChatSession, IncomingRequest, Offer } from '../../lib/types'
 
@@ -54,7 +54,7 @@ export function OfferRequestsView({
           {offer.title}
         </span>
         <span className="of-own-meta">
-          <DropAmount amount={offer.price_drops} locale={i18n.language} size={16} />
+          <PhotonAmount amount={offer.price_photons} locale={i18n.language} size={16} />
           <span className="of-own-dot" aria-hidden="true" />
           <span className="tabular">
             {t('discover.minutes', { minutes: offer.session_duration_seconds / 60 })}

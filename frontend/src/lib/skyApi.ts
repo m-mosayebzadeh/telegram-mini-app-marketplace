@@ -17,6 +17,9 @@ export interface SkyPerson {
   trust: number
   online: boolean
   is_new: boolean
+  /** 0 to 3: things this person has to show, content or offers alike
+   *  (TECHNICAL_REQUIREMENTS.md 29.14). Drawn as moons. */
+  moons?: number
 }
 
 /**

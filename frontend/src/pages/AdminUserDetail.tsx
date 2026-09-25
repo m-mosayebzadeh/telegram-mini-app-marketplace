@@ -180,7 +180,7 @@ export default function AdminUserDetail() {
                 <span className="ui-row-title">{offer.title}</span>
                 <span className="ui-row-subtitle">
                   {t('offers.priceLine', {
-                    price: offer.price_drops,
+                    price: offer.price_photons,
                     minutes: offer.session_duration_seconds / 60,
                   })}
                 </span>

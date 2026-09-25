@@ -31,7 +31,7 @@ def _offer(client, provider):
     return client.post(
         "/offers",
         headers=provider,
-        json={"price_drops": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
+        json={"price_photons": 40, "session_duration_seconds": 1800, "title": "C", "description": "C"},
     ).json()
 
 

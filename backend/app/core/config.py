@@ -65,12 +65,12 @@ class Settings(BaseSettings):
     # only has to move the VALUES into the database and add an endpoint
     # to edit them — no other code needs to change.
 
-    # Toman per Drop, the app's own pricing unit. This is a FIXED PEG, not
-    # a market rate: Drops and Toman are one currency at two scales. Keeping
+    # Toman per Photon, the app's own pricing unit. This is a FIXED PEG, not
+    # a market rate: Photons and Toman are one currency at two scales. Keeping
     # it fixed is what removes a whole layer of complexity — every internal
     # money calculation stays in whole Toman, so a percentage split is exact
     # to within one Toman and rounding effectively disappears.
-    drop_to_toman_rate: int = 1000
+    photon_to_toman_rate: int = 1000
 
     # Platform commission on a purchase, as a whole percent of the price.
     # These are only the SEED values for a brand-new database: once the

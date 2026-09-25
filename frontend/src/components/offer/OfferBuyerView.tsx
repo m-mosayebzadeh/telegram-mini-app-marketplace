@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PriceBreakdown } from '../PriceBreakdown'
 import { Button } from '../ui/Button'
-import { DropAmount } from '../ui/Drop'
+import { PhotonAmount } from '../ui/Photon'
 import { IconCheck, IconChevron, IconPersonFallback } from '../icons'
 import type { Offer } from '../../lib/types'
 
@@ -75,11 +75,11 @@ export function OfferBuyerView({
           other. */}
       <section className="of-deal">
         <div className="of-deal-cell">
-          <span className="of-deal-label">{t('offers.priceDropsLabel')}</span>
+          <span className="of-deal-label">{t('offers.pricePhotonsLabel')}</span>
           <span className="of-deal-value">
-            <DropAmount amount={offer.price_drops} locale={i18n.language} size={24} />
+            <PhotonAmount amount={offer.price_photons} locale={i18n.language} size={24} />
           </span>
-          <PriceBreakdown priceDrops={offer.price_drops} audience="buyer" />
+          <PriceBreakdown pricePhotons={offer.price_photons} audience="buyer" />
         </div>
         <div className="of-deal-cell">
           <span className="of-deal-label">{t('offers.durationLabel')}</span>

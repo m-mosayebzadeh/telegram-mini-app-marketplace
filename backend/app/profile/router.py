@@ -371,20 +371,20 @@ def read_buyer_summary(
     # ledger entry is written the instant they pay, regardless of
     # whether the transaction has released to its provider yet (see
     # app/wallet/service.py's pay_for_item).
-    total_drops_spent = (
+    total_photons_spent = (
         db.query(Transaction)
         .filter(
             Transaction.buyer_id == user_id,
             Transaction.status.in_([TransactionStatus.PENDING, TransactionStatus.SUCCEEDED]),
         )
-        .with_entities(Transaction.gross_price_drops)
+        .with_entities(Transaction.gross_price_photons)
         .all()
     )
-    total_drops_spent_sum = sum(row[0] for row in total_drops_spent)
+    total_photons_spent_sum = sum(row[0] for row in total_photons_spent)
 
     return BuyerSummaryOut(
         status="established" if completed_transactions_count >= 1 else "new",
         joined_at=target.joined_at,
         completed_transactions_count=completed_transactions_count,
-        total_drops_spent=total_drops_spent_sum,
+        total_photons_spent=total_photons_spent_sum,
     )

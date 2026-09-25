@@ -2,8 +2,8 @@ import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../ui/Button'
 import { EmptyState, SkeletonRows } from '../ui/States'
-import { DropAmountField } from './DropAmountField'
-import { IconCamera, IconCopy, IconDrop } from '../icons'
+import { PhotonAmountField } from './PhotonAmountField'
+import { IconCamera, IconCopy, IconPhoton } from '../icons'
 import type { TopUpCardInfo, TopUpRequest } from '../../lib/types'
 
 interface TopUpDirectProps {
@@ -93,7 +93,7 @@ export function TopUpDirect({
       </section>
 
       <section className="ui-section">
-        <DropAmountField
+        <PhotonAmountField
           id="topup-direct-amount"
           value={amount}
           onChange={onAmountChange}
@@ -142,8 +142,8 @@ export function TopUpDirect({
               <div className="ui-row" key={row.id}>
                 <span className="ui-row-main">
                   <span className="ui-row-title tu-history-amount tabular">
-                    <IconDrop size={16} />
-                    {row.requested_drops.toLocaleString(i18n.language)}
+                    <IconPhoton size={16} />
+                    {row.requested_photons.toLocaleString(i18n.language)}
                     <span className="of-own-dot" aria-hidden="true" />
                     {t('wallet.tomanAmount', {
                       amount: row.requested_toman_amount,

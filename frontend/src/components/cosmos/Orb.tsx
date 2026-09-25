@@ -10,6 +10,7 @@ import { useState, type CSSProperties } from 'react'
  *   presence -> SIZE      how alive this person has been lately
  *   trust    -> GLOW      a history of sessions that ended well
  *   online   -> RING      here right now, and nothing else
+ *   moons    -> MOONS     up to three: they have something to show
  *
  * Position is not here. Where an orb sits is the sky's decision, because
  * it is about this person's relationship to the VIEWER rather than about
@@ -75,6 +76,11 @@ export interface OrbProps {
    *  orb so a sky never breathes in unison. */
   driftSeconds?: number
   driftDelaySeconds?: number
+  /** 0 to 3 moons: this person has something to show, content or offers
+   *  alike, never "this one sells" (section 29.14). Only drawn when near:
+   *  from a distance they would be specks nobody can read, and a hundred
+   *  small animations for nothing. */
+  moons?: number
   className?: string
 }
 
@@ -90,6 +96,7 @@ export function Orb({
   lightFrom = { x: 0, y: -1 },
   driftSeconds,
   driftDelaySeconds = 0,
+  moons = 0,
   className,
 }: OrbProps) {
   // Only flips once, when the bytes are actually there. Until then the
@@ -152,6 +159,7 @@ export function Orb({
           <span className="cos-orb-live-pulse" aria-hidden="true" />
         </>
       )}
+      {near && moons > 0 && <Moons count={Math.min(3, moons)} size={size} seed={seed} />}
       <span className="cos-orb">
         {/* The letter stays underneath. A photograph that never arrives
             leaves something legible behind rather than a grey disc. */}
@@ -169,6 +177,51 @@ export function Orb({
         )}
       </span>
     </div>
+  )
+}
+
+/**
+ * The moons, each on its own tilted orbit.
+ *
+ * Each one travels along an ellipse drawn as a CSS path, so the browser
+ * moves it by itself — nothing here is written frame by frame, which keeps
+ * the world's rule of seven style writes per frame intact. Half of every
+ * orbit passes in front of the body and half behind it, which is what makes
+ * three dots read as moons rather than as decoration stuck on top.
+ *
+ * Radius, speed and starting point differ per moon and per person (from
+ * the seed), so two people's moons never move in step.
+ */
+/** How far off level the orbits lean, in radians. */
+const TILT = (-18 * Math.PI) / 180
+
+function Moons({ count, size, seed }: { count: number; size: number; seed: number }) {
+  return (
+    <span className="cos-moons" aria-hidden="true">
+      {Array.from({ length: count }, (_, index) => {
+        const rx = size / 2 + 13 + index * 8
+        const ry = rx * 0.5
+        const seconds = 9 + index * 4.5 + (Math.abs(seed) % 5) * 0.4
+        const start = ((Math.abs(seed) * 37 + index * 131) % 100) / 100
+        // The tilt is drawn into the path itself. Rotating the whole group
+        // instead would make it a stacking layer of its own, and the moons
+        // could then never pass in front of the body.
+        const ex = Math.round(rx * Math.cos(TILT) * 10) / 10
+        const ey = Math.round(rx * Math.sin(TILT) * 10) / 10
+        const degrees = ((TILT * 180) / Math.PI).toFixed(1)
+        const style = {
+          offsetPath: `path('M ${-ex} ${-ey} A ${rx} ${ry.toFixed(1)} ${degrees} 1 0 ${ex} ${ey} A ${rx} ${ry.toFixed(1)} ${degrees} 1 0 ${-ex} ${-ey}')`,
+          animationDuration: `${seconds.toFixed(1)}s`,
+          animationDelay: `${(-start * seconds).toFixed(2)}s`,
+          '--moon-size': `${6 + ((index + Math.abs(seed)) % 3)}px`,
+        } as CSSProperties
+        return (
+          <span className="cos-moon" key={index} style={style}>
+            <i />
+          </span>
+        )
+      })}
+    </span>
   )
 }
 

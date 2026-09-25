@@ -66,8 +66,8 @@ def start_session(db: Session, *, request_id: int, offer: Offer, buyer_id: int) 
     Does NOT commit — the caller does, so this can join a larger unit of work.
     """
     lock_finances(db)
-    rate = get_rates(db).drop_to_toman_rate
-    reserved_toman = offer.price_drops * rate
+    rate = get_rates(db).photon_to_toman_rate
+    reserved_toman = offer.price_photons * rate
 
     balance = get_balance_toman(db, buyer_id)
     if balance < reserved_toman:
@@ -85,8 +85,8 @@ def start_session(db: Session, *, request_id: int, offer: Offer, buyer_id: int) 
         conversation_id=conversation.id,
         reserved_blocks=SESSION_BLOCK_COUNT,
         block_duration_seconds=offer.block_duration_seconds,
-        block_price_drops=offer.block_price_drops,
-        block_price_toman=offer.block_price_drops * rate,
+        block_price_photons=offer.block_price_photons,
+        block_price_toman=offer.block_price_photons * rate,
         reserved_toman=reserved_toman,
         opened_at=utcnow(),
     )
@@ -321,23 +321,23 @@ def close_and_settle(
         )
 
     if consumed_toman > 0:
-        rate = get_rates(db).drop_to_toman_rate
+        rate = get_rates(db).photon_to_toman_rate
         commission_rate = get_rates(db).chat_commission_percent
-        consumed_drops = consumed_blocks * chat_session.block_price_drops
-        commission_drops, net_drops = split_commission(consumed_drops, commission_rate)
+        consumed_photons = consumed_blocks * chat_session.block_price_photons
+        commission_photons, net_photons = split_commission(consumed_photons, commission_rate)
         transaction = Transaction(
             kind=TransactionKind.CHAT_REQUEST,
             buyer_id=request.buyer_id,
             provider_id=offer.provider_id,
             request_id=request.id,
-            gross_price_drops=consumed_drops,
+            gross_price_photons=consumed_photons,
             commission_rate_percent=commission_rate,
-            commission_drops=commission_drops,
-            net_provider_drops=net_drops,
-            drop_to_toman_rate=rate,
+            commission_photons=commission_photons,
+            net_provider_photons=net_photons,
+            photon_to_toman_rate=rate,
             gross_price_toman=consumed_toman,
-            commission_toman=commission_drops * rate,
-            net_provider_toman=net_drops * rate,
+            commission_toman=commission_photons * rate,
+            net_provider_toman=net_photons * rate,
             # The buyer was already debited by the hold, so no SPEND entry is
             # written here; only the provider's side is still outstanding.
             status=TransactionStatus.PENDING,
@@ -381,7 +381,7 @@ def close_if_due(db: Session, chat_session: ChatSession) -> ChatSession:
 
     if chat_session.started_at is None:
         # Never started means the provider never arrived: nothing was sold, so
-        # every Drop goes back to the buyer.
+        # every Photon goes back to the buyer.
         reason = EndReason.NOT_STARTED
     elif chat_session.close_at_block_end_by_user_id is not None and end < chat_session.scheduled_end_at:
         # Someone asked to stop here, so this is their decision to end early

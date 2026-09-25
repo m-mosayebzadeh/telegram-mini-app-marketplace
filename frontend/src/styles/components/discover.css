@@ -64,8 +64,8 @@
   color: var(--color-accent-ink);
 }
 
-/* A Drop figure inline in running text. */
-.ui-drop-amount {
+/* A Photon figure inline in running text. */
+.ui-photon-amount {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);

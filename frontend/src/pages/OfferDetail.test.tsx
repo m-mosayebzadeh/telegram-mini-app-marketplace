@@ -25,7 +25,7 @@ vi.mock('../lib/MeContext', () => ({
   useMe: () => ({ me: mocks.me, refreshMe: vi.fn() }),
 }))
 vi.mock('../lib/pricing', () => ({
-  getPricingConfig: () => Promise.resolve({ drop_to_toman_rate: 500, chat_commission_percent: 10 }),
+  getPricingConfig: () => Promise.resolve({ photon_to_toman_rate: 500, chat_commission_percent: 10 }),
 }))
 // PriceBreakdown runs its own pricing fetch and is covered by its own
 // tests; this page only has to place it.
@@ -40,7 +40,7 @@ function offer(overrides: Partial<Offer> = {}): Offer {
     id: 5,
     provider_id: 2,
     service_type: 'chat',
-    price_drops: 250,
+    price_photons: 250,
     session_duration_seconds: 1800,
     title: 'Chat with me',
     description: 'A nice long chat about books',
@@ -75,8 +75,8 @@ function request(overrides: Partial<IncomingRequest> = {}): IncomingRequest {
   } as IncomingRequest
 }
 
-const RICH_BALANCE = { balance_drops_equivalent: 9999 }
-const POOR_BALANCE = { balance_drops_equivalent: 10 }
+const RICH_BALANCE = { balance_photons_equivalent: 9999 }
+const POOR_BALANCE = { balance_photons_equivalent: 10 }
 
 /** Answers each of the page's endpoints; `over` replaces any of them. */
 function respond(over: Record<string, unknown> = {}) {

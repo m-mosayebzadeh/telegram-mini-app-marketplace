@@ -13,7 +13,7 @@ of holds and releases produced that.
 
 Two rules shape what a row says:
 
-  Identity is left out. A list that reads "25 Drops from Sara" is a problem the
+  Identity is left out. A list that reads "25 Photons from Sara" is a problem the
   moment someone glances at the screen, and in this app that matters. What was
   bought or sold is shown, because a history nobody can check against anything
   is not a history; who it was with is one deliberate tap away, on the thing
@@ -70,7 +70,7 @@ class HistoryRow:
     kind: HistoryKind
     status: HistoryStatus
     #: Positive means it came in, negative means it went out.
-    amount_drops: int
+    amount_photons: int
     at: datetime
     #: What it was about, with nobody's name in it.
     subject: str | None = None
@@ -108,7 +108,7 @@ def build_history(db: Session, user_id: int, rate: int) -> list[HistoryRow]:
             HistoryRow(
                 kind=HistoryKind.TOP_UP,
                 status=HistoryStatus.SETTLED,
-                amount_drops=entry.amount_toman // rate,
+                amount_photons=entry.amount_toman // rate,
                 at=entry.created_at,
             )
         )
@@ -120,7 +120,7 @@ def build_history(db: Session, user_id: int, rate: int) -> list[HistoryRow]:
             HistoryRow(
                 kind=HistoryKind.WITHDRAWAL_REFUND if returned else HistoryKind.WITHDRAWAL,
                 status=HistoryStatus.SETTLED if settled else HistoryStatus.AWAITING_SETTLEMENT,
-                amount_drops=withdrawal.drops if returned else -withdrawal.drops,
+                amount_photons=withdrawal.photons if returned else -withdrawal.photons,
                 at=withdrawal.updated_at if returned else withdrawal.created_at,
             )
         )
@@ -151,7 +151,7 @@ def build_history(db: Session, user_id: int, rate: int) -> list[HistoryRow]:
                 HistoryRow(
                     kind=HistoryKind.CHAT_PAYMENT,
                     status=HistoryStatus.IN_PROGRESS,
-                    amount_drops=-(chat_session.reserved_toman // rate),
+                    amount_photons=-(chat_session.reserved_toman // rate),
                     at=chat_session.opened_at,
                     subject=offer.title,
                     chat_session_id=chat_session.id,
@@ -163,10 +163,10 @@ def build_history(db: Session, user_id: int, rate: int) -> list[HistoryRow]:
             HistoryRow(
                 kind=HistoryKind.CHAT_PAYMENT if is_buyer else HistoryKind.CHAT_EARNING,
                 status=_status_of(transaction),
-                amount_drops=(
-                    -transaction.gross_price_drops
+                amount_photons=(
+                    -transaction.gross_price_photons
                     if is_buyer
-                    else transaction.net_provider_drops
+                    else transaction.net_provider_photons
                 ),
                 at=chat_session.closed_at or chat_session.opened_at,
                 subject=offer.title,
@@ -193,10 +193,10 @@ def build_history(db: Session, user_id: int, rate: int) -> list[HistoryRow]:
             HistoryRow(
                 kind=HistoryKind.CONTENT_PURCHASE if is_buyer else HistoryKind.CONTENT_SALE,
                 status=_status_of(transaction),
-                amount_drops=(
-                    -transaction.gross_price_drops
+                amount_photons=(
+                    -transaction.gross_price_photons
                     if is_buyer
-                    else transaction.net_provider_drops
+                    else transaction.net_provider_photons
                 ),
                 at=transaction.created_at,
                 content_id=content.id if reachable else None,

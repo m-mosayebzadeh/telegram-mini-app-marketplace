@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { PriceBreakdown } from '../components/PriceBreakdown'
-import { DropAmountField } from '../components/topup/DropAmountField'
+import { PhotonAmountField } from '../components/topup/PhotonAmountField'
 import { apiFetch, formatApiError } from '../lib/api'
 import { PageHeader, Button, useToast } from '../components/ui'
 import { DurationField, STEP_MINUTES } from '../components/offer/DurationField'
@@ -45,13 +45,13 @@ export default function CreateOffer() {
   // has to split into whole blocks. Rather than rejecting the number
   // afterwards, the form says what the nearest workable prices are while
   // it is being typed.
-  const priceDrops = Number(price)
-  const priceFitsBlocks = priceDrops > 0 && priceDrops % SESSION_BLOCK_COUNT === 0
+  const pricePhotons = Number(price)
+  const priceFitsBlocks = pricePhotons > 0 && pricePhotons % SESSION_BLOCK_COUNT === 0
   const nearestPrices =
-    priceDrops > 0 && !priceFitsBlocks
+    pricePhotons > 0 && !priceFitsBlocks
       ? [
-          Math.floor(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
-          Math.ceil(priceDrops / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
+          Math.floor(pricePhotons / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
+          Math.ceil(pricePhotons / SESSION_BLOCK_COUNT) * SESSION_BLOCK_COUNT,
         ].filter((value) => value > 0)
       : []
 
@@ -70,7 +70,7 @@ export default function CreateOffer() {
       await apiFetch('/offers', {
         method: 'POST',
         body: JSON.stringify({
-          price_drops: Number(price),
+          price_photons: Number(price),
           session_duration_seconds: duration * 60,
           title: title.trim(),
           description: description.trim(),
@@ -109,15 +109,15 @@ export default function CreateOffer() {
             />
           </label>
 
-          <DropAmountField
+          <PhotonAmountField
             id="offer-price"
             value={price}
             onChange={setPrice}
-            label={t('offers.priceDropsLabel')}
+            label={t('offers.pricePhotonsLabel')}
           />
           {/* What the provider actually keeps. Shown here, while they are
               choosing the number, rather than discovered after a sale. */}
-          {priceFitsBlocks && <PriceBreakdown priceDrops={priceDrops} audience="provider" />}
+          {priceFitsBlocks && <PriceBreakdown pricePhotons={pricePhotons} audience="provider" />}
           {nearestPrices.length > 0 && (
             <span className="ui-field-help">
               {t('offers.priceMustFitBlocks', {
@@ -133,7 +133,7 @@ export default function CreateOffer() {
             minutes={duration}
             onChange={setDuration}
             blockCount={SESSION_BLOCK_COUNT}
-            pricePerBlock={priceFitsBlocks ? priceDrops / SESSION_BLOCK_COUNT : null}
+            pricePerBlock={priceFitsBlocks ? pricePhotons / SESSION_BLOCK_COUNT : null}
           />
 
           <label className="ui-field" htmlFor="offer-description">

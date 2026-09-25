@@ -20,7 +20,7 @@ admin_router = APIRouter(prefix='/admin/withdrawals', tags=['admin-withdrawals']
 def fail(reason, code=409, **extra):
     raise HTTPException(code, {'reason': reason, **extra})
 
-def quote(db, drops, user_id):
+def quote(db, photons, user_id):
     """Price one withdrawal, and sign it so the rates cannot drift underneath.
 
     `withdrawable_toman` rides along purely for display: it is what this user
@@ -29,11 +29,11 @@ def quote(db, drops, user_id):
     moves as money is earned or spent and is re-checked at creation time.
     """
     rates = get_rates(db)
-    gross = drops * rates.drop_to_toman_rate
+    gross = photons * rates.photon_to_toman_rate
     if gross > 9_007_199_254_740_991:
         fail("amount_too_large", 400)
     fee = gross * rates.withdrawal_commission_percent // 100
-    values = dict(drops=drops, drop_rate=rates.drop_to_toman_rate,
+    values = dict(photons=photons, photon_rate=rates.photon_to_toman_rate,
                   fee_percent=rates.withdrawal_commission_percent,
                   minimum_toman=rates.minimum_withdrawal_toman,
                   gross_toman=gross, fee_toman=fee, net_toman=gross-fee)
@@ -78,18 +78,18 @@ def delete_bank(bank_id: int, user: User = Depends(get_current_user), db: Sessio
 
 @router.post('/withdrawals/quote')
 def preview(payload: QuoteInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return quote(db, payload.drops, user.id)
+    return quote(db, payload.photons, user.id)
 
 @router.post('/withdrawals', response_model=WithdrawalOut, status_code=201)
 def create_withdrawal(payload: WithdrawalInput, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     lock_finances(db)
     existing = db.query(Withdrawal).filter_by(user_id=user.id, idempotency_key=payload.idempotency_key).first()
     if existing:
-        if existing.drops != payload.drops or existing.bank_account_id != payload.bank_account_id:
+        if existing.photons != payload.photons or existing.bank_account_id != payload.bank_account_id:
             fail('retry_mismatch')
         return existing
     bank = own_bank(db, payload.bank_account_id, user.id)
-    values = quote(db, payload.drops, user.id)
+    values = quote(db, payload.photons, user.id)
     if not hmac.compare_digest(values['quote_token'], payload.quote_token):
         fail('quote_changed', quote=values)
     values.pop('quote_token')
