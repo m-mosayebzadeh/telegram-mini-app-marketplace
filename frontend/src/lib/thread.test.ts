@@ -84,3 +84,26 @@ describe('reconnecting', () => {
     expect(backoffMs(4, () => 0)).not.toBe(backoffMs(4, () => 0.99))
   })
 })
+
+describe('reactions and removals', () => {
+  it('counts each emoji once and knows which is yours', async () => {
+    const { tallyReactions } = await import('./thread')
+    const tally = tallyReactions(
+      [
+        { user_id: 1, emoji: '❤️' },
+        { user_id: 2, emoji: '❤️' },
+        { user_id: 3, emoji: '😂' },
+      ],
+      2,
+    )
+    expect(tally).toEqual([
+      { emoji: '❤️', count: 2, mine: true },
+      { emoji: '😂', count: 1, mine: false },
+    ])
+  })
+
+  it('removes deleted messages and leaves the rest in order', async () => {
+    const { withoutMessages } = await import('./thread')
+    expect(withoutMessages([message(1), message(2), message(3)], [2]).map((m) => m.id)).toEqual([1, 3])
+  })
+})

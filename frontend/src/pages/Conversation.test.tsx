@@ -264,3 +264,167 @@ describe('writing a message', () => {
     expect(send.getAttribute('aria-label')).toBe('talk.voice')
   })
 })
+
+/**
+ * Doing things to a message: a tap opens its menu, a held finger starts
+ * selecting, and "also delete for Sara" is offered only for your own
+ * messages, since anybody else's can only ever leave your own view.
+ */
+describe('doing things to a message', () => {
+  let host: HTMLDivElement
+  let root: Root
+
+  beforeEach(() => {
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    mocks.api.mockReset()
+    Element.prototype.scrollIntoView = vi.fn()
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  async function open(messages: ConversationMessage[]) {
+    mocks.api.mockImplementation((path: string) => {
+      if (path === '/conversations/10') return Promise.resolve(thread())
+      if (path === '/conversations/10/messages') return Promise.resolve(messages)
+      return Promise.resolve(undefined)
+    })
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/conversations/10']}>
+          <Routes>
+            <Route path="/conversations/:id" element={<Conversation />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    })
+    await act(async () => {})
+    await act(async () => {})
+  }
+
+  function row(index: number) {
+    return host.querySelectorAll('.cos-talk-row')[index] as HTMLElement
+  }
+
+  async function press(target: HTMLElement, holdFor = 0) {
+    await act(async () => {
+      target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 }))
+    })
+    if (holdFor) await act(() => new Promise((done) => setTimeout(done, holdFor)))
+    await act(async () => {
+      target.dispatchEvent(new MouseEvent('pointerup', { bubbles: true, button: 0 }))
+      target.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 }))
+    })
+  }
+
+  it('opens the menu on a tap', async () => {
+    await open([message(1, SARA, 'hi')])
+    await press(row(0).querySelector('.cos-bubble') as HTMLElement)
+    const actions = [...document.querySelectorAll('.cos-menu-action')].map((a) => a.textContent)
+    expect(actions).toEqual(['talk.actions.reply', 'talk.actions.copy', 'talk.actions.delete'])
+  })
+
+  it('offers edit only on your own text', async () => {
+    await open([message(1, ME, 'mine')])
+    await press(row(0).querySelector('.cos-bubble') as HTMLElement)
+    const actions = [...document.querySelectorAll('.cos-menu-action')].map((a) => a.textContent)
+    expect(actions).toContain('talk.actions.edit')
+  })
+
+  it('never offers forward or pin', async () => {
+    await open([message(1, ME, 'mine')])
+    await press(row(0).querySelector('.cos-bubble') as HTMLElement)
+    const text = document.querySelector('.cos-menu')?.textContent ?? ''
+    expect(text).not.toMatch(/forward|pin/i)
+  })
+
+  it('starts selecting after half a second of holding', async () => {
+    await open([message(1, SARA, 'a'), message(2, SARA, 'b')])
+    await press(row(0), 550)
+    expect(row(0).classList.contains('is-selected')).toBe(true)
+    expect(host.querySelector('.cos-select-count')?.textContent).toBe('talk.selected')
+    // While selecting, a tap picks another rather than opening a menu.
+    await press(row(1))
+    expect(row(1).classList.contains('is-selected')).toBe(true)
+    expect(document.querySelector('.cos-menu')).toBeNull()
+  })
+
+  it('asks "also for Sara" only for your own messages', async () => {
+    await open([message(1, ME, 'mine'), message(2, SARA, 'theirs')])
+
+    await press(row(0).querySelector('.cos-bubble') as HTMLElement)
+    await act(async () => {
+      ;(document.querySelector('.cos-menu-action.is-danger') as HTMLButtonElement).click()
+    })
+    expect(document.querySelector('.cos-delete-also')).not.toBeNull()
+    await act(async () => {
+      ;(document.querySelector('.ui-scrim') as HTMLElement).click()
+    })
+
+    await press(row(1).querySelector('.cos-bubble') as HTMLElement)
+    await act(async () => {
+      ;(document.querySelector('.cos-menu-action.is-danger') as HTMLButtonElement).click()
+    })
+    expect(document.querySelector('.cos-delete-also')).toBeNull()
+  })
+})
+
+describe('on a computer', () => {
+  let host: HTMLDivElement
+  let root: Root
+
+  beforeEach(() => {
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    mocks.api.mockReset()
+    Element.prototype.scrollIntoView = vi.fn()
+    mocks.api.mockImplementation((path: string) => {
+      if (path === '/conversations/10') return Promise.resolve(thread())
+      if (path === '/conversations/10/messages') return Promise.resolve([message(1, SARA, 'hi')])
+      return Promise.resolve(undefined)
+    })
+  })
+
+  afterEach(() => {
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  function mouse(type: string, button = 0) {
+    const event = new MouseEvent(type, { bubbles: true, cancelable: true, button })
+    Object.defineProperty(event, 'pointerType', { value: 'mouse' })
+    return event
+  }
+
+  it('leaves a left click alone, so text can be selected', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/conversations/10']}>
+          <Routes>
+            <Route path="/conversations/:id" element={<Conversation />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    })
+    await act(async () => {})
+    await act(async () => {})
+    const bubble = host.querySelector('.cos-bubble') as HTMLElement
+
+    await act(async () => {
+      bubble.dispatchEvent(mouse('pointerdown'))
+      bubble.dispatchEvent(mouse('pointerup'))
+      bubble.dispatchEvent(mouse('click'))
+    })
+    expect(document.querySelector('.cos-menu')).toBeNull()
+
+    await act(async () => {
+      bubble.dispatchEvent(mouse('contextmenu', 2))
+    })
+    expect(document.querySelector('.cos-menu')).not.toBeNull()
+  })
+})

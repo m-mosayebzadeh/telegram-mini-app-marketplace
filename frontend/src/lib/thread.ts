@@ -1,4 +1,4 @@
-import type { ConversationMessage } from './conversationApi'
+import type { ConversationMessage, Reaction } from './conversationApi'
 
 /**
  * The list of messages on screen, and the few rules about keeping it
@@ -59,6 +59,43 @@ export function withWaiting(fromServer: ConversationMessage[], shown: ShownMessa
   const known = new Set(fromServer.map((message) => message.client_id).filter(Boolean))
   const waiting = shown.filter((message) => message.pending && !known.has(message.client_id))
   return [...fromServer, ...waiting]
+}
+
+/** A changed message in place. Unlike placeMessage it never adds: an edit
+ *  of a message this screen does not have (hidden, or cleared) stays
+ *  unseen. */
+export function replaceMessage(list: ShownMessage[], changed: ConversationMessage): ShownMessage[] {
+  return list.map((shown) => (shown.id === changed.id ? { ...changed, localUrl: shown.localUrl } : shown))
+}
+
+export function withoutMessages(list: ShownMessage[], ids: number[]): ShownMessage[] {
+  const gone = new Set(ids)
+  return list.filter((shown) => !gone.has(shown.id))
+}
+
+export function withReactions(list: ShownMessage[], messageId: number, reactions: Reaction[]): ShownMessage[] {
+  return list.map((shown) => (shown.id === messageId ? { ...shown, reactions } : shown))
+}
+
+/** Reactions gathered for display: each emoji once, with how many chose
+ *  it and whether you are one of them, in the order they first appeared. */
+export function tallyReactions(
+  reactions: Reaction[] | undefined,
+  me: number | undefined,
+): { emoji: string; count: number; mine: boolean }[] {
+  const tally = new Map<string, { emoji: string; count: number; mine: boolean }>()
+  for (const reaction of reactions ?? []) {
+    const entry = tally.get(reaction.emoji) ?? { emoji: reaction.emoji, count: 0, mine: false }
+    entry.count += 1
+    entry.mine = entry.mine || reaction.user_id === me
+    tally.set(reaction.emoji, entry)
+  }
+  return [...tally.values()]
+}
+
+/** Your own reaction on a message, if any. */
+export function myReaction(message: ShownMessage, me: number | undefined): string | null {
+  return message.reactions?.find((reaction) => reaction.user_id === me)?.emoji ?? null
 }
 
 /** Where one of your own messages has got to. */

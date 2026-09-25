@@ -751,13 +751,39 @@
     "cancel": "Cancel",
     "openPhoto": "Open photo",
     "noMicrophone": "Microphone access was not allowed.",
-    "paymentWarning": "If you pay outside the app, we can't get it back. To pay safely, use an offer in the app.",
+    "paymentWarning": "Careful: money paid outside the app can't be traced or returned.",
     "report": "Report",
     "reported": "Reported",
     "microphoneUnavailable": "Voice recording isn't available on this page. Open the app from a secure (https) address.",
     "sending": "Sending",
     "sent": "Sent",
-    "seen": "Seen"
+    "seen": "Seen",
+    "actions": {
+      "reply": "Reply",
+      "copy": "Copy",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "selected_one": "{{count}} message",
+    "selected_other": "{{count}} messages",
+    "kinds": {
+      "text": "Message",
+      "photo": "Photo",
+      "voice": "Voice message",
+      "video": "Video"
+    },
+    "edited": "edited",
+    "copied": "Copied",
+    "editing": "Editing message",
+    "replyingTo": "Reply to {{name}}",
+    "delete": {
+      "title_one": "Delete message",
+      "title_other": "Delete {{count}} messages",
+      "sure_one": "Are you sure you want to delete this message?",
+      "sure_other": "Are you sure you want to delete these {{count}} messages?",
+      "alsoFor": "Also delete for {{name}}",
+      "confirm": "Delete"
+    }
   },
   "report": {
     "title": "Report {{name}}",
@@ -779,5 +805,18 @@
     "pause": "Pause",
     "position": "Position",
     "speed": "Playback speed"
+  },
+  "emoji": {
+    "all": "All emoji",
+    "groups": {
+      "faces": "Faces",
+      "hands": "Hands and people",
+      "hearts": "Hearts",
+      "nature": "Nature",
+      "food": "Food and drink",
+      "activity": "Activities and travel",
+      "things": "Objects and symbols"
+    },
+    "retry": "Didn't load — try again"
   }
 }

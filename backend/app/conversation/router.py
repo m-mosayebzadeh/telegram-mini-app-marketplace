@@ -13,6 +13,7 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -35,7 +36,21 @@ from app.conversation.service import (
 )
 from app.core.database import get_db
 from app.core.time import utcnow
-from app.live.events import announce_message, announce_read
+from app.chat_message.actions import (
+    MAX_DELETE_AT_ONCE,
+    delete_messages,
+    edit_text,
+    message_in,
+    messages_out,
+    set_reaction,
+)
+from app.live.events import (
+    announce_deleted,
+    announce_edited,
+    announce_message,
+    announce_reactions,
+    announce_read,
+)
 from app.models.block import Block
 from app.models.chat_message import ChatMessage, ChatMessageType
 from app.models.conversation import (
@@ -121,7 +136,11 @@ def serialize(
 
     last_message = db.scalar(
         select(ChatMessage)
-        .where(ChatMessage.conversation_id == conversation.id)
+        .where(
+            ChatMessage.conversation_id == conversation.id,
+            # A message deleted for everyone must not live on as the preview.
+            ChatMessage.deleted_at.is_(None),
+        )
         .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
         .limit(1)
     )
@@ -275,9 +294,9 @@ def list_messages(
     conversation_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[ChatMessage]:
+) -> list[ChatMessageOut]:
     _participant_or_404(db, conversation_id, current_user.id)
-    return list_conversation_messages(db, conversation_id, current_user.id)
+    return messages_out(db, list_conversation_messages(db, conversation_id, current_user.id))
 
 
 @router.post(
@@ -292,9 +311,10 @@ def send_message(
     duration_seconds: int | None = Form(None),
     file: UploadFile | None = File(None),
     client_id: str | None = Form(None, max_length=64),
+    reply_to_id: int | None = Form(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> ChatMessage:
+) -> ChatMessageOut:
     """Says something in a thread.
 
     `client_id` makes sending safe to repeat: the same one twice from the
@@ -312,7 +332,13 @@ def send_message(
     if client_id:
         already = _already_sent(db, current_user.id, client_id)
         if already is not None:
-            return already
+            return messages_out(db, [already])[0]
+
+    if reply_to_id is not None:
+        # Only a message of this same thread, and one still there: a reply
+        # pointing into another conversation would leak its text through
+        # the quote.
+        message_in(db, conversation.id, reply_to_id)
 
     if conversation.kind == CONVERSATION_DIRECT:
         other_user_id = conversation.other_user_id(current_user.id)
@@ -339,6 +365,7 @@ def send_message(
         file=file,
     )
     message.client_id = client_id
+    message.reply_to_id = reply_to_id
     try:
         # Inside a savepoint so that losing a race with an identical retry
         # (both passed the check above at once) undoes only this insert.
@@ -349,7 +376,7 @@ def send_message(
         already = _already_sent(db, current_user.id, client_id) if client_id else None
         if already is None:
             raise
-        return already
+        return messages_out(db, [already])[0]
 
     touch(conversation, message.created_at)
     # Writing brings the thread back for the sender; their own message is
@@ -360,8 +387,82 @@ def send_message(
 
     db.commit()
     db.refresh(message)
-    announce_message(conversation, message)
-    return message
+    announce_message(db, conversation, message)
+    return messages_out(db, [message])[0]
+
+
+class EditIn(BaseModel):
+    text: str
+
+
+@router.patch("/{conversation_id}/messages/{message_id}", response_model=ChatMessageOut)
+def edit_message(
+    conversation_id: int,
+    message_id: int,
+    body: EditIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatMessageOut:
+    """Changes the text of your own message. The earlier text is kept for
+    staff (app/chat_message/actions.py, edit_text)."""
+    conversation, _ = _participant_or_404(db, conversation_id, current_user.id)
+    message = message_in(db, conversation.id, message_id)
+    db.add(edit_text(conversation, message, current_user.id, body.text))
+    db.commit()
+    db.refresh(message)
+    announce_edited(db, conversation, message)
+    return messages_out(db, [message])[0]
+
+
+class DeleteIn(BaseModel):
+    message_ids: list[int] = Field(min_length=1, max_length=MAX_DELETE_AT_ONCE)
+    #: Also remove them for the other person. Honoured only for your own
+    #: messages, and in a paid session only while they are still open.
+    for_everyone: bool = False
+
+
+class DeleteOut(BaseModel):
+    for_everyone: list[int]
+    only_for_me: list[int]
+
+
+@router.post("/{conversation_id}/messages/delete", response_model=DeleteOut)
+def delete_messages_route(
+    conversation_id: int,
+    body: DeleteIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DeleteOut:
+    """Deletes one or many messages at once — a single tap in the menu and
+    a whole selection are the same request."""
+    conversation, _ = _participant_or_404(db, conversation_id, current_user.id)
+    everyone, only_me = delete_messages(
+        db, conversation, current_user.id, body.message_ids, body.for_everyone
+    )
+    db.commit()
+    announce_deleted(conversation, everyone, only_for=None)
+    announce_deleted(conversation, only_me, only_for=current_user.id)
+    return DeleteOut(for_everyone=everyone, only_for_me=only_me)
+
+
+class ReactionIn(BaseModel):
+    #: The emoji, or null to take your reaction back.
+    emoji: str | None
+
+
+@router.put("/{conversation_id}/messages/{message_id}/reaction", status_code=status.HTTP_204_NO_CONTENT)
+def react(
+    conversation_id: int,
+    message_id: int,
+    body: ReactionIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    conversation, _ = _participant_or_404(db, conversation_id, current_user.id)
+    message = message_in(db, conversation.id, message_id)
+    set_reaction(db, message, current_user.id, body.emoji)
+    db.commit()
+    announce_reactions(db, conversation, message.id)
 
 
 def _already_sent(db: Session, sender_id: int, client_id: str) -> ChatMessage | None:

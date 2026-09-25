@@ -1,5 +1,5 @@
 import { getInitData } from './api'
-import type { ConversationMessage } from './conversationApi'
+import type { ConversationMessage, Reaction } from './conversationApi'
 
 /**
  * The live connection: how the server tells this phone that something
@@ -22,6 +22,9 @@ export type LiveEvent =
   | { type: 'ready'; resumed: boolean }
   | { type: 'message'; conversation_id: number; message: ConversationMessage }
   | { type: 'read'; conversation_id: number; user_id: number; read_at: string }
+  | { type: 'edited'; conversation_id: number; message: ConversationMessage }
+  | { type: 'deleted'; conversation_id: number; message_ids: number[] }
+  | { type: 'reactions'; conversation_id: number; message_id: number; reactions: Reaction[] }
 
 type Listener = (event: LiveEvent) => void
 
@@ -114,30 +117,77 @@ async function connect() {
       attempt = 0
       const resumed = everConnected
       everConnected = true
-      pingTimer = window.setInterval(() => {
-        opened.send(JSON.stringify({ type: 'ping' }))
-        window.clearTimeout(pongTimer)
-        pongTimer = window.setTimeout(() => opened.close(), PONG_WITHIN_MS)
-      }, PING_EVERY_MS)
+      pingTimer = window.setInterval(() => ping(opened, PONG_WITHIN_MS), PING_EVERY_MS)
       emit({ type: 'ready', resumed })
       return
     }
     emit(event as LiveEvent)
   }
 
-  opened.onclose = () => {
-    clearTimers()
-    if (socket === opened) socket = null
-    if (listeners.size === 0) return
-    retryTimer = window.setTimeout(() => void connect(), backoffMs(attempt))
-    attempt += 1
-  }
+  opened.onclose = () => drop(opened)
 }
 
-/** Try again now rather than waiting out the backoff: the network is
- *  back, or the person has just returned to the app. */
+/**
+ * Asks the line whether it is alive, and gives up on it if no answer
+ * comes within `within`.
+ */
+function ping(opened: WebSocket, within: number) {
+  try {
+    opened.send(JSON.stringify({ type: 'ping' }))
+  } catch {
+    drop(opened)
+    return
+  }
+  window.clearTimeout(pongTimer)
+  pongTimer = window.setTimeout(() => drop(opened), within)
+}
+
+/**
+ * Stops using a connection at once and starts on a new one.
+ *
+ * Not the same as closing it and waiting to be told it closed. A line
+ * that died without a word — the network under it switched off — is
+ * "closed" by the browser only after it gives up waiting for the other
+ * end, which can take a minute or more. Waiting for that was the minute in
+ * which messages and read receipts silently stopped arriving. So the old
+ * socket is cut loose here and left to finish closing on its own time.
+ */
+function drop(opened: WebSocket) {
+  if (socket !== opened) return
+  opened.onclose = null
+  opened.onmessage = null
+  try {
+    opened.close()
+  } catch {
+    // Already closed.
+  }
+  clearTimers()
+  socket = null
+  if (listeners.size === 0) return
+  window.clearTimeout(retryTimer)
+  retryTimer = window.setTimeout(() => void connect(), backoffMs(attempt))
+  attempt += 1
+}
+
+/** How long to wait for an answer when checking on purpose — the network
+ *  just came back, or the person just returned to the app. Short, because
+ *  those are exactly the moments a dead line is most likely and most
+ *  noticed. */
+const CHECK_WITHIN_MS = 4000
+
+/**
+ * The network is back, or the person has just returned to the app.
+ *
+ * With no connection, try again now rather than waiting out the backoff.
+ * With one, do not trust it: a phone that was asleep or lost its network
+ * often still holds a socket that looks open and is dead. Ask it, briefly.
+ */
 function reconnectNow() {
-  if (socket || listeners.size === 0) return
+  if (listeners.size === 0) return
+  if (socket) {
+    if (socket.readyState === WebSocket.OPEN) ping(socket, CHECK_WITHIN_MS)
+    return
+  }
   attempt = 0
   void connect()
 }

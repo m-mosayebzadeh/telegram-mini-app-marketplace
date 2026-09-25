@@ -10,15 +10,27 @@ import { subscribe } from '../lib/live'
 import {
   deliveryOf,
   laterOf,
+  myReaction,
   newClientId,
   placeMessage,
+  replaceMessage,
+  tallyReactions,
+  withoutMessages,
+  withReactions,
   withWaiting,
   type Delivery,
   type ShownMessage,
 } from '../lib/thread'
+import { recordEmojiUse } from '../lib/emoji'
+import { useHold } from '../lib/useHold'
+import { MessageMenu, type MessageAction } from '../components/cosmos/MessageMenu'
+import { DeleteDialog } from '../components/cosmos/DeleteDialog'
+import { EmojiPanel } from '../components/cosmos/EmojiPanel'
 import { useMe } from '../lib/MeContext'
 import { canRecordVoice, startVoiceRecording, type VoiceSession } from '../lib/voiceRecorder'
 import {
+  deleteMessages,
+  editMessage,
   fetchConversation,
   fetchMessageFile,
   fetchMessages,
@@ -27,6 +39,7 @@ import {
   sendPhoto,
   sendText,
   sendVoice,
+  setReaction,
   type Conversation as Thread,
   type ConversationMessage,
 } from '../lib/conversationApi'
@@ -77,6 +90,19 @@ export default function Conversation() {
   const [viewing, setViewing] = useState<string | null>(null)
   const [reporting, setReporting] = useState(false)
   const [reported, setReported] = useState(false)
+
+  /** The message whose menu is open, and where it sits on screen. */
+  const [menuFor, setMenuFor] = useState<{ message: ShownMessage; rect: DOMRect } | null>(null)
+  /** Messages picked by holding one. Empty means not selecting. */
+  const [selected, setSelected] = useState<Set<number>>(() => new Set())
+  const [replyingTo, setReplyingTo] = useState<ShownMessage | null>(null)
+  const [editing, setEditing] = useState<ShownMessage | null>(null)
+  /** Messages waiting on the delete dialog's answer. */
+  const [deleting, setDeleting] = useState<number[] | null>(null)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  /** A short confirmation, like "copied". */
+  const [notice, setNotice] = useState<string | null>(null)
+  const noticeTimer = useRef<number | undefined>(undefined)
 
   const endRef = useRef<HTMLDivElement>(null)
   const fieldRef = useRef<HTMLTextAreaElement>(null)
@@ -228,10 +254,168 @@ export default function Conversation() {
 
   function sendDraft() {
     const text = draft.trim()
-    if (!text) return
+    if (!text || !thread) return
     setDraft('')
-    enqueue({ type: 'text', text }, (threadId, clientId) => sendText(threadId, text, clientId))
+    setEmojiOpen(false)
+
+    if (editing) {
+      const target = editing
+      setEditing(null)
+      if (text === target.text) return
+      // Shown at once; the server's answer (and the live event) confirm it.
+      setMessages((current) =>
+        replaceMessage(current, { ...target, text, edited_at: new Date().toISOString() }),
+      )
+      editMessage(thread.id, target.id, text)
+        .then((saved) => setMessages((current) => replaceMessage(current, saved)))
+        .catch((err) => {
+          setMessages((current) => replaceMessage(current, target))
+          setError(formatApiError(err))
+        })
+      return
+    }
+
+    const answering = replyingTo
+    setReplyingTo(null)
+    enqueue(
+      {
+        type: 'text',
+        text,
+        reply_to_id: answering?.id ?? null,
+        reply_to: answering
+          ? { id: answering.id, sender_id: answering.sender_id, type: answering.type, text: answering.text }
+          : null,
+      },
+      (threadId, clientId) => sendText(threadId, text, clientId, answering?.id),
+    )
   }
+
+  /**
+   * Whether a paid session's rule has closed this message to change
+   * (TECHNICAL_REQUIREMENTS.md 24.1): read by the other side, or older
+   * than a few minutes. The server decides for real; this only keeps the
+   * app from offering what the server would refuse.
+   */
+  function lockedBySession(message: ShownMessage): boolean {
+    if (message.chat_session_id == null) return false
+    if (Date.now() - Date.parse(message.created_at) > PAID_GRACE_MS) return true
+    return deliveryOf(message, othersReadAt) === 'seen'
+  }
+
+  const isMine = (message: ShownMessage) => message.sender_id === me?.id
+  /** A person's name as the thread shows it. Your own name too, never
+   *  "you" — the owner's choice, so a quote reads the same to both sides. */
+  const nameOf = (userId: number) =>
+    userId === me?.id
+      ? (me?.display_name ?? '')
+      : (thread?.others.find((person) => person.user_id === userId)?.display_name ?? '')
+  const canEdit = (message: ShownMessage) =>
+    isMine(message) && message.type === 'text' && !message.pending && !lockedBySession(message)
+
+  /** The actions a message's menu offers, in Telegram's order. */
+  function actionsFor(message: ShownMessage): MessageAction[] {
+    const actions: MessageAction[] = []
+    if (!message.pending) actions.push('reply')
+    if (message.type === 'text') actions.push('copy')
+    if (canEdit(message)) actions.push('edit')
+    if (!message.pending) actions.push('delete')
+    return actions
+  }
+
+  function flash(text: string) {
+    setNotice(text)
+    window.clearTimeout(noticeTimer.current)
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 1800)
+  }
+
+  async function copyMessages(ids: number[]) {
+    const text = messages
+      .filter((message) => ids.includes(message.id) && message.type === 'text')
+      .map((message) => message.text)
+      .join('\n\n')
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // The clipboard API exists only on secure pages. The old way still
+      // works everywhere else.
+      const scratch = document.createElement('textarea')
+      scratch.value = text
+      document.body.appendChild(scratch)
+      scratch.select()
+      document.execCommand('copy')
+      scratch.remove()
+    }
+    flash(t('talk.copied'))
+  }
+
+  function startEdit(message: ShownMessage) {
+    setReplyingTo(null)
+    setEditing(message)
+    setDraft(message.text ?? '')
+    fieldRef.current?.focus()
+  }
+
+  function startReply(message: ShownMessage) {
+    setEditing(null)
+    setReplyingTo(message)
+    fieldRef.current?.focus()
+  }
+
+  /** Tapping the reaction you already gave takes it back, as in Telegram. */
+  function react(message: ShownMessage, emoji: string) {
+    if (!thread || !me) return
+    const next = myReaction(message, me.id) === emoji ? null : emoji
+    if (next) recordEmojiUse(next)
+    const others = (message.reactions ?? []).filter((reaction) => reaction.user_id !== me.id)
+    const reactions = next ? [...others, { user_id: me.id, emoji: next }] : others
+    setMessages((current) => withReactions(current, message.id, reactions))
+    setReaction(thread.id, message.id, next).catch((err) => {
+      setMessages((current) => withReactions(current, message.id, message.reactions ?? []))
+      setError(formatApiError(err))
+    })
+  }
+
+  function confirmDelete(forEveryone: boolean) {
+    const ids = deleting ?? []
+    setDeleting(null)
+    setSelected(new Set())
+    if (!thread || ids.length === 0) return
+    const before = messages
+    setMessages((current) => withoutMessages(current, ids))
+    deleteMessages(thread.id, ids, forEveryone).catch((err) => {
+      setMessages(before)
+      setError(formatApiError(err))
+    })
+  }
+
+  function toggleSelected(message: ShownMessage) {
+    if (message.pending) return
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(message.id)) next.delete(message.id)
+      else next.add(message.id)
+      return next
+    })
+  }
+
+  function openMenu(message: ShownMessage, row: HTMLElement) {
+    const bubble = row.querySelector('.cos-bubble') ?? row
+    setMenuFor({ message, rect: bubble.getBoundingClientRect() })
+  }
+
+  /** Jumps to the message a reply quotes, and marks it for a moment so the
+   *  eye finds it. */
+  function showOriginal(id: number) {
+    const row = document.getElementById(`message-${id}`)
+    if (!row) return
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    row.classList.add('is-found')
+    window.setTimeout(() => row.classList.remove('is-found'), 1400)
+  }
+
+  const selectedMessages = messages.filter((message) => selected.has(message.id))
+  const selecting = selected.size > 0
 
   /** The live connection: their messages as they are written, and how far
    *  they have read. */
@@ -246,6 +430,10 @@ export default function Conversation() {
             .then(([fresh, found]) => {
               setMessages((current) => withWaiting(fresh, current))
               setOthersReadAt((current) => laterOf(current, found.others_read_at))
+              // What arrived while the line was down has now been seen, if
+              // the screen is in front of somebody; without this their
+              // messages stayed at one tick after the reconnect.
+              if (document.visibilityState === 'visible') markRead(threadId).catch(() => {})
             })
             .catch(() => {})
         }
@@ -262,6 +450,18 @@ export default function Conversation() {
         }
       } else if (event.type === 'read') {
         setOthersReadAt((current) => laterOf(current, event.read_at))
+      } else if (event.type === 'edited') {
+        setMessages((current) => replaceMessage(current, event.message))
+      } else if (event.type === 'deleted') {
+        setMessages((current) => withoutMessages(current, event.message_ids))
+        // A message that just vanished cannot stay selected or quoted.
+        setSelected((current) => {
+          const next = new Set(current)
+          for (const gone of event.message_ids) next.delete(gone)
+          return next
+        })
+      } else if (event.type === 'reactions') {
+        setMessages((current) => withReactions(current, event.message_id, event.reactions))
       }
     })
     // flush reads only refs, so it need not be a dependency.
@@ -363,7 +563,57 @@ export default function Conversation() {
     <div className="cos-screen cos-talk">
       <SpaceGround />
 
-      <header className="cos-talk-head">
+      {selecting && (
+        // Takes the header's place while selecting: what is picked, and what
+        // can be done with all of it at once. Edit only for a single message
+        // of your own; copy only when everything picked is text.
+        <header className="cos-talk-head cos-select-bar">
+          <button className="cos-talk-back" onClick={() => setSelected(new Set())} aria-label={t('common.cancel')}>
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span className="cos-select-count">{t('talk.selected', { count: selected.size })}</span>
+          <span className="cos-select-actions">
+            {selectedMessages.length === 1 && canEdit(selectedMessages[0]) && (
+              <button
+                className="cos-talk-tool"
+                aria-label={t('talk.actions.edit')}
+                onClick={() => {
+                  startEdit(selectedMessages[0])
+                  setSelected(new Set())
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+                  <path d="m14.5 5.5 4 4L8 20H4v-4L14.5 5.5Z" />
+                </svg>
+              </button>
+            )}
+            {selectedMessages.every((message) => message.type === 'text') && (
+              <button
+                className="cos-talk-tool"
+                aria-label={t('talk.actions.copy')}
+                onClick={() => {
+                  void copyMessages([...selected])
+                  setSelected(new Set())
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="8" y="8" width="11" height="12" rx="2.2" />
+                  <path d="M5 15.5V6.2C5 5 6 4 7.2 4h7.3" />
+                </svg>
+              </button>
+            )}
+            <button className="cos-talk-tool is-danger" aria-label={t('talk.actions.delete')} onClick={() => setDeleting([...selected])}>
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2h9.2L17.5 7M10.2 10.5v5.5M13.8 10.5v5.5" />
+              </svg>
+            </button>
+          </span>
+        </header>
+      )}
+
+      <header className="cos-talk-head" hidden={selecting}>
         <button className="cos-talk-back" onClick={() => navigate(-1)} aria-label={t('talk.back')}>
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path
@@ -388,8 +638,33 @@ export default function Conversation() {
           // Keyed by the phone's own name where there is one, so a bubble
           // does not rebuild itself (and reload its photo) at the moment
           // its clock turns into a tick.
-          <div className="cos-talk-row" key={message.client_id ?? message.id}>
-            <div className={`cos-bubble${message.sender_id === me?.id ? ' is-mine' : ''}`}>
+          <MessageRow
+            key={message.client_id ?? message.id}
+            id={message.pending ? undefined : `message-${message.id}`}
+            mine={isMine(message)}
+            selecting={selecting}
+            selected={selected.has(message.id)}
+            onTap={(row) => (selecting ? toggleSelected(message) : openMenu(message, row))}
+            onHold={() => toggleSelected(message)}
+          >
+            <div className={`cos-bubble${isMine(message) ? ' is-mine' : ''}`}>
+              {message.reply_to && (
+                <button
+                  className="cos-bubble-quote"
+                  onClick={() => showOriginal(message.reply_to!.id)}
+                  data-control
+                >
+                  <span className="cos-bubble-quote-who">
+                    {nameOf(message.reply_to.sender_id)}
+                  </span>
+                  <span className="cos-bubble-quote-text">
+                    {message.reply_to.type === 'text'
+                      ? message.reply_to.text
+                      : t(`talk.kinds.${message.reply_to.type}`)}
+                  </span>
+                </button>
+              )}
+
               {message.type === 'text' && message.text}
 
               {message.type === 'photo' && thread && (
@@ -397,7 +672,7 @@ export default function Conversation() {
                   conversationId={thread.id}
                   messageId={message.id}
                   localUrl={message.localUrl}
-                  onOpen={setViewing}
+                  onOpen={selecting ? () => {} : setViewing}
                 />
               )}
 
@@ -412,6 +687,7 @@ export default function Conversation() {
               )}
 
               <span className="cos-bubble-time">
+                {message.edited_at && <span className="cos-bubble-edited">{t('talk.edited')}</span>}
                 {new Date(message.created_at).toLocaleTimeString(i18n.language, {
                   hour: '2-digit',
                   minute: '2-digit',
@@ -419,6 +695,23 @@ export default function Conversation() {
                 {message.sender_id === me?.id && <Ticks delivery={deliveryOf(message, othersReadAt)} />}
               </span>
             </div>
+
+            {(message.reactions?.length ?? 0) > 0 && (
+              <div className={`cos-reactions${isMine(message) ? ' is-mine' : ''}`}>
+                {tallyReactions(message.reactions, me?.id).map((reaction) => (
+                  <button
+                    key={reaction.emoji}
+                    className={`cos-reaction${reaction.mine ? ' is-mine' : ''}`}
+                    onClick={() => react(message, reaction.emoji)}
+                    aria-pressed={reaction.mine}
+                    data-control
+                  >
+                    {reaction.emoji}
+                    {reaction.count > 1 && <span className="cos-reaction-count">{reaction.count.toLocaleString(i18n.language)}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {message.id === firstFlagged && (
               <PaymentWarning
@@ -429,15 +722,88 @@ export default function Conversation() {
                 onReport={() => setReporting(true)}
               />
             )}
-          </div>
+          </MessageRow>
         ))}
         <div ref={endRef} />
       </div>
 
       {error && thread && <p className="cos-talk-error">{error}</p>}
+      {notice && (
+        <p className="cos-talk-notice" role="status">
+          {notice}
+        </p>
+      )}
+
+      {(replyingTo || editing) && (
+        // What the next send will do, above the box, with a way out. Without
+        // it a reply looks like an ordinary message until it is too late.
+        <div className="cos-talk-context">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            {editing ? <path d="m14.5 5.5 4 4L8 20H4v-4L14.5 5.5Z" /> : <path d="M10 6 4 12l6 6M4 12h10a6 6 0 0 1 6 6" />}
+          </svg>
+          <span className="cos-talk-context-body">
+            <span className="cos-talk-context-title">
+              {editing
+                ? t('talk.editing')
+                : t('talk.replyingTo', {
+                    name: nameOf(replyingTo!.sender_id),
+                  })}
+            </span>
+            <span className="cos-talk-context-text">
+              {(editing ?? replyingTo)!.type === 'text'
+                ? (editing ?? replyingTo)!.text
+                : t(`talk.kinds.${(editing ?? replyingTo)!.type}`)}
+            </span>
+          </span>
+          <button
+            className="cos-talk-tool"
+            aria-label={t('common.cancel')}
+            onClick={() => {
+              if (editing) setDraft('')
+              setEditing(null)
+              setReplyingTo(null)
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+      )}
+
+      {emojiOpen && (
+        <EmojiPanel
+          className="is-docked"
+          onPick={(emoji) => {
+            // Into the text where the cursor is, not always at the end.
+            const field = fieldRef.current
+            const at = field?.selectionStart ?? draft.length
+            const until = field?.selectionEnd ?? at
+            setDraft(draft.slice(0, at) + emoji + draft.slice(until))
+            requestAnimationFrame(() => {
+              field?.focus()
+              field?.setSelectionRange(at + emoji.length, at + emoji.length)
+            })
+          }}
+        />
+      )}
 
       <div className="cos-talk-say">
-        {can('photo') && !recording && (
+        {!recording && (
+          <button
+            className={`cos-talk-tool${emojiOpen ? ' is-on' : ''}`}
+            onClick={() => setEmojiOpen((open) => !open)}
+            aria-label={t('emoji.all')}
+            aria-expanded={emojiOpen}
+          >
+            <svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <circle cx="12" cy="12" r="8.5" />
+              <path d="M8.6 14.2a4.2 4.2 0 0 0 6.8 0" />
+              <path d="M9.3 9.6v.2M14.7 9.6v.2" strokeWidth="2" />
+            </svg>
+          </button>
+        )}
+        {can('photo') && !recording && !editing && (
           <>
             <button
               className="cos-talk-tool"
@@ -533,6 +899,45 @@ export default function Conversation() {
       </div>
 
       {viewing && <MediaViewer url={viewing} kind="photo" onClose={() => setViewing(null)} />}
+
+      {menuFor && (
+        <MessageMenu
+          anchor={menuFor.rect}
+          mine={isMine(menuFor.message)}
+          actions={actionsFor(menuFor.message)}
+          chosen={myReaction(menuFor.message, me?.id)}
+          onClose={() => setMenuFor(null)}
+          onReact={(emoji) => {
+            if (!menuFor.message.pending) react(menuFor.message, emoji)
+            setMenuFor(null)
+          }}
+          onAction={(action) => {
+            const message = menuFor.message
+            setMenuFor(null)
+            if (action === 'reply') startReply(message)
+            else if (action === 'copy') void copyMessages([message.id])
+            else if (action === 'edit') startEdit(message)
+            else setDeleting([message.id])
+          }}
+        />
+      )}
+
+      {deleting && (
+        <DeleteDialog
+          count={deleting.length}
+          // "Also for Sara" only when every message is yours and still
+          // open; anybody else's can only ever leave your own view.
+          alsoFor={
+            messages
+              .filter((message) => deleting.includes(message.id))
+              .every((message) => isMine(message) && !lockedBySession(message))
+              ? (other?.display_name ?? null)
+              : null
+          }
+          onCancel={() => setDeleting(null)}
+          onConfirm={confirmDelete}
+        />
+      )}
 
       {reporting && other && (
         <ReportSheet
@@ -716,6 +1121,65 @@ function MicIcon() {
       <rect x="9" y="3.5" width="6" height="11" rx="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
       <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v2.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
+  )
+}
+
+/** How long a message written in a paid session stays open to change,
+ *  matching the server's PAID_GRACE (app/chat_message/actions.py). */
+const PAID_GRACE_MS = 3 * 60 * 1000
+
+/**
+ * One message's row: a tap opens its menu (or, while selecting, picks it),
+ * a hold starts selecting with it.
+ *
+ * Taps on the controls inside a bubble — play, a photo, a quote, a reaction
+ * — belong to those controls and are left alone. Holding one still selects
+ * the message, since that is what a held finger means anywhere on it.
+ */
+function MessageRow({
+  id,
+  mine,
+  selecting,
+  selected,
+  onTap,
+  onHold,
+  children,
+}: {
+  id?: string
+  mine: boolean
+  selecting: boolean
+  selected: boolean
+  onTap: (row: HTMLElement) => void
+  onHold: () => void
+  children: React.ReactNode
+}) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  const hold = useHold({
+    onTap: (target, pointerType) => {
+      if (!selecting) {
+        if (target.closest('button, [role="slider"], audio, [data-control]')) return
+        // On a computer a left click does nothing, so it stays free for
+        // selecting a piece of the text to copy; the right button opens
+        // the menu, as in Telegram on the desktop (the owner's decision).
+        // While selecting, a click still picks messages.
+        if (pointerType === 'mouse') return
+      }
+      if (rowRef.current) onTap(rowRef.current)
+    },
+    onHold,
+    onSecondary: () => rowRef.current && onTap(rowRef.current),
+  })
+  return (
+    <div
+      ref={rowRef}
+      id={id}
+      className={`cos-talk-row${mine ? ' is-mine' : ''}${selecting ? ' is-selecting' : ''}${selected ? ' is-selected' : ''}`}
+      aria-selected={selecting ? selected : undefined}
+      {...hold}
+    >
+      {selecting && <span className="cos-select-mark" aria-hidden="true" />}
+      {children}
+    </div>
   )
 }
 

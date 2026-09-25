@@ -96,6 +96,21 @@ class ChatMessage(Base):
     #: is harmless, one phone reusing a name is a retry.
     client_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
+    #: The message this one answers, when it was sent as a reply. Must be in
+    #: the same thread (checked where replies are sent).
+    reply_to_id: Mapped[int | None] = mapped_column(
+        ForeignKey("chat_messages.id"), nullable=True
+    )
+
+    #: When the text was last changed. What it said before is kept in
+    #: message_edits; the people talking only see that it was edited.
+    edited_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    #: When the sender removed it for everyone. The row stays — nothing is
+    #: really deleted (section 24.1) — but nobody in the thread sees it any
+    #: more, and by the owner's decision no trace is left in its place.
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
     __table_args__ = (

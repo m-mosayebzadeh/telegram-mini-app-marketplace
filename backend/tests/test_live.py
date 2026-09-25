@@ -155,3 +155,39 @@ def test_two_people_may_choose_the_same_name(client, db_session):
     a = client.post(f"/conversations/{thread}/messages", data={"text": "a", "client_id": "same"}, headers=_auth(7022))
     b = client.post(f"/conversations/{thread}/messages", data={"text": "b", "client_id": "same"}, headers=_auth(7023))
     assert a.json()["id"] != b.json()["id"]
+
+
+def test_the_other_person_sees_an_edit_and_a_deletion_live(client, db_session):
+    thread, _ = _pair(client, db_session, 7030, 7031)
+    sent = client.post(f"/conversations/{thread}/messages", data={"text": "helo"}, headers=_auth(7030)).json()
+    socket, live = _connect(client, 7031)
+    try:
+        client.patch(f"/conversations/{thread}/messages/{sent['id']}", json={"text": "hello"}, headers=_auth(7030))
+        edited = live.receive_json()
+        assert edited["type"] == "edited" and edited["message"]["text"] == "hello"
+
+        client.post(
+            f"/conversations/{thread}/messages/delete",
+            json={"message_ids": [sent["id"]], "for_everyone": True},
+            headers=_auth(7030),
+        )
+        deleted = live.receive_json()
+        assert deleted == {"type": "deleted", "conversation_id": thread, "message_ids": [sent["id"]]}
+    finally:
+        socket.__exit__(None, None, None)
+
+
+def test_hiding_a_message_for_yourself_is_not_announced_to_the_other(client, db_session):
+    thread, _ = _pair(client, db_session, 7032, 7033)
+    sent = client.post(f"/conversations/{thread}/messages", data={"text": "x"}, headers=_auth(7032)).json()
+    socket, live = _connect(client, 7033)
+    try:
+        client.post(
+            f"/conversations/{thread}/messages/delete",
+            json={"message_ids": [sent["id"]], "for_everyone": False},
+            headers=_auth(7032),
+        )
+        live.send_json({"type": "ping"})
+        assert live.receive_json() == {"type": "pong"}
+    finally:
+        socket.__exit__(None, None, None)

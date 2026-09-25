@@ -22,6 +22,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.live.events import announce_message
+from app.models.message_actions import HiddenMessage
 from app.auth.dependencies import get_current_user
 from app.chat_session.access import get_participant_session
 from app.conversation.service import touch
@@ -57,7 +58,19 @@ def list_conversation_messages(
     """
     query = (
         db.query(ChatMessage)
-        .filter(ChatMessage.conversation_id == conversation_id)
+        .filter(
+            ChatMessage.conversation_id == conversation_id,
+            # Deleted for everyone: gone from the thread, with no trace left
+            # in its place (the owner's decision), though the row stays.
+            ChatMessage.deleted_at.is_(None),
+            # Deleted by this person for themselves only.
+            ~select(HiddenMessage.message_id)
+            .where(
+                HiddenMessage.user_id == viewer_id,
+                HiddenMessage.message_id == ChatMessage.id,
+            )
+            .exists(),
+        )
         .order_by(ChatMessage.created_at.asc(), ChatMessage.id.asc())
     )
 
@@ -156,7 +169,7 @@ def send_message(
     touch(chat_session.conversation, message.created_at)
     db.commit()
     db.refresh(message)
-    announce_message(chat_session.conversation, message)
+    announce_message(db, chat_session.conversation, message)
     return message
 
 

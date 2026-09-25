@@ -38,6 +38,19 @@ export interface Conversation {
   others_read_at: string | null
 }
 
+/** Enough of an answered message to draw the quote above a reply. */
+export interface ReplyPreview {
+  id: number
+  sender_id: number
+  type: string
+  text: string | null
+}
+
+export interface Reaction {
+  user_id: number
+  emoji: string
+}
+
 export interface ConversationMessage {
   id: number
   conversation_id: number
@@ -56,6 +69,11 @@ export interface ConversationMessage {
    *  lib/thread.ts, newClientId). Lets a confirmed message replace its own
    *  clock-marked copy, and lets a resend be recognised as a resend. */
   client_id: string | null
+  /** When the text was last changed, or null. */
+  edited_at?: string | null
+  reply_to_id?: number | null
+  reply_to?: ReplyPreview | null
+  reactions?: Reaction[]
 }
 
 /** Every thread you are in, most recent first. */
@@ -91,11 +109,17 @@ export function fetchMessages(id: number): Promise<ConversationMessage[]> {
  * file for the message types a paid session unlocks, and one shape for
  * both is one thing to get right instead of two.
  */
-export function sendText(id: number, text: string, clientId: string): Promise<ConversationMessage> {
+export function sendText(
+  id: number,
+  text: string,
+  clientId: string,
+  replyToId?: number | null,
+): Promise<ConversationMessage> {
   const body = new FormData()
   body.append('type', 'text')
   body.append('text', text)
   body.append('client_id', clientId)
+  if (replyToId) body.append('reply_to_id', String(replyToId))
   return apiFetch<ConversationMessage>(`/conversations/${id}/messages`, {
     method: 'POST',
     body,
@@ -142,6 +166,41 @@ export function sendPhoto(id: number, file: File, clientId: string): Promise<Con
   body.append('client_id', clientId)
   body.append('file', file)
   return apiFetch<ConversationMessage>(`/conversations/${id}/messages`, { method: 'POST', body })
+}
+
+/** Changes the text of your own message. The server keeps what it said
+ *  before, for staff; the people talking see "edited". */
+export function editMessage(id: number, messageId: number, text: string): Promise<ConversationMessage> {
+  return apiFetch<ConversationMessage>(`/conversations/${id}/messages/${messageId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ text }),
+  })
+}
+
+/**
+ * Deletes one message or a whole selection in one request.
+ *
+ * `forEveryone` is a wish, not an order: the server honours it only for
+ * your own messages (and, in a paid session, only briefly), and hides the
+ * rest from your view alone. Either way they leave your screen.
+ */
+export function deleteMessages(
+  id: number,
+  messageIds: number[],
+  forEveryone: boolean,
+): Promise<{ for_everyone: number[]; only_for_me: number[] }> {
+  return apiFetch(`/conversations/${id}/messages/delete`, {
+    method: 'POST',
+    body: JSON.stringify({ message_ids: messageIds, for_everyone: forEveryone }),
+  })
+}
+
+/** Sets your reaction, replacing any earlier one; null takes it back. */
+export function setReaction(id: number, messageId: number, emoji: string | null): Promise<void> {
+  return apiFetch<void>(`/conversations/${id}/messages/${messageId}/reaction`, {
+    method: 'PUT',
+    body: JSON.stringify({ emoji }),
+  })
 }
 
 /** The reasons somebody can pick with one tap. Asking to be paid outside
