@@ -1,0 +1,2005 @@
+<title>منطقه‌های Cosmos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;500;600&family=Sora:wght@300;400&display=swap">
+<style>
+/* A prototype of the world's regions, in the project's own visual language
+   (frontend/src/styles/cosmos.css). One deliberate look — a night sky — so
+   there is no light variant, by choice rather than by omission. */
+:root {
+  color-scheme: dark;
+  --ink: #04080a;
+  --deep: #071215;
+  --rise: #0e2025;
+  --fg: #e9f2f0;
+  --fg-soft: rgba(233, 242, 240, .66);
+  --fg-faint: rgba(233, 242, 240, .4);
+  --warm: #f2b06a;
+  --warm-bright: #f6be82;
+  --cool: #7ad7c8;
+  --live: #8ce0a4;
+  --talk: #b69cff;
+  --talk-line: #8fe8ff;
+  --news: #ff4d7d;
+  --echo: #6fa8ff;
+  --me: #f2b06a;
+  --fa: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --en: 'Sora', 'Vazirmatn', system-ui, sans-serif;
+  --quick: .26s;
+  --calm: .44s;
+  --settle: cubic-bezier(.2, .9, .25, 1.04);
+  --pop: cubic-bezier(.2, .9, .3, 1.2);
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: #020405;
+  color: var(--fg);
+  font-family: var(--fa);
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* The phone. Edge to edge on a phone; a phone-shaped window on a desk. */
+.stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 560px) {
+  .stage {
+    width: 410px;
+    height: min(100%, 880px);
+    border-radius: 34px;
+    box-shadow: 0 0 0 1px rgba(122, 215, 200, .12), 0 40px 120px rgba(0, 0, 0, .7);
+  }
+}
+
+#sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---------- regions ---------- */
+.region {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1);
+  transition: opacity .42s ease, transform .6s var(--settle), filter .42s ease;
+}
+.region.on { opacity: 1; pointer-events: auto; }
+.region.leaving { opacity: 0; transform: scale(1.22); filter: blur(10px); pointer-events: none; }
+.region.arriving { transform: scale(.84); opacity: 0; }
+
+.cam { position: absolute; left: 0; top: 0; width: 0; height: 0; will-change: transform; }
+
+/* ---------- the world: people ---------- */
+.orbits { position: absolute; left: 0; top: 0; }
+.orbit {
+  position: absolute;
+  left: 0; top: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(122, 215, 200, .12);
+  transform: translate(-50%, -50%);
+}
+
+.p { position: absolute; left: 0; top: 0; }
+.p-in {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity var(--calm) ease, filter var(--calm) ease;
+  filter: blur(1.4px);
+}
+.p.near .p-in, .p.chosen .p-in { filter: none; }
+.body {
+  position: relative;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--s) * .36);
+  font-weight: 200;
+  color: #f2fbf8;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .34), transparent 56%),
+    linear-gradient(145deg, var(--a), var(--b));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .5), inset -6px -8px 16px rgba(0, 0, 0, .42);
+  transition: transform var(--calm) var(--pop);
+  animation: drift var(--dur) ease-in-out infinite;
+  animation-delay: var(--del);
+}
+.body img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  opacity: 0;
+  filter: blur(7px);
+  transition: opacity .9s ease, filter .9s ease;
+}
+.p.near .body img.here, .p.chosen .body img.here { opacity: .92; filter: none; }
+.body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .22), transparent 50%);
+  box-shadow: inset -5px -7px 14px rgba(0, 0, 0, .35);
+  pointer-events: none;
+}
+.live {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(140, 224, 164, .6);
+  pointer-events: none;
+}
+@keyframes drift {
+  0%, 100% { translate: 0 0; }
+  33% { translate: 4px -5px; }
+  66% { translate: -4px -2px; }
+}
+.nm {
+  position: absolute;
+  top: 100%;
+  margin-top: 5px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--fg-soft);
+  opacity: 0;
+  translate: 0 -4px;
+  transition: opacity var(--calm) ease, translate var(--calm) var(--settle);
+  pointer-events: none;
+}
+.p.near .nm { opacity: 1; translate: 0 0; }
+.p.chosen .nm { opacity: 0; }
+
+/* Somebody new, the first time you see them. */
+.p.arrive .body { animation: arrive 1.6s var(--settle) both, drift var(--dur) ease-in-out infinite 1.6s; }
+.p.arrive .p-in::after {
+  content: 'تازه';
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 6px;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--ink);
+  background: var(--cool);
+}
+@keyframes arrive {
+  0% { transform: scale(0); box-shadow: 0 0 0 0 rgba(122, 215, 200, .8); }
+  60% { transform: scale(1.12); box-shadow: 0 0 40px 12px rgba(122, 215, 200, .5); }
+  100% { transform: scale(1); }
+}
+
+/* Holding somebody: everyone else out of focus, a ring of attention. */
+.region.holding .p:not(.chosen) .p-in { opacity: .28; filter: blur(5px); }
+.p.chosen { z-index: 5; }
+.p.chosen .body { transform: scale(1.5); }
+.p.chosen .p-in::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: calc(var(--s) / 2);
+  width: calc(var(--s) * 1.5 + 44px);
+  height: calc(var(--s) * 1.5 + 44px);
+  border-radius: 50%;
+  border: 1px solid rgba(158, 226, 214, .4);
+  transform: translate(-50%, -50%);
+  animation: close-in var(--calm) var(--settle);
+}
+.p.newsy .p-in::before { border-color: rgba(255, 77, 125, .7); animation: close-in var(--calm) var(--settle), red-pulse 1.6s ease-out infinite; }
+@keyframes close-in { from { opacity: 0; scale: 1.5; } }
+@keyframes red-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 77, 125, .55); }
+  100% { box-shadow: 0 0 0 26px rgba(255, 77, 125, 0); }
+}
+.hold-label {
+  position: absolute;
+  top: calc(var(--s) / 2 + var(--s) * .75 + 34px);
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  animation: rise var(--calm) var(--settle);
+}
+.hold-label b { font-weight: 400; font-size: 17px; }
+.hold-label .say { font-size: 13px; line-height: 1.8; color: var(--fg-soft); }
+.hold-label .flag { font-size: 11px; color: var(--news); }
+@keyframes rise { from { opacity: 0; translate: 0 8px; } }
+
+/* ---------- conversations: illusions and their threads ---------- */
+.you {
+  position: absolute;
+  left: 0; top: 0;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, #fff 0%, #ffe2a6 40%, rgba(255, 190, 110, 0) 72%);
+  box-shadow: 0 0 30px 8px rgba(255, 190, 110, .35);
+}
+.you span {
+  position: absolute;
+  top: 26px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--warm-bright);
+  white-space: nowrap;
+}
+
+.ill { position: absolute; left: 0; top: 0; }
+.ill-in {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: .42;
+  transition: opacity var(--calm) ease;
+}
+.ill.near .ill-in { opacity: 1; }
+/* A projection, not the person: tinted, scan-lined, flickering, with its
+   colour split at the edges. Somebody looking at it should never mistake it
+   for the real body standing in the world. */
+.ghost {
+  position: relative;
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    -2px 0 0 rgba(143, 232, 255, .55),
+    2px 0 0 rgba(200, 162, 255, .55),
+    0 0 26px rgba(182, 156, 255, .35);
+  animation: flicker 4.2s steps(1) infinite;
+  animation-delay: var(--del);
+}
+.ghost img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: grayscale(.7) sepia(.3) hue-rotate(200deg) saturate(1.6) brightness(1.05);
+  opacity: .8;
+}
+.ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(143, 232, 255, .16) 0 1px, transparent 1px 3px),
+    radial-gradient(circle at 50% 30%, rgba(182, 156, 255, .25), rgba(20, 10, 50, .35));
+  mix-blend-mode: screen;
+  animation: scan 3s linear infinite;
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  47% { opacity: .75; }
+  48% { opacity: 1; }
+  83% { opacity: .85; }
+  84% { opacity: 1; }
+}
+@keyframes scan { to { background-position: 0 30px, 0 0; } }
+.unread {
+  position: absolute;
+  top: -3px; right: -3px;
+  min-width: 20px; height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #120a24;
+  background: var(--talk-line);
+  box-shadow: 0 0 12px rgba(143, 232, 255, .8);
+}
+.ill-text {
+  position: absolute;
+  top: 100%;
+  margin-top: 8px;
+  width: 150px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  opacity: 0;
+  transition: opacity var(--calm) ease;
+  pointer-events: none;
+}
+.ill.near .ill-text { opacity: 1; }
+.ill-text b { font-weight: 400; font-size: 13px; color: #efe8ff; }
+.ill-text span { font-size: 11px; line-height: 1.6; color: rgba(214, 200, 255, .75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ill-text i { font-style: normal; font-size: 10px; color: rgba(214, 200, 255, .45); }
+
+#threads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+#stream.scrolling .item, #stream.scrolling .end { transition: none; }
+#threads .thread { transition: opacity .5s ease; }
+#threads .hit { stroke: transparent; stroke-width: 26; fill: none; pointer-events: stroke; cursor: pointer; }
+
+.follow {
+  position: absolute;
+  left: 0; top: 0;
+  width: 44px; height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(143, 232, 255, .28), rgba(143, 232, 255, 0) 70%);
+  color: #dff8ff;
+  font: inherit;
+  font-size: 13px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: opacity .5s ease;
+}
+.follow::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(143, 232, 255, .7);
+  box-shadow: 0 0 14px rgba(143, 232, 255, .6);
+  animation: beckon 1.8s ease-in-out infinite;
+}
+@keyframes beckon { 50% { transform: scale(1.18); opacity: .6; } }
+
+/* ---------- news: the wormhole and the stream ---------- */
+.hole {
+  position: absolute;
+  width: 130px; height: 130px;
+  margin: -65px 0 0 -65px;
+  transform: scaleY(.46);
+  pointer-events: none;
+}
+.hole .swirl {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    rgba(255, 77, 125, 0), rgba(255, 77, 125, .85), rgba(255, 150, 190, 0) 22%,
+    rgba(255, 120, 170, .6), rgba(255, 77, 125, 0) 48%,
+    rgba(255, 77, 125, .8), rgba(255, 190, 210, 0) 74%,
+    rgba(255, 90, 140, .7), rgba(255, 77, 125, 0));
+  filter: blur(5px);
+  animation: spin 3.2s linear infinite;
+}
+.hole .core {
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #000 58%, rgba(255, 77, 125, .9) 70%, rgba(255, 77, 125, 0) 78%);
+}
+.hole.sink .swirl { animation-direction: reverse; animation-duration: 2.4s; opacity: .7; }
+.hole.emit { animation: emit .7s ease-out; }
+.hole.gulp { animation: emit .6s ease-out; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes emit { 40% { filter: brightness(2.2); scale: 1.18; } }
+
+.spine {
+  position: absolute;
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(to bottom, rgba(255, 77, 125, .9), rgba(255, 77, 125, .25));
+  box-shadow: 0 0 12px rgba(255, 77, 125, .55);
+  overflow: hidden;
+}
+.spine::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, #fff, transparent);
+  animation: flow 1.9s linear infinite;
+}
+@keyframes flow { from { top: -60px; } to { top: 100%; } }
+
+.item {
+  position: absolute;
+  left: 16px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 12px 0 14px;
+  border-radius: 16px;
+  background: linear-gradient(to left, rgba(70, 14, 34, .88), rgba(30, 8, 18, .8));
+  border: 1px solid rgba(255, 77, 125, .22);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .45);
+  transition: transform .62s var(--settle), opacity .4s ease;
+  cursor: pointer;
+  touch-action: none;
+}
+.item.fly { transition: transform .78s cubic-bezier(.55, 0, .85, .35), opacity .78s ease; }
+.item.held { transition: none; }
+.item::after {
+  /* where it hangs from the spine */
+  content: '';
+  position: absolute;
+  right: -15px; top: 50%;
+  width: 15px; height: 1px;
+  background: rgba(255, 77, 125, .6);
+}
+.item::before {
+  content: '';
+  position: absolute;
+  right: -20px; top: 50%;
+  width: 9px; height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: var(--news);
+  box-shadow: 0 0 0 0 rgba(255, 77, 125, .6);
+  animation: red-pulse 1.8s ease-out infinite;
+}
+.item .face {
+  flex: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .06);
+}
+.item .face img { width: 100%; height: 100%; object-fit: cover; }
+.item .txt { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.item .txt b { font-weight: 400; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .txt span { font-size: 11px; color: rgba(255, 210, 222, .66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .when { margin-right: auto; flex: none; font-size: 10px; color: rgba(255, 210, 222, .45); }
+.end {
+  position: absolute;
+  left: 16px;
+  font-size: 12px;
+  color: rgba(255, 210, 222, .5);
+  transition: transform .6s var(--settle), opacity .4s ease;
+}
+
+/* ---------- echo and me: atmosphere only ---------- */
+.card {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: min(300px, calc(100% - 40px));
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.card h2 { margin: 0; font-weight: 300; font-size: 26px; }
+.card p { margin: 0; font-size: 13px; line-height: 1.9; color: var(--fg-soft); text-wrap: balance; }
+.card small { font-size: 11px; color: var(--fg-faint); }
+.card .count { font-size: 15px; color: var(--echo); }
+
+.self {
+  position: absolute;
+  left: 50%; top: 38%;
+  width: 116px; height: 116px;
+  margin: -58px 0 0 -58px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 34%, #fff 0%, #ffe9b4 22%, #ffc258 48%, #e9700c 88%);
+  box-shadow: 0 0 40px rgba(255, 190, 110, .7), 0 0 120px rgba(255, 170, 80, .3);
+  animation: breathe 5s ease-in-out infinite;
+}
+@keyframes breathe { 50% { scale: 1.05; box-shadow: 0 0 56px rgba(255, 190, 110, .85), 0 0 150px rgba(255, 170, 80, .38); } }
+.passer {
+  position: absolute;
+  left: 50%; top: 38%;
+  width: 0; height: 0;
+  animation: circle var(--t) linear infinite;
+  animation-delay: var(--d);
+}
+.passer i {
+  position: absolute;
+  left: var(--r); top: -4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #fff3de;
+  box-shadow: 0 0 12px 3px rgba(255, 220, 170, .6);
+}
+.passer b {
+  position: absolute;
+  left: calc(var(--r) - 2px); top: -1px;
+  width: 70px; height: 2px;
+  transform-origin: 0 50%;
+  transform: rotate(-90deg) translateX(-70px);
+  background: linear-gradient(to left, rgba(255, 230, 190, .5), rgba(255, 230, 190, 0));
+  border-radius: 2px;
+}
+@keyframes circle { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ---------- chrome ---------- */
+.top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 9;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+.where { display: flex; flex-direction: column; gap: 2px; transition: opacity .3s ease; }
+.where b { font-weight: 400; font-size: 17px; }
+.where b.en { font-family: var(--en); font-weight: 300; letter-spacing: .02em; }
+.where span { font-size: 12px; color: var(--fg-faint); }
+.toggles { display: flex; gap: 6px; pointer-events: auto; }
+.tg {
+  width: 44px; height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(233, 242, 240, .06);
+  color: var(--fg-faint);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.tg[aria-pressed="true"] { color: var(--warm-bright); background: rgba(242, 176, 106, .12); }
+.tg:focus-visible, .follow:focus-visible, .btn:focus-visible { outline: 2px solid var(--warm-bright); outline-offset: 2px; }
+
+.floor {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 300px;
+  z-index: 8;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 118%, rgba(255, 184, 112, .2), rgba(255, 170, 96, .07) 40%, transparent 70%),
+    linear-gradient(to top, rgba(4, 9, 12, .82), rgba(4, 9, 12, .4) 30%, transparent 62%);
+  transition: opacity .5s ease;
+}
+
+/* ---------- Sol ---------- */
+.sol-area {
+  position: absolute;
+  left: 50%;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  width: 0; height: 0;
+  z-index: 10;
+  transition: opacity .35s ease;
+}
+.sol-area.gone { opacity: 0; pointer-events: none; }
+.veil {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .25s ease;
+  background:
+    radial-gradient(70% 42% at 50% 96%, rgba(255, 188, 118, .22), rgba(255, 176, 104, .07) 46%, transparent 100%),
+    linear-gradient(to top, rgba(4, 9, 12, .9), rgba(4, 9, 12, .78) 30%, rgba(5, 11, 14, .5) 60%, rgba(5, 11, 14, .3));
+}
+.sol-area.open .veil { opacity: 1; }
+.ring {
+  position: absolute;
+  left: 0; top: 0;
+  width: 116px; height: 116px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 206, 146, .3);
+  -webkit-mask: linear-gradient(to top, transparent 6%, #000 44%);
+  mask: linear-gradient(to top, transparent 6%, #000 44%);
+  transition: width var(--calm) var(--settle), height var(--calm) var(--settle), border-color var(--calm) ease;
+  pointer-events: none;
+}
+.sol-area.open .ring { width: 244px; height: 244px; border-color: rgba(255, 214, 162, .5); }
+#beam { position: absolute; left: -190px; top: -190px; width: 380px; height: 380px; overflow: visible; pointer-events: none; }
+
+.sol {
+  position: absolute;
+  left: 0; top: 0;
+  width: 72px; height: 72px;
+  transform: translate(-50%, -50%);
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  isolation: isolate;
+  background: radial-gradient(circle at 43% 37%, #fff 0%, #fffdf6 9%, #ffe9b4 26%, #ffc258 48%, #ff9a1f 70%, #e9700c 88%, #bf5405 100%);
+  box-shadow: 0 0 0 1px rgba(255, 248, 232, .9), 0 0 22px rgba(255, 214, 158, .95), 0 0 56px rgba(255, 172, 78, .58), 0 0 110px rgba(255, 160, 64, .3);
+  transition: scale var(--quick) var(--pop);
+  touch-action: none;
+}
+.sol.held { scale: .88; }
+.sol .plasma, .sol .rim, .sol .corona { position: absolute; border-radius: 50%; pointer-events: none; }
+.sol .corona {
+  inset: -70px;
+  background: radial-gradient(circle, rgba(255, 196, 124, .32) 0%, rgba(255, 176, 100, .12) 38%, transparent 70%);
+  animation: breathe-c 5.5s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes breathe-c { 50% { scale: 1.12; opacity: .8; } }
+.sol .plasma {
+  inset: 0;
+  background:
+    radial-gradient(34% 28% at 32% 32%, rgba(255, 255, 255, .85), transparent),
+    radial-gradient(26% 22% at 68% 60%, rgba(255, 236, 190, .6), transparent);
+  mix-blend-mode: screen;
+  opacity: .5;
+  animation: spin 26s linear infinite;
+}
+.sol .rim {
+  inset: -2px;
+  background: conic-gradient(from 0deg, transparent 0deg 236deg, rgba(255, 240, 212, .55) 296deg, #fff 330deg, rgba(255, 240, 212, .4) 348deg, transparent 360deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 calc(50% - 2.2px), #000 calc(50% - 2.2px) 50%, transparent 50%);
+  mask: radial-gradient(circle, transparent 0 calc(50% - 2.2px), #000 calc(50% - 2.2px) 50%, transparent 50%);
+  animation: spin 7s linear infinite;
+}
+
+/* The places Sol can take you. Each is a tiny piece of its own region —
+   never a sphere, because a sphere here is how a person is drawn. */
+.sat {
+  position: absolute;
+  left: 0; top: 0;
+  width: 76px;
+  margin-left: -38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translate(var(--x), var(--y)) scale(.4);
+  transition: opacity .28s ease, transform .5s var(--settle);
+  pointer-events: none;
+}
+.sol-area.open .sat { opacity: 1; transform: translate(var(--x), var(--y)) scale(1); }
+.sol-area.open .sat.lit { transform: translate(var(--x), var(--y)) scale(1.16); }
+.mini {
+  position: relative;
+  width: 58px; height: 58px;
+  margin-top: -29px;
+  display: grid;
+  place-items: center;
+}
+.mini::before {
+  /* the region's own light, which grows when the beam arrives */
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--c) 0%, transparent 68%);
+  opacity: .22;
+  transition: opacity .25s ease;
+}
+.sat.lit .mini::before { opacity: .6; }
+.sat label {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(240, 247, 245, .95);
+  text-shadow: 0 0 10px #020506, 0 1px 3px #020506;
+  white-space: nowrap;
+}
+.sat.lit label { color: var(--c); }
+.mini svg { width: 58px; height: 58px; overflow: visible; }
+.mini .tremble { animation: tremble .14s steps(2) infinite; }
+@keyframes tremble { 50% { transform: translate(.6px, -.5px); } }
+.mini .mini-hole {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  transform: scaleY(.55);
+  background: conic-gradient(rgba(255, 77, 125, 0), rgba(255, 77, 125, .95), rgba(255, 77, 125, 0) 40%, rgba(255, 140, 180, .8), rgba(255, 77, 125, 0) 80%);
+  animation: spin 2s linear infinite;
+}
+.mini .mini-core { position: absolute; width: 14px; height: 7px; border-radius: 50%; background: #000; box-shadow: 0 0 0 2px rgba(255, 77, 125, .8); }
+.mini .dot { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--echo); box-shadow: 0 0 10px var(--echo); }
+.mini .dot.a { animation: meet-a 3.4s ease-in-out infinite; }
+.mini .dot.b { animation: meet-b 3.4s ease-in-out infinite; }
+@keyframes meet-a { 0%, 100% { transform: translate(-18px, -10px); } 50% { transform: translate(-2px, 0); } 75% { transform: translate(-14px, 12px); } }
+@keyframes meet-b { 0%, 100% { transform: translate(18px, 12px); } 50% { transform: translate(2px, 0); } 25% { transform: translate(12px, -14px); } }
+.mini .gold { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle, #fff, #ffc258 60%, #e9700c); box-shadow: 0 0 16px rgba(255, 190, 110, .8); }
+.mini .gold-ring { position: absolute; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255, 206, 146, .7); animation: breathe 4s ease-in-out infinite; }
+.count-pip {
+  position: absolute;
+  top: 4px; right: 2px;
+  min-width: 18px; height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--news);
+  box-shadow: 0 0 0 0 rgba(255, 77, 125, .6);
+  animation: red-pulse 1.8s ease-out infinite;
+}
+
+/* News, gathered up beside Sol: a small red galaxy with a count. */
+.badge {
+  position: absolute;
+  left: 78px; top: 0;
+  width: 48px; height: 48px;
+  margin: -24px 0 0 -24px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: opacity .3s ease, transform .4s var(--pop);
+}
+.badge .mini-hole { width: 40px; height: 40px; border-radius: 50%; transform: scaleY(.55); background: conic-gradient(rgba(255, 77, 125, 0), rgba(255, 77, 125, .95), rgba(255, 77, 125, 0) 40%, rgba(255, 140, 180, .8), rgba(255, 77, 125, 0) 80%); animation: spin 2.2s linear infinite; }
+.badge .n {
+  position: absolute;
+  min-width: 22px; height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--news);
+  animation: red-pulse 1.8s ease-out infinite;
+}
+.badge.none { opacity: 0; transform: scale(.4); pointer-events: none; }
+.sol-area.open .badge { opacity: 0; pointer-events: none; }
+
+.hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(126px + env(safe-area-inset-bottom, 0px));
+  z-index: 10;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--fg);
+  background: rgba(14, 32, 37, .78);
+  border: 1px solid rgba(233, 242, 240, .1);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity .5s ease;
+  animation: rise .6s var(--settle);
+}
+.hint.gone { opacity: 0; }
+
+/* Holding a person: two actions in the thumb's third. */
+.holdbar {
+  position: absolute;
+  left: 20px; right: 20px;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: rise var(--calm) var(--settle);
+}
+.btn {
+  min-height: 52px;
+  border: 1px solid rgba(158, 226, 214, .26);
+  border-radius: 22px;
+  background: rgba(14, 32, 37, .6);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn.warm {
+  min-height: 56px;
+  border: 0;
+  font-weight: 500;
+  font-size: 15px;
+  color: #2b1704;
+  background: linear-gradient(160deg, #ffdda6, #f9b45f 46%, #eb9433);
+  box-shadow: 0 0 34px rgba(255, 178, 100, .4), 0 10px 28px rgba(0, 0, 0, .45);
+}
+.back-news {
+  align-self: flex-start;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 16px 0 12px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 77, 125, .38);
+  background: rgba(60, 10, 28, .72);
+  color: #ffd6e0;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  animation: rise var(--calm) var(--settle);
+}
+.back-news .mini-hole {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  transform: scaleY(.55);
+  background: conic-gradient(rgba(255, 77, 125, 0), rgba(255, 77, 125, .95), rgba(255, 77, 125, 0) 40%, rgba(255, 140, 180, .8), rgba(255, 77, 125, 0) 80%);
+  animation: spin 2.2s linear infinite;
+  box-shadow: 0 0 14px rgba(255, 77, 125, .45);
+}
+.btn.talk { border-color: rgba(143, 232, 255, .4); color: #dff8ff; background: rgba(40, 24, 80, .6); }
+
+/* A conversation, reached through a shortcut. */
+.sheet-layer { position: absolute; inset: 0; z-index: 20; }
+.sheet-veil { position: absolute; inset: 0; border: 0; background: rgba(2, 4, 6, .6); cursor: pointer; animation: fade .3s ease; }
+@keyframes fade { from { opacity: 0; } }
+.sheet {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: 78%;
+  padding: 10px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(to bottom, #151029, #0b0a18);
+  border-top: 1px solid rgba(182, 156, 255, .25);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: up .4s var(--settle);
+}
+@keyframes up { from { transform: translateY(100%); } }
+.grab { align-self: center; width: 38px; height: 4px; border-radius: 2px; background: rgba(233, 242, 240, .2); }
+.sheet-head { display: flex; align-items: center; gap: 12px; }
+.sheet-head img { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+.sheet-head b { font-weight: 400; font-size: 16px; }
+.sheet-head span { display: block; font-size: 11px; color: var(--fg-faint); }
+.bubbles { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-block: 4px; }
+.bub { max-width: 78%; padding: 8px 12px; border-radius: 16px; font-size: 13px; line-height: 1.8; }
+.bub.them { align-self: flex-start; background: rgba(182, 156, 255, .14); border-bottom-right-radius: 5px; }
+.bub.me { align-self: flex-end; background: rgba(242, 176, 106, .16); border-bottom-left-radius: 5px; }
+.composer { display: flex; gap: 8px; }
+.composer input {
+  flex: 1;
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 23px;
+  border: 1px solid rgba(233, 242, 240, .12);
+  background: rgba(233, 242, 240, .05);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+.composer input::placeholder { color: var(--fg-faint); }
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: calc(84px + env(safe-area-inset-top, 0px));
+  z-index: 30;
+  transform: translateX(-50%);
+  max-width: calc(100% - 40px);
+  padding: 9px 16px;
+  border-radius: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+  background: rgba(14, 32, 37, .92);
+  border: 1px solid rgba(233, 242, 240, .12);
+  animation: rise .35s var(--settle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01s !important; animation-iteration-count: 1 !important; transition-duration: .01s !important; }
+}
+</style>
+
+<div class="stage" id="stage" dir="rtl" lang="fa">
+  <canvas id="sky" aria-hidden="true"></canvas>
+
+  <section class="region on" id="r-home" aria-label="جهان">
+    <div class="cam" id="home-cam">
+      <div class="orbits" id="orbits"></div>
+      <div id="people"></div>
+    </div>
+  </section>
+
+  <section class="region" id="r-talk" aria-label="گفتگوها">
+    <div class="cam" id="talk-cam">
+      <div class="you"><span>تو</span></div>
+      <div id="ills"></div>
+    </div>
+    <svg id="threads" aria-hidden="true">
+      <defs>
+        <linearGradient id="thr" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#8fe8ff"/>
+          <stop offset="1" stop-color="#c8a2ff"/>
+        </linearGradient>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+      </defs>
+      <g id="thread-lines"></g>
+    </svg>
+    <div id="follows"></div>
+  </section>
+
+  <section class="region" id="r-news" aria-label="خبرها">
+    <div class="hole" id="src"><div class="swirl"></div><div class="core"></div></div>
+    <div class="spine" id="spine"></div>
+    <div class="hole sink" id="sink"><div class="swirl"></div><div class="core"></div></div>
+    <div id="stream"></div>
+  </section>
+
+  <section class="region" id="r-echo" aria-label="اکو">
+    <div class="card">
+      <h2>اکو</h2>
+      <p>چتِ تصادفی با یک غریبه. هر شب ساعتِ ۲۲ باز می‌شود.</p>
+      <span class="count" id="echo-count"></span>
+      <small>این منطقه بعداً طراحی می‌شود؛ اینجا فقط حسِ فضایش هست.</small>
+    </div>
+  </section>
+
+  <section class="region" id="r-me" aria-label="من">
+    <div class="passer" style="--r:92px;--t:9s;--d:0s"><b></b><i></i></div>
+    <div class="passer" style="--r:118px;--t:13s;--d:-5s"><b></b><i></i></div>
+    <div class="passer" style="--r:78px;--t:7s;--d:-3s"><b></b><i></i></div>
+    <div class="self" aria-hidden="true"></div>
+    <div class="card" style="top:68%">
+      <p>از آخرین باری که آمدی، <b style="font-weight:400;color:var(--warm-bright)">۳ نفر</b> از کنارت گذشتند.</p>
+      <small>فقط کسی این را می‌بیند که خودش هم دیده شدن را روشن گذاشته باشد. این منطقه بعداً طراحی می‌شود.</small>
+    </div>
+  </section>
+
+  <div class="floor" id="floor"></div>
+
+  <header class="top">
+    <div class="where" id="where"><b class="en">Vega Galaxy</b><span></span></div>
+    <div class="toggles">
+      <button class="tg" id="tg-sound" type="button" aria-pressed="false" aria-label="صدا">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 10v4h4l5 4V6L8 10H4z"/><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a7.5 7.5 0 0 1 0 11"/></svg>
+      </button>
+      <button class="tg" id="tg-buzz" type="button" aria-pressed="true" aria-label="لرزش">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M4 9v6M20 9v6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="sol-area" id="sol-area">
+    <div class="veil"></div>
+    <div class="ring"></div>
+    <svg id="beam" viewBox="-190 -190 380 380" aria-hidden="true">
+      <defs>
+        <linearGradient id="flare" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#ffd9a2" stop-opacity="0"/>
+          <stop offset=".42" stop-color="#ffc987" stop-opacity=".55"/>
+          <stop offset="1" stop-color="#fff3dc"/>
+        </linearGradient>
+        <filter id="air" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5"/></filter>
+      </defs>
+      <g id="flare-g"></g>
+    </svg>
+    <div id="sats"></div>
+    <button class="sol" id="sol" type="button" aria-label="سول: نگه دار و به سمتِ یک منطقه بکش؛ بزن تا به جهان برگردی">
+      <span class="corona"></span><span class="plasma"></span><span class="rim"></span>
+    </button>
+    <button class="badge" id="badge" type="button" aria-label="خبرها"><span class="mini-hole"></span><span class="n" id="badge-n"></span></button>
+  </div>
+
+  <div class="hint" id="hint">سول را نگه دار و به سمتِ یک منطقه بکش</div>
+  <div id="holdbar-slot"></div>
+  <div id="sheet-slot"></div>
+  <div id="toast-slot"></div>
+</div>
+
+<script>
+/*
+ * Regions of the Cosmos world — an interactive prototype.
+ *
+ * What it demonstrates (docs/TECHNICAL_REQUIREMENTS.md section 30):
+ *   - Sol as the vehicle between regions: hold, sweep to a region, let go.
+ *   - Each region is a place with its own colour, motion, sound and buzz,
+ *     so you know where you are without reading a title.
+ *   - Conversations: illusions of the people you talk to, placed in the
+ *     direction of the real person and at a distance set by how recent the
+ *     conversation is. Threads appear only for illusions near the middle of
+ *     the screen and lead to the real person.
+ *   - News: items emerge from a wormhole at the top, hang from a spine,
+ *     and a swipe drops them into a black hole at the bottom.
+ */
+(() => {
+  'use strict';
+
+  const $ = (s) => document.querySelector(s);
+  const FA = '۰۱۲۳۴۵۶۷۸۹';
+  const fa = (n) => String(n).replace(/\d/g, (d) => FA[d]);
+  const GOLDEN = Math.PI * (3 - Math.sqrt(5));
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const stage = $('#stage');
+  let W = 0, H = 0;
+  /** How much of the bottom belongs to Sol; the world centres on the rest. */
+  const FLOOR = 170;
+  const TOP = 70;
+  const anchor = () => ({ x: W / 2, y: TOP + (H - FLOOR - TOP) / 2 });
+
+  // --------------------------------------------------------------- people
+  const PEOPLE = [
+    ['مهتاب', 'شب‌ها بیدارم و وسط حرف کسی نمی‌پرم.'],
+    ['آرش', 'کوه، شکست، و اینکه هیچ‌کدام آن‌قدر بزرگ نیستند.'],
+    ['نگار', 'فقط گوش می‌دهم. اگر لازم شد حرف می‌زنم.'],
+    ['کیان', 'از چیزهایی می‌پرسم که کسی نمی‌پرسد.'],
+    ['سوگند', 'قهوه، کتاب، و سکوتِ ساعت سه.'],
+    ['نوید', 'هر چیزی جز نصیحت.'],
+    ['بهار', 'آدمِ حرف‌های نصفه‌کاره‌ام.'],
+    ['سامان', 'می‌خندم، ولی نه به همه‌چیز.'],
+    ['یلدا', 'دیر می‌خوابم و زود پشیمان می‌شوم.'],
+    ['هومن', 'درباره‌ی موسیقی می‌شود ساعت‌ها حرف زد.'],
+    ['شبنم', 'تازه آمده‌ام. هنوز نمی‌دانم اینجا چه خبر است.'],
+    ['کاوه', 'سفر رفتن از رسیدن بهتر است.'],
+    ['ترانه', 'شعر می‌خوانم، بلند.'],
+    ['بردیا', 'اسمم مهم نیست.'],
+    ['نازنین', 'از سکوت نمی‌ترسم.'],
+    ['فرهاد', 'کار، و بعدش هیچی.'],
+    ['آیدا', 'عکس می‌گیرم از چیزهای بی‌اهمیت.'],
+    ['سپهر', 'شطرنج، و باختن‌های طولانی.'],
+    ['مینا', 'هر شب یک فیلم، هر هفته یک پشیمانی.'],
+    ['رامین', 'بیشتر گوش می‌دهم.'],
+    ['شیوا', 'حیوان‌ها را به آدم‌ها ترجیح می‌دهم، بعضی روزها.'],
+    ['بابک', 'استارتاپ ساختم، خوابید. دوباره می‌سازم.'],
+    ['دریا', 'شنا، و فکر نکردن.'],
+    ['کسری', 'زبان یاد می‌گیرم تا با آدم‌های بیشتری حرف بزنم.'],
+    ['هستی', 'نقاشی می‌کشم و نشان نمی‌دهم.'],
+    ['امید', 'همین که اسمم است کافی است.'],
+    ['ژاله', 'از صبح‌ها بدم می‌آید.'],
+    ['پویا', 'درس می‌خوانم، ظاهراً.'],
+  ];
+  const BODIES = [
+    ['#3f6f8f', '#1c3346'], ['#7a4f8f', '#34204a'], ['#8f4f62', '#46202c'],
+    ['#4f8f75', '#1f4636'], ['#8f7a4f', '#463a1f'], ['#4f5f8f', '#202946'],
+  ];
+  const photo = (i) => `seed/p${String(i).padStart(2, '0')}.jpg`;
+  const ONLINE = new Set([2, 6, 9, 14, 20, 23, 25, 11, 4]);
+  /** The four who "arrived while you were away". */
+  const NEWCOMERS = [3, 10, 18, 26];
+
+  const people = PEOPLE.map(([name, line], i) => {
+    const r = 118 * Math.sqrt(i + 1.7);
+    const a = i * GOLDEN;
+    const presence = ((i * 37) % 11) / 10;
+    return {
+      i, name, line,
+      x: Math.cos(a) * r,
+      y: Math.sin(a) * r,
+      size: Math.round(46 + presence * 26),
+      body: BODIES[i % BODIES.length],
+    };
+  });
+
+  // --------------------------------------------------------------- sound
+  // Synthesised, so every region has a voice without shipping audio files.
+  // Off until the viewer turns it on: a page that makes noise by itself is
+  // a page people close.
+  let ac = null;
+  const prefs = { sound: false, buzz: true };
+  try {
+    const saved = JSON.parse(localStorage.getItem('cosmos-proto-prefs') || '{}');
+    Object.assign(prefs, saved);
+  } catch { /* storage may be unavailable; defaults are fine */ }
+  const savePrefs = () => { try { localStorage.setItem('cosmos-proto-prefs', JSON.stringify(prefs)); } catch { /* ignore */ } };
+
+  function audio() {
+    if (!prefs.sound) return null;
+    try {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    } catch { return null; }
+  }
+  function tone(freq, at, dur, type = 'sine', vol = 0.05) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + at;
+    const o = a.createOscillator(); const g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function noise(at, dur, from, to, vol = 0.05) {
+    const a = audio(); if (!a) return;
+    const t = a.currentTime + at;
+    const buf = a.createBuffer(1, Math.ceil(a.sampleRate * dur), a.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let k = 0; k < d.length; k += 1) d[k] = Math.random() * 2 - 1;
+    const src = a.createBufferSource(); src.buffer = buf;
+    const f = a.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.2;
+    f.frequency.setValueAtTime(from, t);
+    f.frequency.exponentialRampToValueAtTime(to, t + dur);
+    const g = a.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + dur * 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f).connect(g).connect(a.destination);
+    src.start(t);
+  }
+  /** Vibration is a nicer touch, never the only signal: iPhone browsers
+   *  have none at all, and this must not depend on it. */
+  function buzz(pattern) {
+    if (!prefs.buzz || !navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch { /* ignore */ }
+  }
+
+  // ------------------------------------------------------------- regions
+  // Each place is recognisable by more than its colour: its motion, its
+  // sound and its buzz differ too, and it keeps a quiet written name.
+  const REGIONS = {
+    home: {
+      name: 'Vega Galaxy', en: true,
+      sub: () => `${fa(people.length)} نفر در این کهکشان · ${fa(ONLINE.size)} نفر همین حالا`,
+      sky: [[14, 32, 37], [5, 13, 16], [122, 215, 200]],
+      voice() { tone(196, 0, 1.4, 'sine', 0.04); tone(294, 0.08, 1.4, 'sine', 0.03); },
+      buzz: [14],
+    },
+    talk: {
+      name: 'گفتگوها',
+      sub: () => `${fa(CONVERSATIONS.length)} گفتگو · ${fa(CONVERSATIONS.filter((c) => c.unread).length)} تا با پیامِ تازه`,
+      sky: [[36, 20, 66], [9, 7, 22], [182, 156, 255]],
+      voice() { for (let k = 0; k < 5; k += 1) noise(k * 0.05, 0.05, 2400, 3200, 0.03); tone(523, 0.1, 0.5, 'triangle', 0.04); tone(659, 0.22, 0.6, 'triangle', 0.035); },
+      buzz: [8, 40, 8, 40, 8],
+    },
+    news: {
+      name: 'خبرها',
+      sub: () => (news.length ? `${fa(news.length)} خبرِ دیده‌نشده` : 'همه را دیدی'),
+      sky: [[60, 10, 28], [13, 4, 9], [255, 77, 125]],
+      voice() { tone(880, 0, 0.18, 'sine', 0.045); tone(660, 0.12, 0.2, 'sine', 0.04); tone(440, 0.26, 0.5, 'sine', 0.035); },
+      buzz: [20, 60, 20],
+    },
+    echo: {
+      name: 'اکو',
+      sub: () => 'غریبه‌ای که هنوز نمی‌شناسی',
+      sky: [[10, 28, 72], [3, 7, 20], [111, 168, 255]],
+      voice() { const scale = [523, 587, 659, 784, 880]; for (let k = 0; k < 3; k += 1) tone(scale[Math.floor(Math.random() * 5)], k * 0.16, 0.5, 'sine', 0.035); },
+      buzz: [12, 90, 6],
+    },
+    me: {
+      name: 'من',
+      sub: () => 'خودت، از نزدیک',
+      sky: [[54, 34, 8], [13, 8, 3], [242, 176, 106]],
+      voice() { tone(130.8, 0, 1.8, 'sine', 0.05); tone(196, 0.05, 1.8, 'sine', 0.03); },
+      buzz: [40],
+    },
+  };
+  let region = 'home';
+  let travelling = false;
+
+  function setHeader(name) {
+    const r = REGIONS[name];
+    const where = $('#where');
+    where.style.opacity = '0';
+    setTimeout(() => {
+      where.innerHTML = `<b class="${r.en ? 'en' : ''}">${r.name}</b><span>${r.sub()}</span>`;
+      where.style.opacity = '1';
+    }, 180);
+  }
+  const refreshSub = () => { const s = $('#where span'); if (s) s.textContent = REGIONS[region].sub(); };
+
+  /**
+   * Going somewhere. The current place rushes past and blurs, the stars
+   * stretch into streaks, the sky changes colour, and the new place settles
+   * in. Everything after the jump waits for `then`.
+   */
+  function travelTo(next, then) {
+    if (travelling) return;
+    if (next === region) { then?.(); return; }
+    travelling = true;
+    release();
+    closeSheet();
+    buzz(REGIONS[next].buzz);
+    noise(0, 0.9, 260, 2200, 0.05);
+    warp.target = reduceMotion ? 0 : 1;
+
+    const from = $(`#r-${region}`);
+    const to = $(`#r-${next}`);
+    from.classList.add('leaving');
+    from.classList.remove('on');
+
+    setTimeout(() => {
+      from.classList.remove('leaving');
+      region = next;
+      skyTarget = REGIONS[next].sky;
+      to.classList.add('arriving', 'on');
+      requestAnimationFrame(() => requestAnimationFrame(() => to.classList.remove('arriving')));
+      warp.target = 0;
+      setHeader(next);
+      $('#floor').style.opacity = next === 'news' ? '0.5' : '1';
+      REGIONS[next].voice();
+      onArrive(next);
+      setTimeout(() => { travelling = false; then?.(); }, 420);
+    }, 380);
+  }
+
+  function onArrive(name) {
+    if (name === 'talk') firstTime('talk', 'رشته‌ها را دنبال کن تا به خودِ آدم برسی؛ روی بازتاب بزن تا گفتگو باز شود');
+    if (name === 'news') { firstTime('news', 'به چپ یا راست بکش تا در سیاه‌چاله بیفتد؛ بزن تا بازش کنی'); layoutNews(); }
+    if (name === 'echo') echoCountdown();
+  }
+
+  const seenHints = new Set();
+  function firstTime(key, text) {
+    if (seenHints.has(key)) return;
+    seenHints.add(key);
+    toast(text, 4200);
+  }
+
+  // ------------------------------------------------------------- the sky
+  const sky = $('#sky');
+  const ctx = sky.getContext('2d');
+  let dpr = 1;
+  let skyNow = REGIONS.home.sky.map((c) => c.slice());
+  let skyTarget = REGIONS.home.sky;
+  const warp = { v: 0, target: 0 };
+  const stars = Array.from({ length: 230 }, () => ({
+    x: Math.random(), y: Math.random(),
+    z: 0.15 + Math.random() * 0.85,
+    r: Math.random() < 0.08 ? 1.5 : 0.4 + Math.random() * 0.8,
+    tw: Math.random() * Math.PI * 2,
+  }));
+  /** Echo's drifters: particles that change their minds. */
+  const drifters = Array.from({ length: 46 }, () => ({
+    x: Math.random(), y: Math.random(), vx: 0, vy: 0, big: false,
+  }));
+  drifters[0].big = true; drifters[1].big = true;
+  let meetFlash = 0;
+
+  function resize() {
+    const box = stage.getBoundingClientRect();
+    W = box.width; H = box.height;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    sky.width = Math.round(W * dpr); sky.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (region === 'news') layoutNews();
+  }
+
+  function drawSky(t) {
+    for (let k = 0; k < 3; k += 1) {
+      for (let c = 0; c < 3; c += 1) skyNow[k][c] += (skyTarget[k][c] - skyNow[k][c]) * 0.05;
+    }
+    const [a, b, glow] = skyNow;
+    const rgb = (c, al = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${al})`;
+    ctx.fillStyle = rgb(b);
+    ctx.fillRect(0, 0, W, H);
+    let g = ctx.createRadialGradient(W * 0.5, H * 0.42, 0, W * 0.5, H * 0.42, Math.max(W, H) * 0.8);
+    g.addColorStop(0, rgb(a)); g.addColorStop(1, rgb(a, 0));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    g = ctx.createRadialGradient(W * 0.78, H * 0.18, 0, W * 0.78, H * 0.18, W * 0.9);
+    g.addColorStop(0, rgb(glow, 0.1)); g.addColorStop(1, rgb(glow, 0));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    warp.v += (warp.target - warp.v) * 0.12;
+    const cam = region === 'talk' ? talkCam : homeCam;
+    const cx = W / 2, cy = H / 2;
+    for (const s of stars) {
+      let x = (s.x * W - cam.x * s.z * 0.25) % W; if (x < 0) x += W;
+      let y = (s.y * H - cam.y * s.z * 0.25) % H; if (y < 0) y += H;
+      const twinkle = 0.55 + 0.45 * Math.sin(t * 0.0012 + s.tw);
+      ctx.globalAlpha = (0.3 + s.z * 0.6) * twinkle;
+      if (warp.v > 0.02) {
+        const k = warp.v * 0.5 * s.z;
+        ctx.strokeStyle = '#e8f4ff';
+        ctx.lineWidth = s.r;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + (x - cx) * k, y + (y - cy) * k); ctx.stroke();
+      } else {
+        ctx.fillStyle = '#dcecea';
+        ctx.beginPath(); ctx.arc(x, y, s.r, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    if (region === 'echo') drawDrifters();
+  }
+
+  function drawDrifters() {
+    for (const d of drifters) {
+      // Random turns: a region of people you do not know yet should never
+      // move in a way you can predict.
+      d.vx += (Math.random() - 0.5) * 0.0007; d.vy += (Math.random() - 0.5) * 0.0007;
+      d.vx *= 0.97; d.vy *= 0.97;
+      d.x = (d.x + d.vx + 1) % 1; d.y = (d.y + d.vy + 1) % 1;
+      ctx.fillStyle = d.big ? '#cfe2ff' : 'rgba(150,190,255,.55)';
+      ctx.shadowColor = '#6fa8ff'; ctx.shadowBlur = d.big ? 14 : 4;
+      ctx.beginPath(); ctx.arc(d.x * W, d.y * H, d.big ? 3.2 : 1.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    const [p, q] = drifters;
+    const dist = Math.hypot((p.x - q.x) * W, (p.y - q.y) * H);
+    if (dist < 34 && meetFlash <= 0) { meetFlash = 1; tone(1046, 0, 0.6, 'sine', 0.03); }
+    if (meetFlash > 0) {
+      const mx = ((p.x + q.x) / 2) * W, my = ((p.y + q.y) / 2) * H;
+      const g = ctx.createRadialGradient(mx, my, 0, mx, my, 70 * meetFlash + 10);
+      g.addColorStop(0, `rgba(190,215,255,${0.5 * meetFlash})`); g.addColorStop(1, 'rgba(190,215,255,0)');
+      ctx.fillStyle = g; ctx.fillRect(mx - 90, my - 90, 180, 180);
+      meetFlash -= 0.012;
+    }
+    // Nudge the two lights towards each other now and then, so a meeting
+    // actually happens while somebody is watching.
+    if (Math.random() < 0.004) { q.vx += (p.x - q.x) * 0.01; q.vy += (p.y - q.y) * 0.01; }
+  }
+
+  function echoCountdown() {
+    const now = new Date();
+    const open = new Date(now); open.setHours(22, 0, 0, 0);
+    if (open <= now) open.setDate(open.getDate() + 1);
+    const mins = Math.round((open - now) / 60000);
+    const h = Math.floor(mins / 60), m = mins % 60;
+    $('#echo-count').textContent = h ? `${fa(h)} ساعت و ${fa(m)} دقیقه‌ی دیگر باز می‌شود` : `${fa(m)} دقیقه‌ی دیگر باز می‌شود`;
+  }
+
+  // ------------------------------------------------------------ cameras
+  const homeCam = { x: 0, y: 0, z: 1 }, homeTarget = { x: 0, y: 0, z: 1 };
+  const talkCam = { x: 0, y: 0, z: 1 }, talkTarget = { x: 0, y: 0, z: 1 };
+  const vel = { x: 0, y: 0 };
+  let easeFast = true;
+  const EASE_DRAG = 0.16, EASE_GLIDE = 0.06;
+
+  const screenOf = (x, y, cam) => {
+    const A = anchor();
+    return { x: A.x + (x - cam.x) * cam.z, y: A.y + (y - cam.y) * cam.z };
+  };
+
+  // ---------------------------------------------------------- the world
+  function buildWorld() {
+    const orbits = $('#orbits');
+    for (let k = 1; k <= 9; k += 1) {
+      const o = document.createElement('div');
+      o.className = 'orbit';
+      o.style.width = o.style.height = `${k * 168 * 2}px`;
+      o.style.opacity = String(Math.max(0.1, 1 - (k - 1) / 8));
+      orbits.appendChild(o);
+    }
+    const host = $('#people');
+    for (const p of people) {
+      const el = document.createElement('div');
+      el.className = 'p';
+      el.dataset.person = p.i;
+      el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+      el.innerHTML = `
+        <div class="p-in" style="--s:${p.size}px">
+          <div class="body" style="--a:${p.body[0]};--b:${p.body[1]};--dur:${10 + (p.i % 7)}s;--del:-${p.i * 1.3}s">
+            ${ONLINE.has(p.i) ? '<span class="live"></span>' : ''}
+            <span>${p.name[0]}</span>
+            <img alt="" draggable="false" data-src="${photo(p.i)}">
+          </div>
+          <span class="nm">${p.name}</span>
+        </div>`;
+      host.appendChild(el);
+      p.el = el;
+    }
+  }
+
+  /** Detail follows the camera: whoever is near the middle carries a name
+   *  and a face; leave, and they fade back to a shape. */
+  function nearUpdate(items, cam, key) {
+    const A = anchor();
+    const R = Math.min(W, H - FLOOR) * 0.8;
+    for (const it of items) {
+      const s = screenOf(it.x, it.y, cam);
+      const d = Math.hypot(s.x - A.x, s.y - A.y);
+      const was = it.near;
+      it.near = d < (was ? R * 1.3 : R);
+      if (it.near !== was) {
+        it.el.classList.toggle('near', it.near);
+        if (it.near && key === 'home') {
+          const img = it.el.querySelector('img');
+          if (!img.src) { img.onload = () => img.classList.add('here'); img.src = img.dataset.src; }
+        }
+      }
+    }
+  }
+
+  // ------------------------------------------------ holding a person
+  let held = null;
+
+  function hold(p, opts = {}) {
+    release(true);
+    held = p;
+    const reg = $('#r-home');
+    reg.classList.add('holding');
+    p.el.classList.add('chosen');
+    if (opts.newsy) p.el.classList.add('newsy');
+    const img = p.el.querySelector('img');
+    if (!img.src) { img.onload = () => img.classList.add('here'); img.src = img.dataset.src; }
+    const label = document.createElement('div');
+    label.className = 'hold-label';
+    label.innerHTML = `${opts.newsy ? '<span class="flag">برایت خبری دارد</span>' : ''}<b>${p.name}</b>${ONLINE.has(p.i) ? '<span class="flag" style="color:var(--live)">همین حالا اینجاست</span>' : ''}<span class="say">${p.line}</span>`;
+    p.el.querySelector('.p-in').appendChild(label);
+    homeTarget.x = p.x; homeTarget.y = p.y + H * 0.1; homeTarget.z = homeCam.z;
+    vel.x = vel.y = 0;
+    $('#sol-area').classList.add('gone');
+    const backToNews = opts.newsy && news.length
+      ? `<button class="back-news" type="button" data-act="news"><span class="mini-hole"></span>${fa(news.length)} خبرِ دیگر</button>`
+      : '';
+    $('#holdbar-slot').innerHTML = `
+      <div class="holdbar">
+        ${backToNews}
+        <button class="btn" type="button" data-act="profile">دیدنِ پروفایل</button>
+        <button class="btn warm" type="button" data-act="hello">سلام کن</button>
+      </div>`;
+    $('#holdbar-slot [data-act="profile"]').onclick = () => toast('پروفایلِ کامل در این نمونه نیست.');
+    $('#holdbar-slot [data-act="hello"]').onclick = () => openSheet(p, { fromWorld: true });
+    const back = $('#holdbar-slot [data-act="news"]');
+    if (back) back.onclick = () => travelTo('news');
+    buzz([10]);
+  }
+
+  function release(quiet) {
+    if (!held) return;
+    $('#r-home').classList.remove('holding');
+    held.el.classList.remove('chosen', 'newsy');
+    held.el.querySelector('.hold-label')?.remove();
+    held = null;
+    $('#holdbar-slot').innerHTML = '';
+    $('#sol-area').classList.remove('gone');
+    if (!quiet) buzz([6]);
+  }
+
+  /** Arrive in the world and go to somebody, however far away they are. */
+  function goTo(p, opts = {}) {
+    travelTo('home', () => {
+      easeFast = false;
+      hold(p, opts);
+      setTimeout(() => { easeFast = true; }, 900);
+    });
+  }
+
+  // --------------------------------------------------- conversations
+  // Each illusion stands in the direction of the real person and at a
+  // distance set by how recent the conversation is — so every thread runs
+  // outwards, none crosses the middle, and the nearest are the newest.
+  const CONVERSATIONS = [
+    [2, 'پس فردا شب بازم بیا اکو', 2, '۳ دقیقه پیش'],
+    [23, 'اون کتابی که گفتی رو پیدا کردم', 1, '۱۲ دقیقه پیش'],
+    [9, 'این آهنگو حتماً گوش کن', 3, '۲ ساعت پیش'],
+    [6, 'خیلی خوب بود حرف زدن باهات', 0, '۵ ساعت پیش'],
+    [16, 'عکسشو فردا برات می‌فرستم', 0, 'دیروز'],
+    [1, 'کوه جمعه؟', 0, '۲ روز پیش'],
+    [12, 'شعرش مالِ خودم بود', 0, '۳ روز پیش'],
+    [17, 'یه دستِ دیگه؟', 0, '۵ روز پیش'],
+    [20, 'گربه‌م سلام می‌رسونه', 0, 'هفته‌ی پیش'],
+  ].map(([who, last, unread, when], rank) => {
+    const p = people[who];
+    const angle = Math.atan2(p.y, p.x);
+    const r = 96 + rank * 44;
+    return { who, last, unread, when, rank, angle, x: Math.cos(angle) * r, y: Math.sin(angle) * r, near: false };
+  });
+
+  function buildTalk() {
+    const host = $('#ills');
+    const lines = $('#thread-lines');
+    const follows = $('#follows');
+    for (const c of CONVERSATIONS) {
+      const p = people[c.who];
+      const el = document.createElement('div');
+      el.className = 'ill';
+      el.dataset.ill = c.rank;
+      el.style.transform = `translate(${c.x}px, ${c.y}px)`;
+      el.innerHTML = `
+        <div class="ill-in">
+          <div class="ghost" style="--del:-${c.rank * 0.7}s"><img alt="" draggable="false" src="${photo(c.who)}"></div>
+          ${c.unread ? `<span class="unread">${fa(c.unread)}</span>` : ''}
+          <div class="ill-text"><b>${p.name}</b><span>${c.last}</span><i>${c.when}</i></div>
+        </div>`;
+      host.appendChild(el);
+      c.el = el;
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'thread');
+      g.style.opacity = '0';
+      g.innerHTML = `
+        <path class="glow" fill="none" stroke="#b69cff" stroke-width="6" filter="url(#glow)" opacity=".55"/>
+        <path class="core" fill="none" stroke="#bff3ff" stroke-width="1.5" stroke-linecap="round"/>
+        <circle class="spark" r="2.6" fill="#f2fdff"/>
+        <path class="hit" data-follow="${c.who}"/>`;
+      lines.appendChild(g);
+      c.g = g;
+
+      const f = document.createElement('button');
+      f.type = 'button';
+      f.className = 'follow';
+      f.dataset.follow = c.who;
+      f.setAttribute('aria-label', `برو پیشِ خودِ ${p.name}`);
+      f.textContent = p.name[0];
+      f.style.opacity = '0';
+      follows.appendChild(f);
+      c.f = f;
+    }
+  }
+
+  /** Where the thread from this screen point, heading this way, leaves the
+   *  usable part of the screen — clear of the header and of Sol. */
+  function exitPoint(x, y, dx, dy) {
+    const L = 22, R = W - 22, T = TOP + 26, B = H - 190;
+    let best = Infinity;
+    if (dx > 0) best = Math.min(best, (R - x) / dx);
+    if (dx < 0) best = Math.min(best, (L - x) / dx);
+    if (dy > 0) best = Math.min(best, (B - y) / dy);
+    if (dy < 0) best = Math.min(best, (T - y) / dy);
+    if (!isFinite(best) || best < 0) best = 0;
+    return { x: x + dx * best, y: y + dy * best, len: best };
+  }
+
+  let jitterAt = 0;
+  function drawThreads(t) {
+    const refresh = t - jitterAt > 70;
+    if (refresh) jitterAt = t;
+    for (const c of CONVERSATIONS) {
+      const on = c.near && region === 'talk';
+      c.g.style.opacity = on ? '1' : '0';
+      c.f.style.opacity = on ? '1' : '0';
+      c.f.style.pointerEvents = on ? 'auto' : 'none';
+      if (!on && c.g.style.opacity === '0' && !refresh) continue;
+      const s = screenOf(c.x, c.y, talkCam);
+      const dx = Math.cos(c.angle), dy = Math.sin(c.angle);
+      const start = { x: s.x + dx * 34, y: s.y + dy * 34 };
+      const end = exitPoint(start.x, start.y, dx, dy);
+      if (end.len < 12) { c.g.style.opacity = '0'; c.f.style.opacity = '0'; continue; }
+      if (refresh || !c.d) {
+        // The tremble: a fresh set of small sideways offsets many times a
+        // second. This motion is Conversations' signature.
+        const n = Math.max(5, Math.round(end.len / 26));
+        let d = `M${start.x.toFixed(1)} ${start.y.toFixed(1)}`;
+        for (let k = 1; k < n; k += 1) {
+          const f = k / n;
+          const amp = reduceMotion ? 0 : (Math.random() - 0.5) * 5 * Math.sin(Math.PI * f);
+          d += ` L${(start.x + dx * end.len * f - dy * amp).toFixed(1)} ${(start.y + dy * end.len * f + dx * amp).toFixed(1)}`;
+        }
+        d += ` L${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+        c.d = d;
+        for (const path of c.g.querySelectorAll('path')) path.setAttribute('d', d);
+      }
+      // A spark of energy running out towards the real person.
+      const f = ((t * 0.0005) + c.rank * 0.23) % 1;
+      const spark = c.g.querySelector('.spark');
+      spark.setAttribute('cx', (start.x + (end.x - start.x) * f).toFixed(1));
+      spark.setAttribute('cy', (start.y + (end.y - start.y) * f).toFixed(1));
+      c.f.style.transform = `translate(${end.x}px, ${end.y}px)`;
+    }
+  }
+
+  // -------------------------------------------------------------- news
+  const NEWS_QUEUE = [
+    { kind: 'person', who: 9, title: 'هومن یک آهنگ برایت فرستاد', body: 'این آهنگو حتماً گوش کن', when: 'همین حالا' },
+    { kind: 'person', who: 12, title: 'ترانه به پیامت واکنش نشان داد', body: 'شعرش مالِ خودم بود', when: 'همین حالا' },
+    { kind: 'person', who: 6, title: 'بهار از کنارت گذشت', body: 'آدمِ حرف‌های نصفه‌کاره‌ام.', when: 'همین حالا' },
+  ];
+  let news = [
+    { kind: 'person', who: 2, title: 'نگار جوابت را داد', body: 'پس فردا شب بازم بیا اکو', when: '۳ دقیقه' },
+    { kind: 'person', who: 23, title: 'کسری می‌خواهد با تو حرف بزند', body: 'زبان یاد می‌گیرم تا با آدم‌های بیشتری…', when: '۱۲ دقیقه' },
+    { kind: 'arrived', title: 'جهان در نبودنت عوض شد', body: '۴ نفرِ تازه به مدارهای نزدیکت آمده‌اند', when: '۱ ساعت' },
+    { kind: 'passed', title: '۳ نفر از کنارت گذشتند', body: 'از آخرین باری که آمدی', when: '۲ ساعت' },
+    { kind: 'echo', title: 'اکو امشب ساعتِ ۲۲ باز می‌شود', body: 'یک غریبه منتظرِ توست', when: 'امروز' },
+  ];
+  let newsId = 0;
+  const ITEM_H = 64, GAP = 12;
+  let streamScroll = 0;
+  const geo = () => ({
+    spineX: W - 60,
+    srcY: TOP + 52,
+    top: TOP + 104,
+    bottom: H - 232,
+    sinkY: H - 196,
+  });
+
+  const GLYPH = {
+    arrived: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7ad7c8" stroke-width="1.8"><circle cx="12" cy="12" r="2.5" fill="#7ad7c8"/><circle cx="12" cy="12" r="8" opacity=".6"/><circle cx="19" cy="7" r="1.6" fill="#7ad7c8"/></svg>',
+    passed: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f6be82" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2" fill="#f6be82"/><path d="M4 18c3-6 8-10 16-12" opacity=".7"/></svg>',
+    echo: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6fa8ff" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="1.7" fill="#6fa8ff"/><path d="M7.6 8a5.4 5.4 0 0 1 0 8M16.4 8a5.4 5.4 0 0 0 0 8"/></svg>',
+  };
+
+  function makeItem(n) {
+    n.id = ++newsId;
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.dataset.item = n.id;
+    el.innerHTML = `
+      <div class="face">${n.kind === 'person' ? `<img alt="" draggable="false" src="${photo(n.who)}">` : GLYPH[n.kind]}</div>
+      <div class="txt"><b>${n.title}</b><span>${n.body}</span></div>
+      <span class="when">${n.when}</span>`;
+    $('#stream').appendChild(el);
+    n.el = el;
+    return el;
+  }
+
+  function slotY(k) { return geo().top + k * (ITEM_H + GAP) - streamScroll; }
+  function maxScroll() {
+    const g = geo();
+    return Math.max(0, news.length * (ITEM_H + GAP) + 40 - (g.bottom - g.top));
+  }
+
+  function layoutNews() {
+    const g = geo();
+    const src = $('#src'), sink = $('#sink'), spine = $('#spine');
+    src.style.left = `${g.spineX}px`; src.style.top = `${g.srcY}px`;
+    sink.style.left = `${g.spineX}px`; sink.style.top = `${g.sinkY}px`;
+    spine.style.left = `${g.spineX}px`; spine.style.top = `${g.srcY}px`; spine.style.height = `${g.sinkY - g.srcY}px`;
+    const width = g.spineX - 16 - 20;
+    streamScroll = Math.min(streamScroll, maxScroll());
+    news.forEach((n, k) => {
+      if (!n.el) makeItem(n);
+      const y = slotY(k);
+      n.el.style.width = `${width}px`;
+      n.el.style.transform = `translate3d(0, ${y}px, 0)`;
+      // Things near the edges of the stream fade rather than being cut.
+      const fade = Math.min(1, (y - g.top + 70) / 70, (g.bottom + 30 - y) / 70);
+      n.el.style.opacity = String(Math.max(0, fade));
+      n.el.style.pointerEvents = fade > 0.4 ? 'auto' : 'none';
+    });
+    let end = $('#stream .end');
+    if (!end) { end = document.createElement('div'); end.className = 'end'; $('#stream').appendChild(end); }
+    end.textContent = news.length ? 'تمام شد — چیزِ دیگری نیست' : 'همه را دیدی';
+    const ey = news.length ? slotY(news.length) + 8 : g.top + 40;
+    end.style.transform = `translate3d(0, ${ey}px, 0)`;
+    end.style.opacity = ey < g.bottom + 20 ? '1' : '0';
+    updateCounts();
+    refreshSub();
+  }
+
+  /** Something new arrives: it comes out of the wormhole, not from nowhere. */
+  function emit(n) {
+    const g = geo();
+    const width = g.spineX - 16 - 20;
+    news.unshift(n);
+    const el = makeItem(n);
+    el.style.width = `${width}px`;
+    el.style.transition = 'none';
+    el.style.transform = `translate3d(${g.spineX - 16 - width / 2}px, ${g.srcY - ITEM_H / 2}px, 0) scale(.05) rotate(-260deg)`;
+    el.style.opacity = '0';
+    void el.offsetWidth;
+    el.style.transition = '';
+    const src = $('#src');
+    src.classList.remove('emit'); void src.offsetWidth; src.classList.add('emit');
+    REGIONS.news.voice();
+    buzz([12, 40, 12]);
+    streamScroll = 0;
+    requestAnimationFrame(layoutNews);
+  }
+
+  /** Swiped away: it falls into the black hole at the bottom. */
+  function drop(n) {
+    const g = geo();
+    news = news.filter((x) => x !== n);
+    const el = n.el;
+    const width = parseFloat(el.style.width);
+    el.classList.remove('held');
+    el.classList.add('fly');
+    el.style.transform = `translate3d(${g.spineX - 16 - width / 2}px, ${g.sinkY - ITEM_H / 2}px, 0) scale(.04) rotate(480deg)`;
+    el.style.opacity = '0';
+    const sink = $('#sink');
+    setTimeout(() => { sink.classList.remove('gulp'); void sink.offsetWidth; sink.classList.add('gulp'); noise(0, 0.5, 900, 120, 0.05); }, 520);
+    setTimeout(() => el.remove(), 820);
+    buzz([6, 30, 18]);
+    layoutNews();
+  }
+
+  function openNews(n) {
+    news = news.filter((x) => x !== n);
+    n.el.style.opacity = '0';
+    setTimeout(() => n.el.remove(), 400);
+    updateCounts();
+    if (n.kind === 'person') goTo(people[n.who], { newsy: true });
+    if (n.kind === 'arrived') travelTo('home', welcomeNewcomers);
+    if (n.kind === 'passed') travelTo('me');
+    if (n.kind === 'echo') travelTo('echo');
+  }
+
+  function welcomeNewcomers() {
+    homeTarget.x = 0; homeTarget.y = 0; homeTarget.z = 1;
+    NEWCOMERS.forEach((i, k) => {
+      const el = people[i].el;
+      setTimeout(() => {
+        el.classList.remove('arrive'); void el.offsetWidth; el.classList.add('arrive');
+        tone(784 + k * 98, 0, 0.5, 'sine', 0.03);
+      }, 500 + k * 380);
+      setTimeout(() => el.classList.remove('arrive'), 7000);
+    });
+    toast('این چهار نفر در نبودنت آمده‌اند. هر بار که برگردی، کسی تازه اینجاست.', 4200);
+  }
+
+  function updateCounts() {
+    const n = news.length;
+    $('#badge').classList.toggle('none', n === 0);
+    $('#badge-n').textContent = fa(n);
+    const pip = $('#sats .count-pip');
+    if (pip) { pip.textContent = fa(n); pip.style.display = n ? 'grid' : 'none'; }
+  }
+
+  // Now and then, while you are looking at the stream, something arrives.
+  setInterval(() => {
+    if (region === 'news' && !travelling && NEWS_QUEUE.length) emit(NEWS_QUEUE.shift());
+  }, 8500);
+
+  // --------------------------------------------------------------- Sol
+  const ORBIT = 122;
+  const SATS = [
+    { id: 'talk', label: 'گفتگوها', c: '#b69cff', angle: 150,
+      mini: '<svg viewBox="-29 -29 58 58"><g class="tremble" stroke="#8fe8ff" stroke-width="1.4" fill="none" stroke-linecap="round"><path d="M-14 8 L-3 -1 L2 -12"/><path d="M-3 -1 L14 6"/><path d="M-3 -1 L-16 -10"/></g><g fill="#e7dcff"><circle cx="2" cy="-12" r="3"/><circle cx="14" cy="6" r="3"/><circle cx="-16" cy="-10" r="3"/><circle cx="-14" cy="8" r="2.4"/><circle cx="-3" cy="-1" r="3.6" fill="#ffe2a6"/></g></svg>' },
+    { id: 'news', label: 'خبرها', c: '#ff4d7d', angle: 110,
+      mini: '<span class="mini-hole"></span><span class="mini-core"></span><span class="count-pip"></span>' },
+    { id: 'echo', label: 'اکو', c: '#6fa8ff', angle: 70,
+      mini: '<span class="dot a"></span><span class="dot b"></span>' },
+    { id: 'me', label: 'من', c: '#f2b06a', angle: 30,
+      mini: '<span class="gold-ring"></span><span class="gold"></span>' },
+  ];
+  const offset = (deg, r) => ({ x: Math.cos((deg * Math.PI) / 180) * r, y: -Math.sin((deg * Math.PI) / 180) * r });
+
+  function buildSol() {
+    const host = $('#sats');
+    for (const s of SATS) {
+      const at = offset(s.angle, ORBIT);
+      const el = document.createElement('div');
+      el.className = 'sat';
+      el.style.setProperty('--x', `${at.x}px`);
+      el.style.setProperty('--y', `${at.y}px`);
+      el.style.setProperty('--c', s.c);
+      el.innerHTML = `<div class="mini">${s.mini}</div><label>${s.label}</label>`;
+      host.appendChild(el);
+      s.el = el;
+    }
+  }
+
+  const solBtn = $('#sol');
+  const solArea = $('#sol-area');
+  let solHeld = false, travelledOut = false, hot = null, aim = null;
+  let solOrigin = { x: 0, y: 0 };
+
+  function pick(deg) {
+    let best = null, gap = 15;
+    SATS.forEach((s, k) => {
+      const d = Math.abs(((deg - s.angle) % 360 + 540) % 360 - 180);
+      if (d < gap) { gap = d; best = k; }
+    });
+    return best;
+  }
+
+  function flarePath(deg, reach) {
+    const e = offset(deg, reach);
+    const len = Math.hypot(e.x, e.y) || 1;
+    const bow = len * 0.22;
+    const bx = e.x / 2 + (-e.y / len) * bow, by = e.y / 2 + (e.x / len) * bow;
+    return `M0 0 Q ${bx.toFixed(1)} ${by.toFixed(1)} ${e.x.toFixed(1)} ${e.y.toFixed(1)}`;
+  }
+
+  function drawFlare() {
+    const g = $('#flare-g');
+    // Removed at the owner's request; kept as a function so turning it back
+    // on is one line.
+    const SHOW_FLARE = false;
+    if (aim === null || !SHOW_FLARE) { g.innerHTML = ''; return; }
+    const d = flarePath(aim, hot === null ? ORBIT + 20 : ORBIT - 34);
+    g.innerHTML = `<g opacity="${hot === null ? 0.4 : 1}">
+      <path d="${d}" fill="none" stroke="url(#flare)" stroke-width="${hot === null ? 5 : 9}" stroke-linecap="round" filter="url(#air)" opacity=".75"/>
+      <path d="${d}" fill="none" stroke="url(#flare)" stroke-width="${hot === null ? 1.6 : 2.8}" stroke-linecap="round"/>
+      ${hot !== null ? `<path d="${d}" fill="none" stroke="#fffaf0" stroke-width="1" opacity=".8"/>` : ''}
+    </g>`;
+  }
+
+  solBtn.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    if (travelling) return;
+    audio();
+    const b = solBtn.getBoundingClientRect();
+    solOrigin = { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+    solHeld = true; travelledOut = false; hot = null; aim = null;
+    solBtn.classList.add('held');
+    solArea.classList.add('open');
+    $('#hint').classList.add('gone');
+    buzz([10]);
+    tone(330, 0, 0.3, 'sine', 0.03);
+    solBtn.setPointerCapture(e.pointerId);
+  });
+  solBtn.addEventListener('pointermove', (e) => {
+    if (!solHeld) return;
+    const dx = e.clientX - solOrigin.x, dy = e.clientY - solOrigin.y;
+    if (Math.hypot(dx, dy) < 44) { aim = null; setHot(null); drawFlare(); return; }
+    travelledOut = true;
+    aim = (Math.atan2(-dy, dx) * 180) / Math.PI;
+    setHot(pick(aim));
+    drawFlare();
+  });
+  function setHot(k) {
+    if (k === hot) return;
+    hot = k;
+    SATS.forEach((s, j) => s.el.classList.toggle('lit', j === k));
+    if (k !== null) { buzz([8]); tone(440 + k * 110, 0, 0.12, 'triangle', 0.03); }
+  }
+  function endSol() {
+    solHeld = false;
+    solBtn.classList.remove('held');
+    solArea.classList.remove('open');
+    const chosen = hot;
+    setHot(null); aim = null; drawFlare();
+    return chosen;
+  }
+  solBtn.addEventListener('pointerup', (e) => {
+    if (!solHeld) return;
+    e.stopPropagation();
+    const chosen = endSol();
+    if (chosen !== null) { travelTo(SATS[chosen].id); return; }
+    // A tap without a sweep: home. If already home, back to the middle.
+    if (!travelledOut) {
+      if (region !== 'home') travelTo('home');
+      else { easeFast = false; homeTarget.x = 0; homeTarget.y = 0; setTimeout(() => { easeFast = true; }, 1200); }
+    }
+  });
+  solBtn.addEventListener('pointercancel', endSol);
+  $('#badge').addEventListener('click', () => travelTo('news'));
+
+  // ---------------------------------------------------- touching things
+  let drag = null;
+
+  stage.addEventListener('pointerdown', (e) => {
+    if (travelling) return;
+    if (e.target.closest('button, input, .sheet-layer, .toggles')) return;
+    audio();
+    const item = e.target.closest('.item');
+    drag = {
+      id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+      moved: false, axis: null, item: item ? news.find((n) => String(n.id) === item.dataset.item) : null,
+      scroll0: streamScroll,
+    };
+    vel.x = vel.y = 0;
+    easeFast = true;
+    stage.setPointerCapture(e.pointerId);
+  });
+
+  stage.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX; drag.y = e.clientY;
+    const tx = e.clientX - drag.x0, ty = e.clientY - drag.y0;
+    if (!drag.moved && Math.abs(tx) + Math.abs(ty) > 9) {
+      drag.moved = true;
+      drag.axis = Math.abs(tx) > Math.abs(ty) ? 'x' : 'y';
+      if (held) release();
+    }
+    if (!drag.moved) return;
+
+    if (region === 'home' || region === 'talk') {
+      const cam = region === 'home' ? homeCam : talkCam;
+      const tgt = region === 'home' ? homeTarget : talkTarget;
+      tgt.x -= dx / cam.z; tgt.y -= dy / cam.z;
+      cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+      vel.x = -dx / cam.z; vel.y = -dy / cam.z;
+    } else if (region === 'news') {
+      if (drag.axis === 'x' && drag.item) {
+        const n = drag.item;
+        n.el.classList.add('held');
+        const k = news.indexOf(n);
+        n.el.style.transform = `translate3d(${tx}px, ${slotY(k)}px, 0) rotate(${tx * 0.03}deg)`;
+        n.el.style.opacity = String(Math.max(0.25, 1 - Math.abs(tx) / 260));
+      } else if (drag.axis === 'y') {
+        $('#stream').classList.add('scrolling');
+        streamScroll = Math.max(0, Math.min(maxScroll(), drag.scroll0 - ty));
+        layoutNews();
+      }
+    }
+  });
+
+  stage.addEventListener('pointerup', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    $('#stream').classList.remove('scrolling');
+    if (region === 'news' && d.moved && d.axis === 'x' && d.item) {
+      const tx = e.clientX - d.x0;
+      if (Math.abs(tx) > 88) drop(d.item);
+      else { d.item.el.classList.remove('held'); layoutNews(); }
+      return;
+    }
+    if (d.moved) return;
+
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+    if (region === 'home') {
+      const p = el.closest('[data-person]');
+      if (!p || (held && held.i === Number(p.dataset.person))) release();
+      else hold(people[Number(p.dataset.person)]);
+    } else if (region === 'talk') {
+      const f = el.closest('[data-follow]');
+      if (f) { goTo(people[Number(f.dataset.follow)]); return; }
+      const ill = el.closest('[data-ill]');
+      if (ill) { const c = CONVERSATIONS[Number(ill.dataset.ill)]; openSheet(people[c.who], { conv: c }); }
+    } else if (region === 'news' && d.item) {
+      openNews(d.item);
+    }
+  });
+  stage.addEventListener('pointercancel', () => { drag = null; });
+
+  $('#follows').addEventListener('click', (e) => {
+    const f = e.target.closest('[data-follow]');
+    if (f) goTo(people[Number(f.dataset.follow)]);
+  });
+
+  // --------------------------------------------------------- the sheet
+  function openSheet(p, opts = {}) {
+    const c = opts.conv || CONVERSATIONS.find((x) => x.who === p.i);
+    const earlier = c ? c.last : 'سلام!';
+    $('#sheet-slot').innerHTML = `
+      <div class="sheet-layer">
+        <button class="sheet-veil" type="button" aria-label="بستن"></button>
+        <div class="sheet" role="dialog" aria-label="گفتگو با ${p.name}">
+          <span class="grab"></span>
+          <div class="sheet-head"><img alt="" src="${photo(p.i)}"><div><b>${p.name}</b><span>${ONLINE.has(p.i) ? 'همین حالا اینجاست' : 'چند ساعت پیش اینجا بود'}</span></div></div>
+          <div class="bubbles">
+            <div class="bub me">سلام، چطوری؟</div>
+            <div class="bub them">${p.line}</div>
+            <div class="bub them">${earlier}</div>
+          </div>
+          <div class="composer"><input id="compose" type="text" placeholder="بنویس…" aria-label="پیام"></div>
+          ${opts.fromWorld ? '' : `<button class="btn talk" type="button" data-go="${p.i}">برو پیشِ خودِ ${p.name} — پروفایل و بقیه‌ی چیزها آنجاست</button>`}
+        </div>
+      </div>`;
+    $('#sheet-slot .sheet-veil').onclick = closeSheet;
+    const go = $('#sheet-slot [data-go]');
+    if (go) go.onclick = () => { closeSheet(); goTo(p); };
+    tone(587, 0, 0.2, 'sine', 0.03);
+    buzz([8]);
+  }
+  function closeSheet() { $('#sheet-slot').innerHTML = ''; }
+
+  let toastTimer = 0;
+  function toast(text, ms = 2600) {
+    clearTimeout(toastTimer);
+    $('#toast-slot').innerHTML = `<div class="toast" role="status">${text}</div>`;
+    toastTimer = setTimeout(() => { $('#toast-slot').innerHTML = ''; }, ms);
+  }
+
+  // ---------------------------------------------------------- toggles
+  function syncToggles() {
+    $('#tg-sound').setAttribute('aria-pressed', String(prefs.sound));
+    $('#tg-buzz').setAttribute('aria-pressed', String(prefs.buzz));
+  }
+  $('#tg-sound').onclick = () => {
+    prefs.sound = !prefs.sound; savePrefs(); syncToggles();
+    if (prefs.sound) REGIONS[region].voice();
+    toast(prefs.sound ? 'صدا روشن شد — هر منطقه صدای خودش را دارد' : 'صدا خاموش شد');
+  };
+  $('#tg-buzz').onclick = () => {
+    prefs.buzz = !prefs.buzz; savePrefs(); syncToggles();
+    buzz([20]);
+    toast(prefs.buzz ? 'لرزش روشن شد (روی آیفون در مرورگر کار نمی‌کند)' : 'لرزش خاموش شد');
+  };
+
+  // ------------------------------------------------------------- loop
+  let lastNear = 0;
+  function frame(t) {
+    const cam = region === 'talk' ? talkCam : homeCam;
+    const tgt = region === 'talk' ? talkTarget : homeTarget;
+    if (!drag && !held) {
+      tgt.x += vel.x; tgt.y += vel.y;
+      vel.x *= 0.93; vel.y *= 0.93;
+    }
+    const ease = easeFast ? EASE_DRAG : EASE_GLIDE;
+    cam.x += (tgt.x - cam.x) * ease; cam.y += (tgt.y - cam.y) * ease; cam.z += (tgt.z - cam.z) * ease;
+
+    const A = anchor();
+    $('#home-cam').style.transform = `translate3d(${A.x}px, ${A.y}px, 0) scale(${homeCam.z.toFixed(3)}) translate3d(${-homeCam.x}px, ${-homeCam.y}px, 0)`;
+    $('#talk-cam').style.transform = `translate3d(${A.x}px, ${A.y}px, 0) translate3d(${-talkCam.x}px, ${-talkCam.y}px, 0)`;
+
+    if (t - lastNear > 100) {
+      lastNear = t;
+      nearUpdate(people, homeCam, 'home');
+      nearUpdate(CONVERSATIONS, talkCam, 'talk');
+    }
+    drawSky(t);
+    if (region === 'talk') drawThreads(t);
+    requestAnimationFrame(frame);
+  }
+
+  // ------------------------------------------------------------ start
+  buildWorld();
+  buildTalk();
+  buildSol();
+  syncToggles();
+  resize();
+  setHeader('home');
+  updateCounts();
+  addEventListener('resize', resize);
+  requestAnimationFrame(frame);
+})();
+
+</script>
