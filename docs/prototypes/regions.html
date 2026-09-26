@@ -142,7 +142,10 @@ body {
   box-shadow: inset -5px -7px 14px rgba(0, 0, 0, .35);
   pointer-events: none;
 }
-.live {
+/* Named for its one meaning, so nothing else can borrow it by accident —
+   a plain ".live" was once picked up by the running-session box and flung
+   it to the top of the screen. */
+.online-ring {
   position: absolute;
   inset: -6px;
   border-radius: 50%;
@@ -225,139 +228,241 @@ body {
 .hold-label .flag { font-size: 11px; color: var(--news); }
 @keyframes rise { from { opacity: 0; translate: 0 8px; } }
 
-/* ---------- conversations: illusions and their threads ---------- */
-.you {
+/* ---------- conversations: gravity, and a stair into depth ----------
+   Not a separate place. The people you talk to are pulled out of the world
+   towards you — the real ones, so nobody is ever in two places — and settle
+   on a stair that runs back into the sky: the newest conversation nearest
+   your thumb, older ones smaller and further away. Everyone else steps back
+   out of focus. Leaving, they fly home to where they were. */
+#r-home .orbit { transition: opacity .6s ease; }
+#r-home.gravity .p-in { opacity: .14; filter: blur(4px); }
+#r-home.gravity .orbit { opacity: .04 !important; }
+#r-home .p.pulled .p-in { opacity: 0 !important; transition: opacity .25s ease; }
+
+#stairs { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+#stairs.on { pointer-events: auto; }
+.row {
   position: absolute;
   left: 0; top: 0;
-  width: 20px; height: 20px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: radial-gradient(circle, #fff 0%, #ffe2a6 40%, rgba(255, 190, 110, 0) 72%);
-  box-shadow: 0 0 30px 8px rgba(255, 190, 110, .35);
-}
-.you span {
-  position: absolute;
-  top: 26px; left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: var(--warm-bright);
-  white-space: nowrap;
-}
-
-.ill { position: absolute; left: 0; top: 0; }
-.ill-in {
-  position: absolute;
-  transform: translate(-50%, -50%);
+  height: 70px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  opacity: .42;
-  transition: opacity var(--calm) ease;
+  gap: 12px;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: 1px solid transparent;
+  transform-origin: 50% 50%;
+  opacity: 0;
+  cursor: pointer;
+  transition:
+    transform .9s cubic-bezier(.16, .84, .24, 1),
+    opacity .5s ease,
+    background .45s ease,
+    border-color .45s ease,
+    box-shadow .45s ease;
 }
-.ill.near .ill-in { opacity: 1; }
-/* A projection, not the person: tinted, scan-lined, flickering, with its
-   colour split at the edges. Somebody looking at it should never mistake it
-   for the real body standing in the world. */
-.ghost {
-  position: relative;
-  width: 58px; height: 58px;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow:
-    -2px 0 0 rgba(143, 232, 255, .55),
-    2px 0 0 rgba(200, 162, 255, .55),
-    0 0 26px rgba(182, 156, 255, .35);
-  animation: flicker 4.2s steps(1) infinite;
-  animation-delay: var(--del);
+/* While flying only the face shows — it is a person moving, not a card. */
+.row.here {
+  background: linear-gradient(to left, rgba(46, 28, 92, .82), rgba(22, 14, 48, .66));
+  border-color: rgba(182, 156, 255, .22);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .45);
 }
-.ghost img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  filter: grayscale(.7) sepia(.3) hue-rotate(200deg) saturate(1.6) brightness(1.05);
-  opacity: .8;
-}
-.ghost::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(0deg, rgba(143, 232, 255, .16) 0 1px, transparent 1px 3px),
-    radial-gradient(circle at 50% 30%, rgba(182, 156, 255, .25), rgba(20, 10, 50, .35));
-  mix-blend-mode: screen;
-  animation: scan 3s linear infinite;
-}
-@keyframes flicker {
-  0%, 100% { opacity: 1; }
-  47% { opacity: .75; }
-  48% { opacity: 1; }
-  83% { opacity: .85; }
-  84% { opacity: 1; }
-}
-@keyframes scan { to { background-position: 0 30px, 0 0; } }
-.unread {
-  position: absolute;
-  top: -3px; right: -3px;
+#stairs.scrolling .row { transition: none; }
+.rface { position: relative; flex: none; width: 52px; height: 52px; }
+.rface .img { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+.rface .img img { width: 100%; height: 100%; object-fit: cover; }
+.rtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; opacity: 0; transition: opacity .4s ease; }
+.row.here .rtxt { opacity: 1; transition-delay: .45s; }
+.rtxt b { font-weight: 400; font-size: 14px; color: #f1ebff; }
+.rtxt span { font-size: 12px; color: rgba(214, 200, 255, .74); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rtxt .sess { color: var(--warm-bright); }
+.rmeta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 10px; color: rgba(214, 200, 255, .5); opacity: 0; transition: opacity .4s ease; }
+.rmeta i { font-style: normal; }
+.row.here .rmeta { opacity: 1; transition-delay: .45s; }
+.ucount {
   min-width: 20px; height: 20px;
-  padding: 0 5px;
+  padding: 0 6px;
   border-radius: 10px;
   display: grid;
   place-items: center;
   font-size: 11px;
   font-weight: 500;
-  color: #120a24;
+  color: #140a2a;
   background: var(--talk-line);
-  box-shadow: 0 0 12px rgba(143, 232, 255, .8);
+  box-shadow: 0 0 12px rgba(143, 232, 255, .6);
 }
-.ill-text {
+
+/* A paid session's clock, on the person's own face.
+   The spent part of the session warms the face like light moving across a
+   sundial; a single bright hand marks "now"; four small notches at the edge
+   are the blocks. No lines crossing the face — a face cut into quarters stops
+   being a face — and nothing around it, because a ring around a body already
+   means "here right now". Only the two people in the session ever see it. */
+.clock { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; pointer-events: none; }
+.c-spent {
   position: absolute;
-  top: 100%;
-  margin-top: 8px;
-  width: 150px;
-  text-align: center;
+  inset: 0;
+  background: conic-gradient(rgba(255, 170, 80, .5) 0deg var(--a), rgba(0, 0, 0, 0) var(--a) 360deg);
+}
+.c-ticks {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -2deg, rgba(255, 240, 214, .95) 0deg 4deg, rgba(0, 0, 0, 0) 4deg var(--step));
+  -webkit-mask: radial-gradient(circle, transparent 0 calc(50% - 5px), #000 calc(50% - 5px));
+  mask: radial-gradient(circle, transparent 0 calc(50% - 5px), #000 calc(50% - 5px));
+}
+.c-hand {
+  position: absolute;
+  left: 50%;
+  top: 4%;
+  width: 2px;
+  height: 46%;
+  margin-left: -1px;
+  border-radius: 1px;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--a));
+  background: linear-gradient(to top, rgba(255, 246, 224, 0), #fff6e0);
+  box-shadow: 0 0 7px rgba(255, 206, 140, .95);
+}
+
+/* One person, one history: the thread. */
+.thread-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  opacity: 0;
-  transition: opacity var(--calm) ease;
-  pointer-events: none;
+  background: linear-gradient(to bottom, #130d28, #09081a);
+  animation: up .45s var(--settle);
 }
-.ill.near .ill-text { opacity: 1; }
-.ill-text b { font-weight: 400; font-size: 13px; color: #efe8ff; }
-.ill-text span { font-size: 11px; line-height: 1.6; color: rgba(214, 200, 255, .75); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ill-text i { font-style: normal; font-size: 10px; color: rgba(214, 200, 255, .45); }
-
-#threads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
-#stream.scrolling .item, #stream.scrolling .end { transition: none; }
-#threads .thread { transition: opacity .5s ease; }
-#threads .hit { stroke: transparent; stroke-width: 26; fill: none; pointer-events: stroke; cursor: pointer; }
-
-.follow {
-  position: absolute;
-  left: 0; top: 0;
+.th-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px;
+  border-bottom: 1px solid rgba(182, 156, 255, .14);
+}
+.th-back {
+  flex: none;
   width: 44px; height: 44px;
-  margin: -22px 0 0 -22px;
   border: 0;
-  padding: 0;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(143, 232, 255, .28), rgba(143, 232, 255, 0) 70%);
-  color: #dff8ff;
-  font: inherit;
-  font-size: 13px;
+  background: rgba(233, 242, 240, .06);
+  color: var(--fg);
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: opacity .5s ease;
 }
-.follow::before {
-  content: '';
-  position: absolute;
-  inset: 9px;
-  border-radius: 50%;
-  border: 1px solid rgba(143, 232, 255, .7);
-  box-shadow: 0 0 14px rgba(143, 232, 255, .6);
-  animation: beckon 1.8s ease-in-out infinite;
+.th-head .rface { width: 46px; height: 46px; }
+.th-who { min-width: 0; }
+.th-who b { font-weight: 400; font-size: 16px; }
+.th-who span { display: block; font-size: 11px; color: var(--fg-faint); }
+.th-go {
+  margin-right: auto;
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(143, 232, 255, .35);
+  background: transparent;
+  color: #dff8ff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
 }
-@keyframes beckon { 50% { transform: scale(1.18); opacity: .6; } }
+
+/* While a session runs: what is happening, and the one thing you can do
+   about it right now. Never both controls at once — "stop after this block"
+   belongs to every block but the last, "one more block" only to the last. */
+.sbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(to left, rgba(242, 176, 106, .15), rgba(242, 176, 106, .05));
+  border-bottom: 1px solid rgba(242, 176, 106, .26);
+}
+.sbar-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sbar-info b { font-weight: 400; font-size: 13px; color: #ffe3bd; }
+.sbar-info span { font-size: 11px; color: rgba(255, 227, 189, .74); }
+.sbar-act button {
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: 20px;
+  border: 1px solid rgba(242, 176, 106, .48);
+  background: transparent;
+  color: #ffdcb0;
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sbar-act button.on { background: rgba(242, 176, 106, .18); }
+.sbar-act button:disabled { opacity: .6; cursor: default; }
+
+.th-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  touch-action: pan-y;
+}
+.ch-date {
+  align-self: center;
+  margin: 14px 0 4px;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--fg-faint);
+  background: rgba(233, 242, 240, .05);
+}
+/* A paid session is a warm band inside the one thread — you can see where it
+   began and ended as you scroll, without a legend. */
+.band {
+  margin: 14px 0 4px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(242, 176, 106, .07);
+  border: 1px solid rgba(242, 176, 106, .22);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.band.running { border-color: rgba(242, 176, 106, .5); box-shadow: inset 0 0 26px rgba(242, 176, 106, .08); }
+.band-head { display: flex; justify-content: space-between; gap: 10px; padding: 0 4px 4px; font-size: 11px; color: #ffd9a8; }
+.band-head i { font-style: normal; color: rgba(255, 217, 168, .6); white-space: nowrap; }
+.band-foot {
+  margin-top: 4px;
+  padding: 8px 4px 0;
+  border-top: 1px dashed rgba(242, 176, 106, .28);
+  font-size: 11px;
+  line-height: 1.8;
+  color: rgba(255, 227, 189, .78);
+}
+.band-foot button {
+  margin-top: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(242, 176, 106, .4);
+  background: transparent;
+  color: #ffdcb0;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.th-empty { align-self: center; margin-top: 30px; font-size: 12px; color: var(--fg-faint); }
+.th-compose { padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(182, 156, 255, .1); }
+
+/* Sol, opened by a tap: the regions become things you can press. */
+.sol-area.tapmode .sat { pointer-events: auto; cursor: pointer; }
+.sol-area.tapmode .veil { pointer-events: auto; }
+
+#stream.scrolling .item, #stream.scrolling .end { transition: none; }
 
 /* ---------- news: the wormhole and the stream ---------- */
 .hole {
@@ -900,24 +1005,6 @@ body {
     </div>
   </section>
 
-  <section class="region" id="r-talk" aria-label="گفتگوها">
-    <div class="cam" id="talk-cam">
-      <div class="you"><span>تو</span></div>
-      <div id="ills"></div>
-    </div>
-    <svg id="threads" aria-hidden="true">
-      <defs>
-        <linearGradient id="thr" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#8fe8ff"/>
-          <stop offset="1" stop-color="#c8a2ff"/>
-        </linearGradient>
-        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
-      </defs>
-      <g id="thread-lines"></g>
-    </svg>
-    <div id="follows"></div>
-  </section>
-
   <section class="region" id="r-news" aria-label="خبرها">
     <div class="hole" id="src"><div class="swirl"></div><div class="core"></div></div>
     <div class="spine" id="spine"></div>
@@ -946,6 +1033,7 @@ body {
   </section>
 
   <div class="floor" id="floor"></div>
+  <div id="stairs"></div>
 
   <header class="top">
     <div class="where" id="where"><b class="en">Vega Galaxy</b><span></span></div>
@@ -980,9 +1068,10 @@ body {
     <button class="badge" id="badge" type="button" aria-label="خبرها"><span class="mini-hole"></span><span class="n" id="badge-n"></span></button>
   </div>
 
-  <div class="hint" id="hint">سول را نگه دار و به سمتِ یک منطقه بکش</div>
+  <div class="hint" id="hint">سول را بزن، یا نگه دار و به سمتِ یک منطقه بکش</div>
   <div id="holdbar-slot"></div>
   <div id="sheet-slot"></div>
+  <div id="thread-slot"></div>
   <div id="toast-slot"></div>
 </div>
 
@@ -1187,6 +1276,16 @@ body {
   function travelTo(next, then) {
     if (travelling) return;
     if (next === region) { then?.(); return; }
+    // Conversations are not a place you fly to: they are pulled to you.
+    if (next === 'talk') {
+      if (region === 'home') { enterGravity(then); return; }
+      travelTo('home', () => enterGravity(then));
+      return;
+    }
+    if (region === 'talk') {
+      if (next === 'home') { exitGravity(true, then); return; }
+      exitGravity(false);
+    }
     travelling = true;
     release();
     closeSheet();
@@ -1215,7 +1314,6 @@ body {
   }
 
   function onArrive(name) {
-    if (name === 'talk') firstTime('talk', 'رشته‌ها را دنبال کن تا به خودِ آدم برسی؛ روی بازتاب بزن تا گفتگو باز شود');
     if (name === 'news') { firstTime('news', 'به چپ یا راست بکش تا در سیاه‌چاله بیفتد؛ بزن تا بازش کنی'); layoutNews(); }
     if (name === 'echo') echoCountdown();
   }
@@ -1254,6 +1352,7 @@ body {
     sky.width = Math.round(W * dpr); sky.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (region === 'news') layoutNews();
+    if (region === 'talk') layoutStairs();
   }
 
   function drawSky(t) {
@@ -1272,7 +1371,7 @@ body {
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
     warp.v += (warp.target - warp.v) * 0.12;
-    const cam = region === 'talk' ? talkCam : homeCam;
+    const cam = homeCam;
     const cx = W / 2, cy = H / 2;
     for (const s of stars) {
       let x = (s.x * W - cam.x * s.z * 0.25) % W; if (x < 0) x += W;
@@ -1332,7 +1431,6 @@ body {
 
   // ------------------------------------------------------------ cameras
   const homeCam = { x: 0, y: 0, z: 1 }, homeTarget = { x: 0, y: 0, z: 1 };
-  const talkCam = { x: 0, y: 0, z: 1 }, talkTarget = { x: 0, y: 0, z: 1 };
   const vel = { x: 0, y: 0 };
   let easeFast = true;
   const EASE_DRAG = 0.16, EASE_GLIDE = 0.06;
@@ -1361,9 +1459,10 @@ body {
       el.innerHTML = `
         <div class="p-in" style="--s:${p.size}px">
           <div class="body" style="--a:${p.body[0]};--b:${p.body[1]};--dur:${10 + (p.i % 7)}s;--del:-${p.i * 1.3}s">
-            ${ONLINE.has(p.i) ? '<span class="live"></span>' : ''}
+            ${ONLINE.has(p.i) ? '<span class="online-ring"></span>' : ''}
             <span>${p.name[0]}</span>
             <img alt="" draggable="false" data-src="${photo(p.i)}">
+            ${p.i === SESSION.who ? clockHTML() : ''}
           </div>
           <span class="nm">${p.name}</span>
         </div>`;
@@ -1376,12 +1475,13 @@ body {
    *  and a face; leave, and they fade back to a shape. */
   function nearUpdate(items, cam, key) {
     const A = anchor();
-    const R = Math.min(W, H - FLOOR) * 0.8;
+    // Closer in, everybody you can see is named; pulled right out, nobody is.
+    const R = Math.min(W, H - FLOOR) * 0.8 * Math.max(1, cam.z);
     for (const it of items) {
       const s = screenOf(it.x, it.y, cam);
       const d = Math.hypot(s.x - A.x, s.y - A.y);
       const was = it.near;
-      it.near = d < (was ? R * 1.3 : R);
+      it.near = cam.z >= 0.7 && d < (was ? R * 1.3 : R);
       if (it.near !== was) {
         it.el.classList.toggle('near', it.near);
         if (it.near && key === 'home') {
@@ -1406,7 +1506,8 @@ body {
     if (!img.src) { img.onload = () => img.classList.add('here'); img.src = img.dataset.src; }
     const label = document.createElement('div');
     label.className = 'hold-label';
-    label.innerHTML = `${opts.newsy ? '<span class="flag">برایت خبری دارد</span>' : ''}<b>${p.name}</b>${ONLINE.has(p.i) ? '<span class="flag" style="color:var(--live)">همین حالا اینجاست</span>' : ''}<span class="say">${p.line}</span>`;
+    if (inSession(p.i)) sessionStart();
+    label.innerHTML = `${opts.newsy ? '<span class="flag">برایت خبری دارد</span>' : ''}<b>${p.name}</b>${inSession(p.i) ? '<span class="flag" style="color:var(--warm-bright)">جلسه‌ی پولیِ شما در جریان است</span>' : ''}${ONLINE.has(p.i) ? '<span class="flag" style="color:var(--live)">همین حالا اینجاست</span>' : ''}<span class="say">${p.line}</span>`;
     p.el.querySelector('.p-in').appendChild(label);
     homeTarget.x = p.x; homeTarget.y = p.y + H * 0.1; homeTarget.z = homeCam.z;
     vel.x = vel.y = 0;
@@ -1418,10 +1519,13 @@ body {
       <div class="holdbar">
         ${backToNews}
         <button class="btn" type="button" data-act="profile">دیدنِ پروفایل</button>
-        <button class="btn warm" type="button" data-act="hello">سلام کن</button>
+        <button class="btn warm" type="button" data-act="hello">${inSession(p.i) ? 'برگشت به جلسه' : 'سلام کن'}</button>
       </div>`;
     $('#holdbar-slot [data-act="profile"]').onclick = () => toast('پروفایلِ کامل در این نمونه نیست.');
-    $('#holdbar-slot [data-act="hello"]').onclick = () => openSheet(p, { fromWorld: true });
+    // One person, one thread: saying hello to somebody you already talk to
+    // opens that same conversation, and during a session it IS the session.
+    $('#holdbar-slot [data-act="hello"]').onclick = () =>
+      openThread(convOf(p.i) || { who: p.i, last: '', unread: 0, when: '', rank: -1 });
     const back = $('#holdbar-slot [data-act="news"]');
     if (back) back.onclick = () => travelTo('news');
     buzz([10]);
@@ -1448,118 +1552,356 @@ body {
   }
 
   // --------------------------------------------------- conversations
-  // Each illusion stands in the direction of the real person and at a
-  // distance set by how recent the conversation is — so every thread runs
-  // outwards, none crosses the middle, and the nearest are the newest.
+  // Gravity, not a separate place: the real people you talk to are pulled
+  // out of the world and settle on a stair running back into the sky. The
+  // newest conversation stands nearest the thumb; depth means "longer ago".
+  //
+  // One person, one thread — which is how the server already stores it. A
+  // paid session is a chapter inside that thread, never a second chat.
+
+  /**
+   * A live paid session with Hooman, following the rules in
+   * TECHNICAL_REQUIREMENTS.md section 15. Time is compressed so the whole
+   * life of a session fits in a minute: each block here lasts 30 seconds
+   * and stands for 7.5 real minutes of a 30-minute offer.
+   *
+   *   - blocks advance with the clock, whatever anybody does;
+   *   - "stop after this block" exists in every block except the last;
+   *   - "one more block" exists only in the last, only for the buyer, and
+   *     only once the provider agrees — one at a time;
+   *   - at the end, unused blocks return to the buyer at once and the
+   *     provider's share waits up to 24 hours, or less if both confirm.
+   */
+  const PROTO_BLOCK_MS = 30000;
+  const REAL_BLOCK_MIN = 7.5;
+  const SESSION = {
+    who: 9, title: 'گفتگو درباره‌ی موسیقی', blocks: 4,
+    live: true, t0: 0, stopAfter: null, pendingExt: false, endedAt: null,
+  };
+  const START_AT_BLOCKS = 2.3;
+
+  function sessionStart() { if (!SESSION.t0) SESSION.t0 = performance.now() - PROTO_BLOCK_MS * START_AT_BLOCKS; }
+  function elapsedBlocks() { return SESSION.t0 ? (performance.now() - SESSION.t0) / PROTO_BLOCK_MS : START_AT_BLOCKS; }
+  function minutesLeft() { return Math.max(1, Math.ceil((SESSION.blocks - elapsedBlocks()) * REAL_BLOCK_MIN)); }
+
   const CONVERSATIONS = [
-    [2, 'پس فردا شب بازم بیا اکو', 2, '۳ دقیقه پیش'],
-    [23, 'اون کتابی که گفتی رو پیدا کردم', 1, '۱۲ دقیقه پیش'],
-    [9, 'این آهنگو حتماً گوش کن', 3, '۲ ساعت پیش'],
-    [6, 'خیلی خوب بود حرف زدن باهات', 0, '۵ ساعت پیش'],
+    [9, 'این قسمتش رو گوش کن…', 1, 'همین حالا'],
+    [2, 'پس فردا شب بازم بیا اکو', 2, '۳ دقیقه'],
+    [23, 'اون کتابی که گفتی رو پیدا کردم', 1, '۱۲ دقیقه'],
+    [6, 'خیلی خوب بود حرف زدن باهات', 0, '۵ ساعت'],
     [16, 'عکسشو فردا برات می‌فرستم', 0, 'دیروز'],
-    [1, 'کوه جمعه؟', 0, '۲ روز پیش'],
-    [12, 'شعرش مالِ خودم بود', 0, '۳ روز پیش'],
-    [17, 'یه دستِ دیگه؟', 0, '۵ روز پیش'],
+    [1, 'کوه جمعه؟', 0, '۲ روز'],
+    [12, 'شعرش مالِ خودم بود', 0, '۳ روز'],
+    [17, 'یه دستِ دیگه؟', 0, '۵ روز'],
     [20, 'گربه‌م سلام می‌رسونه', 0, 'هفته‌ی پیش'],
-  ].map(([who, last, unread, when], rank) => {
-    const p = people[who];
-    const angle = Math.atan2(p.y, p.x);
-    const r = 96 + rank * 44;
-    return { who, last, unread, when, rank, angle, x: Math.cos(angle) * r, y: Math.sin(angle) * r, near: false };
-  });
+  ].map(([who, last, unread, when], rank) => ({ who, last, unread, when, rank }));
+  const convOf = (i) => CONVERSATIONS.find((c) => c.who === i) || null;
+  const inSession = (i) => SESSION.live && i === SESSION.who;
 
-  function buildTalk() {
-    const host = $('#ills');
-    const lines = $('#thread-lines');
-    const follows = $('#follows');
-    for (const c of CONVERSATIONS) {
-      const p = people[c.who];
-      const el = document.createElement('div');
-      el.className = 'ill';
-      el.dataset.ill = c.rank;
-      el.style.transform = `translate(${c.x}px, ${c.y}px)`;
-      el.innerHTML = `
-        <div class="ill-in">
-          <div class="ghost" style="--del:-${c.rank * 0.7}s"><img alt="" draggable="false" src="${photo(c.who)}"></div>
-          ${c.unread ? `<span class="unread">${fa(c.unread)}</span>` : ''}
-          <div class="ill-text"><b>${p.name}</b><span>${c.last}</span><i>${c.when}</i></div>
-        </div>`;
-      host.appendChild(el);
-      c.el = el;
+  /** Hooman's history, oldest first: free talk and paid sessions, all in
+   *  the one thread. */
+  const HOOMAN_CHAPTERS = [
+    { kind: 'free', date: 'سه هفته پیش', msgs: [
+      ['them', 'سلام! دیدم تو هم اهلِ موسیقی‌ای'], ['me', 'آره، بیشتر جاز گوش می‌دم'], ['them', 'پس باید حسابی حرف بزنیم'],
+    ] },
+    { kind: 'session', head: 'جلسه‌ی پولی · «گفتگو درباره‌ی موسیقی» · ۴ بلوک', date: 'دو هفته پیش',
+      foot: 'تمام شد · هر دو تأیید کردید و سهمِ هومن آزاد شد', msgs: [
+        ['them', 'از کجا شروع کنیم؟'], ['me', 'از مایلز دیویس'], ['them', 'Kind of Blue رو از اول تا آخر گوش دادی؟'],
+        ['me', 'نه هنوز کامل'], ['them', 'پس تکلیفِ این هفته‌ت مشخص شد'],
+      ] },
+    { kind: 'free', date: 'هفته‌ی پیش', msgs: [
+      ['me', 'اون آلبومی که گفتی رو کامل گوش دادم'], ['them', 'دیدی گفتم؟'], ['me', 'یه جلسه‌ی دیگه بذاریم؟'],
+    ] },
+    { kind: 'session', live: true, head: 'جلسه‌ی پولی · «گفتگو درباره‌ی موسیقی»', date: 'امروز', msgs: [
+      ['them', 'این دفعه بریم سراغِ کولترین'], ['me', 'عالیه'], ['them', 'این قسمتش رو گوش کن…'],
+    ] },
+  ];
 
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('class', 'thread');
-      g.style.opacity = '0';
-      g.innerHTML = `
-        <path class="glow" fill="none" stroke="#b69cff" stroke-width="6" filter="url(#glow)" opacity=".55"/>
-        <path class="core" fill="none" stroke="#bff3ff" stroke-width="1.5" stroke-linecap="round"/>
-        <circle class="spark" r="2.6" fill="#f2fdff"/>
-        <path class="hit" data-follow="${c.who}"/>`;
-      lines.appendChild(g);
-      c.g = g;
+  function clockHTML() {
+    return '<span class="clock" data-clock><span class="c-spent"></span><span class="c-ticks"></span><span class="c-hand"></span></span>';
+  }
+  function updateClocks() {
+    const angle = Math.min(360, (elapsedBlocks() / SESSION.blocks) * 360);
+    document.querySelectorAll('[data-clock]').forEach((el) => {
+      el.style.setProperty('--a', `${angle.toFixed(1)}deg`);
+      el.style.setProperty('--step', `${(360 / SESSION.blocks).toFixed(2)}deg`);
+    });
+  }
+  function faceHTML(p) {
+    return `<div class="img"><img alt="" draggable="false" src="${photo(p.i)}"></div>${ONLINE.has(p.i) ? '<span class="online-ring"></span>' : ''}${inSession(p.i) ? clockHTML() : ''}`;
+  }
 
-      const f = document.createElement('button');
-      f.type = 'button';
-      f.className = 'follow';
-      f.dataset.follow = c.who;
-      f.setAttribute('aria-label', `برو پیشِ خودِ ${p.name}`);
-      f.textContent = p.name[0];
-      f.style.opacity = '0';
-      follows.appendChild(f);
-      c.f = f;
+  // ------------------------------------------------------------ the stair
+  const stairsEl = $('#stairs');
+  let stairS = 0;
+  const rowW = () => W - 40;
+  const rowLine = (c) => (inSession(c.who) ? `جلسه‌ی فعال · ${fa(minutesLeft())} دقیقه مانده` : c.last);
+
+  function makeRow(c) {
+    const p = people[c.who];
+    const el = document.createElement('div');
+    el.className = 'row';
+    el.dataset.row = c.rank;
+    el.innerHTML = `
+      <div class="rface">${faceHTML(p)}</div>
+      <div class="rtxt"><b>${p.name}</b><span data-line class="${inSession(c.who) ? 'sess' : ''}">${rowLine(c)}</span></div>
+      <div class="rmeta"><i>${c.when}</i>${c.unread ? `<span class="ucount">${fa(c.unread)}</span>` : ''}</div>`;
+    stairsEl.appendChild(el);
+    c.row = el;
+    return el;
+  }
+
+  /** Where a conversation stands on the stair, given how far it has been
+   *  scrolled. Further back is higher, smaller and fainter; anything
+   *  scrolled past you drops away below. */
+  function rowSlot(k) {
+    const d = k - stairS;
+    const nearestY = H - 205;
+    const r = 0.83;
+    if (d < 0) return { y: nearestY - d * 150, sc: 1 - d * 0.12, op: Math.max(0, 1 + d * 2.2), z: 200 };
+    return {
+      y: nearestY - ((1 - Math.pow(r, d)) / (1 - r)) * 80,
+      sc: Math.max(0.4, Math.pow(r, d)),
+      op: Math.max(0, 1 - d * 0.11),
+      z: 100 - Math.round(d * 10),
+    };
+  }
+  function placeRow(c) {
+    const s = rowSlot(c.rank);
+    c.row.style.width = `${rowW()}px`;
+    c.row.style.transform = `translate3d(20px, ${(s.y - 35).toFixed(1)}px, 0) scale(${s.sc.toFixed(3)})`;
+    c.row.style.opacity = String(s.op);
+    c.row.style.zIndex = String(s.z);
+    c.row.style.pointerEvents = s.op > 0.35 ? 'auto' : 'none';
+  }
+  const layoutStairs = () => CONVERSATIONS.forEach(placeRow);
+  const clampStair = (v) => Math.max(0, Math.min(CONVERSATIONS.length - 1, v));
+
+  /** The row's face placed exactly over this person's body in the world. */
+  function atHome(c) {
+    const s = screenOf(people[c.who].x, people[c.who].y, homeCam);
+    return `translate3d(${(s.x - (rowW() - 40)).toFixed(1)}px, ${(s.y - 35).toFixed(1)}px, 0) scale(1)`;
+  }
+
+  function enterGravity(then) {
+    travelling = true;
+    release(true);
+    sessionStart();
+    vel.x = vel.y = 0;
+    region = 'talk';
+    skyTarget = REGIONS.talk.sky;
+    setHeader('talk');
+    REGIONS.talk.voice();
+    buzz(REGIONS.talk.buzz);
+    $('#r-home').classList.add('gravity');
+    stairsEl.classList.add('on');
+    stairS = 0;
+    CONVERSATIONS.forEach((c, k) => {
+      const el = c.row || makeRow(c);
+      el.classList.remove('here');
+      el.style.transition = 'none';
+      el.style.width = `${rowW()}px`;
+      el.style.transform = atHome(c);
+      el.style.opacity = '1';
+      el.style.zIndex = String(100 - k);
+      people[c.who].el.classList.add('pulled');
+      void el.offsetWidth;
+      setTimeout(() => { el.style.transition = ''; el.classList.add('here'); placeRow(c); }, 60 + k * 60);
+    });
+    updateClocks();
+    firstTime('talk', 'آدم‌هایی که با آن‌ها حرف می‌زنی نزدیکت آمدند. روی هومن بزن — با او یک جلسه‌ی پولی در جریان است');
+    setTimeout(() => { travelling = false; then?.(); }, 1000);
+  }
+
+  function exitGravity(animated, then) {
+    closeThread();
+    $('#r-home').classList.remove('gravity');
+    stairsEl.classList.remove('on', 'scrolling');
+    const finish = () => {
+      CONVERSATIONS.forEach((c) => {
+        people[c.who].el.classList.remove('pulled');
+        if (!c.row) return;
+        // Invisible rows must stop catching touches as well — left
+        // clickable, they sat over the world and swallowed every tap.
+        c.row.style.transition = 'none';
+        c.row.style.opacity = '0';
+        c.row.style.pointerEvents = 'none';
+        c.row.classList.remove('here');
+      });
+      region = 'home';
+    };
+    if (!animated) { finish(); return; }
+    travelling = true;
+    skyTarget = REGIONS.home.sky;
+    setHeader('home');
+    REGIONS.home.voice();
+    buzz(REGIONS.home.buzz);
+    CONVERSATIONS.forEach((c, k) => {
+      if (!c.row) return;
+      c.row.classList.remove('here');
+      c.row.style.transition = '';
+      c.row.style.pointerEvents = 'none';
+      setTimeout(() => { c.row.style.opacity = '1'; c.row.style.transform = atHome(c); }, k * 45);
+    });
+    setTimeout(() => { finish(); travelling = false; then?.(); }, 950 + CONVERSATIONS.length * 45);
+  }
+
+  // ------------------------------------------------- one person's thread
+  let threadWho = null;
+  let barKey = '';
+
+  function bandHTML(ch, i) {
+    const bubbles = ch.msgs.map(([who, t]) => `<div class="bub ${who}">${t}</div>`).join('');
+    if (ch.kind === 'free') return `<div class="ch-date">${ch.date}</div>${bubbles}`;
+    const foot = ch.live ? '' : `<div class="band-foot">${ch.foot}</div>`;
+    return `<section class="band${ch.live ? ' running' : ''}" data-band="${i}"><div class="band-head"><span>${ch.head}</span><i>${ch.live ? 'در جریان' : ch.date}</i></div>${bubbles}${foot}</section>`;
+  }
+
+  function openThread(c) {
+    const p = people[c.who];
+    threadWho = p.i;
+    barKey = '';
+    let body;
+    if (p.i === SESSION.who) body = HOOMAN_CHAPTERS.map(bandHTML).join('');
+    else if (c.last) body = bandHTML({ kind: 'free', date: c.when, msgs: [['me', 'سلام، چطوری؟'], ['them', p.line], ['them', c.last]] }, 0);
+    else body = '<p class="th-empty">هنوز چیزی به هم نگفته‌اید. اولین پیام را بنویس.</p>';
+
+    $('#thread-slot').innerHTML = `
+      <div class="thread-layer" role="dialog" aria-label="گفتگو با ${p.name}">
+        <div class="th-head">
+          <button class="th-back" type="button" aria-label="برگشت">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+          <div class="rface">${faceHTML(p)}</div>
+          <div class="th-who"><b>${p.name}</b><span>${ONLINE.has(p.i) ? 'همین حالا اینجاست' : 'چند ساعت پیش اینجا بود'}</span></div>
+          <button class="th-go" type="button">دیدنش در جهان</button>
+        </div>
+        <div id="sbar-slot"></div>
+        <div class="th-body">${body}</div>
+        <div class="composer th-compose"><input id="th-input" type="text" placeholder="بنویس…" aria-label="پیام"></div>
+      </div>`;
+
+    const layer = $('#thread-slot .thread-layer');
+    layer.querySelector('.th-back').onclick = () => closeThread();
+    layer.querySelector('.th-go').onclick = () => goTo(p);
+    const scroller = layer.querySelector('.th-body');
+    requestAnimationFrame(() => { scroller.scrollTop = scroller.scrollHeight; });
+    if (inSession(p.i)) {
+      sessionStart();
+      firstTime('session', 'در این نمونه هر بلوک سی ثانیه است تا کلِ یک جلسه را ببینی: پر شدنِ ساعت روی چهره، بلوکِ آخر، و پایان و تسویه.');
+    } else if (p.i === SESSION.who && !SESSION.live) {
+      appendEnding();
     }
+    renderBar();
+    updateClocks();
+    tone(587, 0, 0.2, 'sine', 0.03);
+    buzz([8]);
   }
 
-  /** Where the thread from this screen point, heading this way, leaves the
-   *  usable part of the screen — clear of the header and of Sol. */
-  function exitPoint(x, y, dx, dy) {
-    const L = 22, R = W - 22, T = TOP + 26, B = H - 190;
-    let best = Infinity;
-    if (dx > 0) best = Math.min(best, (R - x) / dx);
-    if (dx < 0) best = Math.min(best, (L - x) / dx);
-    if (dy > 0) best = Math.min(best, (B - y) / dy);
-    if (dy < 0) best = Math.min(best, (T - y) / dy);
-    if (!isFinite(best) || best < 0) best = 0;
-    return { x: x + dx * best, y: y + dy * best, len: best };
-  }
+  function closeThread() { $('#thread-slot').innerHTML = ''; threadWho = null; }
 
-  let jitterAt = 0;
-  function drawThreads(t) {
-    const refresh = t - jitterAt > 70;
-    if (refresh) jitterAt = t;
-    for (const c of CONVERSATIONS) {
-      const on = c.near && region === 'talk';
-      c.g.style.opacity = on ? '1' : '0';
-      c.f.style.opacity = on ? '1' : '0';
-      c.f.style.pointerEvents = on ? 'auto' : 'none';
-      if (!on && c.g.style.opacity === '0' && !refresh) continue;
-      const s = screenOf(c.x, c.y, talkCam);
-      const dx = Math.cos(c.angle), dy = Math.sin(c.angle);
-      const start = { x: s.x + dx * 34, y: s.y + dy * 34 };
-      const end = exitPoint(start.x, start.y, dx, dy);
-      if (end.len < 12) { c.g.style.opacity = '0'; c.f.style.opacity = '0'; continue; }
-      if (refresh || !c.d) {
-        // The tremble: a fresh set of small sideways offsets many times a
-        // second. This motion is Conversations' signature.
-        const n = Math.max(5, Math.round(end.len / 26));
-        let d = `M${start.x.toFixed(1)} ${start.y.toFixed(1)}`;
-        for (let k = 1; k < n; k += 1) {
-          const f = k / n;
-          const amp = reduceMotion ? 0 : (Math.random() - 0.5) * 5 * Math.sin(Math.PI * f);
-          d += ` L${(start.x + dx * end.len * f - dy * amp).toFixed(1)} ${(start.y + dy * end.len * f + dx * amp).toFixed(1)}`;
-        }
-        d += ` L${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
-        c.d = d;
-        for (const path of c.g.querySelectorAll('path')) path.setAttribute('d', d);
-      }
-      // A spark of energy running out towards the real person.
-      const f = ((t * 0.0005) + c.rank * 0.23) % 1;
-      const spark = c.g.querySelector('.spark');
-      spark.setAttribute('cx', (start.x + (end.x - start.x) * f).toFixed(1));
-      spark.setAttribute('cy', (start.y + (end.y - start.y) * f).toFixed(1));
-      c.f.style.transform = `translate(${end.x}px, ${end.y}px)`;
+  /** The session bar: what is happening, and the one thing to do now. */
+  function renderBar() {
+    const slot = $('#sbar-slot');
+    if (!slot) return;
+    if (!inSession(threadWho)) { slot.innerHTML = ''; barKey = ''; return; }
+    const used = Math.floor(elapsedBlocks());
+    const last = used >= SESSION.blocks - 1;
+    const key = `${last}|${SESSION.stopAfter}|${SESSION.pendingExt}|${SESSION.blocks}`;
+    const info = `بلوکِ ${fa(Math.min(used + 1, SESSION.blocks))} از ${fa(SESSION.blocks)} · ${fa(minutesLeft())} دقیقه مانده`;
+    if (key === barKey) { const t = $('#sbar-t'); if (t) t.textContent = info; return; }
+    barKey = key;
+    let act;
+    if (last) {
+      act = SESSION.pendingExt
+        ? '<button type="button" disabled>منتظرِ تأییدِ هومن…</button>'
+        : '<button type="button" data-ext>یک بلوکِ دیگر</button>';
+    } else {
+      act = SESSION.stopAfter !== null
+        ? '<button type="button" class="on" data-stop>سرِ این بلوک تمام می‌شود · لغو</button>'
+        : '<button type="button" data-stop>بعد از این بلوک تمام شود</button>';
     }
+    slot.innerHTML = `
+      <div class="sbar">
+        <div class="sbar-info"><b>جلسه در جریان · «${SESSION.title}»</b><span id="sbar-t">${info}</span></div>
+        <div class="sbar-act">${act}</div>
+      </div>`;
+    const stop = slot.querySelector('[data-stop]');
+    if (stop) stop.onclick = () => {
+      // Only the person who asked can take it back; the other side can't
+      // quietly reverse somebody else's decision.
+      SESSION.stopAfter = SESSION.stopAfter === null ? Math.floor(elapsedBlocks()) + 1 : null;
+      toast(SESSION.stopAfter === null ? 'لغو شد. جلسه طبقِ برنامه ادامه پیدا می‌کند.' : 'جلسه سرِ پایانِ همین بلوک تمام می‌شود. هزینه‌اش همان بستنِ فوری است، ولی باقیِ این بلوک را از دست نمی‌دهی.', 3600);
+      buzz([10]);
+      renderBar();
+    };
+    const ext = slot.querySelector('[data-ext]');
+    if (ext) ext.onclick = () => {
+      SESSION.pendingExt = true;
+      renderBar();
+      toast('درخواست فرستاده شد. پولِ این بلوک همین حالا کنار گذاشته می‌شود و هومن باید تأیید کند.', 3400);
+      buzz([10]);
+      setTimeout(() => {
+        SESSION.pendingExt = false;
+        SESSION.blocks += 1;
+        toast(`هومن تأیید کرد — حالا ${fa(SESSION.blocks)} بلوک. برای بلوکِ بعدی دوباره باید به بلوکِ آخر برسی.`, 3600);
+        tone(659, 0, 0.3, 'triangle', 0.035); tone(880, 0.14, 0.4, 'triangle', 0.03);
+        buzz([10, 40, 10]);
+        updateClocks();
+        renderBar();
+      }, 2400);
+    };
   }
+
+  function appendEnding() {
+    const band = $('.thread-layer [data-band="3"]');
+    if (!band || band.querySelector('.band-foot')) return;
+    band.classList.remove('running');
+    band.querySelector('.band-head i').textContent = 'تمام شد';
+    band.insertAdjacentHTML('beforeend', `
+      <div class="band-foot">
+        جلسه تمام شد. بلوک‌های استفاده‌نشده همان لحظه به کیف پولت برگشت؛ سهمِ هومن تا ۲۴ ساعت نگه داشته می‌شود، و اگر هر دو تأیید کنید همین حالا آزاد می‌شود.
+        <br><button type="button" data-replay>دوباره نشان بده</button>
+      </div>`);
+    band.querySelector('[data-replay]').onclick = replaySession;
+  }
+
+  function endSession() {
+    SESSION.live = false;
+    SESSION.endedAt = performance.now();
+    document.querySelectorAll('[data-clock]').forEach((el) => el.remove());
+    const c = convOf(SESSION.who);
+    if (c && c.row) { const line = c.row.querySelector('[data-line]'); line.textContent = 'جلسه تمام شد'; line.classList.remove('sess'); }
+    if (threadWho === SESSION.who) { renderBar(); appendEnding(); }
+    toast('جلسه با هومن تمام شد.', 2600);
+    tone(523, 0, 0.5, 'sine', 0.035); tone(392, 0.2, 0.7, 'sine', 0.03);
+    buzz([20, 60, 20]);
+  }
+
+  /** Start the example session again, from block three. */
+  function replaySession() {
+    Object.assign(SESSION, { blocks: 4, live: true, stopAfter: null, pendingExt: false, endedAt: null, t0: 0 });
+    sessionStart();
+    const c = convOf(SESSION.who);
+    if (c && c.row) {
+      c.row.querySelector('.rface').innerHTML = faceHTML(people[c.who]);
+      const line = c.row.querySelector('[data-line]'); line.classList.add('sess');
+    }
+    const w = people[SESSION.who].el.querySelector('.body');
+    if (w && !w.querySelector('[data-clock]')) w.insertAdjacentHTML('beforeend', clockHTML());
+    openThread(c);
+  }
+
+  // The session's own heartbeat: a few style properties, four times a second.
+  setInterval(() => {
+    if (!SESSION.live || !SESSION.t0) return;
+    const e = elapsedBlocks();
+    if (e >= SESSION.blocks || (SESSION.stopAfter !== null && e >= SESSION.stopAfter)) { endSession(); return; }
+    updateClocks();
+    renderBar();
+    const c = convOf(SESSION.who);
+    if (c && c.row) c.row.querySelector('[data-line]').textContent = rowLine(c);
+  }, 250);
 
   // -------------------------------------------------------------- news
   const NEWS_QUEUE = [
@@ -1739,12 +2081,14 @@ body {
       el.innerHTML = `<div class="mini">${s.mini}</div><label>${s.label}</label>`;
       host.appendChild(el);
       s.el = el;
+      el.addEventListener('click', () => { if (!menuOpen) return; closeMenu(); travelTo(s.id); });
     }
   }
 
   const solBtn = $('#sol');
   const solArea = $('#sol-area');
   let solHeld = false, travelledOut = false, hot = null, aim = null;
+  let menuOpen = false, solWasOpen = false;
   let solOrigin = { x: 0, y: 0 };
 
   function pick(deg) {
@@ -1782,6 +2126,7 @@ body {
     e.stopPropagation();
     if (travelling) return;
     audio();
+    solWasOpen = menuOpen;
     const b = solBtn.getBoundingClientRect();
     solOrigin = { x: b.left + b.width / 2, y: b.top + b.height / 2 };
     solHeld = true; travelledOut = false; hot = null; aim = null;
@@ -1815,32 +2160,66 @@ body {
     setHot(null); aim = null; drawFlare();
     return chosen;
   }
+  function openMenu() {
+    menuOpen = true;
+    solArea.classList.add('open', 'tapmode');
+    buzz([10]);
+    tone(392, 0, 0.3, 'sine', 0.03);
+  }
+  function closeMenu() {
+    menuOpen = false;
+    solArea.classList.remove('open', 'tapmode');
+  }
   solBtn.addEventListener('pointerup', (e) => {
     if (!solHeld) return;
     e.stopPropagation();
     const chosen = endSol();
-    if (chosen !== null) { travelTo(SATS[chosen].id); return; }
-    // A tap without a sweep: home. If already home, back to the middle.
-    if (!travelledOut) {
-      if (region !== 'home') travelTo('home');
-      else { easeFast = false; homeTarget.x = 0; homeTarget.y = 0; setTimeout(() => { easeFast = true; }, 1200); }
-    }
+    if (chosen !== null) { closeMenu(); travelTo(SATS[chosen].id); return; }
+    if (travelledOut) { closeMenu(); return; }
+    // A tap always brings you one step closer to the menu: from another
+    // region to the world; from somewhere far off in the world to your own
+    // place; and once you are there, the menu opens for a second tap.
+    if (solWasOpen) { closeMenu(); return; }
+    const far = Math.hypot(homeCam.x, homeCam.y) > 50 || Math.abs(homeCam.z - 1) > 0.05;
+    if (region !== 'home') travelTo('home');
+    else if (far) {
+      easeFast = false;
+      homeTarget.x = 0; homeTarget.y = 0; homeTarget.z = 1;
+      vel.x = vel.y = 0;
+      setTimeout(() => { easeFast = true; }, 1200);
+    } else openMenu();
   });
   solBtn.addEventListener('pointercancel', endSol);
   $('#badge').addEventListener('click', () => travelTo('news'));
+  $('#sol-area .veil').addEventListener('click', closeMenu);
 
   // ---------------------------------------------------- touching things
   let drag = null;
 
+  const pointers = new Map();
+  let pinch = null;
+  const clampZ = (z) => Math.min(1, Math.max(0.35, z));
+  const fingerGap = () => { const [a, b] = [...pointers.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+
   stage.addEventListener('pointerdown', (e) => {
     if (travelling) return;
-    if (e.target.closest('button, input, .sheet-layer, .toggles')) return;
+    if (e.target.closest('button, input, .sheet-layer, .thread-layer, .toggles, .sol-area')) return;
     audio();
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // Two fingers in the world: pinch to step back, spread to step closer.
+    if (pointers.size === 2 && region === 'home') {
+      pinch = { d0: fingerGap(), z0: homeTarget.z };
+      drag = null;
+      if (held) release();
+      return;
+    }
+    if (pointers.size > 1) return;
     const item = e.target.closest('.item');
     drag = {
       id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
       moved: false, axis: null, item: item ? news.find((n) => String(n.id) === item.dataset.item) : null,
       scroll0: streamScroll,
+      stair0: stairS,
     };
     vel.x = vel.y = 0;
     easeFast = true;
@@ -1848,6 +2227,11 @@ body {
   });
 
   stage.addEventListener('pointermove', (e) => {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pointers.size >= 2) {
+      homeTarget.z = clampZ(pinch.z0 * (fingerGap() / pinch.d0));
+      return;
+    }
     if (!drag || e.pointerId !== drag.id) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.x = e.clientX; drag.y = e.clientY;
@@ -1859,12 +2243,16 @@ body {
     }
     if (!drag.moved) return;
 
-    if (region === 'home' || region === 'talk') {
-      const cam = region === 'home' ? homeCam : talkCam;
-      const tgt = region === 'home' ? homeTarget : talkTarget;
-      tgt.x -= dx / cam.z; tgt.y -= dy / cam.z;
+    if (region === 'home') {
+      const cam = homeCam;
+      homeTarget.x -= dx / cam.z; homeTarget.y -= dy / cam.z;
       cam.x -= dx / cam.z; cam.y -= dy / cam.z;
       vel.x = -dx / cam.z; vel.y = -dy / cam.z;
+    } else if (region === 'talk') {
+      // Along the stair: pulling up brings older conversations forward.
+      stairsEl.classList.add('scrolling');
+      stairS = clampStair(drag.stair0 - ty / 90);
+      layoutStairs();
     } else if (region === 'news') {
       if (drag.axis === 'x' && drag.item) {
         const n = drag.item;
@@ -1880,10 +2268,17 @@ body {
     }
   });
 
+  const letGo = (e) => { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null; };
   stage.addEventListener('pointerup', (e) => {
+    letGo(e);
     if (!drag || e.pointerId !== drag.id) return;
     const d = drag; drag = null;
     $('#stream').classList.remove('scrolling');
+    if (stairsEl.classList.contains('scrolling')) {
+      stairsEl.classList.remove('scrolling');
+      stairS = Math.round(stairS);
+      layoutStairs();
+    }
     if (region === 'news' && d.moved && d.axis === 'x' && d.item) {
       const tx = e.clientX - d.x0;
       if (Math.abs(tx) > 88) drop(d.item);
@@ -1895,24 +2290,52 @@ body {
     const el = document.elementFromPoint(e.clientX, e.clientY);
     if (!el) return;
     if (region === 'home') {
+      // From far away a tap is a journey, not a choice: the world comes
+      // closer around the point you touched, and choosing happens there.
+      if (homeCam.z < 0.7) {
+        const box = stage.getBoundingClientRect();
+        const A = anchor();
+        homeTarget.x = homeCam.x + (e.clientX - box.left - A.x) / homeCam.z;
+        homeTarget.y = homeCam.y + (e.clientY - box.top - A.y) / homeCam.z;
+        homeTarget.z = 1;
+        easeFast = false;
+        setTimeout(() => { easeFast = true; }, 1200);
+        return;
+      }
       const p = el.closest('[data-person]');
       if (!p || (held && held.i === Number(p.dataset.person))) release();
       else hold(people[Number(p.dataset.person)]);
     } else if (region === 'talk') {
-      const f = el.closest('[data-follow]');
-      if (f) { goTo(people[Number(f.dataset.follow)]); return; }
-      const ill = el.closest('[data-ill]');
-      if (ill) { const c = CONVERSATIONS[Number(ill.dataset.ill)]; openSheet(people[c.who], { conv: c }); }
+      const row = el.closest('[data-row]');
+      if (row) openThread(CONVERSATIONS[Number(row.dataset.row)]);
     } else if (region === 'news' && d.item) {
       openNews(d.item);
     }
   });
-  stage.addEventListener('pointercancel', () => { drag = null; });
+  stage.addEventListener('pointercancel', (e) => { letGo(e); drag = null; });
 
-  $('#follows').addEventListener('click', (e) => {
-    const f = e.target.closest('[data-follow]');
-    if (f) goTo(people[Number(f.dataset.follow)]);
-  });
+  // A mouse or a laptop's touchpad: the wheel steps back and closer in the
+  // world, walks the stair in conversations, and scrolls the news.
+  let wheelAcc = 0;
+  stage.addEventListener('wheel', (e) => {
+    if (travelling || e.target.closest('.thread-layer, .sheet-layer')) return;
+    e.preventDefault();
+    if (region === 'home') {
+      const k = e.ctrlKey ? 0.012 : 0.0016;
+      homeTarget.z = clampZ(homeTarget.z * Math.exp(-e.deltaY * k));
+      if (held) release();
+    } else if (region === 'talk') {
+      wheelAcc += e.deltaY;
+      if (Math.abs(wheelAcc) > 50) {
+        stairS = clampStair(Math.round(stairS) + Math.sign(wheelAcc));
+        wheelAcc = 0;
+        layoutStairs();
+      }
+    } else if (region === 'news') {
+      streamScroll = Math.max(0, Math.min(maxScroll(), streamScroll + e.deltaY));
+      layoutNews();
+    }
+  }, { passive: false });
 
   // --------------------------------------------------------- the sheet
   function openSheet(p, opts = {}) {
@@ -1967,9 +2390,9 @@ body {
   // ------------------------------------------------------------- loop
   let lastNear = 0;
   function frame(t) {
-    const cam = region === 'talk' ? talkCam : homeCam;
-    const tgt = region === 'talk' ? talkTarget : homeTarget;
-    if (!drag && !held) {
+    const cam = homeCam;
+    const tgt = homeTarget;
+    if (!drag && !held && region === 'home') {
       tgt.x += vel.x; tgt.y += vel.y;
       vel.x *= 0.93; vel.y *= 0.93;
     }
@@ -1978,26 +2401,23 @@ body {
 
     const A = anchor();
     $('#home-cam').style.transform = `translate3d(${A.x}px, ${A.y}px, 0) scale(${homeCam.z.toFixed(3)}) translate3d(${-homeCam.x}px, ${-homeCam.y}px, 0)`;
-    $('#talk-cam').style.transform = `translate3d(${A.x}px, ${A.y}px, 0) translate3d(${-talkCam.x}px, ${-talkCam.y}px, 0)`;
 
     if (t - lastNear > 100) {
       lastNear = t;
       nearUpdate(people, homeCam, 'home');
-      nearUpdate(CONVERSATIONS, talkCam, 'talk');
     }
     drawSky(t);
-    if (region === 'talk') drawThreads(t);
     requestAnimationFrame(frame);
   }
 
   // ------------------------------------------------------------ start
   buildWorld();
-  buildTalk();
   buildSol();
   syncToggles();
   resize();
   setHeader('home');
   updateCounts();
+  updateClocks();
   addEventListener('resize', resize);
   requestAnimationFrame(frame);
 })();
