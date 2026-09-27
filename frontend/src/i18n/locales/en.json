@@ -676,7 +676,9 @@
     "hereNowCount_other": "{{n}} here right now",
     "galaxyLocal": "",
     "galaxyWord": "Galaxy",
-    "solHint": "Tap Sol, or hold it and sweep towards a place"
+    "solHint": "Tap Sol, or hold it and sweep towards a place",
+    "hasNewsForYou": "Has news for you",
+    "sessionRunning": "Your paid session is running"
   },
   "echo": {
     "back": "Back",

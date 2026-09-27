@@ -676,7 +676,9 @@
     "hereNowCount_other": "{{n}} نفر همین حالا",
     "galaxyLocal": "کهکشان وگا",
     "galaxyWord": "Galaxy",
-    "solHint": "سول را بزن، یا نگه دار و به سمتِ یک منطقه بکش"
+    "solHint": "سول را بزن، یا نگه دار و به سمتِ یک منطقه بکش",
+    "hasNewsForYou": "برایت خبری دارد",
+    "sessionRunning": "جلسه‌ی پولیِ شما در جریان است"
   },
   "echo": {
     "back": "بازگشت",

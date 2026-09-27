@@ -109,7 +109,7 @@ describe('news gathered beside Sol', () => {
     let opened = 0
     act(() => root.render(<CoreNav sections={[]} badge={{ count: 6, label: 'news', onOpen: () => { opened += 1 } }} />))
     const badge = host.querySelector('.cos-news-badge') as HTMLElement
-    expect(badge.textContent).toContain('6')
+    expect(badge.textContent).toContain('۶') // in the reader's digits, as in the prototype
     act(() => badge.click())
     expect(opened).toBe(1)
   })

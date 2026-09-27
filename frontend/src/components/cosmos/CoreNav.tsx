@@ -124,7 +124,7 @@ export function CoreNav({ sections, onTap, badge }: CoreNavProps) {
      it belongs to. The notification does not disappear and get replaced
      by a badge somewhere else — it turns out to have been sitting on that
      body's orbit the whole time. */
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [held, setHeld] = useState(false)
   const [hot, setHot] = useState<number | null>(null)
   /** Opened by a tap rather than a hold: the places become buttons. */
@@ -322,7 +322,7 @@ export function CoreNav({ sections, onTap, badge }: CoreNavProps) {
       {badge && badge.count > 0 && !open && (
         <button type="button" className="cos-news-badge" onClick={badge.onOpen} aria-label={badge.label}>
           <span className="cos-news-badge-hole" aria-hidden="true" />
-          <span className="cos-news-badge-count">{badge.count}</span>
+          <span className="cos-news-badge-count">{badge.count.toLocaleString(i18n.language)}</span>
         </button>
       )}
     </div>

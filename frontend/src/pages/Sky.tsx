@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Orb } from '../components/cosmos/Orb'
+import { Orb, orbSize } from '../components/cosmos/Orb'
 import { SpaceGround, DUST_LAYERS, seededRandom } from '../components/cosmos/SpaceGround'
 import { Orbits } from '../components/cosmos/Orbits'
 import { CoreNav } from '../components/cosmos/CoreNav'
@@ -641,9 +641,13 @@ export default function Sky() {
                       detail.has(star.user_id) ? 'is-near' : '',
                       selected === null ? '' : selected === star.user_id ? 'is-chosen' : 'is-dimmed',
                       pulled.has(star.user_id) ? 'is-pulled' : '',
+                      selected === star.user_id && world.news.some((n) => n.userId === star.user_id) ? 'is-newsy' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
+                    // The held ring and the label under it are sized to this
+                    // person's orb, as in the prototype.
+                    style={selected === star.user_id ? ({ '--cos-held-s': `${orbSize(star.presence)}px` } as React.CSSProperties) : undefined}
                   >
                     <Orb
                       initial={star.initial}
@@ -670,6 +674,21 @@ export default function Sky() {
                         of the flow as well, so a body's position never
                         shifts when its name arrives. */}
                     <span className="cos-orb-name">{star.display_name}</span>
+                    {selected === star.user_id && (
+                      // Who you are holding, under them, as in the approved
+                      // prototype: whether they have news for you, their
+                      // name, whether your paid session with them is running
+                      // and whether they are here now, and their own line.
+                      <div className="cos-held-label">
+                        {world.news.some((n) => n.userId === star.user_id) && (
+                          <span className="cos-held-flag is-news">{t('sky.hasNewsForYou')}</span>
+                        )}
+                        <b>{star.display_name}</b>
+                        {liveWith === star.user_id && <span className="cos-held-flag is-session">{t('sky.sessionRunning')}</span>}
+                        {star.online && <span className="cos-held-flag is-live">{t('sky.hereNow')}</span>}
+                        {star.tagline && <span className="cos-held-line">{star.tagline}</span>}
+                      </div>
+                    )}
 
                   </div>
                 </div>
@@ -715,7 +734,7 @@ export default function Sky() {
         // Where you are, in the same place and the same voice as the
         // galaxy's name in the world — as in the approved prototype: the
         // region's name, and one quiet line about what is in it.
-        <header className="cos-header" data-chrome>
+        <header className="cos-header" data-chrome key={shown}>
           <span className="cos-header-place" key={shown}>
             <b className="cos-header-name">{t(`world.region.${shown}`)}</b>
           </span>
@@ -785,18 +804,14 @@ export default function Sky() {
             {
               id: 'news',
               label: t('world.region.news'),
-              icon: <MiniNews count={world.news.length} />,
+              icon: <MiniNews count={world.news.length} label={world.news.length.toLocaleString(i18n.language)} />,
               tone: 'var(--cos-news)',
               onChoose: () => go('news'),
             },
             {
-              // The only place with a name of its own, so the label leads
-              // with the name and says what it does underneath — that is
-              // the word people will end up using.
+              // Named as in the approved prototype: its name alone.
               id: 'echo',
-              name: t('sky.echoName'),
-              sub: t('sky.echoSub'),
-              label: t('sky.randomChat'),
+              label: t('world.region.echo'),
               icon: <MiniEcho />,
               tone: 'var(--cos-echo)',
               onChoose: () => navigate('/echo'),

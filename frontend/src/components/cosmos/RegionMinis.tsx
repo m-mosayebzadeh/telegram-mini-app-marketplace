@@ -33,12 +33,12 @@ export function MiniTalk() {
 }
 
 /** News: a small turning wormhole, with how many things came out of it. */
-export function MiniNews({ count }: { count: number }) {
+export function MiniNews({ count, label }: { count: number; label?: string }) {
   return (
     <span className="cos-mini" aria-hidden="true">
       <span className="cos-mini-hole" />
       <span className="cos-mini-core" />
-      {count > 0 && <span className="cos-mini-count">{count}</span>}
+      {count > 0 && <span className="cos-mini-count">{label ?? count}</span>}
     </span>
   )
 }

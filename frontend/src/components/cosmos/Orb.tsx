@@ -118,7 +118,7 @@ export function Orb({
   const showPhoto = arrived && near && has
 
   const clamped = clamp01(presence)
-  const size = Math.round(MIN_SIZE + clamped * (MAX_SIZE - MIN_SIZE))
+  const size = orbSize(clamped)
   const light = clamp01(trust)
   const [a, b] = BODIES[Math.abs(Math.trunc(seed)) % BODIES.length]
 
@@ -234,6 +234,12 @@ function Moons({ count, size, seed }: { count: number; size: number; seed: numbe
 function clamp01(value: number): number {
   if (Number.isNaN(value)) return 0
   return Math.min(1, Math.max(0, value))
+}
+
+/** How big somebody's orb is drawn, from their presence — the one copy of
+ *  that arithmetic, for anything placed relative to an orb. */
+export function orbSize(presence: number): number {
+  return Math.round(MIN_SIZE + clamp01(presence) * (MAX_SIZE - MIN_SIZE))
 }
 
 export const ORB_MIN_SIZE = MIN_SIZE
