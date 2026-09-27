@@ -663,6 +663,10 @@ def update_platform_rates(
     rates.minimum_withdrawal_toman = payload.minimum_withdrawal_toman
     rates.offer_expiry_days = payload.offer_expiry_days
     rates.request_expiry_hours = payload.request_expiry_hours
+    if payload.start_window_minutes is not None:
+        rates.start_window_minutes = payload.start_window_minutes
+    if payload.daily_new_people is not None:
+        rates.daily_new_people = payload.daily_new_people
     db.commit()
     db.refresh(rates)
     return rates

@@ -26,6 +26,9 @@ export type LiveEvent =
   | { type: 'deleted'; conversation_id: number; message_ids: number[] }
   | { type: 'reactions'; conversation_id: number; message_id: number; reactions: Reaction[] }
   | { type: 'typing'; conversation_id: number; user_id: number }
+  /** A request between you and somebody changed — made, confirmed,
+   *  refused, withdrawn, paid or run out. No details: read them again. */
+  | { type: 'requests' }
 
 type Listener = (event: LiveEvent) => void
 

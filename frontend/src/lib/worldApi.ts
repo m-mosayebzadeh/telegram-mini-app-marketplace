@@ -12,13 +12,18 @@ import type { ChatSession, IncomingFollowRequest, RequestActivity } from './type
  * with, read from the server and kept fresh.
  *
  * Conversations refresh the moment a message arrives over the live
- * connection. Requests, sessions and follow requests have no live events,
+ * connection, and requests the moment one changes on either side (the
+ * "requests" event). Sessions and follow requests have no live events yet,
  * so they refresh on a slow clock, when the app comes back into view, and
- * right after anything you do to them — which covers every change you
- * cause yourself, and most of the ones other people cause.
+ * right after anything you do to them.
  */
 
 const REFRESH_MS = 30_000
+
+/** Conversations come fifteen at a time: describing a thread is not cheap
+ *  on the server, and flying three hundred people onto the stair was heavy
+ *  on the phone. More arrive as the stair nears its end. */
+export const CONVERSATION_PAGE = 15
 
 // ------------------------------------------------------------------ calls
 
@@ -65,6 +70,10 @@ export const THANKS_IMAGE: Record<Thanks, string> = {
 
 export interface World {
   loaded: boolean
+  /** More conversations exist than have been fetched. */
+  hasMore: boolean
+  /** Fetch the next page of conversations (the stair calls it near its end). */
+  loadMore: () => Promise<void>
   error: string | null
   relations: Relation[]
   news: NewsItem[]
@@ -82,17 +91,52 @@ export function useWorld(): World {
   const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed())
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
   const alive = useRef(true)
+  /** How many conversations are held, so a refresh re-reads exactly those
+   *  (never shrinking the stair under somebody's thumb). */
+  const held = useRef(CONVERSATION_PAGE)
+  const loadingMore = useRef(false)
+
+  /** The conversations already on the stair, read again in one call. */
+  const readConversations = useCallback(async () => {
+    const limit = Math.max(CONVERSATION_PAGE, held.current)
+    const page = await fetchConversations({ limit })
+    if (!alive.current) return page
+    setConversations(page)
+    setHasMore(page.length >= limit)
+    return page
+  }, [])
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore.current) return
+    loadingMore.current = true
+    try {
+      const next = await fetchConversations({ limit: CONVERSATION_PAGE, offset: held.current })
+      if (!alive.current) return
+      held.current += next.length
+      setHasMore(next.length >= CONVERSATION_PAGE)
+      // Merged by id: a thread can move between pages when a message
+      // arrives in the meantime, and must never show twice.
+      setConversations((prev) => {
+        const seen = new Set(prev.map((c) => c.id))
+        return [...prev, ...next.filter((c) => !seen.has(c.id))]
+      })
+    } catch {
+      // The stair keeps what it has; the next approach to the end retries.
+    } finally {
+      loadingMore.current = false
+    }
+  }, [])
 
   const reload = useCallback(async () => {
     try {
       // Each source stands on its own: one failing must not blank the
       // others, so a missing follow list still leaves the stair working.
       const [c, a, s, f] = await Promise.allSettled([
-        fetchConversations(), fetchActivity(), fetchMySessions(), fetchIncomingFollows(),
+        readConversations(), fetchActivity(), fetchMySessions(), fetchIncomingFollows(),
       ])
       if (!alive.current) return
-      if (c.status === 'fulfilled') setConversations(c.value)
       if (a.status === 'fulfilled') setActivity(a.value)
       if (s.status === 'fulfilled') setSessions(s.value)
       if (f.status === 'fulfilled') setFollows(f.value)
@@ -101,7 +145,7 @@ export function useWorld(): World {
     } finally {
       if (alive.current) setLoaded(true)
     }
-  }, [])
+  }, [readConversations])
 
   useEffect(() => {
     alive.current = true
@@ -111,8 +155,11 @@ export function useWorld(): World {
     document.addEventListener('visibilitychange', onVisible)
     const unsubscribe = subscribe((event) => {
       if (event.type === 'message' || event.type === 'read' || event.type === 'ready') {
-        fetchConversations().then((c) => { if (alive.current) setConversations(c) }).catch(() => {})
+        readConversations().catch(() => {})
       }
+      // A request changed on the other side (confirmed, paid, run out):
+      // the countdowns and the queued cards must follow at once.
+      if (event.type === 'requests') void reload()
     })
     return () => {
       alive.current = false
@@ -135,7 +182,7 @@ export function useWorld(): World {
     })
   }, [])
 
-  return { loaded, error, relations, news, sessions, liveSession, reload, dismiss }
+  return { loaded, error, hasMore, loadMore, relations, news, sessions, liveSession, reload, dismiss }
 }
 
 // ------------------------------------------------------- one person's deal
@@ -169,7 +216,7 @@ export function useDeal(userId: number | null): { deal: Deal | null; sessions: C
     void reload()
     const timer = setInterval(() => void reload(), 20_000)
     const unsubscribe = subscribe((event) => {
-      if (event.type === 'message' || event.type === 'ready') void reload()
+      if (event.type === 'message' || event.type === 'ready' || event.type === 'requests') void reload()
     })
     return () => {
       alive.current = false

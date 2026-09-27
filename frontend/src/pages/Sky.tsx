@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { fetchNewPeopleLeft } from '../lib/conversationApi'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Orb, orbSize } from '../components/cosmos/Orb'
@@ -265,6 +266,33 @@ export default function Sky() {
     return () => cancelAnimationFrame(frame)
   }, [journey])
 
+  /** Somebody the day's budget for new people stopped you greeting. */
+  const [sayNo, setSayNo] = useState<number | null>(null)
+
+  /**
+   * Saying hello. With somebody you already talk to, straight through.
+   * With a stranger, the day's budget (section 30.21) is asked first, so the
+   * eleventh person gets a sentence right here, under them, instead of a
+   * screen that opens only to refuse.
+   */
+  async function sayHello(userId: number) {
+    const known = world.relations.some((r) => r.userId === userId && r.conversationId !== null)
+    if (!known) {
+      try {
+        const { left } = await fetchNewPeopleLeft()
+        if (left <= 0) {
+          setSayNo(userId)
+          navigator.vibrate?.([8, 40, 8])
+          return
+        }
+      } catch {
+        // Could not ask: go on, and the conversation screen says what the
+        // server says.
+      }
+    }
+    navigate(`/conversations/with/${userId}`)
+  }
+
   // Arriving from a conversation's "see them in the world": hold that
   // person as soon as they are in the sky. Once, and only in the world.
   const heldFromState = useRef(false)
@@ -275,6 +303,12 @@ export default function Sky() {
     if (!star) return
     heldFromState.current = true
     hold(star)
+    // Used once, then taken off the page. The browser keeps a page's state
+    // through a reload, so leaving it there made every reload of the world
+    // pick the same person again — which is what the owner saw.
+    const rest = { ...((location.state ?? {}) as Record<string, unknown>) }
+    delete rest.hold
+    navigate(location.pathname, { replace: true, state: Object.keys(rest).length ? rest : null })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stars, region])
 
@@ -740,6 +774,9 @@ export default function Sky() {
           originOf={originOf}
           leaving={leaving}
           onOpen={(relation) => navigate(`/conversations/with/${relation.userId}`)}
+          hasMore={world.hasMore}
+          onNearEnd={world.loadMore}
+          onDeadline={world.reload}
         />
         </div>
       )}
@@ -751,6 +788,7 @@ export default function Sky() {
           onDismiss={world.dismiss}
           onAnswer={answer}
           onOpen={openNews}
+          onDeadline={world.reload}
         />
         </div>
       )}
@@ -867,9 +905,12 @@ export default function Sky() {
           >
             {t('sky.viewProfile')}
           </button>
+          {sayNo === chosen.user_id && (
+            <p className="cos-hold-limit" role="status">{t('sky.dailyLimit')}</p>
+          )}
           <button
             className="cos-hold-say"
-            onClick={() => navigate(`/conversations/with/${chosen.user_id}`)}
+            onClick={() => void sayHello(chosen.user_id)}
           >
             {/* With the person you are in a paid session with, the one
                 thing to do is go back to it. */}

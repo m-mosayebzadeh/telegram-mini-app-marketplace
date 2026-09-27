@@ -81,8 +81,9 @@ export interface ConversationMessage {
 }
 
 /** Every thread you are in, most recent first. */
-export function fetchConversations(): Promise<Conversation[]> {
-  return apiFetch<Conversation[]>('/conversations')
+export function fetchConversations(page?: { limit: number; offset?: number }): Promise<Conversation[]> {
+  if (!page) return apiFetch<Conversation[]>('/conversations')
+  return apiFetch<Conversation[]>(`/conversations?limit=${page.limit}&offset=${page.offset ?? 0}`)
 }
 
 /**
@@ -96,6 +97,12 @@ export function openConversationWith(userId: number): Promise<Conversation> {
     method: 'POST',
     body: JSON.stringify({ user_id: userId }),
   })
+}
+
+/** How many strangers you can still meet today, across "say hello" and
+ *  Echo (section 30.21). */
+export function fetchNewPeopleLeft(): Promise<{ limit: number; left: number }> {
+  return apiFetch<{ limit: number; left: number }>('/conversations/new-people')
 }
 
 export function fetchConversation(id: number): Promise<Conversation> {

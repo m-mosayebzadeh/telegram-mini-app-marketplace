@@ -41,6 +41,14 @@ export class ApiError extends Error {
  * rendered on screen as if it were a real error message instead of
  * something a person could act on.
  */
+/** The machine-readable reason a request was refused, when the server gave
+ *  one — so a screen can say it in words instead of showing raw JSON. */
+export function apiReason(err: unknown): string | undefined {
+  if (!(err instanceof ApiError)) return undefined
+  const detail = (err.body as { detail?: unknown } | null)?.detail
+  return detail && typeof detail === 'object' ? ((detail as { reason?: string }).reason ?? undefined) : undefined
+}
+
 export function formatApiError(err: unknown): string {
   if (err instanceof ApiError) {
     return err.body != null ? JSON.stringify(err.body) : `Request failed (HTTP ${err.status})`

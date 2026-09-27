@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ANSWERABLE, type NewsItem } from '../../lib/news'
+import { Countdown, EdgeFuse } from './Fuse'
 import { timeSince } from '../../lib/timeAgo'
 import { THANKS_IMAGE, type Thanks } from '../../lib/worldApi'
 import {
@@ -50,7 +51,14 @@ interface NewsFeedProps {
   onAnswer: (item: NewsItem, yes: boolean) => Promise<void>
   /** Go where the item points; for a follow request, to the profile. */
   onOpen: (item: NewsItem, where?: 'profile') => void
+  /** A payment window or a queue ran out: read the state again. */
+  onDeadline?: () => void
 }
+
+/** A confirmation that has to wait for somebody else is not answerable yet:
+ *  its card shows the wait instead of turning over to buttons that could
+ *  only fail (TECHNICAL_REQUIREMENTS.md section 16). */
+const answerableNow = (item: NewsItem) => ANSWERABLE.includes(item.kind) && !item.queuedBehind
 
 type Settle = 'burn' | 'charge'
 
@@ -85,7 +93,7 @@ function prefersLessMotion(): boolean {
   return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen }: NewsFeedProps) {
+export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen, onDeadline }: NewsFeedProps) {
   const { t, i18n } = useTranslation()
   const rootRef = useRef<HTMLDivElement>(null)
   const probeRef = useRef<HTMLSpanElement>(null)
@@ -440,7 +448,7 @@ export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen }: NewsFee
       takeBack(item.key)
       return
     }
-    if (ANSWERABLE.includes(item.kind)) {
+    if (answerableNow(item)) {
       navigator.vibrate?.(6)
       if (turned.has(item.key)) {
         turnBack(item.key)
@@ -530,7 +538,7 @@ export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen }: NewsFee
   function card(item: NewsItem, y: number, gone?: Leaving['how']) {
     if (!g) return null
     const key = item.key
-    const answerable = ANSWERABLE.includes(item.kind)
+    const answerable = answerableNow(item)
     const kind = gone === 'burn' ? 'burn' : settling[key]
     const isHeld = held?.key === key
     const fade = edgeFade(g, y)
@@ -566,15 +574,26 @@ export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen }: NewsFee
     const when = <span className="cos-news-when">{timeSince(item.at, i18n.language)}</span>
 
     if (!answerable) {
-      const body = bodyOf(item)
+      const queued = item.kind === 'confirm' && item.queuedBehind
+      // The countdown takes the body line — news cards keep one height —
+      // and the fuse is the card's own lower edge burning away.
+      let body: React.ReactNode = bodyOf(item)
+      if (queued) {
+        body = item.freesAt
+          ? <Countdown deadline={item.freesAt} label="news.confirm.queuedTimed" values={{ name: item.queuedBehind ?? '' }} onDone={onDeadline} />
+          : t('news.confirm.queuedNoTime', { name: item.queuedBehind })
+      } else if (item.kind === 'pay' && item.payBy) {
+        body = <Countdown deadline={item.payBy} label="news.pay.within" onDone={onDeadline} />
+      }
       return (
         <article key={key} className={className} style={style} data-news-key={key} aria-label={titleOf(item)} ref={keep(key)}>
           {face(item)}
           <span className="cos-news-text">
             <b>{titleOf(item)}</b>
-            {body && <span>{body}</span>}
+            {body && <span className={queued || item.kind === 'pay' ? 'is-timed' : undefined}>{body}</span>}
           </span>
           {when}
+          {item.kind === 'pay' && item.payBy && <EdgeFuse deadline={item.payBy} start={item.confirmedAt} />}
         </article>
       )
     }

@@ -324,6 +324,9 @@ def test_owner_can_update_rates_and_it_affects_pricing(client):
         "minimum_withdrawal_toman": 500000,
         "offer_expiry_days": 14,
         "request_expiry_hours": 48,
+        # Not sent in the update above, so it keeps its default.
+        "start_window_minutes": 15,
+        "daily_new_people": 10,
     }
 
 

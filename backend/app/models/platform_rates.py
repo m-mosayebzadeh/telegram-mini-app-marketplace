@@ -47,6 +47,13 @@ class PlatformRates(Base):
     # judgement about how busy the market is, and that will change.
     offer_expiry_days: Mapped[int] = mapped_column(Integer, default=7)
     request_expiry_hours: Mapped[int] = mapped_column(Integer, default=24)
+    #: How long a requester has to pay once the offerer has confirmed
+    #: (section 16: "مهلت شروع پس از پذیرش"). Without it a request that is
+    #: confirmed and never paid holds the offerer's one open slot forever.
+    start_window_minutes: Mapped[int] = mapped_column(Integer, default=15, server_default="15")
+    #: How many strangers one person may meet in a day, across "say hello"
+    #: and Echo together (app/core/new_people.py). The owner's number: ten.
+    daily_new_people: Mapped[int] = mapped_column(Integer, default=10, server_default="10")
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
     __table_args__ = (
         CheckConstraint('photon_to_toman_rate > 0 AND minimum_withdrawal_toman > 0',
@@ -60,7 +67,7 @@ class PlatformRates(Base):
             name='ck_purchase_commission_percentages',
         ),
         CheckConstraint(
-            'offer_expiry_days > 0 AND request_expiry_hours > 0',
+            'offer_expiry_days > 0 AND request_expiry_hours > 0 AND start_window_minutes > 0 AND daily_new_people > 0',
             name='ck_positive_expiries',
         ),
     )

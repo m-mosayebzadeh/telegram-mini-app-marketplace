@@ -333,7 +333,13 @@
     "ratesDaysUnit": "days",
     "ratesHoursUnit": "hours",
     "ratesOfferExpiryHint": "After this, the offer leaves the showcase. It is not deleted, and its owner can list it again.",
-    "ratesRequestExpiryHint": "A request nobody answers in this time is closed, with its own reason rather than \"declined\"."
+    "ratesRequestExpiryHint": "A request nobody answers in this time is closed, with its own reason rather than \"declined\".",
+    "ratesStartWindowLabel": "Time to pay after confirmation (minutes)",
+    "ratesStartWindowHint": "If the requester doesn't pay within this time, the request closes by itself and the offerer is free again.",
+    "ratesMinutesUnit": "minutes",
+    "ratesNewPeopleLabel": "New people a day",
+    "ratesNewPeopleHint": "One shared limit per person per day for \"say hello\" in the world and Echo. Saying hello to someone you already talk to does not count.",
+    "ratesPeopleUnit": "people"
   },
   "offers": {
     "browseTitle": "Active offers",
@@ -679,7 +685,8 @@
     "galaxyWord": "Galaxy",
     "solHint": "Tap Sol, or hold it and sweep towards a place",
     "hasNewsForYou": "Has news for you",
-    "sessionRunning": "Your paid session is running"
+    "sessionRunning": "Your paid session is running",
+    "dailyLimit": "You've met as many new people as you can today; you can say hello again tomorrow."
   },
   "echo": {
     "back": "Back",
@@ -742,7 +749,8 @@
     "dayLabel": "Day",
     "monthLabel": "Month",
     "yearLabel": "Year",
-    "save": "Save"
+    "save": "Save",
+    "usedUp": "You've used today's conversations with new people. You can again tomorrow."
   },
   "talk": {
     "back": "Back",
@@ -796,7 +804,8 @@
       "hours": "Here a few hours ago",
       "days": "Here a few days ago",
       "long": "Not here for a while"
-    }
+    },
+    "dailyLimit": "You've met as many new people as you can today. You can again tomorrow; the conversations you have all stay open."
   },
   "report": {
     "title": "Report {{name}}",
@@ -849,7 +858,9 @@
       "received": "Accepted your offer · waiting for you to confirm",
       "accepted": "Confirmed · pay to start the session",
       "sent": "You accepted their offer · waiting for them to confirm",
-      "awaitpay": "You confirmed · waiting for them to pay"
+      "awaitpay": "You confirmed · waiting for them to pay",
+      "acceptedTimed": "Confirmed · {{time}} to pay",
+      "awaitpayTimed": "Waiting for them to pay · {{time}} left"
     },
     "filter": {
       "all": "All",
@@ -876,7 +887,9 @@
       "title": "{{name}} accepted your offer",
       "body": "“{{offer}}” · {{photons}} Photons",
       "yes": "Confirm",
-      "flown": "Gone to your conversations. When {{name}} pays, the session starts."
+      "flown": "Gone to your conversations. When {{name}} pays, the session starts.",
+      "queuedNoTime": "After {{name}}'s session ends",
+      "queuedTimed": "{{name}} first · {{time}} until free"
     },
     "follow": {
       "title": "{{name}} wants to follow you",
@@ -885,7 +898,8 @@
     },
     "pay": {
       "title": "{{name}} confirmed",
-      "body": "“{{offer}}” · paying {{photons}} Photons starts the session"
+      "body": "“{{offer}}” · paying {{photons}} Photons starts the session",
+      "within": "{{time}} left to pay"
     },
     "settle": {
       "title": "Your session with {{name}} ended",
@@ -946,7 +960,15 @@
       "refuse": "Decline",
       "pay": "Pay {{photons}} Photons and start",
       "withdraw": "Take back",
-      "withdrawSure": "Yes, take it back"
+      "withdrawSure": "Yes, take it back",
+      "payWithin": "{{time}} left to pay",
+      "theyPayWithin": "{{time}} until their time to pay runs out",
+      "queued": "{{time}} until free",
+      "queuedNote": "{{name}}'s turn comes first. If they don't pay in time, you can confirm this one right here.",
+      "queuedNoTime": "{{name}}'s session has to finish first; then you can confirm this one.",
+      "slotTaken": "You already have another confirmed request. Confirm this one once that is over.",
+      "windowClosed": "The time to pay had run out, so this request was closed.",
+      "waitingPay": "Waiting for {{name}} to pay"
     },
     "ending": {
       "byMe": "You ended the session early.",

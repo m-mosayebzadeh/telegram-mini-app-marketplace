@@ -466,13 +466,14 @@ def test_a_thread_that_existed_before_is_never_cleared(client, db_session):
 # --- the daily cap ----------------------------------------------------
 
 
-def test_unlimited_is_where_the_cap_starts(client, db_session):
-    """The tick box starts ticked, so the number beside it is stored but
-    not applied — it is there to be turned on later."""
+def test_the_day_budget_for_new_people_applies_even_with_echo_unlimited(client, db_session):
+    """Echo's own quota starts unlimited, but the day's budget for meeting
+    new people — shared with "say hello", ten by default — always applies
+    (section 30.21). So the door always knows how many are left."""
     _open_the_feature(db_session)
     _person(client, db_session, 9050, gender=GENDER_MALE, birth_year=1995)
     body = client.post("/random-chat/search", json={}, headers=_auth(9050)).json()
-    assert body["remaining_today"] is None
+    assert body["remaining_today"] == 10
 
 
 def test_a_cap_of_one_stops_the_second_conversation(client, db_session):

@@ -39,7 +39,9 @@ from app.profile.photos import get_current_avatar_url
 from app.request.schemas import IncomingRequestOut, RequestActivityOut, RequestCreate, RequestOut, RequestReject
 from app.chat_session.schemas import ChatSessionOut
 from app.chat_session.serializers import to_chat_session_out
-from app.request.expiry import expire_requests_if_due
+from app.request.expiry import pay_by, sweep, unpaid
+from app.core.rates import get_rates
+from app.live.events import announce_requests
 from app.wallet.blocks import close_if_due, start_session
 from app.wallet.service import InsufficientBalanceError
 
@@ -89,6 +91,7 @@ def _live_request_with_provider(db: Session, buyer_id: int, provider_id: int) ->
         )
         .all()
     )
+    _sweep_and_tell(db, candidates)
     return next((r for r in candidates if _is_request_still_live(db, r)), None)
 
 
@@ -107,13 +110,37 @@ def _open_accepted_request(db: Session, provider_id: int) -> Request | None:
         .filter(Offer.provider_id == provider_id, Request.status == RequestStatus.ACCEPTED)
         .all()
     )
+    # A confirmed request whose requester never paid gives the slot back
+    # here, before it can refuse anybody else (section 16).
+    _sweep_and_tell(db, accepted_requests)
     for request in accepted_requests:
+        if request.status != RequestStatus.ACCEPTED:
+            continue
         chat_session = db.query(ChatSession).filter(ChatSession.request_id == request.id).first()
         if chat_session is not None:
             close_if_due(db, chat_session)
         if _is_request_still_live(db, request):
             return request
     return None
+
+
+def _sweep_and_tell(db: Session, requests: list[Request]) -> None:
+    """Runs both lazy deadlines and tells both people about every request
+    that ran out unpaid, so a screen counting down to it — or a card queued
+    behind it — changes at once rather than on its next slow refresh."""
+    for closed in sweep(db, requests):
+        announce_requests([closed.buyer_id, closed.offer.provider_id])
+
+
+def frees_at(db: Session, blocking: Request):
+    """When the offerer's one open slot is expected to come free: the end
+    of the payment window while unpaid, the session's planned end while it
+    runs, or None when nobody can say yet (a session paid for but not
+    started)."""
+    if unpaid(db, blocking):
+        return pay_by(blocking, get_rates(db).start_window_minutes)
+    session = db.query(ChatSession).filter(ChatSession.request_id == blocking.id).first()
+    return session.scheduled_end_at if session is not None else None
 
 
 def _has_open_accepted_request(db: Session, provider_id: int) -> bool:
@@ -208,6 +235,7 @@ def create_request(
     db.add(new_request)
     db.commit()
     db.refresh(new_request)
+    announce_requests([current_user.id, offer.provider_id])
     return new_request
 
 
@@ -220,7 +248,7 @@ def list_my_requests(
     rows = db.query(Request).filter(Request.buyer_id == current_user.id).all()
     # Reading the list is when anything nobody answered in time runs out — the
     # same lazy sweep used everywhere else, instead of something that ticks.
-    expire_requests_if_due(db, rows)
+    _sweep_and_tell(db, rows)
     return rows
 
 
@@ -252,7 +280,20 @@ def list_activity_requests(
     )
     # The feed both sides actually look at, so it is where an unanswered
     # request runs out.
-    expire_requests_if_due(db, [request for request, _ in rows])
+    _sweep_and_tell(db, [request for request, _ in rows])
+
+    window = get_rates(db).start_window_minutes
+    # Whatever is holding MY one open slot as an offerer, worked out once:
+    # every request waiting for my confirmation is queued behind it.
+    blocking = _open_accepted_request(db, current_user.id)
+    behind = None
+    if blocking is not None:
+        blocker = db.get(User, blocking.buyer_id)
+        behind = dict(
+            queued_behind_user_id=blocking.buyer_id,
+            queued_behind_name=blocker.display_name if blocker else "",
+            frees_at=frees_at(db, blocking),
+        )
 
     out: list[RequestActivityOut] = []
     for request, offer in rows:
@@ -274,6 +315,15 @@ def list_activity_requests(
                 counterpart_display_name=counterpart.display_name if counterpart else "",
                 counterpart_username=counterpart.username if counterpart else None,
                 counterpart_avatar_url=get_current_avatar_url(db, counterpart_id) if counterpart else None,
+                pay_by=pay_by(request, window) if unpaid(db, request) else None,
+                **(
+                    behind
+                    if behind is not None
+                    and not sent
+                    and request.status == RequestStatus.PENDING
+                    and request.id != blocking.id
+                    else {}
+                ),
             )
         )
 
@@ -358,6 +408,10 @@ def accept_request(
             detail={
                 "reason": "provider_has_open_accepted_request",
                 "chat_session_id": blocking_session.id if blocking_session else None,
+                # Enough for the app to say who is ahead and for how long,
+                # instead of an error: "first X — free in 9 minutes".
+                "blocking_user_id": blocking_request.buyer_id,
+                "frees_at": (lambda at: at.isoformat() if at else None)(frees_at(db, blocking_request)),
             },
         )
 
@@ -365,6 +419,7 @@ def accept_request(
     req.responded_at = utcnow()
     db.commit()
     db.refresh(req)
+    announce_requests([req.buyer_id, current_user.id])
     return req
 
 
@@ -386,6 +441,7 @@ def reject_request(
     req.responded_at = utcnow()
     db.commit()
     db.refresh(req)
+    announce_requests([req.buyer_id, current_user.id])
     return req
 
 
@@ -419,6 +475,7 @@ def cancel_request(
     req.responded_at = utcnow()
     db.commit()
     db.refresh(req)
+    announce_requests([req.buyer_id, req.offer.provider_id])
     return req
 
 
@@ -445,6 +502,14 @@ def pay_for_request(
     """
     lock_finances(db)
     req = _get_buyers_request(db, request_id, current_user.id)
+    # The payment window is checked before anything else: paying one second
+    # after it closed must not start a session the offerer was told is gone.
+    if sweep(db, [req]):
+        announce_requests([req.buyer_id, req.offer.provider_id])
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"reason": "pay_window_closed"},
+        )
     if req.status != RequestStatus.ACCEPTED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -474,4 +539,7 @@ def pay_for_request(
 
     db.commit()
     db.refresh(chat_session)
+    # Paid: the offerer's countdown stops and anybody queued behind this
+    # request sees it is now a session rather than a wait.
+    announce_requests([req.buyer_id, req.offer.provider_id])
     return to_chat_session_out(db, chat_session, current_user.id)

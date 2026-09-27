@@ -134,6 +134,8 @@ def read_pricing_config(
         # offer has left.
         "offer_expiry_days": rates.offer_expiry_days,
         "request_expiry_hours": rates.request_expiry_hours,
+        "start_window_minutes": rates.start_window_minutes,
+        "daily_new_people": rates.daily_new_people,
     }
 
 

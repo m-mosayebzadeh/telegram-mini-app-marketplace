@@ -31,6 +31,11 @@ CANCELLED_BY_BUYER_REASON = "Cancelled by the buyer."
 # summary counts only what the buyer actually did.
 EXPIRED_REASON = "The provider did not answer in time."
 
+# Confirmed, but never paid within the start window (section 16). The mirror of
+# the one above: this time it is the requester who let the time run out, and
+# the offerer's single open slot is given back.
+UNPAID_REASON = "The requester did not pay in time."
+
 
 class RequestStatus(str, enum.Enum):
     PENDING = "pending"

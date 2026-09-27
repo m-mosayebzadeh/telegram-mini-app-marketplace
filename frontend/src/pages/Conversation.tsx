@@ -5,7 +5,7 @@ import { SpaceGround } from '../components/cosmos/SpaceGround'
 import { ReportSheet } from '../components/cosmos/ReportSheet'
 import { VoiceNote } from '../components/cosmos/VoiceNote'
 import { MediaViewer } from '../components/chat/MediaViewer'
-import { ApiError, formatApiError } from '../lib/api'
+import { ApiError, apiReason, formatApiError } from '../lib/api'
 import { TYPING_SHOWN_MS, doneTyping, sayTyping, subscribe } from '../lib/live'
 import {
   deliveryOf,
@@ -142,7 +142,12 @@ export default function Conversation() {
         setMessages(await fetchMessages(found.id))
         markRead(found.id).catch(() => {})
       })
-      .catch((err) => setError(formatApiError(err)))
+      .catch((err) => {
+        // The one refusal a person can meet just by saying hello: said in
+        // words, not as the server's raw answer (the owner saw the raw one).
+        const reason = apiReason(err)
+        setError(reason === 'daily_new_people_limit' || reason === 'daily_new_conversation_limit' ? t('talk.dailyLimit') : formatApiError(err))
+      })
   }, [userId, id])
 
   useEffect(() => {
@@ -452,6 +457,8 @@ export default function Conversation() {
         void flush()
         return
       }
+      // Request changes are the deal's business (useDeal listens for them).
+      if (event.type === 'requests') return
       if (event.conversation_id !== threadId) return
       if (event.type === 'typing') {
         if (event.user_id === me?.id) return

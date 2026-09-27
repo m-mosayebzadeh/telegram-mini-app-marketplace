@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { blockNow, type Deal } from '../../lib/deal'
 import { minutesLeft } from '../../lib/relations'
-import { formatApiError } from '../../lib/api'
+import { ApiError, formatApiError } from '../../lib/api'
+import { BurningButton, Fuse } from './Fuse'
 import { timeAgo } from '../../lib/timeAgo'
 import {
   THANKS,
@@ -48,8 +49,18 @@ interface ThreadDealProps {
 }
 
 export function ThreadDeal({ deal, name, onChanged }: ThreadDealProps) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  /** A refusal in people's words. The raw server answer once reached the
+   *  screen as JSON, which says nothing to anybody. */
+  function explain(err: unknown): string {
+    const reason = err instanceof ApiError ? (err.body as { detail?: { reason?: string } } | null)?.detail?.reason : undefined
+    if (reason === 'provider_has_open_accepted_request') return t('deal.request.slotTaken')
+    if (reason === 'pay_window_closed') return t('deal.request.windowClosed')
+    return formatApiError(err)
+  }
 
   /** Every action goes through here, so a double tap never sends twice and
    *  a failure is always said out loud rather than swallowed. */
@@ -62,7 +73,9 @@ export function ThreadDeal({ deal, name, onChanged }: ThreadDealProps) {
       navigator.vibrate?.(10)
       if (reload) await onChanged()
     } catch (err) {
-      setError(formatApiError(err))
+      setError(explain(err))
+      // Whatever refused it changed the state; show the state as it is now.
+      if (err instanceof ApiError) void onChanged()
     } finally {
       setBusy(false)
     }
@@ -71,7 +84,7 @@ export function ThreadDeal({ deal, name, onChanged }: ThreadDealProps) {
   return (
     <div className={`cos-deal is-${deal.kind}`} data-control>
       {deal.kind === 'session' && <SessionBar deal={deal} name={name} busy={busy} act={act} />}
-      {deal.kind === 'request' && <RequestCard deal={deal} name={name} busy={busy} act={act} />}
+      {deal.kind === 'request' && <RequestCard deal={deal} name={name} busy={busy} act={act} onChanged={onChanged} />}
       {deal.kind === 'ending' && <Ending deal={deal} name={name} busy={busy} act={act} />}
       {deal.kind === 'thank' && <ThankYou deal={deal} busy={busy} act={act} />}
       {error && <p className="cos-deal-error" role="alert">{error}</p>}
@@ -159,7 +172,7 @@ function SessionBar({ deal, name, busy, act }: PartProps<'session'>) {
 
 // ------------------------------------------------------------ request card
 
-function RequestCard({ deal, name, busy, act }: PartProps<'request'>) {
+function RequestCard({ deal, name, busy, act, onChanged }: PartProps<'request'> & { onChanged: () => Promise<void> | void }) {
   const { t, i18n } = useTranslation()
   const [sure, setSure] = useState(false)
   const r = deal.request
@@ -172,7 +185,44 @@ function RequestCard({ deal, name, busy, act }: PartProps<'request'>) {
       <span>{t(`deal.request.${deal.stage}.body`, v)}</span>
       {deal.stage === 'sent' && <p className="cos-deal-note">{t('deal.request.sent.note', v)}</p>}
 
-      {deal.stage === 'received' && (
+      {/* The payment window, burning down — seen by both of them: the one
+          who must pay has the button itself burn; the one whose slot it
+          holds sees the same pill with nothing to press (section 30.20). */}
+      {deal.stage === 'awaitpay' && r.pay_by && (
+        <BurningButton
+          passive
+          deadline={r.pay_by}
+          start={r.responded_at}
+          label={t('deal.request.waitingPay', v)}
+          timeLabel="deal.request.theyPayWithin"
+          onDone={() => void onChanged()}
+        />
+      )}
+
+      {/* Somebody else holds my one open slot: say so, and for how long,
+          instead of a confirm button that could only fail. */}
+      {deal.stage === 'received' && r.queued_behind_name && (
+        <div className="cos-deal-queue">
+          {r.frees_at ? (
+            <Fuse
+              deadline={r.frees_at}
+              label="deal.request.queued"
+              className="is-queue"
+              onDone={() => void onChanged()}
+            />
+          ) : null}
+          <p className="cos-deal-note">
+            {t(r.frees_at ? 'deal.request.queuedNote' : 'deal.request.queuedNoTime', { name: r.queued_behind_name })}
+          </p>
+          <div className="cos-deal-row">
+            <button type="button" className="cos-deal-btn" disabled={busy} onClick={() => act(() => refuseRequest(r.id))}>
+              {t('deal.request.refuse')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {deal.stage === 'received' && !r.queued_behind_name && (
         <div className="cos-deal-row">
           <button type="button" className="cos-deal-btn is-warm" disabled={busy} onClick={() => act(() => confirmRequest(r.id))}>
             {t('deal.request.confirm')}
@@ -182,7 +232,18 @@ function RequestCard({ deal, name, busy, act }: PartProps<'request'>) {
           </button>
         </div>
       )}
-      {deal.stage === 'accepted' && (
+      {deal.stage === 'accepted' && r.pay_by && (
+        <BurningButton
+          deadline={r.pay_by}
+          start={r.responded_at}
+          label={t('deal.request.pay', v)}
+          timeLabel="deal.request.payWithin"
+          disabled={busy}
+          onClick={() => act(() => payRequest(r.id))}
+          onDone={() => void onChanged()}
+        />
+      )}
+      {deal.stage === 'accepted' && !r.pay_by && (
         <div className="cos-deal-row">
           <button type="button" className="cos-deal-btn is-warm" disabled={busy} onClick={() => act(() => payRequest(r.id))}>
             {t('deal.request.pay', v)}

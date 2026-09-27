@@ -82,3 +82,14 @@ def announce_read(conversation: Conversation, reader_id: int, read_at: datetime)
             "read_at": read_at.isoformat(),
         },
     )
+
+
+def announce_requests(user_ids: list[int]) -> None:
+    """Something about a request between these people changed: made,
+    confirmed, refused, withdrawn, paid, or run out.
+
+    Carries no details on purpose. Each screen already knows how to read its
+    requests, and reading them is also what runs the lazy deadlines — so the
+    nudge alone keeps every countdown and every queued card honest.
+    """
+    hub.publish(user_ids, {"type": "requests"})

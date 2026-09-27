@@ -40,7 +40,7 @@ describe('regions of the world', () => {
     root = createRoot(host)
     Element.prototype.setPointerCapture = () => {}
     world.current = {
-      loaded: true, error: null, relations: [], news: [], sessions: [], liveSession: null,
+      loaded: true, error: null, hasMore: false, loadMore: async () => {}, relations: [], news: [], sessions: [], liveSession: null,
       reload: async () => {}, dismiss: () => {},
     }
   })

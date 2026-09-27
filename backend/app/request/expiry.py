@@ -16,7 +16,8 @@ from sqlalchemy.orm import Session
 from app.core.rates import get_rates
 from app.core.time import utcnow
 from app.models.offer import Offer, OfferStatus
-from app.models.request import EXPIRED_REASON, Request, RequestStatus
+from app.models.chat_session import ChatSession
+from app.models.request import EXPIRED_REASON, UNPAID_REASON, Request, RequestStatus
 
 
 def offer_expires_at(offer: Offer, expiry_days: int):
@@ -62,3 +63,63 @@ def expire_requests_if_due(db: Session, requests: list[Request]) -> None:
         changed = True
     if changed:
         db.commit()
+
+
+def pay_by(request: Request, window_minutes: int):
+    """When a confirmed request stops waiting for its payment.
+
+    Counted from the moment the offerer confirmed (responded_at), which is
+    the moment the requester was told they could pay.
+    """
+    if request.responded_at is None:
+        return None
+    return request.responded_at + timedelta(minutes=window_minutes)
+
+
+def unpaid(db: Session, request: Request) -> bool:
+    """Confirmed and not yet paid: there is no session behind it."""
+    return (
+        request.status == RequestStatus.ACCEPTED
+        and db.query(ChatSession.id).filter(ChatSession.request_id == request.id).first() is None
+    )
+
+
+def expire_unpaid_if_due(db: Session, requests: list[Request]) -> list[Request]:
+    """
+    Closes confirmed requests that were not paid in time, and returns them.
+
+    Without this a requester who never pays would hold the offerer's one open
+    slot for ever — which is exactly what an owner's test ran into: a request
+    confirmed two hours earlier and never paid refused every new confirmation.
+
+    Lazy like everything else here: checked when somebody reads, never by
+    something ticking. The apps count down to the same deadline and read again
+    the moment it passes, so in practice it closes on time. The requests that
+    closed are handed back so the caller can tell both people at once.
+    """
+    if not requests:
+        return []
+    window = get_rates(db).start_window_minutes
+    now = utcnow()
+    closed: list[Request] = []
+    for request in requests:
+        if request.status != RequestStatus.ACCEPTED:
+            continue
+        deadline = pay_by(request, window)
+        if deadline is None or now < deadline or not unpaid(db, request):
+            continue
+        request.status = RequestStatus.CANCELLED
+        request.reason = UNPAID_REASON
+        # When it actually ran out, not when somebody happened to look.
+        request.responded_at = deadline
+        closed.append(request)
+    if closed:
+        db.commit()
+    return closed
+
+
+def sweep(db: Session, requests: list[Request]) -> list[Request]:
+    """Both lazy deadlines at once: unanswered requests and unpaid ones.
+    Returns the ones that closed for not being paid, to be announced."""
+    expire_requests_if_due(db, requests)
+    return expire_unpaid_if_due(db, requests)

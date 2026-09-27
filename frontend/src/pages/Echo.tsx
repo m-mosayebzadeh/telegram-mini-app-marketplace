@@ -9,7 +9,7 @@ import {
   type BirthdayValue,
 } from '../components/cosmos/GateSheets'
 import { apiFetch } from '../lib/api'
-import { formatApiError } from '../lib/api'
+import { apiReason, formatApiError } from '../lib/api'
 import {
   MAX_TAGS,
   SEARCH_TAGS,
@@ -151,7 +151,8 @@ export default function Echo() {
       }
       setStatus(await startEchoSearch(body))
     } catch (err) {
-      setError(formatApiError(err))
+      const reason = apiReason(err)
+      setError(reason === 'daily_new_people_limit' || reason === 'daily_quota_reached' ? t('echo.usedUp') : formatApiError(err))
     } finally {
       setBusy(false)
     }
@@ -545,14 +546,19 @@ function Asking(props: {
       </div>
 
       <div className="cos-actions">
+        {/* Today's budget for new people, shared with "say hello" in the
+            world (section 30.21): said before the button, and when it is
+            spent the button says so rather than failing on a tap. */}
         {props.remaining !== null && (
-          <p className="cos-echo-remaining">{t('echo.remaining', { n: props.remaining })}</p>
+          <p className={`cos-echo-remaining${props.remaining === 0 ? ' is-spent' : ''}`}>
+            {props.remaining === 0 ? t('echo.usedUp') : t('echo.remaining', { n: props.remaining })}
+          </p>
         )}
         <button
           type="button"
           className="cos-action cos-action-primary cos-echo-go"
           onClick={props.onSearch}
-          disabled={props.busy}
+          disabled={props.busy || props.remaining === 0}
         >
           {props.busy ? t('common.loading') : t('echo.go')}
         </button>

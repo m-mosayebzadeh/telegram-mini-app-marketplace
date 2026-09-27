@@ -44,6 +44,12 @@ export interface NewsItem {
   reaction?: string
   /** For a message: what it said, so the card can show it. */
   text?: string | null
+  /** A payment to make: when the window closes, and when it opened. */
+  payBy?: string | null
+  confirmedAt?: string | null
+  /** A confirmation that must wait: who holds the slot, and until when. */
+  queuedBehind?: string | null
+  freesAt?: string | null
 }
 
 /** Whether this item can be answered on the card itself. */
@@ -61,9 +67,9 @@ export function buildNews(
   for (const r of relations) {
     const base = { userId: r.userId, name: r.name, avatarUrl: r.avatarUrl, conversationId: r.conversationId }
     if (r.stage === 'received' && r.request) {
-      items.push({ ...base, key: `confirm:${r.request.id}`, kind: 'confirm', at: r.request.created_at, requestId: r.request.id, offerTitle: r.request.offer_title, photons: r.request.offer_price_photons })
+      items.push({ ...base, key: `confirm:${r.request.id}`, kind: 'confirm', at: r.request.created_at, requestId: r.request.id, offerTitle: r.request.offer_title, photons: r.request.offer_price_photons, queuedBehind: r.request.queued_behind_name ?? null, freesAt: r.request.frees_at ?? null })
     } else if (r.stage === 'accepted' && r.request) {
-      items.push({ ...base, key: `pay:${r.request.id}`, kind: 'pay', at: r.request.responded_at ?? r.request.created_at, requestId: r.request.id, offerTitle: r.request.offer_title, photons: r.request.offer_price_photons })
+      items.push({ ...base, key: `pay:${r.request.id}`, kind: 'pay', at: r.request.responded_at ?? r.request.created_at, requestId: r.request.id, offerTitle: r.request.offer_title, photons: r.request.offer_price_photons, payBy: r.request.pay_by ?? null, confirmedAt: r.request.responded_at })
     }
     // Unread is its own pointer, whatever the stage: a message can arrive
     // during a request as easily as during a plain conversation.

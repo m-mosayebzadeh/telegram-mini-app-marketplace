@@ -286,3 +286,90 @@ def test_clearing_a_conversation_hides_its_files_too(client, db_session):
         f"/conversations/{thread}/messages/{photo['id']}/file", headers=_auth(6065)
     )
     assert kept.status_code == 200
+
+
+# --- the conversation list, a page at a time ------------------------------
+
+
+def test_conversations_come_a_page_at_a_time(client, db_session):
+    """The stair asks for fifteen at a time; describing every thread at once
+    was what made it heavy."""
+    client.get("/me", headers=_auth(6900, "Me"))
+    others = []
+    for n in range(5):
+        client.get("/me", headers=_auth(6901 + n, f"P{n}"))
+        other = db_session.query(User).filter_by(telegram_id=6901 + n).one()
+        thread = client.post("/conversations", json={"user_id": other.id}, headers=_auth(6900)).json()
+        client.post(f"/conversations/{thread['id']}/messages", data={"text": str(n)}, headers=_auth(6900))
+        others.append(thread["id"])
+
+    everything = client.get("/conversations", headers=_auth(6900)).json()
+    first = client.get("/conversations?limit=2", headers=_auth(6900)).json()
+    second = client.get("/conversations?limit=2&offset=2", headers=_auth(6900)).json()
+    rest = client.get("/conversations?limit=2&offset=4", headers=_auth(6900)).json()
+
+    assert len(everything) == 5
+    # Pages are the same order as the whole list, with nothing lost or repeated.
+    assert [c["id"] for c in first + second + rest] == [c["id"] for c in everything]
+    # Most recent first.
+    assert first[0]["id"] == others[-1]
+
+
+# --- one daily budget for new people: "say hello" and Echo together ------
+
+
+def _someone_new(client, db_session, telegram_id):
+    client.get("/me", headers=_auth(telegram_id, f"P{telegram_id}"))
+    return db_session.query(User).filter_by(telegram_id=telegram_id).one()
+
+
+def test_the_eleventh_stranger_in_a_day_is_refused(client, db_session):
+    """Ten new people a day in total (section 30.21), editable in the panel."""
+    client.get("/me", headers=_auth(6800, "Me"))
+    for n in range(10):
+        other = _someone_new(client, db_session, 6801 + n)
+        assert client.post("/conversations", json={"user_id": other.id}, headers=_auth(6800)).status_code == 201
+    left = client.get("/conversations/new-people", headers=_auth(6800)).json()
+    assert left == {"limit": 10, "left": 0}
+    one_more = _someone_new(client, db_session, 6799)
+    refused = client.post("/conversations", json={"user_id": one_more.id}, headers=_auth(6800))
+    assert refused.status_code == 429
+    assert refused.json()["detail"] == {"reason": "daily_new_people_limit", "limit": 10}
+
+
+def test_someone_you_already_know_never_counts(client, db_session):
+    """Saying hello again to a person you have a thread with is not meeting
+    somebody new, and is never refused."""
+    client.get("/me", headers=_auth(6600, "Me"))
+    friend = _someone_new(client, db_session, 6601)
+    client.post("/conversations", json={"user_id": friend.id}, headers=_auth(6600))
+    for n in range(9):
+        other = _someone_new(client, db_session, 6602 + n)
+        client.post("/conversations", json={"user_id": other.id}, headers=_auth(6600))
+    again = client.post("/conversations", json={"user_id": friend.id}, headers=_auth(6600))
+    assert again.status_code == 201
+
+
+def test_being_greeted_by_many_people_never_stops_you_greeting(client, db_session):
+    """The budget counts the people you approach. It once counted every
+    thread you were in, so strangers saying hello to you locked you out."""
+    me = _someone_new(client, db_session, 6700)
+    for n in range(12):
+        _someone_new(client, db_session, 6701 + n)
+        assert client.post("/conversations", json={"user_id": me.id}, headers=_auth(6701 + n)).status_code == 201
+    stranger = _someone_new(client, db_session, 6650)
+    assert client.post("/conversations", json={"user_id": stranger.id}, headers=_auth(6700)).status_code == 201
+
+
+def test_the_budget_comes_from_the_panel(client, db_session):
+    from app.core.rates import get_rates
+
+    rates = get_rates(db_session)
+    rates.daily_new_people = 2
+    db_session.commit()
+    client.get("/me", headers=_auth(6500, "Me"))
+    for n in range(2):
+        other = _someone_new(client, db_session, 6501 + n)
+        client.post("/conversations", json={"user_id": other.id}, headers=_auth(6500))
+    third = _someone_new(client, db_session, 6509)
+    assert client.post("/conversations", json={"user_id": third.id}, headers=_auth(6500)).status_code == 429

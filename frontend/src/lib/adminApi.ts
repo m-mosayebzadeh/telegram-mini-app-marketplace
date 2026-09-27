@@ -170,6 +170,8 @@ export function updatePlatformRates(rates: {
   minimum_withdrawal_toman: number
   offer_expiry_days: number
   request_expiry_hours: number
+  start_window_minutes?: number
+  daily_new_people?: number
 }): Promise<PlatformRates> {
   return apiFetch<PlatformRates>('/admin/rates', { method: 'PUT', body: JSON.stringify(rates) })
 }

@@ -37,6 +37,20 @@ const follow = (id: number, status: 'pending' | 'accepted' = 'pending'): Incomin
 const none = new Set<string>()
 
 describe('what the news points at', () => {
+  it('a payment to make carries its deadline, for the fuse', () => {
+    const r = relation(2, { stage: 'accepted', request: request(8, { direction: 'sent', status: 'accepted', pay_by: '2026-09-01T10:15:00Z', responded_at: '2026-09-01T10:00:00Z' }) })
+    const [item] = buildNews([r], [], [], none)
+    expect(item.payBy).toBe('2026-09-01T10:15:00Z')
+    expect(item.confirmedAt).toBe('2026-09-01T10:00:00Z')
+  })
+
+  it('a confirmation queued behind somebody says who, and until when', () => {
+    const r = relation(1, { stage: 'received', request: request(7, { queued_behind_name: 'Arash', frees_at: '2026-09-01T10:15:00Z' }) })
+    const [item] = buildNews([r], [], [], none)
+    expect(item.queuedBehind).toBe('Arash')
+    expect(item.freesAt).toBe('2026-09-01T10:15:00Z')
+  })
+
   it('an offer somebody accepted, waiting for your confirmation — answerable', () => {
     const [item] = buildNews([relation(1, { stage: 'received', request: request(7) })], [], [], none)
     expect(item.kind).toBe('confirm')

@@ -110,6 +110,14 @@ export interface RequestActivity {
   counterpart_display_name: string
   counterpart_username: string | null
   counterpart_avatar_url: string | null
+  /** Confirmed and not yet paid: when the payment window closes
+   *  (TECHNICAL_REQUIREMENTS.md section 16). */
+  pay_by?: string | null
+  /** Waiting on MY confirmation while somebody else holds my one open
+   *  slot: who is ahead, and when they should be done (null if unknown). */
+  queued_behind_user_id?: number | null
+  queued_behind_name?: string | null
+  frees_at?: string | null
 }
 
 export interface Request {
@@ -328,6 +336,10 @@ export interface PricingConfig {
    *  never by anything that ticks. */
   offer_expiry_days: number
   request_expiry_hours: number
+  /** How long a requester has to pay after the offerer confirms. */
+  start_window_minutes?: number
+  /** Strangers one person may meet a day, "say hello" and Echo together. */
+  daily_new_people?: number
 }
 
 /** One row in a followers/following list — GET /follow/{id}/followers or
@@ -489,6 +501,10 @@ export interface PlatformRates {
    *  never by anything that ticks. */
   offer_expiry_days: number
   request_expiry_hours: number
+  /** How long a requester has to pay after the offerer confirms. */
+  start_window_minutes?: number
+  /** Strangers one person may meet a day, "say hello" and Echo together. */
+  daily_new_people?: number
   updated_at: string
 }
 

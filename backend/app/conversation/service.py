@@ -33,7 +33,7 @@ def get_direct(db: Session, one_user_id: int, other_user_id: int) -> Conversatio
 
 
 def get_or_create_direct(
-    db: Session, one_user_id: int, other_user_id: int
+    db: Session, one_user_id: int, other_user_id: int, opened_by: int | None = None
 ) -> Conversation:
     """The one thread these two people have, created if this is the first
     time.
@@ -57,6 +57,7 @@ def get_or_create_direct(
         direct_key=Conversation.direct_key_for(one_user_id, other_user_id),
         base_capabilities=list(FREE_CAPABILITIES),
         created_at=utcnow(),
+        opened_by_id=opened_by,
     )
     try:
         # A nested block so losing the race rolls back only this insert,

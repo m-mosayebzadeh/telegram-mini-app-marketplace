@@ -73,4 +73,16 @@ class RequestActivityOut(BaseModel):
     counterpart_username: str | None
     counterpart_avatar_url: str | None
 
+    #: For a confirmed request not yet paid: when the payment window
+    #: closes (section 16). The apps count down to it.
+    pay_by: datetime | None = None
+
+    #: For a request waiting on MY confirmation while another request holds
+    #: my one open slot: who is ahead, and when they are expected to be done
+    #: (None when nobody can say yet). The card shows "first X — free in N
+    #: minutes" instead of a confirm button that could only fail.
+    queued_behind_user_id: int | None = None
+    queued_behind_name: str | None = None
+    frees_at: datetime | None = None
+
     model_config = {"from_attributes": True}

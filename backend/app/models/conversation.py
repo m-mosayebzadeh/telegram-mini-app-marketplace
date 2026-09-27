@@ -109,6 +109,15 @@ class Conversation(Base):
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
+    # Who reached out: the person who opened this thread by approaching the
+    # other ("say hello"). NULL when nobody did it alone — a random meeting,
+    # a thread a paid session created, or development data. It exists for the
+    # daily cap on approaching strangers, which must count the threads a
+    # person STARTED, never the ones other people started with them.
+    opened_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, index=True
+    )
+
     # The last message's time, copied here so the chat list can be ordered
     # without touching the messages table. NULL means nobody has written
     # yet — a thread can exist before its first message, because paying for

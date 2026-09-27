@@ -11,7 +11,7 @@ messages land here too.
 
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
@@ -44,6 +44,7 @@ from app.chat_message.actions import (
     messages_out,
     set_reaction,
 )
+from app.core.new_people import new_people_left, new_people_limit
 from app.live.events import (
     announce_deleted,
     announce_edited,
@@ -64,14 +65,10 @@ from app.profile.photos import get_current_avatar_urls
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
-#: How many people someone may write to for the first time in a day.
-#:
-#: Not a cap on messaging — an existing conversation is never limited,
-#: because two people talking is the product. It caps how many STRANGERS
-#: one account can approach, which is the shape every messaging-spam
-#: problem has. Deliberately generous: nobody talking to people in good
-#: faith will ever see it.
-MAX_NEW_CONVERSATIONS_PER_DAY = 20
+# How many strangers someone may approach in a day now lives in one budget
+# shared with Echo (app/core/new_people.py), set from the panel. Not a cap
+# on messaging: an existing conversation is never limited, because two
+# people talking is the product.
 
 
 def _participant_or_404(
@@ -107,16 +104,6 @@ def _blocked_between(db: Session, one_user_id: int, other_user_id: int) -> bool:
             )
         )
     ) > 0
-
-
-def _todays_new_conversations(db: Session, user_id: int) -> int:
-    since = utcnow() - timedelta(days=1)
-    return db.scalar(
-        select(func.count(ConversationParticipant.id)).where(
-            ConversationParticipant.user_id == user_id,
-            ConversationParticipant.joined_at >= since,
-        )
-    )
 
 
 def _unread_count(
@@ -221,13 +208,21 @@ def serialize(
 @router.get("", response_model=list[ConversationOut])
 def list_conversations(
     archived: bool = False,
+    limit: int | None = Query(None, ge=1, le=100),
+    offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[ConversationOut]:
-    """Every thread this person is in, most recent first.
+    """The threads this person is in, most recent first — a page at a time.
 
     A cleared thread with nothing said since is left out: clearing it means
     they wanted it gone, and it comes back on its own when somebody writes.
+
+    `limit`/`offset` page through them. Only the page is fully described
+    (people, previews, unread counts), because describing a thread costs
+    several queries: somebody with three hundred conversations used to pay
+    for all three hundred every time the stair opened (the owner felt it).
+    Without `limit`, everything, as before.
     """
     rows = db.scalars(
         select(ConversationParticipant).where(
@@ -237,7 +232,7 @@ def list_conversations(
         )
     ).all()
 
-    out: list[ConversationOut] = []
+    kept: list[ConversationParticipant] = []
     for participant in rows:
         conversation = participant.conversation
         if conversation.last_message_at is None:
@@ -251,10 +246,31 @@ def list_conversations(
                 continue
         elif not participant.sees_message_at(conversation.last_message_at):
             continue
-        out.append(serialize(db, conversation, participant))
+        kept.append(participant)
 
-    out.sort(key=lambda c: c.last_message_at or c.created_at, reverse=True)
-    return out
+    # Ordered and cut BEFORE the expensive part, so a page costs a page.
+    kept.sort(
+        key=lambda p: p.conversation.last_message_at or p.conversation.created_at,
+        reverse=True,
+    )
+    page = kept[offset : offset + limit] if limit is not None else kept[offset:]
+    return [serialize(db, p.conversation, p) for p in page]
+
+
+class NewPeopleOut(BaseModel):
+    limit: int
+    left: int
+
+
+@router.get("/new-people", response_model=NewPeopleOut)
+def new_people_today(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> NewPeopleOut:
+    """How many strangers this person can still meet today, across "say
+    hello" and Echo. The world asks before saying hello, so the eleventh
+    person gets a sentence rather than an error."""
+    return NewPeopleOut(limit=new_people_limit(db), left=new_people_left(db, current_user.id))
 
 
 @router.post("", response_model=ConversationOut, status_code=status.HTTP_201_CREATED)
@@ -289,18 +305,13 @@ def open_conversation(
             == Conversation.direct_key_for(current_user.id, other.id)
         )
     )
-    if existing is None and _todays_new_conversations(db, current_user.id) >= (
-        MAX_NEW_CONVERSATIONS_PER_DAY
-    ):
+    if existing is None and new_people_left(db, current_user.id) <= 0:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={
-                "reason": "daily_new_conversation_limit",
-                "limit": MAX_NEW_CONVERSATIONS_PER_DAY,
-            },
+            detail={"reason": "daily_new_people_limit", "limit": new_people_limit(db)},
         )
 
-    conversation = get_or_create_direct(db, current_user.id, other.id)
+    conversation = get_or_create_direct(db, current_user.id, other.id, opened_by=current_user.id)
     db.commit()
     db.refresh(conversation)
     participant = conversation.participant_for(current_user.id)

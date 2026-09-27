@@ -36,6 +36,8 @@ export default function AdminRates() {
   const [minimum, setMinimum] = useState('')
   const [offerDays, setOfferDays] = useState('')
   const [requestHours, setRequestHours] = useState('')
+  const [startMinutes, setStartMinutes] = useState('')
+  const [newPeople, setNewPeople] = useState('')
   const [loaded, setLoaded] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -53,6 +55,8 @@ export default function AdminRates() {
         setMinimum(String(r.minimum_withdrawal_toman))
         setOfferDays(String(r.offer_expiry_days))
         setRequestHours(String(r.request_expiry_hours))
+        setStartMinutes(String(r.start_window_minutes ?? 15))
+        setNewPeople(String(r.daily_new_people ?? 10))
         setLoaded(true)
       })
       .catch((err) => setLoadError(formatApiError(err)))
@@ -70,6 +74,8 @@ export default function AdminRates() {
         minimum_withdrawal_toman: Number(minimum),
         offer_expiry_days: Number(offerDays),
         request_expiry_hours: Number(requestHours),
+        start_window_minutes: Number(startMinutes),
+        daily_new_people: Number(newPeople),
         withdrawal_commission_percent: Number(withdrawalPercent),
         complaint_commission_percent: Number(complaintPercent),
       })
@@ -91,6 +97,8 @@ export default function AdminRates() {
     percentInRange(complaintPercent) &&
     Number(offerDays) > 0 &&
     Number(requestHours) > 0 &&
+    Number(startMinutes) > 0 &&
+    Number(newPeople) > 0 &&
     minimum !== '' &&
     Number(minimum) > 0 &&
     Number(starRate) > 0
@@ -227,6 +235,24 @@ export default function AdminRates() {
               onChange={setRequestHours}
               hint={t('admin.ratesRequestExpiryHint')}
               invalid={Number(requestHours) <= 0}
+            />
+            <RateField
+              id="rate-start-window"
+              label={t('admin.ratesStartWindowLabel')}
+              unit={t('admin.ratesMinutesUnit')}
+              value={startMinutes}
+              onChange={setStartMinutes}
+              hint={t('admin.ratesStartWindowHint')}
+              invalid={Number(startMinutes) <= 0}
+            />
+            <RateField
+              id="rate-new-people"
+              label={t('admin.ratesNewPeopleLabel')}
+              unit={t('admin.ratesPeopleUnit')}
+              value={newPeople}
+              onChange={setNewPeople}
+              hint={t('admin.ratesNewPeopleHint')}
+              invalid={Number(newPeople) <= 0}
             />
           </div>
         </section>

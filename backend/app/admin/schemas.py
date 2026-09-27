@@ -136,6 +136,8 @@ class PlatformRatesOut(BaseModel):
     minimum_withdrawal_toman: int
     offer_expiry_days: int
     request_expiry_hours: int
+    start_window_minutes: int
+    daily_new_people: int
     updated_at: datetime
 
 class PlatformRatesUpdate(BaseModel):
@@ -148,3 +150,6 @@ class PlatformRatesUpdate(BaseModel):
     minimum_withdrawal_toman: int = Field(gt=0, le=1_000_000_000_000, strict=True)
     offer_expiry_days: int = Field(gt=0, le=365, strict=True)
     request_expiry_hours: int = Field(gt=0, le=720, strict=True)
+    #: Optional so a panel that does not know it yet keeps the current value.
+    start_window_minutes: int | None = Field(default=None, gt=0, le=1440, strict=True)
+    daily_new_people: int | None = Field(default=None, gt=0, le=1000, strict=True)

@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.new_people import new_people_left, new_people_limit
 from app.auth.dependencies import get_current_user, require_admin
 from app.core.database import get_db
 from app.core.time import utcnow
@@ -184,6 +185,10 @@ def get_status(
 
     quota = schedule.effective_daily_quota
     remaining = None if quota is None else max(0, quota - used_today(db, current_user.id))
+    # The day's budget for new people, shared with "say hello", always
+    # applies — whichever runs out first is what the door shows.
+    shared_left = new_people_left(db, current_user.id)
+    remaining = shared_left if remaining is None else min(remaining, shared_left)
 
     return StatusOut(
         open_now=open_now,
@@ -253,6 +258,11 @@ def join_pool(
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             detail={"reason": "daily_quota_reached", "limit": quota},
+        )
+    if active_session_for(db, current_user.id) is None and new_people_left(db, current_user.id) <= 0:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={"reason": "daily_new_people_limit", "limit": new_people_limit(db)},
         )
 
     # Already in a conversation: hand it back rather than starting another.

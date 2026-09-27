@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { NEEDS_YOU, PENDING, WAITS_ON_THEM, minutesLeft, type Relation } from '../../lib/relations'
 import { timeAgo } from '../../lib/timeAgo'
 import { SessionClock } from './SessionClock'
+import { clockText, msLeft, useSecond } from './Fuse'
 
 /**
  * Conversations, by gravity (TECHNICAL_REQUIREMENTS.md sections 30.8 and
@@ -25,7 +26,16 @@ interface TalkStairProps {
   /** Flying home: the stair is being left. */
   leaving: boolean
   onOpen: (relation: Relation) => void
+  /** More conversations exist; called when the stair nears its end. */
+  hasMore?: boolean
+  onNearEnd?: () => void
+  /** A payment window ran out on a face: read the state again. */
+  onDeadline?: () => void
 }
+
+/** How close to the last row the next page is asked for — early enough
+ *  that it has usually arrived before the thumb gets there. */
+const PREFETCH_ROWS = 4
 
 type Filter = 'all' | 'wait'
 
@@ -35,8 +45,9 @@ const SLOP = 9
 const DEPTH = 0.83
 const ROW_H = 70
 
-export function TalkStair({ relations, loaded, originOf, leaving, onOpen }: TalkStairProps) {
+export function TalkStair({ relations, loaded, originOf, leaving, onOpen, hasMore, onNearEnd, onDeadline }: TalkStairProps) {
   const { t, i18n } = useTranslation()
+  const now = useSecond()
   const [filter, setFilter] = useState<Filter>('all')
   const [scroll, setScroll] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -84,10 +95,36 @@ export function TalkStair({ relations, loaded, originOf, leaving, onOpen }: Talk
 
   const clamp = (v: number) => Math.max(0, Math.min(Math.max(0, shown.length - 1), v))
 
+  // A payment window counted down to zero on a row: read the state again,
+  // which is also what closes it on the server and tells the other person.
+  // Once per request, however many seconds it then sits at zero.
+  const ranOut = useRef(new Set<number>())
+  useEffect(() => {
+    for (const r of relations) {
+      const due = r.request?.pay_by
+      if (!due || !r.request || ranOut.current.has(r.request.id)) continue
+      if (msLeft(due, now) === 0) {
+        ranOut.current.add(r.request.id)
+        onDeadline?.()
+      }
+    }
+  }, [now, relations, onDeadline])
+
+  // Near the deep end with more waiting on the server: ask for the next page.
+  useEffect(() => {
+    if (hasMore && shown.length > 0 && scroll >= shown.length - PREFETCH_ROWS) onNearEnd?.()
+  }, [scroll, shown.length, hasMore, onNearEnd])
+
   function lineFor(r: Relation): string {
     if (r.stage === 'session' && r.session) {
       const left = minutesLeft(r.session)
       return left === null ? t('world.stage.sessionWaiting') : t('world.stage.session', { minutes: left })
+    }
+    // A payment window running: the line counts down instead of standing
+    // still, so the wait is felt from the stair without opening anything.
+    if ((r.stage === 'accepted' || r.stage === 'awaitpay') && r.request?.pay_by) {
+      const time = clockText(msLeft(r.request.pay_by, now), i18n.language)
+      return t(`world.stage.${r.stage}Timed`, { time })
     }
     if (r.stage !== 'chat') return t(`world.stage.${r.stage}`)
     return r.lastText ?? ''
@@ -108,8 +145,11 @@ export function TalkStair({ relations, loaded, originOf, leaving, onOpen }: Talk
           d.moved = true
           setDragging(true)
         }
-        // Pulling up brings older conversations forward.
-        if (d.moved) setScroll(clamp(d.s0 - dy / 90))
+        // Pulling the stair towards you — the finger moving down, towards
+        // the thumb's home — draws the deeper, older steps forward, the way
+        // you would pull a rope towards yourself. It used to be the other
+        // way round, and the owner found it backwards.
+        if (d.moved) setScroll(clamp(d.s0 + dy / 90))
       }}
       onPointerUp={() => {
         if (drag.current?.moved) {
