@@ -205,7 +205,8 @@
     "historyEmptyHint": "رسیدهایی که می‌فرستی و نتیجه‌شون اینجا میاد.",
     "amountLabel": "مقدار",
     "transferLabel": "مبلغ واریزی",
-    "rateHint": "هر فوتون {{rate, number}} تومان"
+    "rateHint": "هر فوتون {{rate, number}} تومان",
+    "amountMustBePositive": "مبلغ باید بیشتر از صفر باشد."
   },
   "admin": {
     "hubTitle": "پنل مدیریت",

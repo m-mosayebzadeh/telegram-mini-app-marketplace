@@ -205,7 +205,8 @@
     "historyEmptyHint": "Receipts you send, and what came of them, show up here.",
     "amountLabel": "Amount",
     "transferLabel": "Transfer",
-    "rateHint": "{{rate, number}} Toman per Photon"
+    "rateHint": "{{rate, number}} Toman per Photon",
+    "amountMustBePositive": "The amount must be more than zero."
   },
   "admin": {
     "hubTitle": "Admin Panel",
