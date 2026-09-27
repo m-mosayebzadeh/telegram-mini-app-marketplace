@@ -868,18 +868,19 @@
     "unread_other": "{{count}} unread messages"
   },
   "news": {
-    "empty": "Nothing new. Anything waiting on you will turn up here.",
     "message": {
       "title": "{{name}} wrote to you"
     },
     "confirm": {
       "title": "{{name}} accepted your offer",
       "body": "“{{offer}}” · {{photons}} Photons",
-      "yes": "Confirm"
+      "yes": "Confirm",
+      "flown": "Gone to your conversations. When {{name}} pays, the session starts."
     },
     "follow": {
       "title": "{{name}} wants to follow you",
-      "body": "Yes or no, it's up to you"
+      "body": "Yes or no, it's up to you",
+      "flown": "{{name}} follows you now."
     },
     "pay": {
       "title": "{{name}} confirmed",
@@ -897,11 +898,14 @@
     "refuse": "Decline",
     "talk": "Talk",
     "profile": "Profile",
-    "doneYes": "Confirmed",
-    "doneNo": "Declined",
-    "undo": "Take back",
     "failed": "That didn't work. Try again.",
-    "dismiss": "Put this aside"
+    "hint": "Swipe left or right to drop it into the black hole; tap to open it",
+    "end": "That's all — nothing else",
+    "allSeen": "You've seen everything",
+    "touchToUndo": "Touch to bring it back",
+    "youConfirmed": "You confirmed",
+    "youAccepted": "You accepted",
+    "youRefused": "You declined"
   },
   "deal": {
     "cancel": "Cancel",

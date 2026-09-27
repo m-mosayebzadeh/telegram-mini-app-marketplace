@@ -243,20 +243,27 @@ export default function Sky() {
     // travelTo, with its timing).
     setJourney('leave')
     navigator.vibrate?.(14)
-    let frame = 0
     const timer = window.setTimeout(() => {
       setShown(region)
       setJourney('arrive')
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(() => setJourney(null))
-      })
     }, JOURNEY_MS)
-    return () => {
-      clearTimeout(timer)
-      cancelAnimationFrame(frame)
-    }
+    return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [region, shown])
+
+  // The new place settles in two frames after it is put on the screen: one
+  // to paint it small and faint, one to let it grow into place. Its own
+  // effect, on purpose. It used to be scheduled inside the journey above,
+  // whose clean-up runs the moment the place changes — cancelling the very
+  // frame that ended the arrival, so every place reached by a journey stayed
+  // invisible for good. That is why the news region showed nothing at all.
+  useEffect(() => {
+    if (journey !== 'arrive') return
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => setJourney(null))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [journey])
 
   // Arriving from a conversation's "see them in the world": hold that
   // person as soon as they are in the sky. Once, and only in the world.
@@ -313,11 +320,28 @@ export default function Sky() {
     return star ? screenOf(star, camera.current, view()) : null
   }
 
+  /** Answers from the news that have settled and are on their way to the
+   *  server. They stop counting as news at once — the header, the count
+   *  beside Sol, the red ring on a held person — rather than a moment later
+   *  when the server's answer comes back; if it fails they count again. */
+  const [answering, setAnswering] = useState<ReadonlySet<string>>(() => new Set())
+  const news = useMemo(() => world.news.filter((n) => !answering.has(n.key)), [world.news, answering])
+
   async function answer(item: NewsItem, yes: boolean) {
-    if (item.kind === 'confirm' && item.requestId !== undefined) {
-      await (yes ? confirmRequest(item.requestId) : refuseRequest(item.requestId))
-    } else if (item.kind === 'follow' && item.followerId !== undefined) {
-      await (yes ? acceptFollow(item.followerId) : refuseFollow(item.followerId))
+    setAnswering((prev) => new Set(prev).add(item.key))
+    try {
+      if (item.kind === 'confirm' && item.requestId !== undefined) {
+        await (yes ? confirmRequest(item.requestId) : refuseRequest(item.requestId))
+      } else if (item.kind === 'follow' && item.followerId !== undefined) {
+        await (yes ? acceptFollow(item.followerId) : refuseFollow(item.followerId))
+      }
+    } catch (err) {
+      setAnswering((prev) => {
+        const next = new Set(prev)
+        next.delete(item.key)
+        return next
+      })
+      throw err
     }
     await world.reload()
   }
@@ -641,7 +665,7 @@ export default function Sky() {
                       detail.has(star.user_id) ? 'is-near' : '',
                       selected === null ? '' : selected === star.user_id ? 'is-chosen' : 'is-dimmed',
                       pulled.has(star.user_id) ? 'is-pulled' : '',
-                      selected === star.user_id && world.news.some((n) => n.userId === star.user_id) ? 'is-newsy' : '',
+                      selected === star.user_id && news.some((n) => n.userId === star.user_id) ? 'is-newsy' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
@@ -680,7 +704,7 @@ export default function Sky() {
                       // name, whether your paid session with them is running
                       // and whether they are here now, and their own line.
                       <div className="cos-held-label">
-                        {world.news.some((n) => n.userId === star.user_id) && (
+                        {news.some((n) => n.userId === star.user_id) && (
                           <span className="cos-held-flag is-news">{t('sky.hasNewsForYou')}</span>
                         )}
                         <b>{star.display_name}</b>
@@ -722,7 +746,7 @@ export default function Sky() {
       {shown === 'news' && (
         <div className={`cos-region-layer${layerState('news')}`}>
         <NewsFeed
-          items={world.news}
+          items={news}
           loaded={world.loaded}
           onDismiss={world.dismiss}
           onAnswer={answer}
@@ -744,8 +768,8 @@ export default function Sky() {
                   n: world.relations.length.toLocaleString(i18n.language),
                   m: world.relations.filter((r) => r.unread).length.toLocaleString(i18n.language),
                 })
-              : world.news.length > 0
-                ? t('world.newsSub', { n: world.news.length.toLocaleString(i18n.language) })
+              : news.length > 0
+                ? t('world.newsSub', { n: news.length.toLocaleString(i18n.language) })
                 : t('world.newsSubNone')}
           </span>
         </header>
@@ -756,8 +780,10 @@ export default function Sky() {
         </p>
       )}
 
-      {!hintSeen && selected === null && shown === 'world' && (
-        // The prototype's first-time hint, until Sol is first touched.
+      {!hintSeen && selected === null && (
+        // The prototype's first-time hint, until Sol is first touched —
+        // in every place, as the prototype shows it, since Sol is the way
+        // out of every place.
         <p className="cos-sol-hint" aria-hidden="true">{t('sky.solHint')}</p>
       )}
 
@@ -782,11 +808,13 @@ export default function Sky() {
             release()
             target.current = { x: 0, y: 0, z: 1 }
           }}
+          // Beside Sol in every place, the news region included, as in the
+          // approved prototype.
           badge={
-            region !== 'news' && world.news.length > 0
+            news.length > 0
               ? {
-                  count: world.news.length,
-                  label: t('world.newsBadge', { count: world.news.length }),
+                  count: news.length,
+                  label: t('world.newsBadge', { count: news.length }),
                   onOpen: () => go('news'),
                 }
               : undefined
@@ -804,7 +832,7 @@ export default function Sky() {
             {
               id: 'news',
               label: t('world.region.news'),
-              icon: <MiniNews count={world.news.length} label={world.news.length.toLocaleString(i18n.language)} />,
+              icon: <MiniNews count={news.length} label={news.length.toLocaleString(i18n.language)} />,
               tone: 'var(--cos-news)',
               onChoose: () => go('news'),
             },

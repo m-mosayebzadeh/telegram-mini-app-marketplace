@@ -32,3 +32,25 @@ export function timeAgo(iso: string, language: string, now: number = Date.now())
   }
   return ''
 }
+
+/**
+ * "5 minutes" — how long since, without the "ago".
+ *
+ * The approved prototype's news cards say «۵ دقیقه», not «۵ دقیقه پیش»: on
+ * a small card in a stream of recent things the "ago" is understood, and
+ * dropping it keeps the corner quiet. Built on the browser's own unit
+ * formatter, for the same reason as timeAgo.
+ */
+export function timeSince(iso: string, language: string, now: number = Date.now()): string {
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return ''
+  let amount = Math.max(0, (now - then) / 1000)
+  if (amount < 60) return language.startsWith('fa') ? 'همین حالا' : new Intl.RelativeTimeFormat(language, { numeric: 'auto' }).format(0, 'second')
+  for (const [unit, size] of STEPS) {
+    if (amount < size) {
+      return new Intl.NumberFormat(language, { style: 'unit', unit, unitDisplay: 'long' }).format(Math.round(amount))
+    }
+    amount /= size
+  }
+  return ''
+}

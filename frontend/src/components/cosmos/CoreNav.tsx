@@ -299,6 +299,8 @@ export function CoreNav({ sections, onTap, badge }: CoreNavProps) {
       <div
         className={`cos-core${held ? ' is-held' : ''}`}
         ref={coreRef}
+        // Where an accepted person in the news flies to (NewsFeed).
+        data-sol
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

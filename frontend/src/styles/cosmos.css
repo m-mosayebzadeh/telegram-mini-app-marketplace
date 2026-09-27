@@ -2878,172 +2878,398 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
   .cos-stair-empty { animation: none; }
 }
 
-/* ------------------------------------------------------------------- feed
-   The news region (30.6, 30.19–30.23): news comes out of a wormhole at the
-   top, hangs from a line of light, and what is swiped aside falls towards
-   the black hole at the bottom. The line and the holes sit at the
-   inline-end edge, the side the thumb of the holding hand sweeps from. */
-.cos-feed {
+/* ------------------------------------------------------------------- news
+   The news region, exactly as the approved prototype draws it
+   (docs/prototypes/regions.html, "news: the wormhole and the stream"):
+   a wormhole near the top, a line of light running down from it with a
+   light flowing along it, a black hole at the bottom, and cards hanging
+   from the line by a short thread ending in a pulsing red bead.
+
+   Where things stand is worked out in lib/newsStream.ts and written as
+   inline positions; everything about how they LOOK is here. The colours
+   are the prototype's own, written out rather than rebuilt from tokens,
+   because this surface was approved as drawn.
+
+   Every name starts with cos-news-: a generic name once picked up the
+   look of an unrelated frame and broke the prototype twice (30.19). */
+.cos-news-stream {
   position: absolute;
   inset: 0;
-  z-index: 8;
-  display: flex;
-  flex-direction: column;
-  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
-}
-.cos-feed-hole {
-  position: absolute;
-  inset-inline-end: 34px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  pointer-events: none;
-  background:
-    radial-gradient(circle, #000 0 38%, transparent 40%),
-    conic-gradient(from 0deg, rgb(255 77 125 / 0%), rgb(255 77 125 / 55%), rgb(182 156 255 / 40%), rgb(255 77 125 / 0%));
-  filter: blur(0.5px);
-  animation: cos-spin 7s linear infinite;
-}
-.cos-feed-hole.is-top { top: calc(96px + env(safe-area-inset-top, 0px)); }
-.cos-feed-hole.is-bottom { bottom: calc(170px + env(safe-area-inset-bottom, 0px)); animation-direction: reverse; opacity: 0.7; }
-.cos-feed-line {
-  position: absolute;
-  inset-inline-end: 59px;
-  top: calc(148px + env(safe-area-inset-top, 0px));
-  bottom: calc(222px + env(safe-area-inset-bottom, 0px));
-  width: 2px;
-  pointer-events: none;
-  background: linear-gradient(to bottom, rgb(255 77 125 / 60%), rgb(182 156 255 / 25%) 60%, rgb(0 0 0 / 0%));
-  box-shadow: 0 0 10px rgb(255 77 125 / 35%);
-}
-.cos-feed-list {
-  position: absolute;
-  inset-inline: 16px 80px;
-  top: calc(158px + env(safe-area-inset-top, 0px));
-  bottom: calc(232px + env(safe-area-inset-bottom, 0px));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-block: 4px 24px;
-  scrollbar-width: none;
-  /* Items fade in from the wormhole side and out towards the black hole,
-     so the list reads as part of the stream rather than a box. */
-  -webkit-mask: linear-gradient(to bottom, transparent, #000 18px, #000 calc(100% - 40px), transparent);
-  mask: linear-gradient(to bottom, transparent, #000 18px, #000 calc(100% - 40px), transparent);
-}
-.cos-feed-list::-webkit-scrollbar { display: none; }
-.cos-feed-empty {
-  margin: 48px 8px 0;
-  text-align: center;
-  font-size: var(--cos-text-body);
-  line-height: var(--cos-leading-read);
-  color: var(--cos-fg-soft);
-}
-
-.cos-feed-card {
-  position: relative;
-  flex: none;
-  padding: 10px 12px;
-  border-radius: 18px;
-  border: 1px solid rgb(255 77 125 / 22%);
-  background: linear-gradient(to left, rgb(52 16 36 / 82%), rgb(24 10 28 / 70%));
-  box-shadow: 0 12px 26px rgb(0 0 0 / 40%);
-  touch-action: pan-y;
+  overflow: hidden;
+  touch-action: none;
   user-select: none;
-  transform: translateX(var(--cos-feed-dx, 0));
-  transition: transform var(--cos-t-quick) var(--cos-ease-settle), opacity var(--cos-t-quick) ease;
-  animation: cos-feed-arrive 0.7s var(--cos-ease-settle) backwards;
-  animation-delay: var(--cos-feed-delay, 0ms);
-  cursor: pointer;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.cos-feed-card.is-answerable { cursor: default; border-color: rgb(242 176 106 / 45%); }
-.cos-feed-card.is-held { transition: none; }
-.cos-feed-card.is-gone {
-  transform: translate(calc(var(--cos-feed-dx, 0px) * 1.6), 40px) scale(0.2) rotate(40deg);
-  opacity: 0 !important;
-  transition: transform 0.42s cubic-bezier(0.5, 0, 0.9, 0.4), opacity 0.42s ease;
+/* Carries the phone's safe areas as padding, so the layout can read them. */
+.cos-news-safe {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.cos-news-hole {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  margin: -65px 0 0 -65px;
+  transform: scaleY(0.46);
   pointer-events: none;
 }
-/* Arriving: out of the wormhole, which is up and towards the inline end. */
-@keyframes cos-feed-arrive {
-  from { transform: translate(40%, -60px) scale(0.3); opacity: 0; }
-}
-[dir='rtl'] .cos-feed-card { animation-name: cos-feed-arrive-rtl; }
-@keyframes cos-feed-arrive-rtl {
-  from { transform: translate(-40%, -60px) scale(0.3); opacity: 0; }
-}
-
-.cos-feed-main { display: flex; align-items: center; gap: 12px; min-height: 44px; }
-.cos-feed-face {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
+.cos-news-swirl {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
-  overflow: hidden;
-  background: var(--cos-rise);
-  color: var(--cos-fg);
+  background: conic-gradient(from 0deg,
+    rgb(255 77 125 / 0%), rgb(255 77 125 / 85%), rgb(255 150 190 / 0%) 22%,
+    rgb(255 120 170 / 60%), rgb(255 77 125 / 0%) 48%,
+    rgb(255 77 125 / 80%), rgb(255 190 210 / 0%) 74%,
+    rgb(255 90 140 / 70%), rgb(255 77 125 / 0%));
+  filter: blur(5px);
+  animation: cos-spin-whole 3.2s linear infinite;
 }
-.cos-feed-face img { width: 100%; height: 100%; object-fit: cover; }
-.cos-feed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.cos-feed-text b { font-weight: 400; font-size: var(--cos-text-body); color: var(--cos-fg); line-height: var(--cos-leading-normal); }
-.cos-feed-text span {
-  font-size: var(--cos-text-label);
-  color: var(--cos-fg-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.cos-news-core {
+  position: absolute;
+  inset: 26%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #000 58%, rgb(255 77 125 / 90%) 70%, rgb(255 77 125 / 0%) 78%);
 }
-.cos-feed-when { flex: none; align-self: flex-start; font-size: 10px; color: var(--cos-fg-faint); }
+/* The black hole turns the other way, faster and fainter. */
+.cos-news-hole.is-sink .cos-news-swirl { animation-direction: reverse; animation-duration: 2.4s; opacity: 0.7; }
+/* Something comes out of the wormhole, or falls into the black hole. */
+.cos-news-hole.is-flaring { animation: cos-news-flare 0.7s ease-out; }
+.cos-news-hole.is-sink.is-flaring { animation-duration: 0.6s; }
+@keyframes cos-news-flare { 40% { filter: brightness(2.2); scale: 1.18; } }
 
-.cos-feed-actions {
-  position: relative;
+.cos-news-spine {
+  position: absolute;
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(to bottom, rgb(255 77 125 / 90%), rgb(255 77 125 / 25%));
+  box-shadow: 0 0 12px rgb(255 77 125 / 55%);
+  overflow: hidden;
+  pointer-events: none;
+}
+/* A light travelling down the line: news flows from the one hole to the other. */
+.cos-news-spine::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, #fff, transparent);
+  animation: cos-news-flow 1.9s linear infinite;
+}
+@keyframes cos-news-flow { from { top: -60px; } to { top: 100%; } }
+
+.cos-news-card {
+  position: absolute;
+  top: 0;
+  box-sizing: border-box;
+  height: 64px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 11px;
+  padding: 0 12px 0 14px;
+  border-radius: 16px;
+  background: linear-gradient(to left, rgb(70 14 34 / 88%), rgb(30 8 18 / 80%));
+  border: 1px solid rgb(255 77 125 / 22%);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 45%);
+  color: var(--cos-fg);
+  font-weight: 300;
+  transition: transform 0.62s var(--cos-ease-settle), opacity 0.4s ease;
+  cursor: pointer;
+  touch-action: none;
 }
-.cos-feed-act {
+[dir='ltr'] .cos-news-card { padding: 0 14px 0 12px; }
+.cos-news-card.is-held,
+.cos-news-card.is-emerging,
+.cos-news-stream.is-scrolling .cos-news-card,
+.cos-news-stream.is-scrolling .cos-news-end { transition: none; }
+.cos-news-card.is-falling { transition: transform 0.78s cubic-bezier(0.55, 0, 0.85, 0.35), opacity 0.78s ease; }
+/* Where it hangs from the line: a thread, and a bead on the line itself. */
+.cos-news-card::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: -15px;
+  top: 50%;
+  width: 15px;
+  height: 1px;
+  background: rgb(255 77 125 / 60%);
+}
+.cos-news-card::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: -20px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4.5px;
+  border-radius: 50%;
+  background: var(--cos-news);
+  box-shadow: 0 0 0 0 rgb(255 77 125 / 60%);
+  animation: cos-red-pulse 1.8s ease-out infinite;
+}
+.cos-news-face {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgb(255 255 255 / 6%);
+  font-size: 15px;
+}
+.cos-news-face img { width: 100%; height: 100%; object-fit: cover; }
+.cos-news-text { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.cos-news-text b { font-weight: 400; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cos-news-text span { font-size: 11px; color: rgb(255 210 222 / 66%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cos-news-text span.is-failed { color: #ffb3c6; }
+.cos-news-when { margin-inline-start: auto; flex: none; font-size: 10px; color: rgb(255 210 222 / 45%); }
+
+/* An answerable card: two faces, the same size as every other card. */
+.cos-news-card.is-turnable {
+  display: block;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  perspective: 800px;
+  --cos-burn: 0;
+  --cos-charge: 0;
+}
+.cos-news-turn {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.3, 1.35, 0.4, 1);
+}
+.cos-news-card.is-turned .cos-news-turn { transform: rotateX(180deg); }
+.cos-news-side {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 12px 0 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: linear-gradient(to left, rgb(70 14 34 / 90%), rgb(30 8 18 / 82%));
+  border: 1px solid rgb(255 77 125 / 26%);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 45%);
+}
+[dir='ltr'] .cos-news-side { padding: 0 14px 0 12px; }
+.cos-news-side.is-back {
+  transform: rotateX(180deg);
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(to left, rgb(96 22 48 / 96%), rgb(44 10 26 / 92%));
+}
+/* Only the face turned towards you can be touched. A face turned away is
+   invisible, but without this the browser may still hand it the touch —
+   a hidden "refuse" answering for you. */
+.cos-news-card.is-turnable:not(.is-turned) .cos-news-side.is-back,
+.cos-news-card.is-turnable.is-turned .cos-news-side.is-front { pointer-events: none; }
+.cos-news-act {
   min-height: 44px;
   padding: 0 16px;
-  border-radius: var(--cos-radius-pill);
-  border: 1px solid rgb(233 242 240 / 18%);
-  background: rgb(233 242 240 / 6%);
-  color: var(--cos-fg);
+  border-radius: 22px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 6%);
+  color: #fff;
   font: inherit;
-  font-size: var(--cos-text-label);
+  font-size: 12px;
   cursor: pointer;
 }
-.cos-feed-act.is-yes { background: var(--cos-warm); border-color: transparent; color: #2b1704; font-weight: 500; }
-.cos-feed-act.is-quiet { margin-inline-start: auto; border-color: transparent; background: none; color: var(--cos-fg-soft); }
-.cos-feed-act.is-undo { margin-inline-start: auto; }
-.cos-feed-act:active { scale: 0.96; }
-.cos-feed-act:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
-.cos-feed-chosen { font-size: var(--cos-text-label); color: var(--cos-fg-soft); }
-.cos-feed-chosen.is-yes { color: var(--cos-warm-bright); }
-/* The time left to take an answer back, draining along the card's foot. */
-.cos-feed-timer {
-  position: absolute;
-  inset-inline: 0;
-  bottom: -6px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--cos-warm);
-  transform-origin: var(--cos-feed-origin, right);
-  animation: cos-feed-drain linear forwards;
+.cos-news-act.is-yes {
+  border: 0;
+  color: #2b1704;
+  font-weight: 500;
+  background: linear-gradient(160deg, #ffdda6, #f9b45f 46%, #eb9433);
+  box-shadow: 0 0 18px rgb(255 178 100 / 35%);
 }
-[dir='ltr'] .cos-feed-timer { --cos-feed-origin: left; }
-@keyframes cos-feed-drain { to { transform: scaleX(0); } }
-.cos-feed-failed { margin: 8px 0 0; font-size: var(--cos-text-label); color: var(--cos-danger); }
+.cos-news-act.is-talk { border-color: rgb(182 156 255 / 50%); background: rgb(90 60 160 / 30%); color: #e7dcff; }
+.cos-news-act:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
 
+/* Refusing: ash from the far edge towards the name. The far edge is the
+   left in a right-to-left language and the right otherwise. */
+.cos-news-card.is-burning .cos-news-side.is-front {
+  --cos-burn-way: to right;
+  -webkit-mask-image: linear-gradient(var(--cos-burn-way), transparent calc(var(--cos-burn) * 110% - 10%), #000 calc(var(--cos-burn) * 110% + 3%));
+  mask-image: linear-gradient(var(--cos-burn-way), transparent calc(var(--cos-burn) * 110% - 10%), #000 calc(var(--cos-burn) * 110% + 3%));
+}
+[dir='ltr'] .cos-news-card.is-burning .cos-news-side.is-front { --cos-burn-way: to left; }
+.cos-news-burn-edge {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: calc(var(--cos-burn) * 110% - 12%);
+  width: 20px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(255 214 150 / 95%), rgb(255 120 40 / 55%) 45%, transparent 72%);
+  filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+[dir='ltr'] .cos-news-burn-edge { left: auto; right: calc(var(--cos-burn) * 110% - 12%); }
+.cos-news-card.is-burning .cos-news-burn-edge { opacity: 1; }
+.cos-news-embers { position: absolute; inset: 0; pointer-events: none; }
+.cos-news-ember {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffc27a;
+  box-shadow: 0 0 6px #ff8a3d;
+  pointer-events: none;
+  animation: cos-news-ember 0.9s ease-out forwards;
+}
+@keyframes cos-news-ember { to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; background: #6b5a55; } }
+
+/* Confirming is the opposite of refusing, in the world's own physics: what
+   you refuse falls into the black hole; what you accept joins your star.
+   The card gathers itself into the person, warming as it goes — how far it
+   has gathered IS the time left to change your mind — and then the person
+   flies to Sol, which flares as they arrive. */
+.cos-news-card.is-gathering .cos-news-side.is-front {
+  clip-path: inset(0 0 0 calc(var(--cos-charge) * (100% - 64px)) round 16px);
+  border-color: rgb(255 200 130 / 75%);
+  box-shadow: 0 10px 26px rgb(0 0 0 / 45%), inset 0 0 calc(var(--cos-charge) * 44px) rgb(255 190 110 / 60%);
+}
+[dir='ltr'] .cos-news-card.is-gathering .cos-news-side.is-front {
+  clip-path: inset(0 calc(var(--cos-charge) * (100% - 64px)) 0 0 round 16px);
+}
+.cos-news-card.is-gathering .cos-news-side.is-front .cos-news-text,
+.cos-news-card.is-gathering .cos-news-side.is-front .cos-news-when { opacity: calc(1 - var(--cos-charge) * 1.7); }
+.cos-news-card.is-gathering .cos-news-side.is-front .cos-news-face {
+  box-shadow: 0 0 calc(6px + var(--cos-charge) * 24px) rgb(255 204 140 / 95%);
+}
+/* The flight is fixed to the screen, above everything, Sol included: the
+   person lands ON your star, as in the prototype. */
+.cos-news-to-sol {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: rgb(255 226 180 / 30%);
+  color: #fff;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgb(255 226 180 / 90%), 0 0 24px rgb(255 200 130 / 95%);
+}
+.cos-news-trail {
+  position: fixed;
+  z-index: 39;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: #ffe2b0;
+  box-shadow: 0 0 10px #ffb366;
+  pointer-events: none;
+  animation: cos-news-trail 0.7s ease-out forwards;
+}
+@keyframes cos-news-trail { to { opacity: 0; transform: scale(0.2); } }
+/* Sol, as a person arrives in it. */
+.cos-core.is-absorbing { animation: cos-news-absorb 0.75s var(--cos-ease-pop); }
+@keyframes cos-news-absorb {
+  35% { scale: 1.2; box-shadow: 0 0 0 1px #fff, 0 0 56px rgb(255 214 158 / 100%), 0 0 130px rgb(255 172 78 / 75%); }
+}
+
+/* While an answer settles: say plainly that touching brings it back. It
+   sits outside the card's burning or gathering, so it stays readable to
+   the end, and it pulses like something asking to be touched. */
+.cos-news-undo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: rgb(12 4 8 / 82%);
+  border: 1px solid rgb(255 255 255 / 22%);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.85);
+  transition: opacity 0.25s ease, transform 0.3s var(--cos-ease-pop);
+  pointer-events: none;
+}
+.cos-news-card.is-burning .cos-news-undo,
+.cos-news-card.is-gathering .cos-news-undo {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+  animation: cos-news-ask 1.2s ease-in-out infinite;
+}
+@keyframes cos-news-ask { 50% { box-shadow: 0 0 0 7px rgb(255 255 255 / 8%); } }
+
+/* The line under the last card: that's everything. */
+.cos-news-end {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 16px;
+  margin: 0;
+  font-size: 12px;
+  color: rgb(255 210 222 / 50%);
+  transition: transform 0.6s var(--cos-ease-settle), opacity 0.4s ease;
+  pointer-events: none;
+}
+
+/* A short word from the region: the first-visit hint, and where an
+   accepted person went. */
+.cos-news-toast {
+  position: absolute;
+  left: 50%;
+  top: calc(84px + env(safe-area-inset-top, 0px));
+  z-index: 30;
+  transform: translateX(-50%);
+  max-width: calc(100% - 40px);
+  box-sizing: border-box;
+  margin: 0;
+  padding: 9px 16px;
+  border-radius: 18px;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--cos-fg);
+  background: rgb(14 32 37 / 92%);
+  border: 1px solid rgb(233 242 240 / 12%);
+  pointer-events: none;
+  animation: cos-rise 0.35s var(--cos-ease-settle);
+}
+
+/* Less motion, asked for: nothing spins, flows or pulses, and cards move
+   without travelling. The answer still takes its time to settle — that
+   time is what lets it be taken back — but nothing flies or sparks. */
 @media (prefers-reduced-motion: reduce) {
-  .cos-feed,
-  .cos-feed-card { animation: none; }
-  .cos-feed-hole { animation: none; }
-  .cos-feed-card.is-gone { transform: none; }
+  .cos-news-swirl,
+  .cos-news-spine::after,
+  .cos-news-card::before,
+  .cos-news-toast,
+  .cos-news-hole.is-flaring,
+  .cos-core.is-absorbing,
+  .cos-news-card.is-burning .cos-news-undo,
+  .cos-news-card.is-gathering .cos-news-undo { animation: none; }
+  .cos-news-card,
+  .cos-news-card.is-falling,
+  .cos-news-turn,
+  .cos-news-end { transition: opacity 0.2s ease; }
 }
 
 /* ---------------------------------------------------------------- regions
