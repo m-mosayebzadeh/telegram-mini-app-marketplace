@@ -9,9 +9,14 @@ const mocks = vi.hoisted(() => ({
   api: vi.fn(),
   blob: vi.fn(),
   t: (key: string) => key,
-  /** The screen's live-connection listener, so a test can push events. */
+  /** Everything listening on the live connection. More than one part of
+   *  the screen listens (the thread, and what is going on with the person
+   *  besides talking), as with the real connection. */
+  listeners: new Set<(event: unknown) => void>(),
+  /** Push an event to every listener, as the real connection does. */
   live: null as null | ((event: unknown) => void),
 }))
+mocks.live = (event) => mocks.listeners.forEach((listener) => listener(event))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.t, i18n: { language: 'fa' } }),
 }))
@@ -24,8 +29,8 @@ vi.mock('../lib/api', async (original) => ({
 // it only has to stay out of the way.
 vi.mock('../lib/live', () => ({
   subscribe: (listener: (event: unknown) => void) => {
-    mocks.live = listener
-    return () => {}
+    mocks.listeners.add(listener)
+    return () => mocks.listeners.delete(listener)
   },
   sayTyping: vi.fn(),
   doneTyping: vi.fn(),
@@ -501,5 +506,77 @@ describe('typing', () => {
       mocks.live?.({ type: 'typing', conversation_id: 99, user_id: SARA })
     })
     expect(host.querySelector('.cos-talk-typing')).toBeNull()
+  })
+})
+
+/**
+ * A paid session is a stretch of the one conversation (section 30.9): its
+ * messages are marked where they begin and end, and a thank-you stays at
+ * the end of them like a reaction, for as long as the conversation does.
+ */
+describe('a paid session inside the conversation', () => {
+  let host: HTMLDivElement
+  let root: Root
+
+  beforeEach(() => {
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    mocks.api.mockReset()
+    mocks.blob.mockReset()
+    Element.prototype.scrollIntoView = vi.fn()
+  })
+  afterEach(() => {
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  const inSession = (id: number, sender: number, text: string): ConversationMessage => ({
+    ...message(id, sender, text),
+    chat_session_id: 7,
+  })
+
+  async function open(messages: ConversationMessage[], session: Record<string, unknown>) {
+    mocks.api.mockImplementation((path: string) => {
+      if (path === '/conversations/10') return Promise.resolve(thread())
+      if (path === '/conversations/10/messages') return Promise.resolve(messages)
+      if (path === '/chat-sessions/mine') return Promise.resolve([session])
+      if (path === '/requests/activity') return Promise.resolve([])
+      return Promise.resolve(undefined)
+    })
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/conversations/10']}>
+          <Routes>
+            <Route path="/conversations/:id" element={<Conversation />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    })
+    for (let i = 0; i < 4; i += 1) await act(async () => {})
+  }
+
+  const session = {
+    id: 7, request_id: 1, status: 'closed', my_role: 'buyer', offer_title: 'Books',
+    other_participant: { user_id: SARA, display_name: 'Sara', username: null, avatar_url: null },
+    transaction_status: 'succeeded', thanks_reaction: 'heart', consumed_blocks: 2, reserved_blocks: 2,
+    block_price_photons: 60, closed_at: '2026-09-20T11:00:00Z', disputed: false,
+  }
+
+  it('holds the session in a warm band, with how it ended and its thank-you at the foot', async () => {
+    await open([message(1, SARA, 'hi'), inSession(2, ME, 'q'), inSession(3, SARA, 'a'), message(4, ME, 'thanks!')], session)
+    const band = host.querySelector('.cos-talk-session')!
+    // Only the session's own messages are inside it.
+    expect(band.querySelectorAll('.cos-talk-row')).toHaveLength(2)
+    expect(band.querySelector('.cos-talk-session-head')?.textContent).toContain('deal.bandHead.done')
+    expect(band.querySelector('.cos-talk-session-foot')?.textContent).toContain('deal.bandFoot.paid')
+    expect(band.querySelector('.cos-deal-keepsake')?.getAttribute('aria-label')).toBe('deal.thanked')
+  })
+
+  it('leaves a session still running open-ended', async () => {
+    await open([inSession(2, ME, 'q')], { ...session, status: 'open', thanks_reaction: null })
+    const band = host.querySelector('.cos-talk-session')!
+    expect(band.classList.contains('is-running')).toBe(true)
+    expect(band.querySelector('.cos-talk-session-foot')).toBeNull()
   })
 })

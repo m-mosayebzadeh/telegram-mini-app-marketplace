@@ -44,13 +44,36 @@ from app.models.conversation import Conversation, ConversationParticipant  # noq
 from app.models.offer import Offer  # noqa: E402
 from app.models.profile import GENDER_FEMALE, GENDER_MALE, GENDER_UNSAID, Profile  # noqa: E402
 from app.models.profile_photo import ProfilePhoto  # noqa: E402
-from app.models.request import Request  # noqa: E402
+from app.models.request import Request, RequestStatus  # noqa: E402
 from app.models.user import User  # noqa: E402
 
 #: Seeded accounts are telegram ids in this range and nothing else is, so
 #: --clear can find exactly what this script made and nothing a person
 #: has been using.
 FAKE_ID_BASE = 900_000_000
+
+#: What the last thing said in each conversation was, so the stair of
+#: conversations has something real-looking on every row rather than
+#: twenty-eight identical greetings.
+THEIR_LINES = [
+    "این قسمتش رو گوش کن…", "پس فردا شب بازم بیا اکو", "اون کتابی که گفتی رو پیدا کردم",
+    "خیلی خوب بود حرف زدن باهات", "عکسشو فردا برات می‌فرستم", "شعرش مالِ خودم بود",
+    "یه دستِ دیگه؟", "گربه‌م سلام می‌رسونه", "راستی اون فیلم رو دیدی؟", "فردا وقت داری؟",
+]
+MY_LINES = ["باشه، خبرت می‌کنم", "مرسی از وقتت", "حتماً", "فردا حرف می‌زنیم"]
+
+#: A few people with a request in each of its steps, so every kind of row
+#: on the stair — and every kind of card in the news — can be seen:
+#:   received  they accepted YOUR offer, waiting for you to confirm
+#:   sent      you accepted THEIR offer, waiting for them to confirm
+#:   accepted  they confirmed yours, waiting for you to pay
+#:   awaitpay  you confirmed theirs, waiting for them to pay
+STAGE_PEOPLE = {1: "received", 2: "sent", 3: "accepted", 4: "awaitpay"}
+#: Marks the offers made only for those requests, so a re-run can replace
+#: them and --clear can find them.
+STAGE_MARK = "seed: a request in one of its steps"
+#: How many conversations are left unread, with how many messages each.
+UNREAD = {0: 1, 5: 3, 7: 2}
 
 PEOPLE = [
     ("مهتاب", GENDER_FEMALE, "شب‌ها بیدارم و وسط حرف کسی نمی‌پرم."),
@@ -165,8 +188,10 @@ def seed(db, rng: random.Random) -> None:
             db.delete(message)
         db.flush()
 
+        index = user.telegram_id - FAKE_ID_BASE
+        said = []
         for day in range(wanted_days):
-            db.add(
+            said.append(
                 ChatMessage(
                     conversation_id=conversation.id,
                     sender_id=user.id,
@@ -175,6 +200,41 @@ def seed(db, rng: random.Random) -> None:
                     created_at=now - timedelta(days=day, hours=rng.randint(0, 20)),
                 )
             )
+        # Somebody who has not written lately still has a conversation: the
+        # last word was yours. From you, so it adds nothing to their
+        # presence, which counts only what THEY said.
+        if not said:
+            said.append(
+                ChatMessage(
+                    conversation_id=conversation.id,
+                    sender_id=me.id,
+                    type=ChatMessageType.TEXT,
+                    text=rng.choice(MY_LINES),
+                    created_at=now - timedelta(days=rng.randint(2, 20)),
+                )
+            )
+        said.sort(key=lambda m: m.created_at)
+        if said[-1].sender_id == user.id:
+            said[-1].text = THEIR_LINES[index % len(THEIR_LINES)]
+        for message in said:
+            db.add(message)
+
+        # The list of conversations shows only threads with a last message
+        # time. Written directly like this, nothing sets it — which is why
+        # every seeded conversation used to be invisible.
+        conversation.last_message_at = said[-1].created_at
+        mine = db.scalars(
+            select(ConversationParticipant).where(
+                ConversationParticipant.conversation_id == conversation.id,
+                ConversationParticipant.user_id == me.id,
+            )
+        ).one()
+        theirs_in_order = [m for m in said if m.sender_id == user.id]
+        unread = min(UNREAD.get(index, 0), len(theirs_in_order))
+        if unread:
+            mine.last_read_at = theirs_in_order[-unread].created_at - timedelta(seconds=1)
+        else:
+            mine.last_read_at = now
 
         # TRUST: finished paid sessions. The chain is real — an offer, a
         # request against it, a session that closed — because the sky
@@ -198,7 +258,12 @@ def seed(db, rng: random.Random) -> None:
             )
             db.add(offer)
             db.flush()
-            request = Request(buyer_id=me.id, offer_id=offer.id)
+            request = Request(
+                buyer_id=me.id,
+                offer_id=offer.id,
+                status=RequestStatus.ACCEPTED,
+                responded_at=now - timedelta(days=rng.randint(1, 30)),
+            )
             db.add(request)
             db.flush()
             db.add(
@@ -209,8 +274,157 @@ def seed(db, rng: random.Random) -> None:
                 )
             )
 
+    _tidy_trust_requests(db, me, fakes, now)
+    # Every test account gets the same crowd of conversations, so the stair
+    # of conversations looks the way it was designed whichever account is
+    # used to look at it — not only the first one.
+    others = db.scalars(
+        select(User).where(User.telegram_id < FAKE_ID_BASE, User.id != me.id)
+    ).all()
+    for account in others:
+        _mirror_conversations(db, me, account, fakes, now)
+    _remove_stage_requests(db)
+    for account in [me, *others]:
+        _seed_requests(db, account, fakes, now)
     db.commit()
     print(f"{len(fakes)} people in the world ({made} new)")
+
+
+def _tidy_trust_requests(db, me: User, fakes: list[User], now) -> None:
+    """The requests behind the trust sessions were once left pending, and
+    a session that was trimmed on a later run left its request behind. A
+    pending request with a paid session cannot exist for real, and on the
+    stair each one showed as somebody waiting to confirm — so a request
+    with a session is marked accepted, and one without is removed."""
+    fake_ids = [user.id for user in fakes]
+    rows = db.scalars(
+        select(Request).join(Offer, Offer.id == Request.offer_id).where(
+            Request.buyer_id == me.id,
+            Offer.provider_id.in_(fake_ids),
+            Offer.description == "گفتگوی آزمایشی",
+        )
+    ).all()
+    for request in rows:
+        has_session = db.scalars(
+            select(ChatSession).where(ChatSession.request_id == request.id)
+        ).first()
+        if has_session is None:
+            offer = request.offer
+            db.delete(request)
+            db.flush()
+            if db.scalars(select(Request).where(Request.offer_id == offer.id)).first() is None:
+                db.delete(offer)
+        elif request.status == RequestStatus.PENDING:
+            # Only a pending one is wrong; one the server already closed on
+            # its own (with its reason) shows nothing on the stair anyway.
+            request.status = RequestStatus.ACCEPTED
+            request.responded_at = request.responded_at or now
+    db.flush()
+
+
+def _mirror_conversations(db, me: User, account: User, fakes: list[User], now) -> None:
+    """Give another test account the same conversations the first one has.
+
+    The messages are copies with the same times, so nobody's presence
+    changes — presence counts the distinct DAYS a person wrote, and these
+    are days they already wrote on. Trust is left alone: paid sessions stay
+    with the first account only.
+    """
+    for user in fakes:
+        source = _conversation_between(db, me.id, user.id)
+        conversation = _conversation_between(db, account.id, user.id)
+        for message in db.scalars(
+            select(ChatMessage).where(ChatMessage.conversation_id == conversation.id)
+        ).all():
+            db.delete(message)
+        db.flush()
+        said = db.scalars(
+            select(ChatMessage)
+            .where(ChatMessage.conversation_id == source.id)
+            .order_by(ChatMessage.created_at)
+        ).all()
+        for message in said:
+            db.add(
+                ChatMessage(
+                    conversation_id=conversation.id,
+                    sender_id=user.id if message.sender_id == user.id else account.id,
+                    type=ChatMessageType.TEXT,
+                    text=message.text,
+                    created_at=message.created_at,
+                )
+            )
+        if not said:
+            continue
+        conversation.last_message_at = said[-1].created_at
+        index = user.telegram_id - FAKE_ID_BASE
+        theirs = [m for m in said if m.sender_id == user.id]
+        unread = min(UNREAD.get(index, 0), len(theirs))
+        participant = db.scalars(
+            select(ConversationParticipant).where(
+                ConversationParticipant.conversation_id == conversation.id,
+                ConversationParticipant.user_id == account.id,
+            )
+        ).one()
+        participant.last_read_at = (
+            theirs[-unread].created_at - timedelta(seconds=1) if unread else now
+        )
+    db.flush()
+
+
+def _seed_requests(db, me: User, fakes: list[User], now) -> None:
+    """One person at each step of a request (STAGE_PEOPLE), for one test
+    account. Replaced on every run (the caller removes the old ones first),
+    so the steps can be tested again from the start."""
+    by_index = {user.telegram_id - FAKE_ID_BASE: user for user in fakes}
+    my_offer = Offer(
+        provider_id=me.id, price_photons=120, session_duration_seconds=1800,
+        title="گفتگو درباره‌ی کتاب", description=STAGE_MARK,
+    )
+    db.add(my_offer)
+    db.flush()
+    for index, stage in STAGE_PEOPLE.items():
+        them = by_index.get(index)
+        if them is None:
+            continue
+        if stage in ("received", "awaitpay"):
+            offer = my_offer
+            buyer = them.id
+        else:
+            offer = Offer(
+                provider_id=them.id, price_photons=160, session_duration_seconds=1800,
+                title="گفتگو درباره‌ی سینما", description=STAGE_MARK,
+            )
+            db.add(offer)
+            db.flush()
+            buyer = me.id
+        accepted = stage in ("accepted", "awaitpay")
+        db.add(
+            Request(
+                buyer_id=buyer,
+                offer_id=offer.id,
+                status=RequestStatus.ACCEPTED if accepted else RequestStatus.PENDING,
+                created_at=now - timedelta(minutes=5 + index * 7),
+                responded_at=now - timedelta(minutes=2 + index * 3) if accepted else None,
+            )
+        )
+
+
+def _remove_stage_requests(db) -> None:
+    offers = db.scalars(select(Offer).where(Offer.description == STAGE_MARK)).all()
+    ids = [offer.id for offer in offers]
+    if ids:
+        for request in db.scalars(select(Request).where(Request.offer_id.in_(ids))).all():
+            has_session = db.scalars(
+                select(ChatSession).where(ChatSession.request_id == request.id)
+            ).first()
+            if has_session is None:
+                db.delete(request)
+        db.flush()
+        for offer in offers:
+            still_used = db.scalars(select(Request).where(Request.offer_id == offer.id)).first()
+            if still_used is None:
+                db.delete(offer)
+        db.flush()
 
 
 def _conversation_between(db, a: int, b: int) -> Conversation:
@@ -241,6 +455,7 @@ def clear(db) -> None:
         print("nothing to remove")
         return
 
+    _remove_stage_requests(db)
     convs = db.scalars(
         select(ConversationParticipant.conversation_id).where(
             ConversationParticipant.user_id.in_(ids)

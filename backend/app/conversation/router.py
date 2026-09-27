@@ -18,7 +18,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, seen_roughly
 from app.chat_message.router import list_conversation_messages
 from app.chat_message.schemas import ChatMessageOut
 from app.chat_message.service import build_message, require_capability
@@ -58,6 +58,7 @@ from app.models.conversation import (
     Conversation,
     ConversationParticipant,
 )
+from app.models.message_actions import HiddenMessage
 from app.models.user import User
 from app.profile.photos import get_current_avatar_urls
 
@@ -118,6 +119,31 @@ def _todays_new_conversations(db: Session, user_id: int) -> int:
     )
 
 
+def _unread_count(
+    db: Session, conversation: Conversation, participant: ConversationParticipant
+) -> int:
+    """How many messages from the others this person has not read yet.
+
+    Counted by the same rules as what they can see: nothing deleted for
+    everyone, nothing they hid for themselves, nothing from before they
+    cleared the thread. Otherwise the number on the stair would promise
+    messages that are not there when the conversation opens.
+    """
+    query = select(func.count(ChatMessage.id)).where(
+        ChatMessage.conversation_id == conversation.id,
+        ChatMessage.sender_id != participant.user_id,
+        ChatMessage.deleted_at.is_(None),
+        ChatMessage.id.not_in(
+            select(HiddenMessage.message_id).where(HiddenMessage.user_id == participant.user_id)
+        ),
+    )
+    if participant.last_read_at is not None:
+        query = query.where(ChatMessage.created_at > participant.last_read_at)
+    if participant.cleared_at is not None:
+        query = query.where(ChatMessage.created_at > participant.cleared_at)
+    return db.scalar(query) or 0
+
+
 def serialize(
     db: Session, conversation: Conversation, participant: ConversationParticipant
 ) -> ConversationOut:
@@ -154,6 +180,7 @@ def serialize(
     )
 
     return ConversationOut(
+        unread_count=_unread_count(db, conversation, participant),
         id=conversation.id,
         kind=conversation.kind,
         created_at=conversation.created_at,
@@ -164,6 +191,7 @@ def serialize(
                 display_name=users[p.user_id].display_name,
                 username=users[p.user_id].username,
                 avatar_url=avatars.get(p.user_id),
+                seen=seen_roughly(users[p.user_id]),
             )
             for p in others
             if p.user_id in users

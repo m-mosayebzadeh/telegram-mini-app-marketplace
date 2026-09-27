@@ -119,6 +119,28 @@ def _touch_last_seen(db: Session, user: User) -> None:
     db.commit()
 
 
+def seen_roughly(user: User, *, now=None) -> str:
+    """When this person was last here, only as roughly as a conversation's
+    header needs it: "now", "minutes", "hours", "days" or "long".
+
+    Coarse on purpose. "Here right now" is already public — it is the ring
+    in the sky — but an exact last-seen time is a thing people are careful
+    about (Telegram lets them hide it), and nothing in the design needs one.
+    """
+    if user.last_seen_at is None:
+        return "long"
+    gone = (now or utcnow()) - user.last_seen_at
+    if gone <= ONLINE_WITHIN:
+        return "now"
+    if gone <= timedelta(hours=1):
+        return "minutes"
+    if gone <= timedelta(days=1):
+        return "hours"
+    if gone <= timedelta(days=7):
+        return "days"
+    return "long"
+
+
 def is_online(user: User, *, now=None) -> bool:
     """Whether this person is here at this moment.
 

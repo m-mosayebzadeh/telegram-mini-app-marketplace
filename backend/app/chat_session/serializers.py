@@ -84,5 +84,6 @@ def to_chat_session_out(db: Session, chat_session: ChatSession, viewer_id: int) 
         is not None,
         disputed=transaction is not None and transaction.disputed_at is not None,
         transaction_status=transaction.status.value if transaction is not None else None,
+        thanks_reaction=chat_session.thanks_reaction,
         archived=chat_session.archived_by_buyer if is_buyer else chat_session.archived_by_provider,
     )

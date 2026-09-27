@@ -45,7 +45,7 @@ body {
 }
 
 /* The phone. Edge to edge on a phone; a phone-shaped window on a desk. */
-.stage {
+.phone {
   position: relative;
   width: 100%;
   height: 100%;
@@ -57,7 +57,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 @media (min-width: 560px) {
-  .stage {
+  .phone {
     width: 410px;
     height: min(100%, 880px);
     border-radius: 34px;
@@ -103,7 +103,7 @@ body {
   filter: blur(1.4px);
 }
 .p.near .p-in, .p.chosen .p-in { filter: none; }
-.body {
+.orb-body {
   position: relative;
   width: var(--s);
   height: var(--s);
@@ -121,7 +121,7 @@ body {
   animation: drift var(--dur) ease-in-out infinite;
   animation-delay: var(--del);
 }
-.body img {
+.orb-body img {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -132,8 +132,8 @@ body {
   filter: blur(7px);
   transition: opacity .9s ease, filter .9s ease;
 }
-.p.near .body img.here, .p.chosen .body img.here { opacity: .92; filter: none; }
-.body::after {
+.p.near .orb-body img.here, .p.chosen .orb-body img.here { opacity: .92; filter: none; }
+.orb-body::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -173,7 +173,7 @@ body {
 .p.chosen .nm { opacity: 0; }
 
 /* Somebody new, the first time you see them. */
-.p.arrive .body { animation: arrive 1.6s var(--settle) both, drift var(--dur) ease-in-out infinite 1.6s; }
+.p.arrive .orb-body { animation: arrive 1.6s var(--settle) both, drift var(--dur) ease-in-out infinite 1.6s; }
 .p.arrive .p-in::after {
   content: 'تازه';
   position: absolute;
@@ -194,7 +194,7 @@ body {
 /* Holding somebody: everyone else out of focus, a ring of attention. */
 .region.holding .p:not(.chosen) .p-in { opacity: .28; filter: blur(5px); }
 .p.chosen { z-index: 5; }
-.p.chosen .body { transform: scale(1.5); }
+.p.chosen .orb-body { transform: scale(1.5); }
 .p.chosen .p-in::before {
   content: '';
   position: absolute;
@@ -455,14 +455,254 @@ body {
   font-size: 11px;
   cursor: pointer;
 }
+.band-foot p { margin: 0 0 4px; }
+.band-foot .foot-lead { font-size: 12px; color: #ffe3bd; }
+.band-foot .foot-done { font-size: 12px; color: #ffe3bd; }
+.band-foot .foot-note { margin-top: 6px; font-size: 10px; line-height: 1.8; color: rgba(255, 227, 189, .55); }
+.foot-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 2px; }
+.release {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 22px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2b1704;
+  background: linear-gradient(160deg, #ffdda6, #f9b45f 46%, #eb9433);
+  box-shadow: 0 0 20px rgba(255, 178, 100, .3);
+  cursor: pointer;
+}
+.chip-quiet { min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid rgba(233, 242, 240, .16); background: transparent; color: var(--fg-soft); font: inherit; font-size: 12px; cursor: pointer; }
+.band-foot .replay { margin-top: 10px; min-height: 32px; padding: 0 10px; border: 1px dashed rgba(233, 242, 240, .18); border-radius: 16px; background: transparent; color: var(--fg-faint); font: inherit; font-size: 10px; cursor: pointer; }
+.react-chip { display: inline-flex; margin-top: 6px; }
+.react-chip img { width: 34px; height: 34px; filter: drop-shadow(0 0 8px rgba(255, 196, 120, .5)); }
+.gift {
+  position: absolute;
+  left: 0; top: 0;
+  width: 80px; height: 80px;
+  z-index: 6;
+  pointer-events: none;
+  filter: drop-shadow(0 0 18px rgba(255, 196, 120, .75));
+  will-change: transform;
+}
+.gift.ghost { opacity: .32; filter: blur(2px) drop-shadow(0 0 10px rgba(255, 196, 120, .6)); animation: ghost-fade .52s linear forwards; }
+@keyframes ghost-fade { to { opacity: 0; } }
+.spark {
+  position: absolute;
+  width: 5px; height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #fff3dc;
+  box-shadow: 0 0 10px #ffb366;
+  z-index: 6;
+  pointer-events: none;
+  animation: spark .9s cubic-bezier(.1, .8, .3, 1) forwards;
+}
+@keyframes spark { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+.react-chip.landed { animation: chip-land .5s var(--pop); }
+@keyframes chip-land { from { transform: scale(.5); } }
+
+/* Where a request stands, told by who has to act next — never by a new
+   colour. Waiting on the other person: a ghost, see-through, dashed, the
+   face drained. Waiting on you: solid, with a warm edge that breathes. */
+.row.ghost.here {
+  background: rgba(46, 28, 92, .18);
+  border: 1px dashed rgba(182, 156, 255, .55);
+  box-shadow: none;
+}
+.row.ghost .rface { filter: grayscale(.8) brightness(.8); opacity: .7; }
+.row.ghost .rtxt b { color: rgba(241, 235, 255, .62); }
+.row.needs.here {
+  border-color: rgba(242, 176, 106, .7);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .45), 0 0 22px rgba(242, 176, 106, .3);
+  animation: needs-breathe 2.6s ease-in-out infinite;
+}
+@keyframes needs-breathe {
+  50% { box-shadow: 0 14px 30px rgba(0, 0, 0, .45), 0 0 36px rgba(242, 176, 106, .5); }
+}
+
+.chips {
+  position: absolute;
+  left: 16px; right: 16px;
+  top: calc(80px + env(safe-area-inset-top, 0px));
+  z-index: 9;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  animation: rise var(--calm) var(--settle);
+}
+.chips button {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(182, 156, 255, .28);
+  background: rgba(30, 18, 60, .6);
+  color: var(--fg-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chips button[aria-pressed="true"] { background: rgba(182, 156, 255, .26); color: var(--fg); border-color: rgba(182, 156, 255, .55); }
+
+/* A request inside the one thread with that person. */
+.req {
+  margin: 14px 0 4px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px dashed rgba(182, 156, 255, .5);
+  background: rgba(46, 28, 92, .3);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.req.firm { border-style: solid; border-color: rgba(242, 176, 106, .45); background: rgba(242, 176, 106, .07); }
+.req b { font-weight: 400; font-size: 13px; color: #f1ebff; }
+.req span { font-size: 11px; color: rgba(214, 200, 255, .72); }
+.req .req-note { margin: 4px 0 0; font-size: 10px; line-height: 1.8; color: rgba(214, 200, 255, .55); }
+
+/* An answerable news item: two faces, the same size as every other item. */
+.item.flipper { display: block; padding: 0; background: transparent; border-color: transparent; box-shadow: none; perspective: 800px; --burn: 0; --charge: 0; }
+.flip-in { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .65s cubic-bezier(.3, 1.35, .4, 1); }
+.item.flipped .flip-in { transform: rotateX(180deg); }
+.fside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 12px 0 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: linear-gradient(to left, rgba(70, 14, 34, .9), rgba(30, 8, 18, .82));
+  border: 1px solid rgba(255, 77, 125, .26);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .45);
+}
+.fside-back {
+  transform: rotateX(180deg);
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(to left, rgba(96, 22, 48, .96), rgba(44, 10, 26, .92));
+}
+/* Only the face that is turned towards you can be touched. A face turned
+   away is invisible, but without this the browser may still hand it the
+   touch — a hidden "رد" answering for you. */
+.item.flipper:not(.flipped) .fside-back,
+.item.flipper.flipped .fside-front { pointer-events: none; }
+.flip-act { min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid rgba(255, 255, 255, .18); background: rgba(255, 255, 255, .06); color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.flip-act.yes { border: 0; color: #2b1704; font-weight: 500; background: linear-gradient(160deg, #ffdda6, #f9b45f 46%, #eb9433); box-shadow: 0 0 18px rgba(255, 178, 100, .35); }
+.flip-act.talk { border-color: rgba(182, 156, 255, .5); background: rgba(90, 60, 160, .3); color: #e7dcff; }
+
+/* Refusing: ash from the far edge towards the name. */
+.item.burning .fside-front {
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--burn) * 110% - 10%), #000 calc(var(--burn) * 110% + 3%));
+  mask-image: linear-gradient(to right, transparent calc(var(--burn) * 110% - 10%), #000 calc(var(--burn) * 110% + 3%));
+}
+.burn-edge {
+  position: absolute;
+  top: -4px; bottom: -4px;
+  left: calc(var(--burn) * 110% - 12%);
+  width: 20px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 214, 150, .95), rgba(255, 120, 40, .55) 45%, transparent 72%);
+  filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.item.burning .burn-edge { opacity: 1; }
+.ember {
+  position: absolute;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: #ffc27a;
+  box-shadow: 0 0 6px #ff8a3d;
+  pointer-events: none;
+  animation: ember .9s ease-out forwards;
+}
+@keyframes ember { to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; background: #6b5a55; } }
+
+/* Confirming is the opposite of refusing, in the world's own physics: what
+   you refuse falls into the black hole; what you accept joins your star.
+   The card gathers itself into the person, warming as it goes — how far it
+   has gathered IS the time left to change your mind — and then the person
+   flies to Sol, which flares as they arrive. */
+.item.charging .fside-front {
+  clip-path: inset(0 0 0 calc(var(--charge) * (100% - 64px)) round 16px);
+  border-color: rgba(255, 200, 130, .75);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .45), inset 0 0 calc(var(--charge) * 44px) rgba(255, 190, 110, .6);
+}
+.item.charging .fside-front .txt,
+.item.charging .fside-front .when { opacity: calc(1 - var(--charge) * 1.7); }
+.item.charging .fside-front .face { box-shadow: 0 0 calc(6px + var(--charge) * 24px) rgba(255, 204, 140, .95); }
+.to-sol {
+  position: absolute;
+  left: 0; top: 0;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  z-index: 12;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(255, 226, 180, .9), 0 0 24px rgba(255, 200, 130, .95);
+}
+.trail-dot {
+  position: absolute;
+  width: 6px; height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: #ffe2b0;
+  box-shadow: 0 0 10px #ffb366;
+  z-index: 11;
+  pointer-events: none;
+  animation: trail-fade .7s ease-out forwards;
+}
+@keyframes trail-fade { to { opacity: 0; transform: scale(.2); } }
+.sol.absorb { animation: absorb .75s var(--pop); }
+@keyframes absorb {
+  35% { scale: 1.2; box-shadow: 0 0 0 1px #fff, 0 0 56px rgba(255, 214, 158, 1), 0 0 130px rgba(255, 172, 78, .75); }
+}
+
+/* While an answer settles: say plainly that touching brings it back. It
+   sits outside the card's burning or gathering, so it stays readable to
+   the end, and it pulses like something asking to be touched. */
+.undo-tip {
+  position: absolute;
+  left: 50%; top: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: rgba(12, 4, 8, .82);
+  border: 1px solid rgba(255, 255, 255, .22);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.85);
+  transition: opacity .25s ease, transform .3s var(--pop);
+  pointer-events: none;
+}
+.item.burning .undo-tip,
+.item.charging .undo-tip {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+  animation: tip-pulse 1.2s ease-in-out infinite;
+}
+@keyframes tip-pulse { 50% { box-shadow: 0 0 0 7px rgba(255, 255, 255, .08); } }
+
 .th-empty { align-self: center; margin-top: 30px; font-size: 12px; color: var(--fg-faint); }
 .th-compose { padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(182, 156, 255, .1); }
 
 /* Sol, opened by a tap: the regions become things you can press. */
 .sol-area.tapmode .sat { pointer-events: auto; cursor: pointer; }
-.sol-area.tapmode .veil { pointer-events: auto; }
+.sol-area.tapmode .sol-veil { pointer-events: auto; }
 
-#stream.scrolling .item, #stream.scrolling .end { transition: none; }
+#stream.scrolling .item, #stream.scrolling .stream-end { transition: none; }
 
 /* ---------- news: the wormhole and the stream ---------- */
 .hole {
@@ -530,6 +770,9 @@ body {
   cursor: pointer;
   touch-action: none;
 }
+/* Width includes padding and edge, the same for every card, so each one
+   ends exactly where its connector reaches the spine. */
+.item { box-sizing: border-box; }
 .item.fly { transition: transform .78s cubic-bezier(.55, 0, .85, .35), opacity .78s ease; }
 .item.held { transition: none; }
 .item::after {
@@ -565,7 +808,7 @@ body {
 .item .txt b { font-weight: 400; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .txt span { font-size: 11px; color: rgba(255, 210, 222, .66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .item .when { margin-right: auto; flex: none; font-size: 10px; color: rgba(255, 210, 222, .45); }
-.end {
+.stream-end {
   position: absolute;
   left: 16px;
   font-size: 12px;
@@ -574,7 +817,7 @@ body {
 }
 
 /* ---------- echo and me: atmosphere only ---------- */
-.card {
+.rcard {
   position: absolute;
   left: 50%;
   top: 44%;
@@ -586,10 +829,10 @@ body {
   align-items: center;
   gap: 8px;
 }
-.card h2 { margin: 0; font-weight: 300; font-size: 26px; }
-.card p { margin: 0; font-size: 13px; line-height: 1.9; color: var(--fg-soft); text-wrap: balance; }
-.card small { font-size: 11px; color: var(--fg-faint); }
-.card .count { font-size: 15px; color: var(--echo); }
+.rcard h2 { margin: 0; font-weight: 300; font-size: 26px; }
+.rcard p { margin: 0; font-size: 13px; line-height: 1.9; color: var(--fg-soft); text-wrap: balance; }
+.rcard small { font-size: 11px; color: var(--fg-faint); }
+.rcard .count { font-size: 15px; color: var(--echo); }
 
 .self {
   position: absolute;
@@ -629,7 +872,7 @@ body {
 @keyframes circle { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 /* ---------- chrome ---------- */
-.top {
+.topbar {
   position: absolute;
   top: 0; left: 0; right: 0;
   z-index: 9;
@@ -680,7 +923,7 @@ body {
   transition: opacity .35s ease;
 }
 .sol-area.gone { opacity: 0; pointer-events: none; }
-.veil {
+.sol-veil {
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -690,8 +933,8 @@ body {
     radial-gradient(70% 42% at 50% 96%, rgba(255, 188, 118, .22), rgba(255, 176, 104, .07) 46%, transparent 100%),
     linear-gradient(to top, rgba(4, 9, 12, .9), rgba(4, 9, 12, .78) 30%, rgba(5, 11, 14, .5) 60%, rgba(5, 11, 14, .3));
 }
-.sol-area.open .veil { opacity: 1; }
-.ring {
+.sol-area.open .sol-veil { opacity: 1; }
+.sol-ring {
   position: absolute;
   left: 0; top: 0;
   width: 116px; height: 116px;
@@ -703,7 +946,7 @@ body {
   transition: width var(--calm) var(--settle), height var(--calm) var(--settle), border-color var(--calm) ease;
   pointer-events: none;
 }
-.sol-area.open .ring { width: 244px; height: 244px; border-color: rgba(255, 214, 162, .5); }
+.sol-area.open .sol-ring { width: 244px; height: 244px; border-color: rgba(255, 214, 162, .5); }
 #beam { position: absolute; left: -190px; top: -190px; width: 380px; height: 380px; overflow: visible; pointer-events: none; }
 
 .sol {
@@ -995,7 +1238,7 @@ body {
 }
 </style>
 
-<div class="stage" id="stage" dir="rtl" lang="fa">
+<div class="phone" id="stage" dir="rtl" lang="fa">
   <canvas id="sky" aria-hidden="true"></canvas>
 
   <section class="region on" id="r-home" aria-label="جهان">
@@ -1013,7 +1256,7 @@ body {
   </section>
 
   <section class="region" id="r-echo" aria-label="اکو">
-    <div class="card">
+    <div class="rcard">
       <h2>اکو</h2>
       <p>چتِ تصادفی با یک غریبه. هر شب ساعتِ ۲۲ باز می‌شود.</p>
       <span class="count" id="echo-count"></span>
@@ -1026,7 +1269,7 @@ body {
     <div class="passer" style="--r:118px;--t:13s;--d:-5s"><b></b><i></i></div>
     <div class="passer" style="--r:78px;--t:7s;--d:-3s"><b></b><i></i></div>
     <div class="self" aria-hidden="true"></div>
-    <div class="card" style="top:68%">
+    <div class="rcard" style="top:68%">
       <p>از آخرین باری که آمدی، <b style="font-weight:400;color:var(--warm-bright)">۳ نفر</b> از کنارت گذشتند.</p>
       <small>فقط کسی این را می‌بیند که خودش هم دیده شدن را روشن گذاشته باشد. این منطقه بعداً طراحی می‌شود.</small>
     </div>
@@ -1034,8 +1277,12 @@ body {
 
   <div class="floor" id="floor"></div>
   <div id="stairs"></div>
+  <div class="chips" id="chips" hidden role="group" aria-label="فیلترِ گفتگوها">
+    <button type="button" data-filter="all" aria-pressed="true">همه</button>
+    <button type="button" data-filter="wait" aria-pressed="false">در انتظار</button>
+  </div>
 
-  <header class="top">
+  <header class="topbar">
     <div class="where" id="where"><b class="en">Vega Galaxy</b><span></span></div>
     <div class="toggles">
       <button class="tg" id="tg-sound" type="button" aria-pressed="false" aria-label="صدا">
@@ -1048,8 +1295,8 @@ body {
   </header>
 
   <div class="sol-area" id="sol-area">
-    <div class="veil"></div>
-    <div class="ring"></div>
+    <div class="sol-veil"></div>
+    <div class="sol-ring"></div>
     <svg id="beam" viewBox="-190 -190 380 380" aria-hidden="true">
       <defs>
         <linearGradient id="flare" x1="0" y1="0" x2="1" y2="0">
@@ -1458,7 +1705,7 @@ body {
       el.style.transform = `translate(${p.x}px, ${p.y}px)`;
       el.innerHTML = `
         <div class="p-in" style="--s:${p.size}px">
-          <div class="body" style="--a:${p.body[0]};--b:${p.body[1]};--dur:${10 + (p.i % 7)}s;--del:-${p.i * 1.3}s">
+          <div class="orb-body" style="--a:${p.body[0]};--b:${p.body[1]};--dur:${10 + (p.i % 7)}s;--del:-${p.i * 1.3}s">
             ${ONLINE.has(p.i) ? '<span class="online-ring"></span>' : ''}
             <span>${p.name[0]}</span>
             <img alt="" draggable="false" data-src="${photo(p.i)}">
@@ -1506,7 +1753,6 @@ body {
     if (!img.src) { img.onload = () => img.classList.add('here'); img.src = img.dataset.src; }
     const label = document.createElement('div');
     label.className = 'hold-label';
-    if (inSession(p.i)) sessionStart();
     label.innerHTML = `${opts.newsy ? '<span class="flag">برایت خبری دارد</span>' : ''}<b>${p.name}</b>${inSession(p.i) ? '<span class="flag" style="color:var(--warm-bright)">جلسه‌ی پولیِ شما در جریان است</span>' : ''}${ONLINE.has(p.i) ? '<span class="flag" style="color:var(--live)">همین حالا اینجاست</span>' : ''}<span class="say">${p.line}</span>`;
     p.el.querySelector('.p-in').appendChild(label);
     homeTarget.x = p.x; homeTarget.y = p.y + H * 0.1; homeTarget.z = homeCam.z;
@@ -1575,26 +1821,44 @@ body {
   const PROTO_BLOCK_MS = 30000;
   const REAL_BLOCK_MIN = 7.5;
   const SESSION = {
-    who: 9, title: 'گفتگو درباره‌ی موسیقی', blocks: 4,
+    who: 9, title: 'گفتگو درباره‌ی موسیقی', blocks: 4, perBlock: 60,
     live: true, t0: 0, stopAfter: null, pendingExt: false, endedAt: null,
+    endedBy: null, usedAtEnd: 0, released: false,
   };
-  const START_AT_BLOCKS = 2.3;
+  const START_AT_BLOCKS = 2.5;
 
   function sessionStart() { if (!SESSION.t0) SESSION.t0 = performance.now() - PROTO_BLOCK_MS * START_AT_BLOCKS; }
   function elapsedBlocks() { return SESSION.t0 ? (performance.now() - SESSION.t0) / PROTO_BLOCK_MS : START_AT_BLOCKS; }
-  function minutesLeft() { return Math.max(1, Math.ceil((SESSION.blocks - elapsedBlocks()) * REAL_BLOCK_MIN)); }
+  function minutesLeft() {
+    const end = SESSION.stopAfter !== null ? SESSION.stopAfter : SESSION.blocks;
+    return Math.max(1, Math.ceil((end - elapsedBlocks()) * REAL_BLOCK_MIN));
+  }
 
+  /**
+   * Everyone you are dealing with, newest first. A request is a conversation
+   * that has not formed yet, so it lives here too — the way message requests
+   * sit inside the messages of most apps.
+   *   chat      an ordinary conversation
+   *   session   a paid session running now
+   *   sent      you asked to buy their offer; they have not answered
+   *   received  they asked to buy yours; you have not answered
+   *   accepted  they accepted yours; your payment starts the session
+   *   awaitpay  you accepted theirs; their payment starts the session
+   */
   const CONVERSATIONS = [
-    [9, 'این قسمتش رو گوش کن…', 1, 'همین حالا'],
-    [2, 'پس فردا شب بازم بیا اکو', 2, '۳ دقیقه'],
-    [23, 'اون کتابی که گفتی رو پیدا کردم', 1, '۱۲ دقیقه'],
-    [6, 'خیلی خوب بود حرف زدن باهات', 0, '۵ ساعت'],
-    [16, 'عکسشو فردا برات می‌فرستم', 0, 'دیروز'],
-    [1, 'کوه جمعه؟', 0, '۲ روز'],
-    [12, 'شعرش مالِ خودم بود', 0, '۳ روز'],
-    [17, 'یه دستِ دیگه؟', 0, '۵ روز'],
-    [20, 'گربه‌م سلام می‌رسونه', 0, 'هفته‌ی پیش'],
-  ].map(([who, last, unread, when], rank) => ({ who, last, unread, when, rank }));
+    [9, 'session', 'این قسمتش رو گوش کن…', 1, 'همین حالا'],
+    [10, 'received', '', 0, '۵ دقیقه', 'گفتگو درباره‌ی کتاب', 120],
+    [2, 'chat', 'پس فردا شب بازم بیا اکو', 2, '۸ دقیقه'],
+    [4, 'sent', '', 0, '۲۰ دقیقه', 'گفتگو درباره‌ی سینما', 120],
+    [23, 'chat', 'اون کتابی که گفتی رو پیدا کردم', 1, '۴۰ دقیقه'],
+    [1, 'accepted', '', 0, '۱ ساعت', 'برنامه‌ریزیِ یک صعودِ آسان', 160],
+    [6, 'chat', 'خیلی خوب بود حرف زدن باهات', 0, '۵ ساعت'],
+    [16, 'chat', 'عکسشو فردا برات می‌فرستم', 0, 'دیروز'],
+    [12, 'chat', 'شعرش مالِ خودم بود', 0, '۳ روز'],
+    [17, 'chat', 'یه دستِ دیگه؟', 0, '۵ روز'],
+    [20, 'chat', 'گربه‌م سلام می‌رسونه', 0, 'هفته‌ی پیش'],
+  ].map(([who, stage, last, unread, when, offer, price], rank) => ({ who, stage, last, unread, when, offer, price, rank, vis: rank }));
+  const WAITING = ['sent', 'received', 'accepted', 'awaitpay'];
   const convOf = (i) => CONVERSATIONS.find((c) => c.who === i) || null;
   const inSession = (i) => SESSION.live && i === SESSION.who;
 
@@ -1604,15 +1868,15 @@ body {
     { kind: 'free', date: 'سه هفته پیش', msgs: [
       ['them', 'سلام! دیدم تو هم اهلِ موسیقی‌ای'], ['me', 'آره، بیشتر جاز گوش می‌دم'], ['them', 'پس باید حسابی حرف بزنیم'],
     ] },
-    { kind: 'session', head: 'جلسه‌ی پولی · «گفتگو درباره‌ی موسیقی» · ۴ بلوک', date: 'دو هفته پیش',
-      foot: 'تمام شد · هر دو تأیید کردید و سهمِ هومن آزاد شد', msgs: [
+    { kind: 'session', head: 'جلسه‌ی پولی · «گفتگو درباره‌ی موسیقی» · ۴ بلوک · ۲۴۰ فوتون', date: 'دو هفته پیش',
+      foot: 'تمام شد · ۲۴۰ فوتون به هومن منتقل شد', msgs: [
         ['them', 'از کجا شروع کنیم؟'], ['me', 'از مایلز دیویس'], ['them', 'Kind of Blue رو از اول تا آخر گوش دادی؟'],
         ['me', 'نه هنوز کامل'], ['them', 'پس تکلیفِ این هفته‌ت مشخص شد'],
       ] },
     { kind: 'free', date: 'هفته‌ی پیش', msgs: [
       ['me', 'اون آلبومی که گفتی رو کامل گوش دادم'], ['them', 'دیدی گفتم؟'], ['me', 'یه جلسه‌ی دیگه بذاریم؟'],
     ] },
-    { kind: 'session', live: true, head: 'جلسه‌ی پولی · «گفتگو درباره‌ی موسیقی»', date: 'امروز', msgs: [
+    { kind: 'session', live: true, head: 'جلسه‌ی پولی · «گفتگو درباره‌ی موسیقی» · ۶۰ فوتون هر بلوک', date: 'امروز', msgs: [
       ['them', 'این دفعه بریم سراغِ کولترین'], ['me', 'عالیه'], ['them', 'این قسمتش رو گوش کن…'],
     ] },
   ];
@@ -1635,16 +1899,52 @@ body {
   const stairsEl = $('#stairs');
   let stairS = 0;
   const rowW = () => W - 40;
-  const rowLine = (c) => (inSession(c.who) ? `جلسه‌ی فعال · ${fa(minutesLeft())} دقیقه مانده` : c.last);
+  /**
+   * The words for each step. Nobody "buys" anybody here: somebody accepts
+   * an offer, the person who made it confirms, and a payment in Photons
+   * starts the session.
+   */
+  function rowLine(c) {
+    if (inSession(c.who)) return `جلسه‌ی فعال · ${fa(minutesLeft())} دقیقه مانده`;
+    return {
+      sent: 'پیشنهادش را پذیرفتی · منتظرِ تأییدِ او',
+      received: 'پیشنهادت را پذیرفت · منتظرِ تأییدِ تو',
+      accepted: 'تأیید شد · پرداخت کن تا جلسه شروع شود',
+      awaitpay: 'تأیید کردی · منتظرِ پرداختِ او',
+    }[c.stage] || c.last;
+  }
+  const NEEDS_YOU = ['received', 'accepted'];
+  const WAITS_ON_THEM = ['sent', 'awaitpay'];
+  const lineClass = (c) => (inSession(c.who) || NEEDS_YOU.includes(c.stage) ? 'sess' : WAITS_ON_THEM.includes(c.stage) ? 'line-wait' : '');
+  const rowClass = (c) => ['row', NEEDS_YOU.includes(c.stage) ? 'needs' : '', WAITS_ON_THEM.includes(c.stage) ? 'ghost' : ''].filter(Boolean).join(' ');
+
+  /**
+   * What comes first on the stair: a session running now; then anything
+   * waiting on you; then conversations with something unread; then the
+   * rest, newest first. Things waiting on the OTHER person do not jump the
+   * queue — there is nothing for you to do about them.
+   */
+  const priority = (c) => (inSession(c.who) ? 0 : NEEDS_YOU.includes(c.stage) ? 1 : c.unread ? 2 : 3);
+  const byPriority = () => [...CONVERSATIONS].sort((a, b) => priority(a) - priority(b) || a.rank - b.rank);
+
+  /** Redraw one row after its stage changed, keeping it where it is. */
+  function refreshRow(c) {
+    if (!c.row) return;
+    const here = c.row.classList.contains('here');
+    c.row.className = rowClass(c) + (here ? ' here' : '');
+    const line = c.row.querySelector('[data-line]');
+    line.className = lineClass(c);
+    line.textContent = rowLine(c);
+  }
 
   function makeRow(c) {
     const p = people[c.who];
     const el = document.createElement('div');
-    el.className = 'row';
+    el.className = rowClass(c);
     el.dataset.row = c.rank;
     el.innerHTML = `
       <div class="rface">${faceHTML(p)}</div>
-      <div class="rtxt"><b>${p.name}</b><span data-line class="${inSession(c.who) ? 'sess' : ''}">${rowLine(c)}</span></div>
+      <div class="rtxt"><b>${p.name}</b><span data-line class="${lineClass(c)}">${rowLine(c)}</span></div>
       <div class="rmeta"><i>${c.when}</i>${c.unread ? `<span class="ucount">${fa(c.unread)}</span>` : ''}</div>`;
     stairsEl.appendChild(el);
     c.row = el;
@@ -1666,16 +1966,33 @@ body {
       z: 100 - Math.round(d * 10),
     };
   }
+  let stairFilter = 'all';
+  const passes = (c) => stairFilter === 'all' || WAITING.includes(c.stage);
   function placeRow(c) {
-    const s = rowSlot(c.rank);
+    if (c.vis < 0) { c.row.style.opacity = '0'; c.row.style.pointerEvents = 'none'; return; }
+    const s = rowSlot(c.vis);
     c.row.style.width = `${rowW()}px`;
     c.row.style.transform = `translate3d(20px, ${(s.y - 35).toFixed(1)}px, 0) scale(${s.sc.toFixed(3)})`;
     c.row.style.opacity = String(s.op);
     c.row.style.zIndex = String(s.z);
     c.row.style.pointerEvents = s.op > 0.35 ? 'auto' : 'none';
   }
-  const layoutStairs = () => CONVERSATIONS.forEach(placeRow);
-  const clampStair = (v) => Math.max(0, Math.min(CONVERSATIONS.length - 1, v));
+  function layoutStairs() {
+    let k = 0;
+    byPriority().forEach((c) => { if (!c.row) return; c.vis = passes(c) ? k++ : -1; placeRow(c); });
+  }
+  const visibleCount = () => CONVERSATIONS.filter(passes).length;
+  const clampStair = (v) => Math.max(0, Math.min(Math.max(0, visibleCount() - 1), v));
+  document.querySelectorAll('#chips [data-filter]').forEach((b) => {
+    b.addEventListener('click', () => {
+      stairFilter = b.dataset.filter;
+      document.querySelectorAll('#chips [data-filter]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      stairS = 0;
+      layoutStairs();
+      if (!visibleCount()) toast('چیزی در این دسته نیست.');
+      buzz([6]);
+    });
+  });
 
   /** The row's face placed exactly over this person's body in the world. */
   function atHome(c) {
@@ -1686,7 +2003,6 @@ body {
   function enterGravity(then) {
     travelling = true;
     release(true);
-    sessionStart();
     vel.x = vel.y = 0;
     region = 'talk';
     skyTarget = REGIONS.talk.sky;
@@ -1696,7 +2012,12 @@ body {
     $('#r-home').classList.add('gravity');
     stairsEl.classList.add('on');
     stairS = 0;
-    CONVERSATIONS.forEach((c, k) => {
+    stairFilter = 'all';
+    document.querySelectorAll('#chips [data-filter]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.filter === 'all')));
+    $('#chips').hidden = false;
+    const order = byPriority();
+    CONVERSATIONS.forEach((c) => {
+      const k = order.indexOf(c);
       const el = c.row || makeRow(c);
       el.classList.remove('here');
       el.style.transition = 'none';
@@ -1706,7 +2027,16 @@ body {
       el.style.zIndex = String(100 - k);
       people[c.who].el.classList.add('pulled');
       void el.offsetWidth;
-      setTimeout(() => { el.style.transition = ''; el.classList.add('here'); placeRow(c); }, 60 + k * 60);
+      c.vis = k;
+      // First the person flies — only their face, a body moving through the
+      // sky — and only once they have arrived does the card form around
+      // them. Forming it mid-flight left faces in one place and empty cards
+      // in another for half a second.
+      setTimeout(() => {
+        el.style.transition = '';
+        placeRow(c);
+        setTimeout(() => { if (region === 'talk') el.classList.add('here'); }, 620);
+      }, 60 + k * 60);
     });
     updateClocks();
     firstTime('talk', 'آدم‌هایی که با آن‌ها حرف می‌زنی نزدیکت آمدند. روی هومن بزن — با او یک جلسه‌ی پولی در جریان است');
@@ -1715,6 +2045,7 @@ body {
 
   function exitGravity(animated, then) {
     closeThread();
+    $('#chips').hidden = true;
     $('#r-home').classList.remove('gravity');
     stairsEl.classList.remove('on', 'scrolling');
     const finish = () => {
@@ -1763,6 +2094,7 @@ body {
     barKey = '';
     let body;
     if (p.i === SESSION.who) body = HOOMAN_CHAPTERS.map(bandHTML).join('');
+    else if (WAITING.includes(c.stage)) body = `<div class="ch-date">${c.when} پیش</div>${requestCard(c, p)}`;
     else if (c.last) body = bandHTML({ kind: 'free', date: c.when, msgs: [['me', 'سلام، چطوری؟'], ['them', p.line], ['them', c.last]] }, 0);
     else body = '<p class="th-empty">هنوز چیزی به هم نگفته‌اید. اولین پیام را بنویس.</p>';
 
@@ -1778,17 +2110,25 @@ body {
         </div>
         <div id="sbar-slot"></div>
         <div class="th-body">${body}</div>
-        <div class="composer th-compose"><input id="th-input" type="text" placeholder="بنویس…" aria-label="پیام"></div>
+        <div class="composer th-compose"><input id="th-input" type="text" placeholder="بنویس و اینتر بزن…" aria-label="پیام" enterkeyhint="send" autocomplete="off"></div>
       </div>`;
 
     const layer = $('#thread-slot .thread-layer');
+    const input = layer.querySelector('#th-input');
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || !input.value.trim()) return;
+      e.preventDefault();
+      say(p, 'me', input.value.trim());
+      input.value = '';
+      answerLater(p);
+    });
     layer.querySelector('.th-back').onclick = () => closeThread();
     layer.querySelector('.th-go').onclick = () => goTo(p);
     const scroller = layer.querySelector('.th-body');
+    wireRequest(c, p, layer);
     requestAnimationFrame(() => { scroller.scrollTop = scroller.scrollHeight; });
     if (inSession(p.i)) {
       sessionStart();
-      firstTime('session', 'در این نمونه هر بلوک سی ثانیه است تا کلِ یک جلسه را ببینی: پر شدنِ ساعت روی چهره، بلوکِ آخر، و پایان و تسویه.');
     } else if (p.i === SESSION.who && !SESSION.live) {
       appendEnding();
     }
@@ -1800,6 +2140,107 @@ body {
 
   function closeThread() { $('#thread-slot').innerHTML = ''; threadWho = null; }
 
+  /** A request, inside the one thread with that person. Money is only
+   *  mentioned in Photons, and nothing leaves anybody's wallet until the
+   *  buyer pays after acceptance. */
+  function requestCard(c, p) {
+    const price = `${fa(c.price)} فوتون`;
+    if (c.stage === 'sent') return `
+      <div class="req" data-req>
+        <b>پیشنهادِ «${c.offer}» را پذیرفتی</b>
+        <span>${price} · منتظرِ تأییدِ ${p.name}</span>
+        <p class="req-note">تا وقتی ${p.name} تأیید نکند و تو پرداخت نکنی، هیچ فوتونی از تو کم نمی‌شود.</p>
+        <div class="foot-row" data-req-act><button type="button" class="chip-quiet" data-cancel>پس گرفتن</button></div>
+      </div>`;
+    if (c.stage === 'received') return `
+      <div class="req" data-req>
+        <b>${p.name} پیشنهادِ «${c.offer}»ِ تو را پذیرفت</b>
+        <span>${price} · ${c.when} پیش</span>
+        <div class="foot-row" data-req-act>
+          <button type="button" class="release" data-accept>تأیید</button>
+          <button type="button" class="chip-quiet" data-reject>رد</button>
+        </div>
+      </div>`;
+    if (c.stage === 'accepted') return `
+      <div class="req firm" data-req>
+        <b>${p.name} تأیید کرد</b>
+        <span>«${c.offer}» · ${price} · با پرداختِ تو جلسه شروع می‌شود</span>
+        <div class="foot-row" data-req-act><button type="button" class="release" data-pay>پرداختِ ${price} و شروعِ جلسه</button></div>
+      </div>`;
+    return `
+      <div class="req firm" data-req>
+        <b>تأیید کردی</b>
+        <span>«${c.offer}» · ${price} · وقتی ${p.name} پرداخت کند، جلسه شروع می‌شود</span>
+      </div>`;
+  }
+
+  function wireRequest(c, p, layer) {
+    const act = layer.querySelector('[data-req-act]');
+    if (!act) return;
+    const redraw = () => {
+      const card = layer.querySelector('[data-req]');
+      card.outerHTML = requestCard(c, p);
+      wireRequest(c, p, layer);
+      refreshRow(c);
+    };
+    const cancel = act.querySelector('[data-cancel]');
+    // Cancelling asks once more: it lives here, inside the conversation,
+    // rather than on the stair, which is swiped all the time.
+    if (cancel) cancel.onclick = () => {
+      act.innerHTML = `<button type="button" class="release" data-yes>بله، پس بگیر</button><button type="button" class="chip-quiet" data-no>نه</button>`;
+      act.querySelector('[data-no]').onclick = redraw;
+      act.querySelector('[data-yes]').onclick = () => {
+        c.stage = 'chat';
+        c.last = 'پذیرفتنت را پس گرفتی';
+        layer.querySelector('[data-req]').outerHTML = `<div class="req"><b>پس گرفتی.</b><span>هیچ فوتونی از تو کم نشده بود.</span></div>`;
+        refreshRow(c);
+        buzz([10]);
+      };
+    };
+    const accept = act.querySelector('[data-accept]');
+    if (accept) accept.onclick = () => { c.stage = 'awaitpay'; redraw(); toast(`تأیید کردی. وقتی ${p.name} پرداخت کند، جلسه شروع می‌شود.`); buzz([10]); };
+    const reject = act.querySelector('[data-reject]');
+    if (reject) reject.onclick = () => {
+      c.stage = 'chat';
+      c.last = 'رد کردی';
+      layer.querySelector('[data-req]').outerHTML = `<div class="req"><b>رد کردی.</b><span>${p.name} باخبر می‌شود.</span></div>`;
+      refreshRow(c);
+      buzz([10]);
+    };
+    const pay = act.querySelector('[data-pay]');
+    if (pay) pay.onclick = () => toast('در نسخه‌ی واقعی، فوتون‌ها همین‌جا کنار گذاشته می‌شوند و جلسه شروع می‌شود.', 3200);
+  }
+
+  /** Put a message where it belongs: inside the running session's band while
+   *  there is one, in the open conversation otherwise. */
+  function say(p, who, text) {
+    const layer = $('#thread-slot .thread-layer');
+    if (!layer || threadWho !== p.i) return;
+    const safe = text.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    const band = inSession(p.i) ? layer.querySelector('.band.running') : null;
+    (band || layer.querySelector('.th-body')).insertAdjacentHTML('beforeend', `<div class="bub ${who}">${safe}</div>`);
+    const scroller = layer.querySelector('.th-body');
+    scroller.scrollTop = scroller.scrollHeight;
+    if (who === 'me') tone(740, 0, 0.12, 'sine', 0.025);
+  }
+
+  const REPLIES = {
+    9: ['آره دقیقاً همین‌جاش', 'صبر کن تا سولوی ساکسیفون', 'این رو باید با هدفون گوش بدی', 'موافقم، کولترین یه چیزِ دیگه‌ست'],
+    default: ['آره', 'جدی؟ بیشتر بگو', 'حتماً', 'باشه، خبرت می‌کنم'],
+  };
+  function answerLater(p) {
+    const status = $('#thread-slot .th-who span');
+    const before = status ? status.textContent : '';
+    setTimeout(() => { if (status && threadWho === p.i) status.textContent = 'در حالِ نوشتن…'; }, 500);
+    setTimeout(() => {
+      if (threadWho !== p.i) return;
+      if (status) status.textContent = before;
+      const list = REPLIES[p.i] || REPLIES.default;
+      say(p, 'them', list[Math.floor(Math.random() * list.length)]);
+      tone(587, 0, 0.14, 'sine', 0.025);
+    }, 1900);
+  }
+
   /** The session bar: what is happening, and the one thing to do now. */
   function renderBar() {
     const slot = $('#sbar-slot');
@@ -1808,7 +2249,10 @@ body {
     const used = Math.floor(elapsedBlocks());
     const last = used >= SESSION.blocks - 1;
     const key = `${last}|${SESSION.stopAfter}|${SESSION.pendingExt}|${SESSION.blocks}`;
-    const info = `بلوکِ ${fa(Math.min(used + 1, SESSION.blocks))} از ${fa(SESSION.blocks)} · ${fa(minutesLeft())} دقیقه مانده`;
+    const where = `بلوکِ ${fa(Math.min(used + 1, SESSION.blocks))} از ${fa(SESSION.blocks)}`;
+    const info = SESSION.stopAfter !== null
+      ? `${where} · جلسه ${fa(minutesLeft())} دقیقه‌ی دیگر، سرِ همین بلوک تمام می‌شود`
+      : `${where} · ${fa(minutesLeft())} دقیقه مانده`;
     if (key === barKey) { const t = $('#sbar-t'); if (t) t.textContent = info; return; }
     barKey = key;
     let act;
@@ -1853,25 +2297,153 @@ body {
     };
   }
 
+  /**
+   * How a session ended, told truthfully and one fact per line:
+   *   - who ended it, or simply that it ran its course;
+   *   - how many blocks came back, and only if any did;
+   *   - how many Photons are held for the provider, and the way to release
+   *     them now.
+   * Complaining is deliberately not a button here. It stays possible — the
+   * note says where — but sitting next to "release" it would slow down the
+   * provider's pay for every session that went perfectly well.
+   */
   function appendEnding() {
     const band = $('.thread-layer [data-band="3"]');
     if (!band || band.querySelector('.band-foot')) return;
     band.classList.remove('running');
     band.querySelector('.band-head i').textContent = 'تمام شد';
+    const refundBlocks = SESSION.blocks - SESSION.usedAtEnd;
+    const held = SESSION.usedAtEnd * SESSION.perBlock;
+    const who = SESSION.endedBy === 'me' ? 'جلسه به انتخابِ تو زودتر تمام شد.'
+      : SESSION.endedBy === 'them' ? 'جلسه به انتخابِ هومن زودتر تمام شد.'
+      : 'جلسه تمام شد.';
+    const refund = refundBlocks > 0
+      ? `<p>${fa(refundBlocks)} بلوکِ استفاده‌نشده — ${fa(refundBlocks * SESSION.perBlock)} فوتون — همان لحظه به کیف پولت برگشت.</p>`
+      : '';
     band.insertAdjacentHTML('beforeend', `
       <div class="band-foot">
-        جلسه تمام شد. بلوک‌های استفاده‌نشده همان لحظه به کیف پولت برگشت؛ سهمِ هومن تا ۲۴ ساعت نگه داشته می‌شود، و اگر هر دو تأیید کنید همین حالا آزاد می‌شود.
-        <br><button type="button" data-replay>دوباره نشان بده</button>
+        <p class="foot-lead">${who}</p>
+        ${refund}
+        <div data-settle>${SESSION.released ? releasedHTML(held) : `
+          <p>${fa(held)} فوتون برای هومن تا ۲۴ ساعت نگه داشته می‌شود؛ اگر همه‌چیز خوب بود، همین حالا آزادش کن.</p>
+          <div class="foot-row"><button type="button" class="release" data-release>آزادسازیِ ${fa(held)} فوتون</button></div>
+          <p class="foot-note">با آزادسازی، دیگر نمی‌توانی درباره‌ی این جلسه شکایت کنی. اگر مشکلی بود، از «من» ← «پرونده‌ی جلسه‌ها» گزارش بده.</p>`}
+        </div>
+        <button type="button" class="replay" data-replay>دوباره نشان بده (فقط در نمونه)</button>
       </div>`);
     band.querySelector('[data-replay]').onclick = replaySession;
+    wireRelease(band, held);
   }
 
-  function endSession() {
+  function releasedHTML(held) {
+    return `<p class="foot-done">${fa(held)} فوتون به هومن منتقل شد.</p>`;
+  }
+
+  /** Release takes two taps: money that has moved cannot be moved back, and
+   *  it gives up the right to complain. */
+  function wireRelease(band, held) {
+    const btn = band.querySelector('[data-release]');
+    if (!btn) return;
+    btn.onclick = () => {
+      const row = btn.parentElement;
+      row.innerHTML = `
+        <button type="button" class="release" data-yes>بله، آزاد کن</button>
+        <button type="button" class="chip-quiet" data-no>انصراف</button>`;
+      row.querySelector('[data-no]').onclick = () => {
+        row.innerHTML = `<button type="button" class="release" data-release>آزادسازیِ ${fa(held)} فوتون</button>`;
+        wireRelease(band, held);
+      };
+      row.querySelector('[data-yes]').onclick = () => {
+        SESSION.released = true;
+        band.querySelector('[data-settle]').innerHTML = releasedHTML(held);
+        toast(`${fa(held)} فوتون آزاد شد و به هومن رسید.`, 2600);
+        tone(659, 0, 0.3, 'triangle', 0.035); tone(988, 0.12, 0.5, 'triangle', 0.03);
+        buzz([12, 50, 12]);
+        // A moment later, the provider may say thank you — one tap on their
+        // side, never required, and only possible after the money arrived,
+        // so it can never read as asking for it.
+        setTimeout(() => thankYou(band), 1900);
+      };
+    };
+  }
+
+  const THANKS = [
+    { img: 'emoji/2764.webp', text: 'هومن تشکر کرد' },
+    { img: 'emoji/1f64f.webp', text: 'هومن ممنون بود' },
+    { img: 'emoji/1f91d.webp', text: 'هومن دست داد' },
+  ];
+  function thankYou(band) {
+    const layer = $('#thread-slot .thread-layer');
+    if (!layer || !band.isConnected) return;
+    const t = THANKS[Math.floor(Math.random() * THANKS.length)];
+    const L = layer.getBoundingClientRect();
+    const from = layer.querySelector('.th-head .rface').getBoundingClientRect();
+    const host = band.querySelector('[data-settle]');
+    host.insertAdjacentHTML('beforeend', `<span class="react-chip" style="opacity:0" title="${t.text}"><img alt="${t.text}" src="${t.img}"></span>`);
+    const chip = host.querySelector('.react-chip:last-child');
+    const to = chip.querySelector('img').getBoundingClientRect();
+    const S = 80;
+    const sx = from.left + from.width / 2 - L.left, sy = from.top + from.height / 2 - L.top;
+    const cx = L.width / 2, cy = L.height * 0.42;
+    const ex = to.left + to.width / 2 - L.left, ey = to.top + to.height / 2 - L.top;
+    const gift = document.createElement('img');
+    gift.className = 'gift';
+    gift.alt = '';
+    gift.src = t.img;
+    layer.appendChild(gift);
+    const at = (x, y, sc, spin) => `translate(${(x - S / 2).toFixed(1)}px, ${(y - S / 2).toFixed(1)}px) scale(${sc.toFixed(3)}) rotateY(${spin.toFixed(0)}deg)`;
+    const frames = [];
+    const N = 16;
+    for (let i = 0; i <= N; i += 1) {
+      const u = i / N;
+      const x = (1 - u) ** 2 * sx + 2 * (1 - u) * u * (sx - 150) + u * u * cx;
+      const y = (1 - u) ** 2 * sy + 2 * (1 - u) * u * (sy + 90) + u * u * cy;
+      frames.push({ transform: at(x, y, 0.2 + u * 1.5, u * 720), offset: u * 0.45 });
+    }
+    frames.push({ transform: at(cx, cy - 10, 1.75, 720), offset: 0.6 });
+    frames.push({ transform: at(cx, cy, 1.6, 720), offset: 0.72 });
+    frames.push({ transform: at(ex, ey, 22 / S, 720), offset: 1 });
+    const DUR = 2800;
+    const anim = gift.animate(frames, { duration: DUR, easing: 'cubic-bezier(.3,.7,.3,1)', fill: 'forwards' });
+    const trail = setInterval(() => {
+      const g = gift.cloneNode();
+      g.className = 'gift ghost';
+      g.style.transform = getComputedStyle(gift).transform;
+      layer.appendChild(g);
+      setTimeout(() => g.remove(), 520);
+    }, 45);
+    setTimeout(() => clearInterval(trail), DUR * 0.45);
+    setTimeout(() => {
+      for (let i = 0; i < 24; i += 1) {
+        const sp = document.createElement('span');
+        sp.className = 'spark';
+        const a = (i / 24) * Math.PI * 2 + Math.random() * 0.2;
+        const d = 60 + Math.random() * 80;
+        sp.style.left = `${cx}px`;
+        sp.style.top = `${cy}px`;
+        sp.style.setProperty('--dx', `${Math.cos(a) * d}px`);
+        sp.style.setProperty('--dy', `${Math.sin(a) * d}px`);
+        layer.appendChild(sp);
+        setTimeout(() => sp.remove(), 950);
+      }
+      tone(1319, 0, 0.5, 'sine', 0.03); tone(1760, 0.08, 0.5, 'sine', 0.02);
+      buzz([10, 30, 10]);
+    }, DUR * 0.58);
+    anim.onfinish = () => { gift.remove(); chip.style.opacity = ''; chip.classList.add('landed'); };
+  }
+
+  function endSession(by, used) {
     SESSION.live = false;
     SESSION.endedAt = performance.now();
+    SESSION.endedBy = by;
+    SESSION.usedAtEnd = used;
     document.querySelectorAll('[data-clock]').forEach((el) => el.remove());
     const c = convOf(SESSION.who);
-    if (c && c.row) { const line = c.row.querySelector('[data-line]'); line.textContent = 'جلسه تمام شد'; line.classList.remove('sess'); }
+    if (c && c.row) {
+      const line = c.row.querySelector('[data-line]');
+      line.textContent = 'جلسه تمام شد';
+      line.classList.remove('sess');
+    }
     if (threadWho === SESSION.who) { renderBar(); appendEnding(); }
     toast('جلسه با هومن تمام شد.', 2600);
     tone(523, 0, 0.5, 'sine', 0.035); tone(392, 0.2, 0.7, 'sine', 0.03);
@@ -1880,15 +2452,18 @@ body {
 
   /** Start the example session again, from block three. */
   function replaySession() {
-    Object.assign(SESSION, { blocks: 4, live: true, stopAfter: null, pendingExt: false, endedAt: null, t0: 0 });
+    Object.assign(SESSION, {
+      blocks: 4, live: true, stopAfter: null, pendingExt: false, endedAt: null, t0: 0,
+      endedBy: null, usedAtEnd: 0, released: false,
+    });
     sessionStart();
     const c = convOf(SESSION.who);
     if (c && c.row) {
       c.row.querySelector('.rface').innerHTML = faceHTML(people[c.who]);
-      const line = c.row.querySelector('[data-line]'); line.classList.add('sess');
+      c.row.querySelector('[data-line]').classList.add('sess');
     }
-    const w = people[SESSION.who].el.querySelector('.body');
-    if (w && !w.querySelector('[data-clock]')) w.insertAdjacentHTML('beforeend', clockHTML());
+    const body = people[SESSION.who].el.querySelector('.orb-body');
+    if (body && !body.querySelector('[data-clock]')) body.insertAdjacentHTML('beforeend', clockHTML());
     openThread(c);
   }
 
@@ -1896,7 +2471,8 @@ body {
   setInterval(() => {
     if (!SESSION.live || !SESSION.t0) return;
     const e = elapsedBlocks();
-    if (e >= SESSION.blocks || (SESSION.stopAfter !== null && e >= SESSION.stopAfter)) { endSession(); return; }
+    if (e >= SESSION.blocks) { endSession('natural', SESSION.blocks); return; }
+    if (SESSION.stopAfter !== null && e >= SESSION.stopAfter) { endSession('me', SESSION.stopAfter); return; }
     updateClocks();
     renderBar();
     const c = convOf(SESSION.who);
@@ -1910,6 +2486,7 @@ body {
     { kind: 'person', who: 6, title: 'بهار از کنارت گذشت', body: 'آدمِ حرف‌های نصفه‌کاره‌ام.', when: 'همین حالا' },
   ];
   let news = [
+    { kind: 'buy', who: 10, title: 'شبنم پیشنهادت را پذیرفت', body: '«گفتگو درباره‌ی کتاب» · ۱۲۰ فوتون', when: '۵ دقیقه' },
     { kind: 'person', who: 2, title: 'نگار جوابت را داد', body: 'پس فردا شب بازم بیا اکو', when: '۳ دقیقه' },
     { kind: 'person', who: 23, title: 'کسری می‌خواهد با تو حرف بزند', body: 'زبان یاد می‌گیرم تا با آدم‌های بیشتری…', when: '۱۲ دقیقه' },
     { kind: 'arrived', title: 'جهان در نبودنت عوض شد', body: '۴ نفرِ تازه به مدارهای نزدیکت آمده‌اند', when: '۱ ساعت' },
@@ -1939,12 +2516,177 @@ body {
     el.className = 'item';
     el.dataset.item = n.id;
     el.innerHTML = `
-      <div class="face">${n.kind === 'person' ? `<img alt="" draggable="false" src="${photo(n.who)}">` : GLYPH[n.kind]}</div>
+      <div class="face">${n.who !== undefined ? `<img alt="" draggable="false" src="${photo(n.who)}">` : GLYPH[n.kind]}</div>
       <div class="txt"><b>${n.title}</b><span>${n.body}</span></div>
       <span class="when">${n.when}</span>`;
+    if (n.kind === 'buy') {
+      el.classList.add('flipper');
+      el.innerHTML = `
+        <div class="flip-in">
+          <div class="fside fside-front">
+            <div class="face"><img alt="" draggable="false" src="${photo(n.who)}"></div>
+            <div class="txt"><b>${n.title}</b><span data-sub>${n.body}</span></div>
+            <span class="when">${n.when}</span>
+          </div>
+          <div class="fside fside-back">
+            <button type="button" class="flip-act yes" data-q="yes">تأیید</button>
+            <button type="button" class="flip-act" data-q="no">رد</button>
+            <button type="button" class="flip-act talk" data-q="talk">گفتگو</button>
+          </div>
+        </div>
+        <span class="burn-edge"></span>
+        <span class="undo-tip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="7" opacity=".6"/><circle cx="12" cy="12" r="10.5" opacity=".3"/></svg>
+          لمس کن تا برگردد
+        </span>`;
+    }
     $('#stream').appendChild(el);
     n.el = el;
+    if (n.kind === 'buy') wireAnswers(n);
     return el;
+  }
+
+  function wireAnswers(n) {
+    n.el.querySelector('[data-q="yes"]').onclick = () => settle(n, 'charge');
+    n.el.querySelector('[data-q="no"]').onclick = () => settle(n, 'burn');
+    n.el.querySelector('[data-q="talk"]').onclick = () => travelTo('talk', () => openThread(convOf(n.who)));
+  }
+
+  /** A tap on an answerable item: turn it over, or — while an answer is
+   *  still settling — take the answer back. */
+  function tapAnswerable(n) {
+    if (n.busy) { takeBack(n); return; }
+    n.el.classList.toggle('flipped');
+    buzz([6]);
+    clearTimeout(n.flipTimer);
+    if (n.el.classList.contains('flipped')) {
+      n.flipTimer = setTimeout(() => { if (!n.busy) n.el.classList.remove('flipped'); }, 6000);
+    }
+  }
+
+  /**
+   * An answer takes a few seconds to settle, and the settling IS the undo.
+   * Refusing burns the card to ash from its far edge towards the name — so
+   * who you are refusing stays readable to the last moment — and the ash
+   * drifts into the black hole. Confirming fills it with warm light and
+   * sends it down into your conversations. Touch the card while it is still
+   * happening and it runs backwards to exactly how it was: no button to
+   * find, the thing itself is what you catch.
+   */
+  const SETTLE_MS = 4200;
+  function settle(n, kind) {
+    const front = n.el.querySelector('.fside-front');
+    const sub = front.querySelector('[data-sub]');
+    n.el.classList.remove('flipped');
+    clearTimeout(n.flipTimer);
+    n.subBefore = sub.textContent;
+    sub.textContent = kind === 'burn' ? 'رد کردی' : 'تأیید کردی';
+    n.el.classList.add(kind === 'burn' ? 'burning' : 'charging');
+    n.busy = { kind, t0: performance.now(), back: false, from: 0, tb: 0 };
+    kind === 'burn' ? noise(0, 1.2, 400, 1800, 0.025) : tone(523, 0, 0.8, 'triangle', 0.025);
+    buzz([10]);
+    const prop = kind === 'burn' ? '--burn' : '--charge';
+    const run = () => {
+      // One clock for everything, the same one the start time came from.
+      const t = performance.now();
+      const b = n.busy;
+      if (!b) return;
+      let v;
+      if (b.back) {
+        v = b.from * (1 - (t - b.tb) / 420);
+        if (v <= 0) { n.el.style.setProperty(prop, '0'); calm(n); return; }
+      } else {
+        v = Math.min(1, (t - b.t0) / SETTLE_MS);
+      }
+      n.el.style.setProperty(prop, v.toFixed(3));
+      if (kind === 'burn' && !b.back && Math.random() < 0.7) ember(n, v);
+      if (!b.back && v >= 1) { done(n, kind); return; }
+      requestAnimationFrame(run);
+    };
+    requestAnimationFrame(run);
+  }
+  function takeBack(n) {
+    const b = n.busy;
+    if (!b || b.back) return;
+    const t = performance.now();
+    b.from = Math.min(1, (t - b.t0) / SETTLE_MS);
+    b.back = true;
+    b.tb = t;
+    tone(392, 0, 0.25, 'sine', 0.03);
+    buzz([6, 30, 6]);
+  }
+  function calm(n) {
+    n.el.classList.remove('burning', 'charging');
+    const sub = n.el.querySelector('[data-sub]');
+    if (sub && n.subBefore) sub.textContent = n.subBefore;
+    n.busy = null;
+  }
+  function ember(n, v) {
+    const w = n.el.offsetWidth;
+    const e = document.createElement('span');
+    e.className = 'ember';
+    e.style.left = `${Math.max(0, (v * 1.1 - 0.1) * w)}px`;
+    e.style.top = `${8 + Math.random() * (ITEM_H - 16)}px`;
+    e.style.setProperty('--dx', `${-10 - Math.random() * 30}px`);
+    e.style.setProperty('--dy', `${-20 - Math.random() * 40}px`);
+    n.el.appendChild(e);
+    setTimeout(() => e.remove(), 950);
+  }
+  /** The person leaves the card as a small warm body, arcs down to Sol with
+   *  a trail of light, and Sol flares as they arrive. */
+  function flyToSol(n) {
+    const L = stage.getBoundingClientRect();
+    const f = n.el.querySelector('.fside-front .face').getBoundingClientRect();
+    const t = $('#sol').getBoundingClientRect();
+    const sx = f.left + f.width / 2 - L.left, sy = f.top + f.height / 2 - L.top;
+    const ex = t.left + t.width / 2 - L.left, ey = t.top + t.height / 2 - L.top;
+    const bx = Math.min(sx, ex) - 70, by = sy + (ey - sy) * 0.35;
+    const orb = document.createElement('img');
+    orb.className = 'to-sol';
+    orb.alt = '';
+    orb.src = photo(n.who);
+    stage.appendChild(orb);
+    n.el.remove();
+    const DUR = 950;
+    const frames = [];
+    for (let i = 0; i <= 14; i += 1) {
+      const u = i / 14;
+      const x = (1 - u) ** 2 * sx + 2 * (1 - u) * u * bx + u * u * ex;
+      const y = (1 - u) ** 2 * sy + 2 * (1 - u) * u * by + u * u * ey;
+      frames.push({ transform: `translate(${(x - 20).toFixed(1)}px, ${(y - 20).toFixed(1)}px) scale(${(1 - u * 0.65).toFixed(3)})`, offset: u });
+      setTimeout(() => {
+        const dot = document.createElement('span');
+        dot.className = 'trail-dot';
+        dot.style.left = `${x}px`;
+        dot.style.top = `${y}px`;
+        stage.appendChild(dot);
+        setTimeout(() => dot.remove(), 750);
+      }, u * DUR);
+    }
+    orb.animate(frames, { duration: DUR, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' }).onfinish = () => {
+      orb.remove();
+      const sol = $('#sol');
+      sol.classList.remove('absorb'); void sol.offsetWidth; sol.classList.add('absorb');
+      tone(784, 0, 0.35, 'triangle', 0.035); tone(1175, 0.1, 0.5, 'sine', 0.025);
+      buzz([10, 30, 14]);
+      toast('رفت به گفتگوهایت. وقتی شبنم پرداخت کند، جلسه شروع می‌شود.', 2800);
+    };
+  }
+
+  function done(n, kind) {
+    const c = convOf(n.who);
+    n.busy = null;
+    news = news.filter((x) => x !== n);
+    if (kind === 'burn') {
+      if (c) { c.stage = 'chat'; c.last = 'رد کردی'; refreshRow(c); }
+      const sink = $('#sink');
+      sink.classList.remove('gulp'); void sink.offsetWidth; sink.classList.add('gulp');
+      setTimeout(() => n.el.remove(), 300);
+    } else {
+      if (c) { c.stage = 'awaitpay'; refreshRow(c); }
+      flyToSol(n);
+    }
+    layoutNews();
   }
 
   function slotY(k) { return geo().top + k * (ITEM_H + GAP) - streamScroll; }
@@ -1959,7 +2701,7 @@ body {
     src.style.left = `${g.spineX}px`; src.style.top = `${g.srcY}px`;
     sink.style.left = `${g.spineX}px`; sink.style.top = `${g.sinkY}px`;
     spine.style.left = `${g.spineX}px`; spine.style.top = `${g.srcY}px`; spine.style.height = `${g.sinkY - g.srcY}px`;
-    const width = g.spineX - 16 - 20;
+    const width = g.spineX - 32;
     streamScroll = Math.min(streamScroll, maxScroll());
     news.forEach((n, k) => {
       if (!n.el) makeItem(n);
@@ -1971,8 +2713,8 @@ body {
       n.el.style.opacity = String(Math.max(0, fade));
       n.el.style.pointerEvents = fade > 0.4 ? 'auto' : 'none';
     });
-    let end = $('#stream .end');
-    if (!end) { end = document.createElement('div'); end.className = 'end'; $('#stream').appendChild(end); }
+    let end = $('#stream .stream-end');
+    if (!end) { end = document.createElement('div'); end.className = 'stream-end'; $('#stream').appendChild(end); }
     end.textContent = news.length ? 'تمام شد — چیزِ دیگری نیست' : 'همه را دیدی';
     const ey = news.length ? slotY(news.length) + 8 : g.top + 40;
     end.style.transform = `translate3d(0, ${ey}px, 0)`;
@@ -1984,7 +2726,7 @@ body {
   /** Something new arrives: it comes out of the wormhole, not from nowhere. */
   function emit(n) {
     const g = geo();
-    const width = g.spineX - 16 - 20;
+    const width = g.spineX - 32;
     news.unshift(n);
     const el = makeItem(n);
     el.style.width = `${width}px`;
@@ -2024,6 +2766,7 @@ body {
     setTimeout(() => n.el.remove(), 400);
     updateCounts();
     if (n.kind === 'person') goTo(people[n.who], { newsy: true });
+    if (n.kind === 'buy') travelTo('talk', () => openThread(convOf(n.who)));
     if (n.kind === 'arrived') travelTo('home', welcomeNewcomers);
     if (n.kind === 'passed') travelTo('me');
     if (n.kind === 'echo') travelTo('echo');
@@ -2191,7 +2934,7 @@ body {
   });
   solBtn.addEventListener('pointercancel', endSol);
   $('#badge').addEventListener('click', () => travelTo('news'));
-  $('#sol-area .veil').addEventListener('click', closeMenu);
+  $('#sol-area .sol-veil').addEventListener('click', closeMenu);
 
   // ---------------------------------------------------- touching things
   let drag = null;
@@ -2254,7 +2997,7 @@ body {
       stairS = clampStair(drag.stair0 - ty / 90);
       layoutStairs();
     } else if (region === 'news') {
-      if (drag.axis === 'x' && drag.item) {
+      if (drag.axis === 'x' && drag.item && !drag.item.busy) {
         const n = drag.item;
         n.el.classList.add('held');
         const k = news.indexOf(n);
@@ -2279,7 +3022,7 @@ body {
       stairS = Math.round(stairS);
       layoutStairs();
     }
-    if (region === 'news' && d.moved && d.axis === 'x' && d.item) {
+    if (region === 'news' && d.moved && d.axis === 'x' && d.item && !d.item.busy) {
       const tx = e.clientX - d.x0;
       if (Math.abs(tx) > 88) drop(d.item);
       else { d.item.el.classList.remove('held'); layoutNews(); }
@@ -2309,7 +3052,8 @@ body {
       const row = el.closest('[data-row]');
       if (row) openThread(CONVERSATIONS[Number(row.dataset.row)]);
     } else if (region === 'news' && d.item) {
-      openNews(d.item);
+      if (d.item.kind === 'buy') tapAnswerable(d.item);
+      else openNews(d.item);
     }
   });
   stage.addEventListener('pointercancel', (e) => { letGo(e); drag = null; });

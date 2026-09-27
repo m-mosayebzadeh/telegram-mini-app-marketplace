@@ -2,9 +2,10 @@
 The settlement window: the day between a session ending and its money reaching
 the provider, and the two ways that wait can end early.
 
-The window exists for one reason — to give an unhappy participant time to
-freeze the money. Everything here follows from that: both sides agreeing ends
-it immediately, and agreeing is also giving up your own right to complain.
+The window exists to give an unhappy BUYER time to freeze the money — the only
+money anybody could want back is theirs. So the buyer's word alone ends it
+(TECHNICAL_REQUIREMENTS.md section 30.18); the provider confirming is recorded
+and gives up their own right to complain, but releases nothing by itself.
 """
 from datetime import timedelta
 
@@ -53,9 +54,9 @@ def _age(db_session, chat_session, hours):
     db_session.commit()
 
 
-def test_one_side_confirming_does_not_release_the_money(client, db_session):
-    """One signature is not agreement — the other participant may still be
-    deciding whether to freeze it."""
+def test_the_buyer_confirming_alone_pays_the_provider_at_once(client, db_session):
+    """The buyer is the only side with money to protect, so their word is
+    enough — there is nothing left to wait for."""
     chat_session, provider, buyer = _closed_session(client, db_session)
 
     body = client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer).json()
@@ -63,8 +64,21 @@ def test_one_side_confirming_does_not_release_the_money(client, db_session):
     assert body["i_confirmed_settlement"] is True
     assert body["they_confirmed_settlement"] is False
     wallet = client.get("/wallet/balance", headers=provider).json()
+    assert wallet["balance_toman"] == 9 * RATE  # one block, less the commission
+    assert wallet["pending_toman"] == 0
+
+
+def test_the_provider_confirming_alone_releases_nothing(client, db_session):
+    """The provider cannot sign off their own pay: that would leave the buyer
+    no window at all."""
+    chat_session, provider, buyer = _closed_session(client, db_session)
+
+    body = client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=provider).json()
+
+    assert body["i_confirmed_settlement"] is True
+    wallet = client.get("/wallet/balance", headers=provider).json()
     assert wallet["balance_toman"] == 0
-    assert wallet["pending_toman"] == 9 * RATE  # one block, less the commission
+    assert wallet["pending_toman"] == 9 * RATE
 
 
 def test_both_sides_confirming_pays_the_provider_at_once(client, db_session):
@@ -91,16 +105,27 @@ def test_confirming_gives_up_your_own_right_to_dispute(client, db_session):
     assert response.status_code == 400
 
 
-def test_confirming_does_not_give_up_the_other_side_right_to_dispute(client, db_session):
-    """Each participant answers for themselves; one signing off must never
-    silence the other."""
+def test_the_provider_confirming_leaves_the_decision_with_the_buyer(client, db_session):
+    """The provider signing off changes nothing about the buyer's window: the
+    money waits until the buyer says so, and is paid exactly once."""
+    chat_session, provider, buyer = _closed_session(client, db_session, closed_by="buyer")
+
+    client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=provider)
+    assert client.get("/wallet/balance", headers=provider).json()["balance_toman"] == 0
+
+    client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer)
+    assert client.get("/wallet/balance", headers=provider).json()["balance_toman"] == 9 * RATE
+
+
+def test_released_money_cannot_be_disputed(client, db_session):
+    """Once the buyer has released it there is no held money left for a
+    dispute to freeze; conduct goes to reports instead."""
     chat_session, provider, buyer = _closed_session(client, db_session, closed_by="buyer")
 
     client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer)
     response = client.post(f"/chat-sessions/{chat_session.id}/dispute", headers=provider)
 
-    assert response.status_code == 200
-    assert response.json()["disputed"] is True
+    assert response.status_code == 400
 
 
 def test_a_disputed_session_cannot_be_confirmed_away(client, db_session):
@@ -117,18 +142,14 @@ def test_a_disputed_session_cannot_be_confirmed_away(client, db_session):
 def test_confirming_twice_is_harmless(client, db_session):
     chat_session, provider, buyer = _closed_session(client, db_session)
 
-    first = client.post(
-        f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer
-    ).json()
+    client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer)
     again = client.post(
         f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer
     ).json()
 
-    assert first["i_confirmed_settlement"] is True
     assert again["i_confirmed_settlement"] is True
-    # Still unpaid: the other side has not agreed, so nothing was released by
-    # pressing it twice.
-    assert client.get("/wallet/balance", headers=provider).json()["balance_toman"] == 0
+    # Paid exactly once: pressing it a second time released nothing more.
+    assert client.get("/wallet/balance", headers=provider).json()["balance_toman"] == 9 * RATE
 
 
 def test_a_session_that_cost_nothing_has_nothing_to_confirm(client, db_session):
@@ -164,3 +185,60 @@ def test_the_window_still_expires_on_its_own_when_nobody_confirms(client, db_ses
 
     assert wallet["balance_toman"] == 9 * RATE
     assert wallet["pending_toman"] == 0
+
+
+# ------------------------------------------------------------------ thanks
+
+def test_the_provider_can_thank_after_release(client, db_session):
+    chat_session, provider, buyer = _closed_session(client, db_session)
+    client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer)
+
+    body = client.post(
+        f"/chat-sessions/{chat_session.id}/thanks", headers=provider, json={"reaction": "heart"}
+    ).json()
+
+    assert body["thanks_reaction"] == "heart"
+    # And the buyer sees it on the same session.
+    seen = client.get(f"/chat-sessions/{chat_session.id}", headers=buyer).json()
+    assert seen["thanks_reaction"] == "heart"
+
+
+def test_no_thanks_before_the_money_arrives(client, db_session):
+    """Before release a thank-you would read as a nudge to pay."""
+    chat_session, provider, buyer = _closed_session(client, db_session)
+
+    response = client.post(
+        f"/chat-sessions/{chat_session.id}/thanks", headers=provider, json={"reaction": "heart"}
+    )
+
+    assert response.status_code == 400
+
+
+def test_only_the_provider_thanks_and_only_once(client, db_session):
+    chat_session, provider, buyer = _closed_session(client, db_session)
+    client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer)
+
+    by_buyer = client.post(
+        f"/chat-sessions/{chat_session.id}/thanks", headers=buyer, json={"reaction": "pray"}
+    )
+    first = client.post(
+        f"/chat-sessions/{chat_session.id}/thanks", headers=provider, json={"reaction": "pray"}
+    )
+    second = client.post(
+        f"/chat-sessions/{chat_session.id}/thanks", headers=provider, json={"reaction": "heart"}
+    )
+
+    assert by_buyer.status_code == 403
+    assert first.status_code == 200
+    assert second.status_code == 400
+
+
+def test_only_the_fixed_reactions_exist(client, db_session):
+    chat_session, provider, buyer = _closed_session(client, db_session)
+    client.post(f"/chat-sessions/{chat_session.id}/confirm-settlement", headers=buyer)
+
+    response = client.post(
+        f"/chat-sessions/{chat_session.id}/thanks", headers=provider, json={"reaction": "star"}
+    )
+
+    assert response.status_code == 400

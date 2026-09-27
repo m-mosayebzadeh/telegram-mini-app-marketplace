@@ -210,6 +210,10 @@ export interface ChatSession {
 
   disputed: boolean
   transaction_status: 'pending' | 'succeeded' | 'failed' | 'refunded' | null
+  /** The provider's thank-you after release — "heart", "pray" or
+   *  "handshake" — or null. Only possible once the money has arrived, so
+   *  it can never read as asking to be paid (section 30.17). */
+  thanks_reaction?: string | null
   // Whether the CURRENT viewer archived this session — per-viewer, see
   // backend/app/models/chat_session.py's archived_by_buyer/archived_by_provider.
   archived: boolean

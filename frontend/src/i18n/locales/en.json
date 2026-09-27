@@ -670,12 +670,13 @@
     "me": "Me",
     "echoName": "Echo",
     "echoSub": "Random",
-    "peopleAround_one": "{{n}} person",
-    "peopleAround_other": "{{n}} people",
+    "peopleAround_one": "{{n}} people in this galaxy",
+    "peopleAround_other": "{{n}} people in this galaxy",
     "hereNowCount_one": "{{n}} here right now",
     "hereNowCount_other": "{{n}} here right now",
     "galaxyLocal": "",
-    "galaxyWord": "Galaxy"
+    "galaxyWord": "Galaxy",
+    "solHint": "Tap Sol, or hold it and sweep towards a place"
   },
   "echo": {
     "back": "Back",
@@ -744,7 +745,7 @@
     "back": "Back",
     "send": "Send",
     "placeholder": "Say something…",
-    "nothingYet": "Nothing said between you and {{name}} yet. The first line is yours.",
+    "nothingYet": "You haven't said anything yet. Write the first message.",
     "photo": "Send a photo",
     "voice": "Record a voice note",
     "recording": "Recording…",
@@ -784,7 +785,15 @@
       "alsoFor": "Also delete for {{name}}",
       "confirm": "Delete"
     },
-    "typing": "typing…"
+    "typing": "typing…",
+    "seeInWorld": "See them in the world",
+    "lastHere": {
+      "now": "Here right now",
+      "minutes": "Here a few minutes ago",
+      "hours": "Here a few hours ago",
+      "days": "Here a few days ago",
+      "long": "Not here for a while"
+    }
   },
   "report": {
     "title": "Report {{name}}",
@@ -822,5 +831,148 @@
     },
     "retry": "Didn't load — try again",
     "tones": "Skin tone"
+  },
+  "world": {
+    "region": {
+      "talk": "Conversations",
+      "news": "News",
+      "echo": "Echo",
+      "me": "Me",
+      "world": "World"
+    },
+    "stage": {
+      "session": "Session running · {{minutes}} min left",
+      "sessionWaiting": "Session running",
+      "received": "Accepted your offer · waiting for you to confirm",
+      "accepted": "Confirmed · pay to start the session",
+      "sent": "You accepted their offer · waiting for them to confirm",
+      "awaitpay": "You confirmed · waiting for them to pay"
+    },
+    "filter": {
+      "all": "All",
+      "wait": "Waiting"
+    },
+    "filterLabel": "Filter conversations",
+    "stairEmpty": "You haven't talked to anyone yet. Tap someone in the world and say hello.",
+    "stairEmptyWaiting": "Nothing is waiting on you or anyone else right now.",
+    "newsBadge_one": "{{count}} new thing",
+    "newsBadge_other": "{{count}} new things",
+    "backToSession": "Back to the session",
+    "loadFailed": "Some things didn't load. Check back in a moment.",
+    "talkSub": "{{n}} conversations · {{m}} with new messages",
+    "newsSub": "{{n}} unseen",
+    "newsSubNone": "You've seen everything",
+    "unread_one": "{{count}} unread message",
+    "unread_other": "{{count}} unread messages"
+  },
+  "news": {
+    "empty": "Nothing new. Anything waiting on you will turn up here.",
+    "message": {
+      "title": "{{name}} wrote to you"
+    },
+    "confirm": {
+      "title": "{{name}} accepted your offer",
+      "body": "“{{offer}}” · {{photons}} Photons",
+      "yes": "Confirm"
+    },
+    "follow": {
+      "title": "{{name}} wants to follow you",
+      "body": "Yes or no, it's up to you"
+    },
+    "pay": {
+      "title": "{{name}} confirmed",
+      "body": "“{{offer}}” · paying {{photons}} Photons starts the session"
+    },
+    "settle": {
+      "title": "Your session with {{name}} ended",
+      "body": "{{photons}} Photons are waiting for you to release them"
+    },
+    "thanks": {
+      "title": "{{name}} thanked you",
+      "body": ""
+    },
+    "accept": "Accept",
+    "refuse": "Decline",
+    "talk": "Talk",
+    "profile": "Profile",
+    "doneYes": "Confirmed",
+    "doneNo": "Declined",
+    "undo": "Take back",
+    "failed": "That didn't work. Try again.",
+    "dismiss": "Put this aside"
+  },
+  "deal": {
+    "cancel": "Cancel",
+    "session": {
+      "title": "Session running · “{{offer}}”",
+      "running": "Block {{block}} of {{of}} · {{minutes}} min left",
+      "stopping": "Block {{block}} of {{of}} · ends in {{minutes}} min, at the end of this block",
+      "notStarted": "Waiting for {{name}} — the clock starts with their first message",
+      "stopAfter": "End after this block",
+      "cancelStop": "Ends after this block · undo",
+      "theyStop": "{{name}} asked to end at the end of this block",
+      "oneMore": "One more block",
+      "waitingMore": "Waiting for {{name}} to agree to one more block…",
+      "theyWantMore": "{{name}} would like one more block",
+      "acceptMore": "Yes",
+      "declineMore": "No"
+    },
+    "request": {
+      "sent": {
+        "title": "You accepted the offer “{{offer}}”",
+        "body": "{{photons}} Photons · waiting for {{name}} to confirm",
+        "note": "Until {{name}} confirms and you pay, not a single Photon leaves your wallet."
+      },
+      "received": {
+        "title": "{{name}} accepted your offer “{{offer}}”",
+        "body": "{{photons}} Photons · {{when}}"
+      },
+      "accepted": {
+        "title": "{{name}} confirmed",
+        "body": "“{{offer}}” · {{photons}} Photons · paying starts the session"
+      },
+      "awaitpay": {
+        "title": "You confirmed",
+        "body": "“{{offer}}” · {{photons}} Photons · the session starts when {{name}} pays"
+      },
+      "confirm": "Confirm",
+      "refuse": "Decline",
+      "pay": "Pay {{photons}} Photons and start",
+      "withdraw": "Take back",
+      "withdrawSure": "Yes, take it back"
+    },
+    "ending": {
+      "byMe": "You ended the session early.",
+      "byThem": "{{name}} ended the session early.",
+      "done": "The session is over.",
+      "refunded": "{{blocks}} unused blocks — {{photons}} Photons — went straight back to your wallet.",
+      "held": "{{photons}} Photons are held for {{name}} for 24 hours. If everything was fine, release them now.",
+      "heldForYou": "{{photons}} Photons are held for you for 24 hours. If {{name}} releases them sooner, they reach you at once.",
+      "release": "Release {{photons}} Photons",
+      "releaseSure": "Yes, release",
+      "released": "{{photons}} Photons were sent to {{name}}.",
+      "note": "Once released, you can no longer complain about this session. If something was wrong, report it from Me → Activity."
+    },
+    "thank": {
+      "prompt": "The Photons for this session reached you. Say thank you, if you like:",
+      "heart": "Thank with a heart",
+      "pray": "Thank with folded hands",
+      "handshake": "Thank with a handshake"
+    },
+    "thanked": "{{name}} thanked you",
+    "band": "Paid session · “{{offer}}”",
+    "bandEnd": "End of session",
+    "youThanked": "You said thank you",
+    "runningNow": "Running",
+    "bandHead": {
+      "bare": "Paid session",
+      "running": "Paid session · “{{offer}}” · {{per}} Photons a block",
+      "done": "Paid session · “{{offer}}” · {{blocks}} blocks · {{photons}} Photons"
+    },
+    "bandFoot": {
+      "paid": "Over · {{photons}} Photons sent to {{name}}",
+      "received": "Over · {{photons}} Photons reached you",
+      "over": "Over"
+    }
   }
 }

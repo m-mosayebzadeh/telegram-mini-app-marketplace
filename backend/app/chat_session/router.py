@@ -19,6 +19,7 @@ from app.core.rates import lock_finances
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -432,12 +433,15 @@ def confirm_settlement(
     """
     Says "this was fine" about a finished session.
 
-    The settlement window exists to give an unhappy participant time to freeze
-    the money. When BOTH sides have said there is nothing to freeze, waiting
-    out the rest of it protects nobody — so the provider is paid immediately.
+    The settlement window exists to give an unhappy BUYER time to freeze the
+    money — the only money anybody could want back is theirs. So the buyer's
+    word alone releases it at once (TECHNICAL_REQUIREMENTS.md section 30.18).
+    The provider has no financial reason to hold back their own pay; if they
+    are unhappy with how the buyer behaved, the answer is a report, not the
+    money.
 
-    Confirming gives up the caller's own right to dispute this session. It does
-    not touch the other participant's, who may still be deciding.
+    The provider may still confirm: it is recorded, and it gives up their own
+    right to dispute, but it no longer gates anything.
     """
     lock_finances(db)
     chat_session = get_participant_session(db, session_id, current_user.id)
@@ -469,10 +473,7 @@ def confirm_settlement(
             chat_session.settlement_confirmed_by_provider_at or now
         )
 
-    if (
-        chat_session.settlement_confirmed_by_buyer_at is not None
-        and chat_session.settlement_confirmed_by_provider_at is not None
-    ):
+    if chat_session.settlement_confirmed_by_buyer_at is not None:
         release_transaction(db, transaction)
 
     db.commit()
@@ -524,6 +525,13 @@ def dispute_session(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You already confirmed this settlement, so you cannot dispute it.",
         )
+    if transaction.status != TransactionStatus.PENDING:
+        # Released already — by the buyer's word or by the window running
+        # out. There is no held money left for a dispute to freeze.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The money for this session has already been released.",
+        )
 
     grace_deadline = chat_session.closed_at + timedelta(hours=settings.chat_release_grace_hours)
     if utcnow() > grace_deadline:
@@ -533,6 +541,52 @@ def dispute_session(
         )
 
     transaction.disputed_at = utcnow()
+    db.commit()
+    db.refresh(chat_session)
+    return to_chat_session_out(db, chat_session, current_user.id)
+
+
+#: The only thank-yous there are. Fixed on purpose: a free-form message here
+#: would turn a gesture into another conversation, and a star or a score would
+#: be mistaken for the ratings that come later.
+THANKS_REACTIONS = ("heart", "pray", "handshake")
+
+
+class ThanksIn(BaseModel):
+    reaction: str
+
+
+@router.post("/{session_id}/thanks", response_model=ChatSessionOut)
+def send_thanks(
+    session_id: int,
+    body: ThanksIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ChatSessionOut:
+    """
+    The provider says thank you after their pay has arrived.
+
+    Only the provider, only once, and only after release — before it, a thank
+    you would read as a nudge to pay. The buyer sees it arrive and keeps it on
+    the session as a small keepsake.
+    """
+    if body.reaction not in THANKS_REACTIONS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown reaction.")
+    chat_session = get_participant_session(db, session_id, current_user.id)
+    if chat_session.request.buyer_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Only the provider sends thanks."
+        )
+    transaction = chat_session.transaction
+    if transaction is None or transaction.status != TransactionStatus.SUCCEEDED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Thanks can be sent once the money has been released.",
+        )
+    if chat_session.thanks_reaction is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Thanks already sent.")
+    chat_session.thanks_reaction = body.reaction
+    chat_session.thanked_at = utcnow()
     db.commit()
     db.refresh(chat_session)
     return to_chat_session_out(db, chat_session, current_user.id)

@@ -51,7 +51,6 @@ export function SkyHeader({ galaxy = 'Vega', around, present }: SkyHeaderProps) 
   // Formatted through the locale so Persian digits are Persian digits,
   // the same as everywhere else numbers are shown.
   const number = (value: number) => value.toLocaleString(i18n.language)
-  const local = t('sky.galaxyLocal', { name: galaxy })
 
   /**
    * Replayed every time the name changes.
@@ -77,16 +76,14 @@ export function SkyHeader({ galaxy = 'Vega', around, present }: SkyHeaderProps) 
         <b className="cos-header-name cos-en">
           {galaxy} {t('sky.galaxyWord')}
         </b>
-        {/* The local spelling, and only where there is one worth showing:
-            in English the name IS the English name, so a bracket
-            repeating it would be noise. */}
-        {local && <i className="cos-header-local">({local})</i>}
+        {/* No local spelling in brackets: the approved prototype shows the
+            galaxy's name alone. */}
       </span>
       <span className="cos-header-count">
         {t('sky.peopleAround', { count: around, n: number(around) })}
         {present > 0 && (
           <>
-            <i className="cos-header-sep" aria-hidden="true" />
+            {' · '}
             {/* The live number carries the one green this app has, the
                 same green as the ring around a person who is here. Two
                 places, one meaning — which is what makes the header part

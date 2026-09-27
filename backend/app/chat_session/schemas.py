@@ -92,6 +92,10 @@ class ChatSessionOut(BaseModel):
     disputed: bool
     transaction_status: str | None  # "pending" | "succeeded" | "failed" | "refunded"
 
+    #: The provider's thank-you after release: "heart", "pray" or
+    #: "handshake", or None if they sent none (yet).
+    thanks_reaction: str | None = None
+
     # Whether the CURRENT caller has archived this session (see
     # ChatSession.archived_by_buyer/archived_by_provider) — per-viewer,
     # so the same session can be archived for one participant and not

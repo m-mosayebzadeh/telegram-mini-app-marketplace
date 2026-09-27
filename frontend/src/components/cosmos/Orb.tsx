@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 
 /**
  * How the world draws a person.
@@ -82,6 +82,10 @@ export interface OrbProps {
    *  small animations for nothing. */
   moons?: number
   className?: string
+  /** Drawn on the face itself, above the photograph — the clock of a paid
+   *  session you are in with this person (SessionClock). On the face and
+   *  never around it: a ring around a body already means "here right now". */
+  overlay?: ReactNode
 }
 
 export function Orb({
@@ -98,6 +102,7 @@ export function Orb({
   driftDelaySeconds = 0,
   moons = 0,
   className,
+  overlay,
 }: OrbProps) {
   // Only flips once, when the bytes are actually there. Until then the
   // body shows through, which is why nothing ever looks like it is
@@ -175,6 +180,7 @@ export function Orb({
             onLoad={() => setArrived(true)}
           />
         )}
+        {overlay}
       </span>
     </div>
   )

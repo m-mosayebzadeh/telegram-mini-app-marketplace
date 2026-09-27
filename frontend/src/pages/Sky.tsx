@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Orb } from '../components/cosmos/Orb'
 import { SpaceGround, DUST_LAYERS, seededRandom } from '../components/cosmos/SpaceGround'
 import { Orbits } from '../components/cosmos/Orbits'
 import { CoreNav } from '../components/cosmos/CoreNav'
 import { SkyHeader } from '../components/cosmos/SkyHeader'
-import { IconActivity, IconChats, IconEcho, IconMe } from '../components/cosmos/icons'
+import { MiniEcho, MiniMe, MiniNews, MiniTalk } from '../components/cosmos/RegionMinis'
+import { TalkStair } from '../components/cosmos/TalkStair'
+import { NewsFeed } from '../components/cosmos/NewsFeed'
+import { SessionClock } from '../components/cosmos/SessionClock'
 import { lightTowardsCentre, place } from '../lib/phyllotaxis'
 import {
   NOBODY,
@@ -18,12 +21,16 @@ import {
   worldAt,
   layerShift,
   sameIds,
+  screenOf,
   stepCamera,
   type Camera,
   type View,
 } from '../lib/camera'
 import { fetchSky, type SkyPerson } from '../lib/skyApi'
 import { formatApiError } from '../lib/api'
+import { NEEDS_YOU } from '../lib/relations'
+import type { NewsItem } from '../lib/news'
+import { acceptFollow, confirmRequest, refuseFollow, refuseRequest, useWorld } from '../lib/worldApi'
 
 /**
  * The world.
@@ -76,8 +83,31 @@ const DRAG_SLOP = 9
  *  part of the world ends up hidden behind the one control it has. */
 const FLOOR = 190
 
-/** How far out the camera pulls to show the whole sky at once. */
+/** How far out the camera pulls to show the whole sky at once — the
+ *  furthest a pinch or the mouse wheel can take it. */
 const WIDE_SCALE = 0.42
+
+/**
+ * The regions of the world (TECHNICAL_REQUIREMENTS.md sections 30.5–30.8).
+ *
+ * Conversations and news are not other pages: they happen IN the world —
+ * the people you talk to are pulled out of it towards you, news arrives
+ * out of a wormhole above it. Each still has an address of its own, so
+ * the phone's back button leaves a region the way people expect, and a
+ * link can open one directly.
+ */
+export type Region = 'world' | 'talk' | 'news'
+export function regionOf(param: string | undefined): Region {
+  return param === 'talk' || param === 'news' ? param : 'world'
+}
+/** How long the people on the stair take to fly back to their places: the
+ *  prototype's 950 ms, plus 45 ms for each person, because they leave one
+ *  after another. */
+const FLY_HOME_MS = 950
+const FLY_HOME_EACH_MS = 45
+/** A journey between places, as in the prototype: the place you are in
+ *  rushes past and blurs for this long, then the new one settles in. */
+const JOURNEY_MS = 380
 
 /** Two speeds. Dragging needs to feel attached to the finger; travelling
  *  home is a journey and reads better slow enough to watch. */
@@ -107,8 +137,29 @@ interface Star extends SkyPerson {
 }
 
 export default function Sky() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const location = useLocation()
+  const region = regionOf(useParams().region)
+  const world = useWorld()
+  /** The region on screen. Trails `region` by a moment when leaving the
+   *  stair, so the people on it can fly home before it goes. */
+  const [shown, setShown] = useState<Region>(region)
+  const [leaving, setLeaving] = useState(false)
+  /** Where a journey between places is: the old place rushing past, or the
+   *  new one settling in. The stars stretch into streaks while it rushes. */
+  const [journey, setJourney] = useState<'leave' | 'arrive' | null>(null)
+  /** The first-time hint over Sol, until Sol is first touched. */
+  const [hintSeen, setHintSeen] = useState(() => {
+    try {
+      return localStorage.getItem('cos-sol-hint-seen') === '1'
+    } catch {
+      return false
+    }
+  })
+  /** Fingers on the glass, for the pinch. */
+  const pointers = useRef(new Map<number, { x: number; y: number }>())
+  const pinch = useRef<{ distance: number; z: number } | null>(null)
 
   const [people, setPeople] = useState<SkyPerson[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -166,6 +217,115 @@ export default function Sky() {
   }, [people])
 
   const chosen = stars.find((star) => star.user_id === selected) ?? null
+
+  useEffect(() => {
+    if (region === shown) return
+    // Nobody stays held while you travel: coming back should not find a
+    // person still half-chosen.
+    setSelected(null)
+    // Back from the stair to the world: the people fly home to their places.
+    if (shown === 'talk' && region === 'world') {
+      setLeaving(true)
+      const timer = window.setTimeout(() => {
+        setLeaving(false)
+        setShown(region)
+      }, FLY_HOME_MS + world.relations.length * FLY_HOME_EACH_MS)
+      return () => clearTimeout(timer)
+    }
+    // Into the stair from the world: not a journey — the people are pulled
+    // to you where you are.
+    if (shown === 'world' && region === 'talk') {
+      setShown(region)
+      return
+    }
+    // Anything else is a journey: the place you are in rushes past, the
+    // stars stretch, and the new place settles in (the prototype's
+    // travelTo, with its timing).
+    setJourney('leave')
+    navigator.vibrate?.(14)
+    let frame = 0
+    const timer = window.setTimeout(() => {
+      setShown(region)
+      setJourney('arrive')
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => setJourney(null))
+      })
+    }, JOURNEY_MS)
+    return () => {
+      clearTimeout(timer)
+      cancelAnimationFrame(frame)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [region, shown])
+
+  // Arriving from a conversation's "see them in the world": hold that
+  // person as soon as they are in the sky. Once, and only in the world.
+  const heldFromState = useRef(false)
+  useEffect(() => {
+    const wanted = (location.state as { hold?: number } | null)?.hold
+    if (heldFromState.current || wanted === undefined || region !== 'world') return
+    const star = stars.find((s) => s.user_id === wanted)
+    if (!star) return
+    heldFromState.current = true
+    hold(star)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stars, region])
+
+  /** Who is pulled onto the stair: their body leaves its place in the
+   *  world while they are there, so nobody is ever in two places at once —
+   *  and it comes back only once they have landed on it again. */
+  const pulled = useMemo(
+    () => (shown === 'talk' ? new Set(world.relations.map((r) => r.userId)) : NOBODY),
+    [shown, world.relations],
+  )
+  const liveWith = world.liveSession?.other_participant.user_id ?? null
+
+  /** A place's layer during a journey: rushing past while it is the one
+   *  being left, settling in while it is the one arrived at. The world is
+   *  simply away while you are in the news, as in the prototype — it is
+   *  another place, not a backdrop — and stays, faint, behind the stair. */
+  function layerState(place: Region): string {
+    const current = place === shown
+    if (current && journey === 'leave') return ' is-leaving'
+    if (current && journey === 'arrive') return ' is-arriving'
+    if (place === 'world' && shown === 'news') return ' is-away'
+    return ''
+  }
+
+  /** Travel to a region. From the world it is a step forward the back
+   *  button undoes; between regions it replaces, so back always lands in
+   *  the world rather than walking through every region visited. */
+  function go(to: Region) {
+    if (to === region) return
+    if (to === 'world') {
+      if ((location.state as { fromWorld?: boolean } | null)?.fromWorld) navigate(-1)
+      else navigate('/sky', { replace: true })
+      return
+    }
+    navigate(`/sky/${to}`, region === 'world' ? { state: { fromWorld: true } } : { replace: true, state: location.state })
+  }
+
+  /** Where a person's body is on the glass right now — the point they fly
+   *  out of when pulled onto the stair. Asked of camera.ts like every
+   *  other question about where somebody is on screen. */
+  function originOf(userId: number): { x: number; y: number } | null {
+    const star = stars.find((s) => s.user_id === userId)
+    return star ? screenOf(star, camera.current, view()) : null
+  }
+
+  async function answer(item: NewsItem, yes: boolean) {
+    if (item.kind === 'confirm' && item.requestId !== undefined) {
+      await (yes ? confirmRequest(item.requestId) : refuseRequest(item.requestId))
+    } else if (item.kind === 'follow' && item.followerId !== undefined) {
+      await (yes ? acceptFollow(item.followerId) : refuseFollow(item.followerId))
+    }
+    await world.reload()
+  }
+
+  function openNews(item: NewsItem, where?: 'profile') {
+    if (where === 'profile') navigate(`/profiles/${item.userId}`)
+    else navigate(`/conversations/with/${item.userId}`)
+  }
 
   /** The glass, as the arithmetic sees it. Read fresh every time rather
    *  than remembered: a phone is rotated, and a keyboard opens. */
@@ -283,6 +443,16 @@ export default function Sky() {
     // a glide that keeps going under a finger feels like a stuck screen.
     gliding.current = false
     if ((event.target as HTMLElement).closest('[data-chrome]')) return
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    // A second finger turns the drag into a pinch. Pulling out is how the
+    // whole sky is seen now that a tap on Sol at home opens the menu.
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()]
+      pinch.current = { distance: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: target.current.z }
+      dragging.current = false
+      moved.current = true
+      return
+    }
     dragging.current = true
     moved.current = false
     last.current = { x: event.clientX, y: event.clientY }
@@ -292,6 +462,14 @@ export default function Sky() {
   }
 
   function onPointerMove(event: React.PointerEvent) {
+    if (pointers.current.has(event.pointerId)) {
+      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    }
+    if (pinch.current && pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()]
+      zoomTo(pinch.current.z * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.current.distance))
+      return
+    }
     if (!dragging.current) return
     const dx = event.clientX - last.current.x
     const dy = event.clientY - last.current.y
@@ -324,6 +502,8 @@ export default function Sky() {
   }
 
   function onPointerUp(event: React.PointerEvent) {
+    pointers.current.delete(event.pointerId)
+    if (pointers.current.size < 2) pinch.current = null
     if (!dragging.current) return
     dragging.current = false
     // The world has stopped moving, so the header comes back.
@@ -375,6 +555,15 @@ export default function Sky() {
     setSelected(null)
   }
 
+  /** Zoom, held between the whole sky and life size. Never closer than
+   *  life size: a face bigger than it was drawn only shows its pixels. */
+  function zoomTo(z: number) {
+    const next = Math.min(1, Math.max(WIDE_SCALE, z))
+    if (selected !== null) release()
+    velocity.current = { x: 0, y: 0 }
+    target.current = { ...target.current, z: next }
+  }
+
   if (error) {
     return (
       <div className="cos-screen cos-centre">
@@ -386,12 +575,27 @@ export default function Sky() {
 
   return (
     <div
-      className="cos-screen"
+      className={`cos-screen${shown === 'world' || leaving ? '' : ` is-region is-region-${shown}`}${leaving ? ' is-returning' : ''}${journey === 'leave' ? ' is-warping' : ''}`}
       ref={appRef}
+      onPointerDownCapture={(event) => {
+        if (hintSeen || !(event.target as HTMLElement).closest('.cos-core')) return
+        setHintSeen(true)
+        try {
+          localStorage.setItem('cos-sol-hint-seen', '1')
+        } catch {
+          // Only costs seeing the hint once more.
+        }
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={() => {
+      onWheel={(event) => {
+        if (shown !== 'world' || (event.target as HTMLElement).closest('[data-chrome]')) return
+        zoomTo(target.current.z * (1 - event.deltaY * 0.0015))
+      }}
+      onPointerCancel={(event) => {
+        pointers.current.delete(event.pointerId)
+        pinch.current = null
         dragging.current = false
         // A gesture that ends off the edge of the screen still has to give
         // the header back, or it stays dimmed for good.
@@ -401,13 +605,14 @@ export default function Sky() {
     >
       <SpaceGround />
 
-      {people !== null && people.length > 0 && (
+      {people !== null && people.length > 0 && shown === 'world' && (
         <SkyHeader
           around={people.length}
           present={people.filter((person) => person.online).length}
         />
       )}
 
+      <div className={`cos-world${layerState('world')}`}>
       <div className="cos-scene" ref={sceneRef}>
         {/* Outside the depth layers on purpose: the orbits are the world's
             own frame of reference, so they must not drift against the
@@ -435,6 +640,7 @@ export default function Sky() {
                       'cos-star-inner',
                       detail.has(star.user_id) ? 'is-near' : '',
                       selected === null ? '' : selected === star.user_id ? 'is-chosen' : 'is-dimmed',
+                      pulled.has(star.user_id) ? 'is-pulled' : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
@@ -452,6 +658,11 @@ export default function Sky() {
                       photoUrl={star.avatar_url}
                       near={detail.has(star.user_id)}
                       moons={star.moons ?? 0}
+                      overlay={
+                        liveWith === star.user_id && world.liveSession ? (
+                          <SessionClock session={world.liveSession} />
+                        ) : undefined
+                      }
                     />
                     {/* Always in the document, never always visible: the
                         name fades with distance, and a name that is
@@ -466,6 +677,7 @@ export default function Sky() {
           </div>
         ))}
       </div>
+      </div>
 
       {/* Quiet ground under Sol, so the crowd never runs into the one
           control the world has. */}
@@ -477,59 +689,123 @@ export default function Sky() {
         </p>
       )}
 
+      {shown === 'talk' && (
+        <div className={`cos-region-layer${layerState('talk')}`}>
+        <TalkStair
+          relations={world.relations}
+          loaded={world.loaded}
+          originOf={originOf}
+          leaving={leaving}
+          onOpen={(relation) => navigate(`/conversations/with/${relation.userId}`)}
+        />
+        </div>
+      )}
+      {shown === 'news' && (
+        <div className={`cos-region-layer${layerState('news')}`}>
+        <NewsFeed
+          items={world.news}
+          loaded={world.loaded}
+          onDismiss={world.dismiss}
+          onAnswer={answer}
+          onOpen={openNews}
+        />
+        </div>
+      )}
+      {shown !== 'world' && (
+        // Where you are, in the same place and the same voice as the
+        // galaxy's name in the world — as in the approved prototype: the
+        // region's name, and one quiet line about what is in it.
+        <header className="cos-header" data-chrome>
+          <span className="cos-header-place" key={shown}>
+            <b className="cos-header-name">{t(`world.region.${shown}`)}</b>
+          </span>
+          <span className="cos-header-count">
+            {shown === 'talk'
+              ? t('world.talkSub', {
+                  n: world.relations.length.toLocaleString(i18n.language),
+                  m: world.relations.filter((r) => r.unread).length.toLocaleString(i18n.language),
+                })
+              : world.news.length > 0
+                ? t('world.newsSub', { n: world.news.length.toLocaleString(i18n.language) })
+                : t('world.newsSubNone')}
+          </span>
+        </header>
+      )}
+      {world.loaded && world.error && shown !== 'world' && (
+        <p className="cos-region-note" data-chrome role="status">
+          {t('world.loadFailed')}
+        </p>
+      )}
+
+      {!hintSeen && selected === null && shown === 'world' && (
+        // The prototype's first-time hint, until Sol is first touched.
+        <p className="cos-sol-hint" aria-hidden="true">{t('sky.solHint')}</p>
+      )}
+
       {/* The one control the world has. Hidden while somebody is chosen:
           never two things asking for the same thumb. */}
       {selected === null && (
         <CoreNav
-          // On the world itself a tap brings the camera home rather than
-          // navigating: going to where you already are is not a journey.
-          // The easing in the loop turns it into a glide by itself.
-          // Two stages, because a tap should always do the most useful
-          // thing available. Anywhere in the world it brings you home;
-          // once you are already home there is nothing left to come back
-          // to, so it pulls out instead and shows the whole sky. Tapping
-          // again from out there brings you back in.
+          // A tap is always one step closer to where you want to be
+          // (section 30.12): in a region it brings you back to the world;
+          // out in the world, or pulled out to the whole sky, it brings you
+          // home; already home, it opens the menu of places.
           onTap={() => {
+            if (region !== 'world') {
+              go('world')
+              return
+            }
             const cam = camera.current
             const home = Math.hypot(cam.x, cam.y) < 60
-            const wide = isWide(cam)
+            if (home && !isWide(cam)) return 'menu'
             velocity.current = { x: 0, y: 0 }
             gliding.current = true
-            // Whoever was being held is let go on the way out: the map
-            // cannot hold anybody, and coming back in should not find a
-            // conversation still half-open.
             release()
-            target.current =
-              home && !wide ? { x: 0, y: 0, z: WIDE_SCALE } : { x: 0, y: 0, z: 1 }
+            target.current = { x: 0, y: 0, z: 1 }
           }}
+          badge={
+            region !== 'news' && world.news.length > 0
+              ? {
+                  count: world.news.length,
+                  label: t('world.newsBadge', { count: world.news.length }),
+                  onOpen: () => go('news'),
+                }
+              : undefined
+          }
           sections={[
             {
-              id: 'chats',
-              label: t('sky.conversations'),
-              icon: <IconChats size={32} />,
-              onChoose: () => navigate('/chats'),
+              id: 'talk',
+              label: t('world.region.talk'),
+              icon: <MiniTalk />,
+              tone: 'var(--cos-talk)',
+              // Something waiting on you, or unread, in a conversation.
+              alert: world.relations.some((r) => r.unread || NEEDS_YOU.includes(r.stage)),
+              onChoose: () => go('talk'),
             },
             {
-              // The only section with a name of its own, so the label
-              // leads with the mark and the name and says what it does
-              // underneath — that is the word people will end up using.
+              id: 'news',
+              label: t('world.region.news'),
+              icon: <MiniNews count={world.news.length} />,
+              tone: 'var(--cos-news)',
+              onChoose: () => go('news'),
+            },
+            {
+              // The only place with a name of its own, so the label leads
+              // with the name and says what it does underneath — that is
+              // the word people will end up using.
               id: 'echo',
               name: t('sky.echoName'),
               sub: t('sky.echoSub'),
               label: t('sky.randomChat'),
-              icon: <IconEcho size={32} />,
+              icon: <MiniEcho />,
+              tone: 'var(--cos-echo)',
               onChoose: () => navigate('/echo'),
             },
             {
-              id: 'activity',
-              label: t('sky.activity'),
-              icon: <IconActivity size={32} />,
-              onChoose: () => navigate('/activity'),
-            },
-            {
               id: 'me',
-              label: t('sky.me'),
-              icon: <IconMe size={32} />,
+              label: t('world.region.me'),
+              icon: <MiniMe />,
+              tone: 'var(--cos-warm)',
               onChoose: () => navigate('/profile'),
             },
           ]}
@@ -540,7 +816,7 @@ export default function Sky() {
           be a lid closing over the world, and the world is why you are
           here. Nothing repeats what is already on the person's face
           either — their name and their line are up there, on them. */}
-      {chosen && (
+      {chosen && shown === 'world' && (
         <div className="cos-hold-do" data-chrome>
           <button
             className="cos-hold-see"
@@ -552,7 +828,9 @@ export default function Sky() {
             className="cos-hold-say"
             onClick={() => navigate(`/conversations/with/${chosen.user_id}`)}
           >
-            {t('sky.sayHello')}
+            {/* With the person you are in a paid session with, the one
+                thing to do is go back to it. */}
+            {t(liveWith === chosen.user_id ? 'world.backToSession' : 'sky.sayHello')}
           </button>
         </div>
       )}

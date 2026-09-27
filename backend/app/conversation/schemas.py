@@ -12,6 +12,9 @@ class ConversationParticipantOut(BaseModel):
     display_name: str
     username: str | None
     avatar_url: str | None
+    #: When they were last here, roughly: "now", "minutes", "hours", "days"
+    #: or "long" — for the line under their name in the conversation.
+    seen: str = "long"
 
 
 class ConversationOut(BaseModel):
@@ -38,6 +41,9 @@ class ConversationOut(BaseModel):
     #: This person's own view of the thread.
     archived: bool
     unread: bool
+    #: How many messages from the others are unread — the number on the
+    #: conversation's row. Follows the same visibility rules as the list.
+    unread_count: int = 0
 
     #: A short preview for the list. Null when the last thing said was not
     #: text, or when there is nothing to show yet.

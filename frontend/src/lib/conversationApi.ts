@@ -14,6 +14,8 @@ export interface ConversationPerson {
   display_name: string
   username: string | null
   avatar_url: string | null
+  /** When they were last here, roughly — never an exact time. */
+  seen?: 'now' | 'minutes' | 'hours' | 'days' | 'long'
 }
 
 export interface Conversation {
@@ -32,6 +34,8 @@ export interface Conversation {
   active_session_id: number | null
   archived: boolean
   unread: boolean
+  /** How many messages from the others are unread. */
+  unread_count?: number
   last_text: string | null
   /** How far anybody else has read. Your messages up to here show two
    *  ticks. */

@@ -27,6 +27,13 @@ import { defineConfig } from 'vitest/config'
  * development certificate.
  */
 // https://vite.dev/config/
+/**
+ * Where the backend is. Port 8000 unless COSMOS_API says otherwise — so a
+ * second backend with newer code can run beside one that is already up
+ * (and a second dev server can be pointed at it) without stopping anything.
+ */
+const API = process.env.COSMOS_API ?? 'http://127.0.0.1:8000'
+
 export default defineConfig(({ mode }) => ({
   plugins: mode === 'phone' ? [react(), basicSsl()] : [react()],
   test: {
@@ -54,7 +61,7 @@ export default defineConfig(({ mode }) => ({
     // in local dev or through the tunnel.
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: API,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
         // The live connection (src/lib/live.ts) is a websocket under the
@@ -65,7 +72,7 @@ export default defineConfig(({ mode }) => ({
       // static file (see backend/app/main.py's StaticFiles mount) — no
       // /api prefix/rewrite needed, just forwarded straight through.
       '/avatars': {
-        target: 'http://127.0.0.1:8000',
+        target: API,
         changeOrigin: true,
       },
     },

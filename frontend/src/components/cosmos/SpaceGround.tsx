@@ -60,12 +60,20 @@ function buildLayers(seed: number): CSSProperties[][] {
       // use, and it is why the two read as being in the same space.
       const nearness = 1 - layer * 0.32
       const size = (0.9 + random() * 1.7) * nearness
+      // Same draws in the same order as always, so the sky stays the sky.
+      const x = (random() - 0.5) * FIELD
+      const y = (random() - 0.5) * FIELD
       return {
-        left: `${(random() - 0.5) * FIELD}px`,
-        top: `${(random() - 0.5) * FIELD}px`,
+        left: `${x}px`,
+        top: `${y}px`,
         width: `${size.toFixed(2)}px`,
         height: `${size.toFixed(2)}px`,
         opacity: (0.1 + random() * 0.4 * nearness).toFixed(2),
+        // For a journey between places: which way this speck streaks
+        // (straight out from the middle) and how far — further out and
+        // nearer streaks longer, as the prototype's stars do.
+        '--cos-streak-angle': `${((Math.atan2(y, x) * 180) / Math.PI).toFixed(1)}deg`,
+        '--cos-streak-length': (1 + Math.min(14, Math.hypot(x, y) * 0.012 * nearness)).toFixed(2),
       } as CSSProperties
     }),
   )

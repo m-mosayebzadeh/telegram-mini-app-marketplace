@@ -43,6 +43,14 @@
   --cos-cool: #7ad7c8;
   --cos-live: #8ce0a4;
 
+  /* The regions' own lights (section 30.6). Each region is also told apart
+     by how its preview moves, never by colour alone. The news red leans
+     magenta on purpose, away from the danger red below. */
+  --cos-talk: #b69cff;
+  --cos-talk-line: #8fe8ff;
+  --cos-news: #ff4d7d;
+  --cos-echo: #6fa8ff;
+
   --cos-danger: #ff6f6f;
 
   /* ---------- type ----------
@@ -854,12 +862,9 @@
 /* Twice ORBIT in CoreNav.tsx. Those two numbers are one decision and have
    to move together — the entire point is that the bodies stand ON this. */
 .cos-core-area.is-open .cos-core-ring {
-  width: 252px;
-  height: 252px;
-  border-color: rgb(255 214 162 / 52%);
-  box-shadow:
-    0 0 22px rgb(255 178 104 / 22%),
-    inset 0 0 22px rgb(255 178 104 / 12%);
+  width: 244px;
+  height: 244px;
+  border-color: rgb(255 214 162 / 50%);
 }
 
 .cos-core-eye {
@@ -935,121 +940,156 @@
 }
 
 .cos-sat {
+  /* The prototype's geometry: 76 wide, centred on its point of the orbit,
+     the preview's middle ON the orbit and the name under it; opening, each
+     grows out of a small speck where it stands. */
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9px;
-  width: 64px;
-  margin: -32px 0 0 -32px;
-  transition: scale var(--cos-t-calm) var(--cos-ease-settle);
+  gap: 6px;
+  width: 76px;
+  margin: 0 0 0 -38px;
+  transition: scale 0.5s var(--cos-ease-settle);
+  animation: cos-sat-in 0.5s var(--cos-ease-settle) both;
 }
+@keyframes cos-sat-in { from { opacity: 0; scale: 0.4; } }
 
-/* The body. A sphere of the same night the world is made of, slightly
-   lighter than the sky so it reads as an object in front of it, with its
-   own soft shading and a breath of Sol's light along the side that faces
-   Sol. `--lit-x/y` is where that side is, and it is different for every
-   one of them, which is what makes four of these read as one system lit
-   by one star rather than as four identical widgets. */
-.cos-sat-body {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  color: rgb(243 250 248 / 98%);
-  background:
-    radial-gradient(
-      circle at var(--lit-x) var(--lit-y),
-      rgb(86 116 124 / 62%) 0%,
-      rgb(34 56 63 / 70%) 42%,
-      rgb(12 24 28 / 82%) 100%
-    );
-  box-shadow:
-    inset 0 0 18px rgb(0 0 0 / 55%),
-    0 10px 26px rgb(0 0 0 / 52%);
-  /* No backdrop-filter here, though the sphere reads as translucent and
-     the temptation is obvious. A backdrop blur has to sample and re-blur
-     whatever is behind it on every frame and cannot be cached when that
-     moves, which makes it the single most expensive thing on this screen
-     — and behind these spheres is a veil that is already almost opaque,
-     so it buys essentially nothing. The body's own gradient does the
-     whole job. */
-  transition:
-    color var(--cos-t-calm) ease,
-    background var(--cos-t-calm) ease,
-    box-shadow var(--cos-t-calm) ease,
-    scale var(--cos-t-quick) var(--cos-ease-pop);
-}
-
-/* The rim light. A hairline of Sol's colour along the lit edge only, drawn
-   by offsetting a ring gradient towards the star. This is what gives the
-   sphere its roundness — without it a dark disc is just a hole. */
-.cos-sat-body::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at var(--lit-x) var(--lit-y),
-    rgb(255 214 162 / 0%) 62%,
-    rgb(255 214 162 / 34%) 88%,
-    rgb(255 214 162 / 0%) 100%
-  );
-  opacity: 0.85;
-  transition: opacity var(--cos-t-quick) ease;
+/* The places in Sol's system are buttons — pressable once the menu is
+   opened by a tap — so they shed a button's own look entirely. */
+button.cos-sat {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   pointer-events: none;
 }
+.cos-core-area.is-tapmode button.cos-sat { pointer-events: auto; }
+.cos-core-area.is-tapmode .cos-core-veil { pointer-events: auto; }
+/* The veil behind an open menu, as in the approved prototype: it darkens
+   the world so the places stand out, and a tap anywhere on it closes a
+   menu opened by a tap. It lives inside Sol's area, which is a point at
+   the bottom middle of the screen and is translated — so "fixed, inset 0"
+   would be measured from that point, not from the screen. Negative insets
+   far larger than any phone reach every edge from there instead.
+   (It once had no size at all, so tapping the world did nothing.) */
+.cos-core-veil {
+  position: absolute;
+  inset: -200vh -150vw;
+  pointer-events: none;
+  background:
+    radial-gradient(70vw 38vh at 50% 50%, rgb(255 188 118 / 22%), rgb(255 176 104 / 7%) 46%, transparent 100%),
+    linear-gradient(to top, rgb(4 9 12 / 90%) 50%, rgb(4 9 12 / 78%) 56%, rgb(5 11 14 / 50%) 62%, rgb(5 11 14 / 30%) 70%, rgb(5 11 14 / 30%));
+  animation: cos-core-veil-in 0.25s ease both;
+}
+@keyframes cos-core-veil-in { from { opacity: 0; } }
+button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 4px; border-radius: 16px; }
 
-/* The light Sol throws onto it, sitting outside the body — the glow in the
-   air around a lit thing. Off until the beam arrives. */
+/* Where each place stands: no body at all. A sphere here would be a person,
+   and these are places, so what stands on the orbit is a small living piece
+   of the region itself, in the region's own light (--tone). */
+.cos-sat-body {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin-top: -29px;
+  transition: scale var(--cos-t-quick) var(--cos-ease-pop);
+}
 .cos-sat-body::before {
   content: '';
   position: absolute;
-  inset: -20px;
+  inset: -12px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle at var(--lit-x) var(--lit-y),
-    rgb(255 210 150 / 40%) 0%,
-    rgb(245 180 110 / 15%) 44%,
-    rgb(242 176 106 / 0%) 74%
-  );
-  opacity: 0;
+  background: radial-gradient(circle, var(--tone) 0%, transparent 68%);
+  opacity: 0.22;
   transition: opacity var(--cos-t-quick) ease;
   pointer-events: none;
 }
+.cos-sat.is-lit { scale: 1.16; }
+.cos-sat.is-lit .cos-sat-body::before { opacity: 0.6; }
 
-/* Lit: the body fills with the light that just arrived, brightest where it
-   entered, and the mark goes near-white because it is being shone
-   through. */
-.cos-sat.is-lit {
-  scale: 1.09;
+/* ---------- the region previews ---------- */
+.cos-mini { position: relative; display: grid; place-items: center; width: 58px; height: 58px; }
+.cos-mini svg { overflow: visible; }
+.cos-mini-tremble { animation: cos-mini-tremble 0.14s steps(2) infinite; }
+@keyframes cos-mini-tremble { 50% { transform: translate(0.6px, -0.5px); } }
+.cos-mini-hole {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  transform: scaleY(0.55);
+  background: conic-gradient(rgb(255 77 125 / 0%), rgb(255 77 125 / 95%), rgb(255 77 125 / 0%) 40%, rgb(255 140 180 / 80%), rgb(255 77 125 / 0%) 80%);
+  animation: cos-spin 2s linear infinite;
 }
+.cos-mini-core { position: absolute; width: 14px; height: 7px; border-radius: 50%; background: #000; box-shadow: 0 0 0 2px rgb(255 77 125 / 80%); }
+.cos-mini-count {
+  position: absolute;
+  top: 4px; right: 2px;
+  min-width: 18px; height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--cos-news);
+}
+.cos-mini-dot { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: var(--cos-echo); box-shadow: 0 0 10px var(--cos-echo); }
+.cos-mini-dot.is-a { animation: cos-mini-meet-a 3.4s ease-in-out infinite; }
+.cos-mini-dot.is-b { animation: cos-mini-meet-b 3.4s ease-in-out infinite; }
+@keyframes cos-mini-meet-a { 0%, 100% { transform: translate(-18px, -10px); } 50% { transform: translate(-2px, 0); } 75% { transform: translate(-14px, 12px); } }
+@keyframes cos-mini-meet-b { 0%, 100% { transform: translate(18px, 12px); } 50% { transform: translate(2px, 0); } 25% { transform: translate(12px, -14px); } }
+.cos-mini-gold { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle, #fff, #ffc258 60%, #e9700c); box-shadow: 0 0 16px rgb(255 190 110 / 80%); }
+.cos-mini-ring { position: absolute; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgb(255 206 146 / 70%); animation: cos-mini-breathe 4s ease-in-out infinite; }
+@keyframes cos-mini-breathe { 50% { scale: 1.08; opacity: 0.7; } }
+@keyframes cos-spin { to { rotate: 360deg; } }
 
-.cos-sat.is-lit .cos-sat-body {
-  color: #fffaf0;
-  background: radial-gradient(
-    circle at var(--lit-x) var(--lit-y),
-    rgb(255 214 150 / 92%) 0%,
-    rgb(248 168 74 / 72%) 44%,
-    rgb(190 106 26 / 62%) 78%,
-    rgb(96 50 10 / 70%) 100%
-  );
-  box-shadow:
-    inset 0 0 22px rgb(120 58 6 / 45%),
-    0 0 26px rgb(255 178 100 / 55%),
-    0 12px 30px rgb(0 0 0 / 50%);
+/* ---------- news gathered beside Sol ----------
+   A small red galaxy with the count: the owner's own drawing. Tapping it
+   goes straight to the news. */
+.cos-news-badge {
+  position: absolute;
+  left: 78px; top: 0;
+  width: 48px; height: 48px;
+  margin: -24px 0 0 -24px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
 }
-
-.cos-sat.is-lit .cos-sat-body::after {
-  opacity: 0;
+.cos-news-badge-hole {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  transform: scaleY(0.55);
+  background: conic-gradient(rgb(255 77 125 / 0%), rgb(255 77 125 / 95%), rgb(255 77 125 / 0%) 40%, rgb(255 140 180 / 80%), rgb(255 77 125 / 0%) 80%);
+  animation: cos-spin 2.2s linear infinite;
 }
-
-.cos-sat.is-lit .cos-sat-body::before {
-  opacity: 1;
+.cos-news-badge-count {
+  position: absolute;
+  min-width: 22px; height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--cos-news);
+  animation: cos-news-pulse 1.8s ease-out infinite;
 }
+@keyframes cos-news-pulse {
+  0% { box-shadow: 0 0 0 0 rgb(255 77 125 / 55%); }
+  100% { box-shadow: 0 0 0 14px rgb(255 77 125 / 0%); }
+}
+@keyframes cos-rise { from { opacity: 0; translate: 0 8px; } }
 
 /* Readable at rest, at full strength. A name at eleven pixels and a third
    of its colour is a name nobody reads, which made the whole arc a
@@ -1072,7 +1112,7 @@
 }
 
 .cos-sat.is-lit .cos-sat-tag {
-  color: var(--cos-warm-bright);
+  color: var(--tone);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1381,9 +1421,10 @@
 
 /* The one green this app has, the same one that rings a person who is
    here. Two places, one meaning. */
+/* In the header's own quiet colour, as in the approved prototype. */
 .cos-header-live {
   font-style: normal;
-  color: var(--cos-live);
+  color: inherit;
 }
 
 /* ---------- something waiting ----------
@@ -2622,4 +2663,779 @@
   .cos-moon i {
     animation: none;
   }
+}
+
+/* ------------------------------------------------------------------ stair
+   Conversations, by gravity (TECHNICAL_REQUIREMENTS.md 30.8, 30.11). The
+   people you deal with fly out of the world and settle on a stair that runs
+   back into the sky. While a person is flying only their face shows — it is
+   a person moving, not a card — and the card forms around them on arrival. */
+.cos-stair {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  touch-action: none;
+}
+.cos-stair-filter {
+  position: absolute;
+  inset-inline: 16px;
+  top: calc(80px + env(safe-area-inset-top, 0px));
+  z-index: 300;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+.cos-stair.is-leaving .cos-stair-filter { opacity: 0; transition: opacity var(--cos-t-quick) ease; }
+.cos-stair-filter button {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--cos-radius-pill);
+  border: 1px solid rgb(182 156 255 / 28%);
+  background: rgb(30 18 60 / 60%);
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-label);
+  cursor: pointer;
+}
+.cos-stair-filter button[aria-pressed='true'] {
+  background: rgb(182 156 255 / 26%);
+  border-color: rgb(182 156 255 / 55%);
+  color: var(--cos-fg);
+}
+.cos-stair-filter button:focus-visible { outline: 2px solid var(--cos-talk); outline-offset: 3px; }
+
+.cos-stair-empty {
+  position: absolute;
+  inset-inline: 32px;
+  top: 42%;
+  margin: 0;
+  text-align: center;
+  font-size: var(--cos-text-body);
+  line-height: var(--cos-leading-read);
+  color: var(--cos-fg-soft);
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+
+/* Placed by transform in screen pixels (the same pixels the camera gives
+   for a body in the sky), so it is anchored physically at the left in both
+   reading directions; a logical inset would move it in RTL and every row
+   would fly to the wrong place. */
+.cos-stair-row {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-radius: var(--cos-radius-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  transform-origin: 50% 50%;
+  cursor: pointer;
+  transition:
+    transform 0.9s cubic-bezier(0.16, 0.84, 0.24, 1),
+    opacity 0.5s ease,
+    background var(--cos-t-calm) ease,
+    border-color var(--cos-t-calm) ease,
+    box-shadow var(--cos-t-calm) ease;
+}
+.cos-stair.is-dragging .cos-stair-row { transition: none; }
+.cos-stair-row.is-here {
+  background: linear-gradient(to left, rgb(46 28 92 / 82%), rgb(22 14 48 / 66%));
+  border-color: rgb(182 156 255 / 22%);
+  box-shadow: 0 14px 30px rgb(0 0 0 / 45%);
+}
+.cos-stair-row:focus-visible { outline: 2px solid var(--cos-talk); outline-offset: 3px; }
+.cos-stair-row:active.is-here { background: rgb(60 38 112 / 85%); }
+
+.cos-stair-face { position: relative; flex: none; width: 52px; height: 52px; }
+.cos-stair-img {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--cos-rise);
+  color: var(--cos-fg);
+  font-size: var(--cos-text-lead);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
+}
+.cos-stair-img img { width: 100%; height: 100%; object-fit: cover; }
+
+.cos-stair-text,
+.cos-stair-meta {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.cos-stair-row.is-here .cos-stair-text,
+.cos-stair-row.is-here .cos-stair-meta {
+  opacity: 1;
+  transition-delay: 0.45s;
+}
+.cos-stair-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cos-stair-text b { font-weight: 400; font-size: 14px; color: #f1ebff; }
+.cos-stair-line {
+  font-size: var(--cos-text-label);
+  color: rgb(214 200 255 / 74%);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cos-stair-line.warm { color: var(--cos-warm-bright); }
+.cos-stair-line.waiting { color: rgb(214 200 255 / 55%); }
+.cos-stair-meta {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  font-size: 10px;
+  color: rgb(214 200 255 / 50%);
+}
+.cos-stair-meta i { font-style: normal; }
+.cos-stair-unread {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: var(--cos-text-caption);
+  font-weight: 500;
+  color: #140a2a;
+  background: var(--cos-talk-line);
+  box-shadow: 0 0 12px rgb(143 232 255 / 60%);
+}
+
+/* Where a request stands is told by who has to act next — never by a new
+   colour. Waiting on the other person: a ghost, see-through and dashed,
+   the face drained. Waiting on you: solid, with a warm edge that breathes. */
+.cos-stair-row.ghost.is-here {
+  background: rgb(46 28 92 / 18%);
+  border: 1px dashed rgb(182 156 255 / 55%);
+  box-shadow: none;
+}
+.cos-stair-row.ghost .cos-stair-face { filter: grayscale(0.8) brightness(0.8); opacity: 0.7; }
+.cos-stair-row.ghost .cos-stair-text b { color: rgb(241 235 255 / 62%); }
+.cos-stair-row.needs.is-here {
+  border-color: rgb(242 176 106 / 70%);
+  box-shadow: 0 14px 30px rgb(0 0 0 / 45%), 0 0 22px rgb(242 176 106 / 30%);
+  animation: cos-stair-breathe 2.6s ease-in-out infinite;
+}
+@keyframes cos-stair-breathe {
+  50% { box-shadow: 0 14px 30px rgb(0 0 0 / 45%), 0 0 36px rgb(242 176 106 / 50%); }
+}
+
+/* ------------------------------------------------------------------ clock
+   A paid session's clock, on the person's own face (30.13, 30.14). The
+   spent part warms the face like light across a sundial, one bright hand
+   marks now, small notches at the edge are the blocks. Nothing is drawn
+   around the face: a ring around a body already means "here right now". */
+.cos-clock {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.cos-clock-spent {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(rgb(255 170 80 / 50%) 0deg var(--a), transparent var(--a) 360deg);
+}
+.cos-clock-ticks {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from -2deg, rgb(255 240 214 / 95%) 0deg 4deg, transparent 4deg var(--step));
+  -webkit-mask: radial-gradient(circle, transparent 0 calc(50% - 5px), #000 calc(50% - 5px));
+  mask: radial-gradient(circle, transparent 0 calc(50% - 5px), #000 calc(50% - 5px));
+}
+.cos-clock-hand {
+  position: absolute;
+  left: 50%;
+  top: 4%;
+  width: 2px;
+  height: 46%;
+  margin-left: -1px;
+  border-radius: 1px;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--a));
+  background: linear-gradient(to top, rgb(255 246 224 / 0%), #fff6e0);
+  box-shadow: 0 0 7px rgb(255 206 140 / 95%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-stair-row { transition: opacity 0.2s ease; }
+  .cos-stair-row.needs.is-here { animation: none; }
+  .cos-stair-filter,
+  .cos-stair-empty { animation: none; }
+}
+
+/* ------------------------------------------------------------------- feed
+   The news region (30.6, 30.19–30.23): news comes out of a wormhole at the
+   top, hangs from a line of light, and what is swiped aside falls towards
+   the black hole at the bottom. The line and the holes sit at the
+   inline-end edge, the side the thumb of the holding hand sweeps from. */
+.cos-feed {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+.cos-feed-hole {
+  position: absolute;
+  inset-inline-end: 34px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, #000 0 38%, transparent 40%),
+    conic-gradient(from 0deg, rgb(255 77 125 / 0%), rgb(255 77 125 / 55%), rgb(182 156 255 / 40%), rgb(255 77 125 / 0%));
+  filter: blur(0.5px);
+  animation: cos-spin 7s linear infinite;
+}
+.cos-feed-hole.is-top { top: calc(96px + env(safe-area-inset-top, 0px)); }
+.cos-feed-hole.is-bottom { bottom: calc(170px + env(safe-area-inset-bottom, 0px)); animation-direction: reverse; opacity: 0.7; }
+.cos-feed-line {
+  position: absolute;
+  inset-inline-end: 59px;
+  top: calc(148px + env(safe-area-inset-top, 0px));
+  bottom: calc(222px + env(safe-area-inset-bottom, 0px));
+  width: 2px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(255 77 125 / 60%), rgb(182 156 255 / 25%) 60%, rgb(0 0 0 / 0%));
+  box-shadow: 0 0 10px rgb(255 77 125 / 35%);
+}
+.cos-feed-list {
+  position: absolute;
+  inset-inline: 16px 80px;
+  top: calc(158px + env(safe-area-inset-top, 0px));
+  bottom: calc(232px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-block: 4px 24px;
+  scrollbar-width: none;
+  /* Items fade in from the wormhole side and out towards the black hole,
+     so the list reads as part of the stream rather than a box. */
+  -webkit-mask: linear-gradient(to bottom, transparent, #000 18px, #000 calc(100% - 40px), transparent);
+  mask: linear-gradient(to bottom, transparent, #000 18px, #000 calc(100% - 40px), transparent);
+}
+.cos-feed-list::-webkit-scrollbar { display: none; }
+.cos-feed-empty {
+  margin: 48px 8px 0;
+  text-align: center;
+  font-size: var(--cos-text-body);
+  line-height: var(--cos-leading-read);
+  color: var(--cos-fg-soft);
+}
+
+.cos-feed-card {
+  position: relative;
+  flex: none;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgb(255 77 125 / 22%);
+  background: linear-gradient(to left, rgb(52 16 36 / 82%), rgb(24 10 28 / 70%));
+  box-shadow: 0 12px 26px rgb(0 0 0 / 40%);
+  touch-action: pan-y;
+  user-select: none;
+  transform: translateX(var(--cos-feed-dx, 0));
+  transition: transform var(--cos-t-quick) var(--cos-ease-settle), opacity var(--cos-t-quick) ease;
+  animation: cos-feed-arrive 0.7s var(--cos-ease-settle) backwards;
+  animation-delay: var(--cos-feed-delay, 0ms);
+  cursor: pointer;
+}
+.cos-feed-card.is-answerable { cursor: default; border-color: rgb(242 176 106 / 45%); }
+.cos-feed-card.is-held { transition: none; }
+.cos-feed-card.is-gone {
+  transform: translate(calc(var(--cos-feed-dx, 0px) * 1.6), 40px) scale(0.2) rotate(40deg);
+  opacity: 0 !important;
+  transition: transform 0.42s cubic-bezier(0.5, 0, 0.9, 0.4), opacity 0.42s ease;
+  pointer-events: none;
+}
+/* Arriving: out of the wormhole, which is up and towards the inline end. */
+@keyframes cos-feed-arrive {
+  from { transform: translate(40%, -60px) scale(0.3); opacity: 0; }
+}
+[dir='rtl'] .cos-feed-card { animation-name: cos-feed-arrive-rtl; }
+@keyframes cos-feed-arrive-rtl {
+  from { transform: translate(-40%, -60px) scale(0.3); opacity: 0; }
+}
+
+.cos-feed-main { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.cos-feed-face {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--cos-rise);
+  color: var(--cos-fg);
+}
+.cos-feed-face img { width: 100%; height: 100%; object-fit: cover; }
+.cos-feed-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cos-feed-text b { font-weight: 400; font-size: var(--cos-text-body); color: var(--cos-fg); line-height: var(--cos-leading-normal); }
+.cos-feed-text span {
+  font-size: var(--cos-text-label);
+  color: var(--cos-fg-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cos-feed-when { flex: none; align-self: flex-start; font-size: 10px; color: var(--cos-fg-faint); }
+
+.cos-feed-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+.cos-feed-act {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--cos-radius-pill);
+  border: 1px solid rgb(233 242 240 / 18%);
+  background: rgb(233 242 240 / 6%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-label);
+  cursor: pointer;
+}
+.cos-feed-act.is-yes { background: var(--cos-warm); border-color: transparent; color: #2b1704; font-weight: 500; }
+.cos-feed-act.is-quiet { margin-inline-start: auto; border-color: transparent; background: none; color: var(--cos-fg-soft); }
+.cos-feed-act.is-undo { margin-inline-start: auto; }
+.cos-feed-act:active { scale: 0.96; }
+.cos-feed-act:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
+.cos-feed-chosen { font-size: var(--cos-text-label); color: var(--cos-fg-soft); }
+.cos-feed-chosen.is-yes { color: var(--cos-warm-bright); }
+/* The time left to take an answer back, draining along the card's foot. */
+.cos-feed-timer {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -6px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--cos-warm);
+  transform-origin: var(--cos-feed-origin, right);
+  animation: cos-feed-drain linear forwards;
+}
+[dir='ltr'] .cos-feed-timer { --cos-feed-origin: left; }
+@keyframes cos-feed-drain { to { transform: scaleX(0); } }
+.cos-feed-failed { margin: 8px 0 0; font-size: var(--cos-text-label); color: var(--cos-danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-feed,
+  .cos-feed-card { animation: none; }
+  .cos-feed-hole { animation: none; }
+  .cos-feed-card.is-gone { transform: none; }
+}
+
+/* ---------------------------------------------------------------- regions
+   Conversations and news happen IN the world (30.5–30.8), and each region
+   recolours the whole sky the way the approved prototype does: a base
+   colour, a lighter heart just above the middle, and a faint glow of the
+   region's own light high on the far side. It is painted on the ground,
+   under the dust, so the stars stay in front of it; it is one layer that
+   fades in, so entering a region costs the same on every phone. */
+.cos-ground::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity var(--cos-t-slow) ease;
+}
+.cos-screen.is-region-talk .cos-ground::after {
+  opacity: 1;
+  background:
+    radial-gradient(90% 90% at 78% 18%, rgb(182 156 255 / 10%), transparent 70%),
+    radial-gradient(80% 80% at 50% 42%, rgb(36 20 66), rgb(36 20 66 / 0%) 100%),
+    rgb(9 7 22);
+}
+.cos-screen.is-region-news .cos-ground::after {
+  opacity: 1;
+  background:
+    radial-gradient(90% 90% at 78% 18%, rgb(255 77 125 / 10%), transparent 70%),
+    radial-gradient(80% 80% at 50% 42%, rgb(60 10 28), rgb(60 10 28 / 0%) 100%),
+    rgb(13 4 9);
+}
+.cos-screen.is-region .cos-star-inner {
+  opacity: 0.14;
+  filter: blur(4px);
+  transition: opacity var(--cos-t-slow) ease, filter var(--cos-t-slow) ease;
+}
+/* Somebody on the stair is not also in the sky: their body leaves its
+   place while they are with you, and comes back when you leave. */
+.cos-screen .cos-star-inner.is-pulled { opacity: 0; transition: opacity 0.25s ease; }
+.cos-screen.is-region .cos-orbits { opacity: 0.05; }
+
+.cos-region-note {
+  position: absolute;
+  inset-inline: 20px;
+  top: calc(52px + env(safe-area-inset-top, 0px));
+  z-index: 300;
+  margin: 0;
+  font-size: var(--cos-text-caption);
+  color: var(--cos-fg-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-ground::after,
+  .cos-screen.is-region .cos-star-inner { transition: none; }
+}
+
+/* Sol stays above the regions laid over the world: in a region it is the
+   way back, so nothing a region draws may ever cover it. */
+.cos-core-area { z-index: 12; }
+
+/* ------------------------------------------------------------------- deal
+   A request, a running session, or a finished session, inside the one
+   conversation with that person (30.9, 30.15–30.18). A conversation is a
+   utility screen, so this is quiet: warm is the one colour of anything to
+   do with a paid session, and where a request stands is told by who has to
+   act next — dashed and see-through while it waits on them, solid while it
+   waits on you — never by a new colour. */
+.cos-talk-face {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--cos-rise);
+  color: var(--cos-fg);
+  font-size: var(--cos-text-body);
+}
+.cos-talk-face img { width: 100%; height: 100%; object-fit: cover; }
+/* A smaller face needs finer ticks. */
+.cos-talk-face .cos-clock-ticks {
+  -webkit-mask: radial-gradient(circle, transparent 0 calc(50% - 3px), #000 calc(50% - 3px));
+  mask: radial-gradient(circle, transparent 0 calc(50% - 3px), #000 calc(50% - 3px));
+}
+
+
+
+.cos-deal {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cos-deal.is-session { padding: 0 12px 8px; }
+.cos-deal:not(.is-session) { margin-top: 8px; }
+
+.cos-deal-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--cos-radius-md);
+  border: 1px solid rgb(242 176 106 / 35%);
+  background: rgb(242 176 106 / 8%);
+}
+.cos-deal-info { display: flex; flex-direction: column; gap: 2px; }
+.cos-deal-info b { font-weight: 400; font-size: var(--cos-text-body); color: var(--cos-warm-bright); }
+.cos-deal-info span { font-size: var(--cos-text-label); color: var(--cos-fg-soft); }
+
+.cos-deal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid rgb(242 176 106 / 45%);
+  background: rgb(242 176 106 / 7%);
+  font-size: var(--cos-text-body);
+  line-height: var(--cos-leading-normal);
+}
+.cos-deal-card.is-ghost { border: 1px dashed rgb(182 156 255 / 50%); background: rgb(46 28 92 / 30%); }
+.cos-deal-card b { font-weight: 400; color: var(--cos-fg); }
+.cos-deal-card span,
+.cos-deal-card p { margin: 0; color: var(--cos-fg-soft); }
+.cos-deal-card .cos-deal-lead { color: var(--cos-fg); }
+.cos-deal-card .cos-deal-done { color: var(--cos-warm-bright); }
+.cos-deal-card .cos-deal-note { font-size: var(--cos-text-caption); color: var(--cos-fg-faint); }
+
+.cos-deal-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.cos-deal-bar .cos-deal-row { margin-top: 0; }
+.cos-deal-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--cos-radius-pill);
+  border: 1px solid rgb(233 242 240 / 18%);
+  background: rgb(233 242 240 / 6%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-label);
+  cursor: pointer;
+}
+.cos-deal-btn.is-warm { background: var(--cos-warm); border-color: transparent; color: #2b1704; font-weight: 500; }
+.cos-deal-btn.is-on { border-color: rgb(242 176 106 / 60%); color: var(--cos-warm-bright); }
+.cos-deal-btn:disabled { opacity: 0.55; cursor: default; }
+.cos-deal-btn:active:not(:disabled) { scale: 0.97; }
+.cos-deal-btn:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
+.cos-deal-quiet { font-size: var(--cos-text-label); color: var(--cos-fg-soft); }
+.cos-deal-error { margin: 0; font-size: var(--cos-text-label); color: var(--cos-danger); }
+
+.cos-deal-thanks {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgb(233 242 240 / 14%);
+  background: rgb(233 242 240 / 5%);
+  cursor: pointer;
+}
+.cos-deal-thanks img { width: 30px; height: 30px; }
+.cos-deal-thanks:active:not(:disabled) { scale: 0.92; }
+.cos-deal-thanks:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
+
+/* The keepsake: the gesture, arriving, and then simply there. */
+.cos-deal-keepsake {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(242 176 106 / 22%), transparent 70%);
+  animation: cos-deal-arrive 0.9s var(--cos-ease-pop) both;
+}
+.cos-deal-keepsake img { width: 34px; height: 34px; }
+@keyframes cos-deal-arrive {
+  from { transform: translateY(-80px) scale(0.3) rotate(-30deg); opacity: 0; }
+  60% { transform: translateY(6px) scale(1.15); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-deal-keepsake { animation: none; }
+}
+
+/* ------------------------------------------------- the conversation, as approved
+   Every value below is the approved prototype's (its thread layer), so the
+   real conversation looks exactly like what was signed off: the purple of
+   the conversations region, a header with the face, when they were last
+   here and a way back to them in the world, dates as small chips, paid
+   sessions as warm bands, and requests as dashed or solid cards. */
+.cos-talk { background: linear-gradient(to bottom, #130d28, #09081a); }
+.cos-talk .cos-ground,
+.cos-talk .cos-dust { display: none; }
+
+.cos-talk-head {
+  gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px;
+  border-bottom: 1px solid rgb(182 156 255 / 14%);
+}
+.cos-talk-head .cos-talk-back {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgb(233 242 240 / 6%);
+}
+.cos-talk-head .cos-talk-face { width: 46px; height: 46px; margin: 0; box-shadow: 0 6px 18px rgb(0 0 0 / 45%); }
+.cos-talk-head .cos-talk-who { min-width: 0; font-size: 16px; font-weight: 400; }
+.cos-talk-seen,
+.cos-talk-head .cos-talk-typing { display: block; font-size: 11px; color: var(--cos-fg-faint); }
+.cos-talk-go {
+  margin-inline-start: auto;
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1px solid rgb(143 232 255 / 35%);
+  background: transparent;
+  color: #dff8ff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cos-talk-go:focus-visible { outline: 2px solid #dff8ff; outline-offset: 2px; }
+
+.cos-talk-thread { gap: 6px; padding: 8px 16px 16px; }
+.cos-talk-date {
+  align-self: center;
+  margin: 14px 0 4px;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--cos-fg-faint);
+  background: rgb(233 242 240 / 5%);
+}
+.cos-talk-empty { align-self: center; margin-top: 30px; font-size: 12px; color: var(--cos-fg-faint); }
+
+.cos-bubble { background: rgb(182 156 255 / 14%); }
+.cos-bubble.is-mine { background: rgb(242 176 106 / 16%); }
+
+/* A paid session: a warm band inside the one thread. */
+.cos-talk-session {
+  margin: 14px 0 4px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgb(242 176 106 / 7%);
+  border: 1px solid rgb(242 176 106 / 22%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cos-talk-session.is-running { border-color: rgb(242 176 106 / 50%); box-shadow: inset 0 0 26px rgb(242 176 106 / 8%); }
+.cos-talk-session-head { display: flex; justify-content: space-between; gap: 10px; padding: 0 4px 4px; font-size: 11px; color: #ffd9a8; }
+.cos-talk-session-head i { font-style: normal; color: rgb(255 217 168 / 60%); white-space: nowrap; }
+.cos-talk-session-foot {
+  margin-top: 4px;
+  padding: 8px 4px 0;
+  border-top: 1px dashed rgb(242 176 106 / 28%);
+  font-size: 11px;
+  line-height: 1.8;
+  color: rgb(255 227 189 / 78%);
+}
+.cos-talk-session-done { margin: 0 0 4px; font-size: 12px; color: #ffe3bd; }
+.cos-talk-session-foot .cos-deal-keepsake { align-self: flex-start; margin-top: 6px; }
+/* The ending inside the band's foot is part of the band, not a card. */
+.cos-talk-session-foot .cos-deal { margin: 0; }
+.cos-talk-session-foot .cos-deal-card { padding: 0; border: 0; background: none; font-size: 11px; line-height: 1.8; }
+.cos-talk-session-foot .cos-deal-card p,
+.cos-talk-session-foot .cos-deal-card span { margin: 0 0 4px; color: rgb(255 227 189 / 78%); }
+.cos-talk-session-foot .cos-deal-card .cos-deal-lead,
+.cos-talk-session-foot .cos-deal-card .cos-deal-done { font-size: 12px; color: #ffe3bd; }
+.cos-talk-session-foot .cos-deal-card .cos-deal-note { margin-top: 6px; font-size: 10px; color: rgb(255 227 189 / 55%); }
+
+/* A request: dashed and purple while it is still an offer, solid and warm
+   once it has been confirmed. */
+.cos-deal:not(.is-session) { margin: 14px 0 4px; }
+.cos-deal-card {
+  gap: 3px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px dashed rgb(182 156 255 / 50%);
+  background: rgb(46 28 92 / 30%);
+  font-size: 13px;
+}
+.cos-deal-card.is-ghost { border: 1px dashed rgb(182 156 255 / 50%); background: rgb(46 28 92 / 30%); }
+.cos-deal-card.is-firm { border: 1px solid rgb(242 176 106 / 45%); background: rgb(242 176 106 / 7%); }
+.cos-deal-card b { font-size: 13px; color: #f1ebff; }
+.cos-deal-card span { font-size: 11px; color: rgb(214 200 255 / 72%); }
+.cos-deal-card .cos-deal-note { margin: 4px 0 0; font-size: 10px; line-height: 1.8; color: rgb(214 200 255 / 55%); }
+.cos-deal-row { gap: 8px; margin: 8px 0 2px; }
+.cos-deal-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
+  border: 1px solid rgb(233 242 240 / 16%);
+  background: transparent;
+  color: var(--cos-fg-soft);
+  font-size: 12px;
+}
+.cos-deal-btn.is-warm { padding: 0 18px; border: 0; background: var(--cos-warm); color: #2b1704; font-weight: 500; }
+
+/* A running session: a strip across the screen under the header. */
+.cos-deal.is-session { padding: 0; }
+.cos-deal-bar {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: 0;
+  border-bottom: 1px solid rgb(242 176 106 / 26%);
+  border-radius: 0;
+  background: linear-gradient(to left, rgb(242 176 106 / 15%), rgb(242 176 106 / 5%));
+}
+.cos-deal-bar .cos-deal-info { flex: 1; min-width: 0; gap: 1px; }
+.cos-deal-bar .cos-deal-info b { font-size: 13px; color: #ffe3bd; }
+.cos-deal-bar .cos-deal-info span { font-size: 11px; color: rgb(255 227 189 / 74%); }
+.cos-deal-bar .cos-deal-row { flex-wrap: nowrap; margin: 0; }
+.cos-deal-bar .cos-deal-btn {
+  min-height: 40px;
+  padding: 0 13px;
+  border-radius: 20px;
+  border: 1px solid rgb(242 176 106 / 48%);
+  background: transparent;
+  color: #ffdcb0;
+  white-space: nowrap;
+}
+.cos-deal-bar .cos-deal-btn.is-on { background: rgb(242 176 106 / 18%); }
+.cos-deal-bar .cos-deal-quiet { font-size: 11px; color: rgb(255 227 189 / 74%); }
+
+.cos-talk-say { border-top: 1px solid rgb(182 156 255 / 10%); }
+
+/* ------------------------------------------------------------- journeys
+   Going from one place to another, as in the approved prototype: the place
+   you are in rushes past — bigger, blurred, fading — the stars stretch into
+   streaks, and the new place settles in from a little smaller. Only
+   transforms, opacity and one filter, on whole layers, for 0.4 s. */
+.cos-world,
+.cos-region-layer {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  transition: opacity 0.42s ease, transform 0.6s var(--cos-ease-settle), filter 0.42s ease;
+}
+.cos-region-layer { z-index: 8; }
+.cos-world.is-away { opacity: 0; pointer-events: none; }
+.cos-world.is-leaving,
+.cos-region-layer.is-leaving {
+  opacity: 0;
+  transform: scale(1.22);
+  filter: blur(10px);
+  pointer-events: none;
+}
+.cos-world.is-arriving,
+.cos-region-layer.is-arriving {
+  opacity: 0;
+  transform: scale(0.84);
+  transition: none;
+}
+.cos-dust i { transition: transform 0.3s ease; }
+.cos-screen.is-warping .cos-dust i {
+  transform: rotate(var(--cos-streak-angle)) scaleX(var(--cos-streak-length));
+  transition: transform 0.12s ease-in;
+}
+.cos-screen.is-region-news .cos-floor { opacity: 0.5; }
+
+/* The first-time hint over Sol. */
+.cos-sol-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(126px + env(safe-area-inset-bottom, 0px));
+  z-index: 11;
+  margin: 0;
+  translate: -50%;
+  padding: 7px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--cos-fg);
+  background: rgb(14 32 37 / 78%);
+  border: 1px solid rgb(233 242 240 / 10%);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: cos-rise 0.6s var(--cos-ease-settle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-world,
+  .cos-region-layer,
+  .cos-dust i { transition: none; }
+  .cos-screen.is-warping .cos-dust i { transform: none; }
+  .cos-sol-hint { animation: none; }
 }

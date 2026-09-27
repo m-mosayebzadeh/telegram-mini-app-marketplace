@@ -54,6 +54,12 @@ the typecheck, the lint and the tests together. It exists because a screen once
 froze in production-shaped code from a type error that had been sitting in the
 tree, green tests and all, because nothing in the loop ever ran the compiler.
 
+**Before publishing the regions prototype, run its driver:**
+`cd frontend && node scripts/drive-regions-prototype.cjs ../docs/prototypes/regions.html`.
+It taps through the prototype like a person would and moves time forward on
+purpose. A page that loads is not a page that works: twice a change that only
+checked loading went out broken, once with sessions that could never end.
+
 ## How to write to the user
 
 The user reads Persian. Replies are written **entirely in Persian script**, with
@@ -61,6 +67,11 @@ no English words, file paths, code identifiers or inline links in the middle of
 a sentence — every switch of direction costs the reader, and they have asked for
 this more than once. Product and feature names in English (Cosmos, Echo, Sol,
 Photon, Vega) are the one exception, and are best placed at the start of a line.
+
+**This includes every short line written between tool calls while working**
+("checking X first…", "now building Y…"). The owner reads those too and has
+flagged English ones as the most important problem in a message. Only code,
+commands, file contents and commit messages stay in English.
 
 Explain a bug or a decision in ordinary language: what happens and why, in terms
 of cause and effect and what somebody would see. Not by walking through function
@@ -78,6 +89,13 @@ needs no number.
 
 Never use a name I invented as if it were shared vocabulary. A name becomes
 shared once the user has used it back.
+
+**Never say buyer or seller (خریدار / فروشنده)** in anything the owner reads,
+status lines included — they find those words hard to follow for a product about
+friendship. The person who asks for a session and pays is the **requester
+(درخواست‌کننده)**; the person whose offer it is and who gets paid is the
+**offerer (پیشنهاددهنده)**. Backend identifiers like `buyer_id` stay as they
+are; only the words the owner reads change.
 
 ## The orb, and the future this is built for
 
@@ -183,6 +201,16 @@ low information density, loading and empty and error and success states designed
 rather than left over, safe areas respected. A shrunken web page is not
 acceptable. The user's own background is web development and they have asked to
 be told when a suggestion of theirs is really desktop thinking.
+
+**An approved prototype is built exactly.** Once the owner approves a design
+in a prototype, the real app reproduces it — the same colours, layout, words,
+motion and details — not a reinterpretation of it. The owner stopped testing
+once over exactly this: «من که اونو تایید کردم دیگه نباید تغییرش میدادی». If a
+piece truly cannot be reproduced, say so before handing over rather than
+shipping a substitute. Before saying such a surface is ready, screenshot the
+prototype and the real app at the same phone size (headless Chrome is on this
+machine) and compare them, with test data rich enough for the design to appear
+at all — a stair of conversations with one row on it is not the approved stair.
 
 **Use the three design skills in `.claude/skills/` for any interface work** —
 `frontend-design`, `mobile-app-ui-design`, `design-taste-frontend` — rather than

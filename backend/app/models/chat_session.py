@@ -128,6 +128,13 @@ class ChatSession(Base):
         UTCDateTime, nullable=True
     )
 
+    # The provider's thank-you once the money has reached them: one of a
+    # fixed few reactions, sent at most once, and never required. It can
+    # only exist AFTER release, so it can never read as asking to be paid
+    # (TECHNICAL_REQUIREMENTS.md section 30.17).
+    thanks_reaction: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    thanked_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     status: Mapped[ChatSessionStatus] = mapped_column(
         Enum(ChatSessionStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
         default=ChatSessionStatus.OPEN,

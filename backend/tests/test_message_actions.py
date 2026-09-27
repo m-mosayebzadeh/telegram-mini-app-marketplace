@@ -247,3 +247,62 @@ def test_a_reaction_cannot_carry_words():
     assert not is_emoji("call me")
     assert not is_emoji("0912")
     assert not is_emoji("")
+
+
+# --- how many are unread -------------------------------------------------
+
+
+def _row(client, thread, who):
+    return next(c for c in client.get("/conversations", headers=_auth(who)).json() if c["id"] == thread)
+
+
+def test_the_unread_count_is_what_the_others_said_since_you_last_read(client, db_session):
+    thread = _pair(client, db_session, 8060, 8061)
+    _say(client, thread, 8061, "mine")  # your own messages are never unread
+    _say(client, thread, 8060, "one")
+    _say(client, thread, 8060, "two")
+    assert _row(client, thread, 8061)["unread_count"] == 2
+    assert _row(client, thread, 8060)["unread_count"] == 0
+
+    client.post(f"/conversations/{thread}/read", headers=_auth(8061))
+    assert _row(client, thread, 8061)["unread_count"] == 0
+    _say(client, thread, 8060, "three")
+    assert _row(client, thread, 8061)["unread_count"] == 1
+
+
+def test_the_unread_count_leaves_out_what_is_gone(client, db_session):
+    thread = _pair(client, db_session, 8062, 8063)
+    first = _say(client, thread, 8062, "deleted for everyone")
+    _say(client, thread, 8062, "still here")
+    client.post(
+        f"/conversations/{thread}/messages/delete",
+        json={"message_ids": [first["id"]], "for_everyone": True},
+        headers=_auth(8062),
+    )
+    assert _row(client, thread, 8063)["unread_count"] == 1
+
+
+# --- when they were last here --------------------------------------------
+
+
+def test_last_seen_is_told_only_roughly():
+    from datetime import timedelta as td
+
+    from app.auth.dependencies import seen_roughly
+
+    now = utcnow()
+    at = lambda gone: SimpleNamespace(last_seen_at=now - gone)  # noqa: E731
+    assert seen_roughly(at(td(minutes=2)), now=now) == "now"
+    assert seen_roughly(at(td(minutes=30)), now=now) == "minutes"
+    assert seen_roughly(at(td(hours=5)), now=now) == "hours"
+    assert seen_roughly(at(td(days=3)), now=now) == "days"
+    assert seen_roughly(at(td(days=30)), now=now) == "long"
+    assert seen_roughly(SimpleNamespace(last_seen_at=None), now=now) == "long"
+
+
+def test_the_conversation_says_roughly_when_the_other_was_here(client, db_session):
+    thread = _pair(client, db_session, 8070, 8071)
+    _say(client, thread, 8071, "hi")  # an empty thread is not listed
+    other = _row(client, thread, 8070)["others"][0]
+    # They opened the app a moment ago, so they are here now.
+    assert other["seen"] == "now"

@@ -46,7 +46,18 @@ export interface CoreSection {
    *  waiting for me?" is answered without a tap, a trip to the top of the
    *  screen, or a bell (section 29.8). */
   alert?: boolean
+  /** The region's own light, as a CSS colour. Its preview glows in it and
+   *  its name takes it when chosen — one colour per place, never the only
+   *  thing that tells places apart (each preview also moves its own way). */
+  tone?: string
   onChoose: () => void
+}
+
+/** News gathered beside Sol: a small red galaxy with a count. */
+export interface CoreBadge {
+  count: number
+  label: string
+  onOpen: () => void
 }
 
 interface CoreNavProps {
@@ -58,9 +69,14 @@ interface CoreNavProps {
    * one touch away from anywhere instead of one sweep, which makes it the
    * most reachable thing in the app rather than the fifth item on a dial.
    * On the world itself it brings the camera home to you; anywhere else
-   * it brings you back to the world.
+   * it brings you back to the world. Once you are already home, a tap opens
+   * the menu instead — return 'menu' for that — and a second tap on a place
+   * goes there (section 30.12). A tap is always one step closer to the
+   * menu, and holding and sweeping stays the fast way for whoever learned it.
    */
-  onTap?: () => void
+  onTap?: () => 'menu' | void
+  /** News waiting, shown beside Sol as a small red galaxy with a count. */
+  badge?: CoreBadge
 }
 
 /** How far the thumb must travel before anything can be picked. Below
@@ -70,7 +86,7 @@ const COMMIT_DISTANCE = 46
 
 /** How far out the bodies sit, in px. Far enough to clear Sol's corona,
  *  close enough that the far ones stay inside a thumb's arc. */
-const ORBIT = 126
+const ORBIT = 122
 /** The ring in cosmos.css opens to exactly twice this. If one moves the
  *  other has to, or the bodies stop standing on their own orbit and the
  *  gesture loses the only thing that explains it. */
@@ -94,33 +110,6 @@ const ARC_END = 30
  *  leaves a real gap between them rather than a boundary. */
 const CATCH_DEGREES = 15
 
-/**
- * The path the light takes from Sol to whatever it is reaching.
- *
- * A bowed curve rather than a straight line, and the bow is what makes it
- * read as something thrown by a star rather than as a pointer drawn on
- * top of one. Light from a rotating body leaves along a curve; a ruled
- * line is a diagram of a connection, a curve is the connection happening.
- *
- * The bow always falls on the same side of the direction of travel, so
- * sweeping from one body to the next makes the arc swing across rather
- * than flip, which would read as a glitch.
- */
-function flarePath(degrees: number, reach: number): string {
-  const end = offsetFor(degrees, reach)
-  const length = Math.hypot(end.x, end.y) || 1
-  // Perpendicular to the direction of travel, one consistent way round.
-  const acrossX = -end.y / length
-  const acrossY = end.x / length
-  // Shallower on a short throw, or a near body gets a loop instead of an
-  // arc; proportional to the distance, so it looks like one gesture at
-  // every angle.
-  const bow = length * 0.22
-  const bendX = end.x / 2 + acrossX * bow
-  const bendY = end.y / 2 + acrossY * bow
-  return `M0 0 Q ${bendX.toFixed(1)} ${bendY.toFixed(1)} ${end.x.toFixed(1)} ${end.y.toFixed(1)}`
-}
-
 /** Screen offset from Sol's centre.
  *  `sin` is negated exactly once, here: screen coordinates grow downwards,
  *  so a positive sine has to become a negative offset to point up. */
@@ -129,7 +118,7 @@ function offsetFor(degrees: number, radius: number): { x: number; y: number } {
   return { x: Math.cos(radians) * radius, y: -Math.sin(radians) * radius }
 }
 
-export function CoreNav({ sections, onTap }: CoreNavProps) {
+export function CoreNav({ sections, onTap, badge }: CoreNavProps) {
   /* The point rides the ring rather than floating beside it, so when the
      ring opens outwards it travels with it and comes to rest ON the body
      it belongs to. The notification does not disappear and get replaced
@@ -138,10 +127,11 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
   const { t } = useTranslation()
   const [held, setHeld] = useState(false)
   const [hot, setHot] = useState<number | null>(null)
-  /** Where the beam points, in degrees, or null while it is still inside
-   *  Sol. Kept apart from `hot` so the beam can reach into a gap and
-   *  light nothing — which is the whole point of having gaps. */
-  const [aim, setAim] = useState<number | null>(null)
+  /** Opened by a tap rather than a hold: the places become buttons. */
+  const [menuOpen, setMenuOpen] = useState(false)
+  /** Whether this press began with the menu already open — then a tap on
+   *  Sol closes it rather than doing anything else. */
+  const openedBefore = useRef(false)
   const coreRef = useRef<HTMLDivElement>(null)
   const origin = useRef({ x: 0, y: 0 })
   /** Whether the thumb ever left Sol. A press that did not is a tap, and
@@ -173,8 +163,8 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
     origin.current = { x: box.left + box.width / 2, y: box.top + box.height / 2 }
     setHeld(true)
     setHot(null)
-    setAim(null)
     travelled.current = false
+    openedBefore.current = menuOpen
     navigator.vibrate?.(10)
     coreRef.current?.setPointerCapture(event.pointerId)
   }
@@ -188,14 +178,12 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
     if (Math.hypot(dx, dy) >= COMMIT_DISTANCE) travelled.current = true
 
     if (Math.hypot(dx, dy) < COMMIT_DISTANCE) {
-      setAim(null)
       if (hot !== null) setHot(null)
       return
     }
 
     // Same convention as offsetFor: y is flipped once and never again.
     const degrees = (Math.atan2(-dy, dx) * 180) / Math.PI
-    setAim(degrees)
 
     const next = pick(degrees)
     if (next !== hot) {
@@ -211,11 +199,11 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
     if (!held) return
     event.stopPropagation()
     setHeld(false)
-    setAim(null)
     const chosen = hot
     setHot(null)
     if (chosen !== null) {
       navigator.vibrate?.(14)
+      setMenuOpen(false)
       sections[chosen].onChoose()
       return
     }
@@ -223,18 +211,17 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
     // thing and deliberately does nothing at all.
     if (!travelled.current) {
       navigator.vibrate?.(10)
-      onTap?.()
+      if (openedBefore.current) { setMenuOpen(false); return }
+      if (onTap?.() === 'menu') setMenuOpen(true)
+    } else {
+      setMenuOpen(false)
     }
   }
 
-  // The flare stops short of a body it is lighting, so the light looks
-  // like it is entering rather than crossing over the top of it. Reaching
-  // into a gap it overshoots instead, which is how empty space is made to
-  // feel empty rather than broken.
-  const flare = aim === null ? null : flarePath(aim, hot === null ? ORBIT + 20 : ORBIT - 34)
+  const open = held || menuOpen
 
   return (
-    <div className={`cos-core-area${held ? ' is-open' : ''}`} data-chrome>
+    <div className={`cos-core-area${open ? ' is-open' : ''}${menuOpen ? ' is-tapmode' : ''}`} data-chrome>
       {/* The orbit. Outside the held-only block on purpose: it is visible
           at rest as a close halo, and opening it out to where the bodies
           stand is the whole explanation of what holding Sol does. */}
@@ -258,62 +245,12 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
         ) : null,
       )}
 
-      {held && (
+      {open && (
         <>
-          <div className="cos-core-veil" aria-hidden="true" />
+          {/* A tap on the dark closes a menu opened by a tap. */}
+          <div className="cos-core-veil" aria-hidden="true" onClick={() => setMenuOpen(false)} />
 
-          {/* The light on its way. Under the bodies, so it arrives at
-              them rather than passing over them.
-
-              Three strokes of the same curve: a wide blurred one that is
-              the glow in the air, a mid one that is the body of the
-              flare, and a hairline of near-white that is its hot core.
-              One stroke cannot be both soft and sharp, and a flare that
-              is only one of those is either a smear or a wire. */}
-          <svg className="cos-beam" viewBox="-190 -190 380 380" aria-hidden="true">
-            <defs>
-              <linearGradient id="cos-flare" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#ffd9a2" stopOpacity="0" />
-                <stop offset="42%" stopColor="#ffc987" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="#fff3dc" stopOpacity="1" />
-              </linearGradient>
-              <filter id="cos-flare-air" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="5" />
-              </filter>
-            </defs>
-            {flare && (
-              <g opacity={hot === null ? 0.4 : 1}>
-                <path
-                  d={flare}
-                  fill="none"
-                  stroke="url(#cos-flare)"
-                  strokeWidth={hot === null ? 5 : 9}
-                  strokeLinecap="round"
-                  filter="url(#cos-flare-air)"
-                  opacity="0.75"
-                />
-                <path
-                  d={flare}
-                  fill="none"
-                  stroke="url(#cos-flare)"
-                  strokeWidth={hot === null ? 1.6 : 2.8}
-                  strokeLinecap="round"
-                />
-                {hot !== null && (
-                  <path
-                    d={flare}
-                    fill="none"
-                    stroke="#fffaf0"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    opacity="0.8"
-                  />
-                )}
-              </g>
-            )}
-          </svg>
-
-          <div className="cos-core-orbit" aria-hidden="true">
+          <div className="cos-core-orbit" aria-hidden={!menuOpen}>
             {sections.map((section, index) => {
               const degrees = angleFor(index)
               const at = offsetFor(degrees, ORBIT)
@@ -323,15 +260,27 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
               // one star lighting four things rather than four lamps.
               const towardsSol = offsetFor(degrees + 180, 1)
               return (
-                <span
+                <button
+                  type="button"
                   key={section.id}
                   className={`cos-sat${hot === index ? ' is-lit' : ''}`}
+                  tabIndex={menuOpen ? 0 : -1}
+                  aria-label={section.name ?? section.label}
+                  onClick={() => {
+                    // Only a menu opened by a tap answers clicks; a held
+                    // menu chooses by letting go.
+                    if (!menuOpen) return
+                    navigator.vibrate?.(14)
+                    setMenuOpen(false)
+                    section.onChoose()
+                  }}
                   style={
                     {
                       left: `${at.x}px`,
                       top: `${at.y}px`,
                       '--lit-x': `${50 + towardsSol.x * 42}%`,
                       '--lit-y': `${50 + towardsSol.y * 42}%`,
+                      '--tone': section.tone ?? 'var(--cos-warm)',
                     } as React.CSSProperties
                   }
                 >
@@ -340,7 +289,7 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
                     {section.name ?? section.label}
                     {section.sub && <i className="cos-sat-sub">({section.sub})</i>}
                   </span>
-                </span>
+                </button>
               )
             })}
           </div>
@@ -356,7 +305,6 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
         onPointerCancel={() => {
           setHeld(false)
           setHot(null)
-          setAim(null)
         }}
         role="button"
         aria-label={t('sky.chooseHint')}
@@ -370,6 +318,13 @@ export function CoreNav({ sections, onTap }: CoreNavProps) {
         <span className="cos-core-rim" aria-hidden="true" />
         <span className="cos-core-eye" aria-hidden="true" />
       </div>
+
+      {badge && badge.count > 0 && !open && (
+        <button type="button" className="cos-news-badge" onClick={badge.onOpen} aria-label={badge.label}>
+          <span className="cos-news-badge-hole" aria-hidden="true" />
+          <span className="cos-news-badge-count">{badge.count}</span>
+        </button>
+      )}
     </div>
   )
 }

@@ -2,14 +2,13 @@ import BankAccounts from './pages/BankAccounts'
 import Withdraw from './pages/Withdraw'
 import AdminWithdrawals from './pages/AdminWithdrawals'
 import WalletHistory from './pages/WalletHistory'
-import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { IconActivity, IconChat, IconDashboard, IconDiscover, IconPersonFallback } from './components/icons'
 import { LiveSessionBar } from './components/LiveSessionBar'
 import { MeProvider, useMe } from './lib/MeContext'
 import { needsDevLogin } from './lib/session'
 import Discover from './pages/Discover'
-import CosmosPreview from './pages/CosmosPreview'
 import Sky from './pages/Sky'
 import Conversation from './pages/Conversation'
 import Echo from './pages/Echo'
@@ -27,7 +26,6 @@ import FollowRequests from './pages/FollowRequests'
 import ProviderSummary from './pages/ProviderSummary'
 import BuyerSummary from './pages/BuyerSummary'
 import Activity from './pages/Activity'
-import Chats from './pages/Chats'
 import TopUp from './pages/TopUp'
 import AdminHub from './pages/AdminHub'
 import AdminFinance from './pages/AdminFinance'
@@ -76,9 +74,11 @@ const TABS = [
     isActive: (pathname: string) => pathname === '/activity' || pathname === '/offers/new',
   },
   {
+    // The list of conversations is the world's conversations region now
+    // (TECHNICAL_REQUIREMENTS.md section 31), so the tab goes there.
     key: 'chats',
-    path: '/chats',
-    isActive: (pathname: string) => pathname === '/chats' || pathname.startsWith('/chat-sessions/'),
+    path: '/sky/talk',
+    isActive: (pathname: string) => pathname.startsWith('/chat-sessions/'),
   },
   {
     key: 'profile',
@@ -120,7 +120,7 @@ function AppShell() {
   // their own navigation. The core at the bottom IS the nav, and a second
   // bar underneath it would be two navigations arguing over the same
   // corner of the screen — plus it sits exactly where the core opens.
-  const COSMOS = ['/sky', '/echo', '/cosmos', '/conversations']
+  const COSMOS = ['/sky', '/echo', '/conversations']
   const immersive =
     location.pathname.startsWith('/chat-sessions/') ||
     COSMOS.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))
@@ -134,14 +134,14 @@ function AppShell() {
           outranks whatever screen you happen to be looking at. */}
       <LiveSessionBar />
       <Routes>
-        {/* The app opens on the showcase, not on your own profile —
-            see TABS above. */}
-        <Route path="/" element={<Discover />} />
-        {/* Looking at the world's foundation on a real device.
-            Not a product screen; goes when the real sky arrives. */}
-        <Route path="/cosmos" element={<CosmosPreview />} />
-        {/* The world, with real people in it. */}
-        <Route path="/sky" element={<Sky />} />
+        {/* The app opens on the world: it is the product (section 31).
+            The showcase stays at /offers until finding a service has a
+            home of its own in the world. */}
+        <Route path="/" element={<Navigate to="/sky" replace />} />
+        {/* One screen for the world and its regions, so travelling between
+            them is a movement in the world rather than a page change, and
+            the phone's back button still leaves a region. */}
+        <Route path="/sky/:region?" element={<Sky />} />
         <Route path="/echo" element={<Echo />} />
         {/* Two ways in: by person, from the world, which opens the
             one thread those two have; and by thread, from the chat
@@ -152,7 +152,8 @@ function AppShell() {
         <Route path="/offers/new" element={<CreateOffer />} />
         <Route path="/offers/:id" element={<OfferDetail />} />
         <Route path="/activity" element={<Activity />} />
-        <Route path="/chats" element={<Chats />} />
+        {/* Old links to the conversation list land on the stair. */}
+        <Route path="/chats" element={<Navigate to="/sky/talk" replace />} />
         <Route path="/chat-sessions/:id" element={<ChatSessionDetail />} />
         <Route path="/wallet" element={<WalletPage />} />
         <Route path="/wallet/topup" element={<TopUp />} />

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
@@ -28,6 +28,12 @@ import { MessageMenu, type MessageAction } from '../components/cosmos/MessageMen
 import { DeleteDialog } from '../components/cosmos/DeleteDialog'
 import { EmojiPanel } from '../components/cosmos/EmojiPanel'
 import { useMe } from '../lib/MeContext'
+import { ThreadDeal } from '../components/cosmos/ThreadDeal'
+import { SessionClock } from '../components/cosmos/SessionClock'
+import { useDeal } from '../lib/worldApi'
+import { chaptersOf } from '../lib/chapters'
+import { timeAgo } from '../lib/timeAgo'
+import { SessionBand } from '../components/cosmos/SessionBand'
 import { canRecordVoice, startVoiceRecording, type VoiceSession } from '../lib/voiceRecorder'
 import {
   deleteMessages,
@@ -557,6 +563,13 @@ export default function Conversation() {
   }
 
   const other = thread?.others[0]
+  // What is going on with this person besides talking: a request, a
+  // running session, a session that just ended (lib/deal.ts). Only for a
+  // one-to-one thread — a group has no single other person to deal with.
+  const { deal, sessions: dealSessions, reload: reloadDeal } = useDeal(
+    thread && thread.others.length === 1 ? thread.others[0].user_id : null,
+  )
+  const sessionOf = (sessionId: number) => dealSessions.find((x) => x.id === sessionId)
 
   /**
    * The warning goes under the FIRST message that carried a payment
@@ -568,6 +581,98 @@ export default function Conversation() {
    * being asked to pay is usually the one who gets hurt.
    */
   const firstFlagged = messages.find((message) => message.flagged_payment)?.id
+
+  /** One message, drawn the same wherever it sits — in free talk or inside
+   *  a session's band. */
+  const rowFor = (message: ShownMessage) => (
+    <MessageRow
+      key={message.client_id ?? message.id}
+      id={message.pending ? undefined : `message-${message.id}`}
+      mine={isMine(message)}
+      selecting={selecting}
+      selected={selected.has(message.id)}
+      onTap={(row) => (selecting ? toggleSelected(message) : openMenu(message, row))}
+      onHold={() => toggleSelected(message)}
+    >
+      <div className={`cos-bubble${isMine(message) ? ' is-mine' : ''}`}>
+        {message.reply_to && (
+          <button
+            className="cos-bubble-quote"
+            onClick={() => showOriginal(message.reply_to!.id)}
+            data-control
+          >
+            <span className="cos-bubble-quote-who">
+              {nameOf(message.reply_to.sender_id)}
+            </span>
+            <span className="cos-bubble-quote-text">
+              {message.reply_to.type === 'text' ? (
+                <EmojiText text={message.reply_to.text ?? ''} size={16} />
+              ) : (
+                t(`talk.kinds.${message.reply_to.type}`)
+              )}
+            </span>
+          </button>
+        )}
+
+        {message.type === 'text' && message.text && <EmojiText text={message.text} />}
+
+        {message.type === 'photo' && thread && (
+          <MessagePhoto
+            conversationId={thread.id}
+            messageId={message.id}
+            localUrl={message.localUrl}
+            onOpen={selecting ? () => {} : setViewing}
+          />
+        )}
+
+        {message.type === 'voice' && thread && (
+          <MessageVoice
+            conversationId={thread.id}
+            messageId={message.id}
+            durationSeconds={message.duration_seconds}
+            localUrl={message.localUrl}
+            mine={message.sender_id === me?.id}
+          />
+        )}
+
+        <span className="cos-bubble-time">
+          {message.edited_at && <span className="cos-bubble-edited">{t('talk.edited')}</span>}
+          {new Date(message.created_at).toLocaleTimeString(i18n.language, {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+          {message.sender_id === me?.id && <Ticks delivery={deliveryOf(message, othersReadAt)} />}
+        </span>
+      </div>
+
+      {(message.reactions?.length ?? 0) > 0 && (
+        <div className={`cos-reactions${isMine(message) ? ' is-mine' : ''}`}>
+          {tallyReactions(message.reactions, me?.id).map((reaction) => (
+            <button
+              key={reaction.emoji}
+              className={`cos-reaction${reaction.mine ? ' is-mine' : ''}`}
+              onClick={() => react(message, reaction.emoji)}
+              aria-pressed={reaction.mine}
+              data-control
+            >
+              <Emoji glyph={reaction.emoji} size={20} />
+              {reaction.count > 1 && <span className="cos-reaction-count">{reaction.count.toLocaleString(i18n.language)}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {message.id === firstFlagged && (
+        <PaymentWarning
+          reported={reported}
+          // Reporting yourself is not possible, and the warning under
+          // your own card number is for you, not about you.
+          canReport={message.sender_id !== me?.id}
+          onReport={() => setReporting(true)}
+        />
+      )}
+    </MessageRow>
+  )
 
   if (error && !thread) {
     return (
@@ -645,111 +750,93 @@ export default function Conversation() {
             />
           </svg>
         </button>
+        {other && (
+          // The face, and on it the clock of a paid session you are in
+          // with them — on the face, never around it (section 30.14).
+          <span className="cos-talk-face" aria-hidden="true">
+            {other.avatar_url ? <img src={other.avatar_url} alt="" draggable={false} /> : <span>{other.display_name.slice(0, 1)}</span>}
+            {deal?.kind === 'session' && <SessionClock session={deal.session} />}
+          </span>
+        )}
         <span className="cos-talk-who">
           {other?.display_name ?? ''}
           {/* Under the name, where Telegram puts it, and quiet: the header
-              is orientation, and this is a detail of it. */}
-          {theyType && <span className="cos-talk-typing">{t('talk.typing')}</span>}
+              is orientation, and this is a detail of it. Typing wins over
+              when they were last here, because it is happening now. */}
+          {theyType ? (
+            <span className="cos-talk-typing">{t('talk.typing')}</span>
+          ) : (
+            other && <span className="cos-talk-seen">{t(`talk.lastHere.${other.seen ?? 'long'}`)}</span>
+          )}
         </span>
+        {other && (
+          // Back to the world with this person held, so a conversation is
+          // never a dead end away from the place they live in.
+          <button
+            type="button"
+            className="cos-talk-go"
+            onClick={() => navigate('/sky', { state: { hold: other.user_id } })}
+          >
+            {t('talk.seeInWorld')}
+          </button>
+        )}
       </header>
 
+      {/* A running session stays in sight at the top, as a strip across
+          the screen under the header (the approved prototype): its time
+          and its controls matter the whole time it runs. */}
+      {deal?.kind === 'session' && other && (
+        <ThreadDeal deal={deal} name={other.display_name} onChanged={reloadDeal} />
+      )}
+
       <div className="cos-talk-thread">
-        {thread && messages.length === 0 && (
+        {thread && messages.length === 0 && !deal && (
           <p className="cos-talk-empty">{t('talk.nothingYet', { name: other?.display_name ?? '' })}</p>
         )}
 
-        {messages.map((message) => (
-          // Keyed by the phone's own name where there is one, so a bubble
-          // does not rebuild itself (and reload its photo) at the moment
-          // its clock turns into a tick.
-          <MessageRow
-            key={message.client_id ?? message.id}
-            id={message.pending ? undefined : `message-${message.id}`}
-            mine={isMine(message)}
-            selecting={selecting}
-            selected={selected.has(message.id)}
-            onTap={(row) => (selecting ? toggleSelected(message) : openMenu(message, row))}
-            onHold={() => toggleSelected(message)}
-          >
-            <div className={`cos-bubble${isMine(message) ? ' is-mine' : ''}`}>
-              {message.reply_to && (
-                <button
-                  className="cos-bubble-quote"
-                  onClick={() => showOriginal(message.reply_to!.id)}
-                  data-control
-                >
-                  <span className="cos-bubble-quote-who">
-                    {nameOf(message.reply_to.sender_id)}
-                  </span>
-                  <span className="cos-bubble-quote-text">
-                    {message.reply_to.type === 'text' ? (
-                      <EmojiText text={message.reply_to.text ?? ''} size={16} />
-                    ) : (
-                      t(`talk.kinds.${message.reply_to.type}`)
-                    )}
-                  </span>
-                </button>
-              )}
+        {chaptersOf(messages).map((chapter) =>
+          chapter.kind === 'free' ? (
+            chapter.messages.map(({ message, newDay }) => (
+              <Fragment key={message.client_id ?? message.id}>
+                {newDay && <p className="cos-talk-date">{timeAgo(message.created_at, i18n.language)}</p>}
+                {rowFor(message)}
+              </Fragment>
+            ))
+          ) : (
+            <SessionBand
+              key={`session-${chapter.sessionId}`}
+              session={sessionOf(chapter.sessionId)}
+              name={other?.display_name ?? ''}
+              firstAt={chapter.messages[0].created_at}
+              foot={
+                // What a finished session still needs lives at its foot,
+                // where the session is — as in the prototype.
+                deal && (deal.kind === 'ending' || deal.kind === 'thank') && deal.session.id === chapter.sessionId && other ? (
+                  <ThreadDeal deal={deal} name={other.display_name} onChanged={reloadDeal} />
+                ) : null
+              }
+            >
+              {chapter.messages.map(rowFor)}
+            </SessionBand>
+          ),
+        )}
 
-              {message.type === 'text' && message.text && <EmojiText text={message.text} />}
-
-              {message.type === 'photo' && thread && (
-                <MessagePhoto
-                  conversationId={thread.id}
-                  messageId={message.id}
-                  localUrl={message.localUrl}
-                  onOpen={selecting ? () => {} : setViewing}
-                />
-              )}
-
-              {message.type === 'voice' && thread && (
-                <MessageVoice
-                  conversationId={thread.id}
-                  messageId={message.id}
-                  durationSeconds={message.duration_seconds}
-                  localUrl={message.localUrl}
-                  mine={message.sender_id === me?.id}
-                />
-              )}
-
-              <span className="cos-bubble-time">
-                {message.edited_at && <span className="cos-bubble-edited">{t('talk.edited')}</span>}
-                {new Date(message.created_at).toLocaleTimeString(i18n.language, {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-                {message.sender_id === me?.id && <Ticks delivery={deliveryOf(message, othersReadAt)} />}
-              </span>
-            </div>
-
-            {(message.reactions?.length ?? 0) > 0 && (
-              <div className={`cos-reactions${isMine(message) ? ' is-mine' : ''}`}>
-                {tallyReactions(message.reactions, me?.id).map((reaction) => (
-                  <button
-                    key={reaction.emoji}
-                    className={`cos-reaction${reaction.mine ? ' is-mine' : ''}`}
-                    onClick={() => react(message, reaction.emoji)}
-                    aria-pressed={reaction.mine}
-                    data-control
-                  >
-                    <Emoji glyph={reaction.emoji} size={20} />
-                    {reaction.count > 1 && <span className="cos-reaction-count">{reaction.count.toLocaleString(i18n.language)}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {message.id === firstFlagged && (
-              <PaymentWarning
-                reported={reported}
-                // Reporting yourself is not possible, and the warning under
-                // your own card number is for you, not about you.
-                canReport={message.sender_id !== me?.id}
-                onReport={() => setReporting(true)}
-              />
-            )}
-          </MessageRow>
-        ))}
+        {/* A request sits after the last message, under a date: it is the
+            newest thing in the conversation, and it is where the thumb
+            already is. So does what a finished session needs when that
+            session left no messages to hang it from. */}
+        {deal && deal.kind === 'request' && other && (
+          <>
+            <p className="cos-talk-date">{timeAgo(deal.request.responded_at ?? deal.request.created_at, i18n.language)}</p>
+            <ThreadDeal deal={deal} name={other.display_name} onChanged={reloadDeal} />
+          </>
+        )}
+        {deal && (deal.kind === 'ending' || deal.kind === 'thank') && other &&
+          !messages.some((message) => message.chat_session_id === deal.session.id) && (
+            <SessionBand session={deal.session} name={other.display_name} firstAt={deal.session.opened_at} foot={
+              <ThreadDeal deal={deal} name={other.display_name} onChanged={reloadDeal} />
+            } />
+          )}
         <div ref={endRef} />
       </div>
 
