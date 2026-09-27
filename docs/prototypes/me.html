@@ -1,0 +1,749 @@
+<title>منطقه‌ی من</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600&family=Sora:wght@300;500&display=swap">
+<style>
+/*
+  The "me" region of Cosmos, as a prototype.
+
+  The idea: "me" is your own system, in real depth. You at the centre are
+  the same orb the world sees; your offers are warm moons on one orbit, the
+  things you have posted are small tiles of light on another, Photon floats
+  beside you. Drag to turn the whole system in three dimensions. The mirror
+  turns it half way round: you see yourself from behind — exactly what the
+  world is shown of you — which is the part that becomes literal in a
+  headset, where you would walk around yourself.
+
+  Single dark look, on purpose: this is the night sky of Cosmos.
+*/
+:root {
+  color-scheme: dark;
+  --ink: #04080a;
+  --rise: #0e2025;
+  --fg: #e9f2f0;
+  --fg-soft: rgba(233, 242, 240, .66);
+  --fg-faint: rgba(233, 242, 240, .4);
+  --warm: #f2b06a;
+  --warm-bright: #f6be82;
+  --cool: #7ad7c8;
+  --live: #8ce0a4;
+  --me: #f2b06a;
+  --fa: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --en: 'Sora', 'Vazirmatn', system-ui, sans-serif;
+  --settle: cubic-bezier(.2, .9, .25, 1.04);
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: #020405;
+  color: var(--fg);
+  font-family: var(--fa);
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.phone {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 70% at 50% 38%, rgba(84, 52, 14, .55) 0%, rgba(20, 12, 4, .9) 55%, #0b0703 100%);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  direction: rtl;
+}
+@media (min-width: 560px) {
+  .phone {
+    width: 390px;
+    height: min(844px, calc(100% - 32px));
+    border-radius: 44px;
+    box-shadow: 0 0 0 1px rgba(233, 242, 240, .08), 0 40px 120px rgba(0, 0, 0, .7);
+  }
+}
+.dust { position: absolute; inset: 0; pointer-events: none; }
+.dust i {
+  position: absolute; width: 2px; height: 2px; border-radius: 50%;
+  background: #fff4e0; opacity: .5;
+  animation: tw 4s ease-in-out infinite;
+}
+@keyframes tw { 50% { opacity: .12; } }
+
+/* ------------------------------------------------------------- header */
+.topbar {
+  position: absolute; top: 0; inset-inline: 0; z-index: 90;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 0;
+}
+.where b { display: block; font-weight: 300; font-size: 22px; }
+.where span { font-size: 12px; color: var(--fg-faint); }
+.toggles { display: flex; gap: 6px; direction: ltr; }
+.tg {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  border-radius: 50%; border: 1px solid rgba(242, 176, 106, .22);
+  background: rgba(20, 12, 4, .5); color: var(--fg-soft); cursor: pointer;
+}
+.tg[aria-pressed="true"] { color: #2b1704; background: var(--warm); border-color: transparent; }
+.tg:focus-visible, .body:focus-visible, button:focus-visible { outline: 2px solid var(--warm-bright); outline-offset: 3px; }
+
+/* ------------------------------------------------------------ the system */
+.stage { position: absolute; inset: 0; }
+.orbit-path {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; overflow: visible;
+}
+.orbit-path ellipse { fill: none; stroke: rgba(242, 176, 106, .16); stroke-width: 1; stroke-dasharray: 2 6; }
+
+.body {
+  position: absolute; left: 0; top: 0;
+  display: grid; place-items: center;
+  border: none; padding: 0; background: none; color: inherit; font: inherit;
+  cursor: pointer; will-change: transform;
+}
+.body .label {
+  position: absolute; top: 100%; margin-top: 6px; white-space: nowrap;
+  font-size: 11px; color: var(--fg-soft); pointer-events: none;
+  transition: opacity .3s;
+}
+
+/* You: the same orb the world draws — size is presence, the inner glow is
+   trust, the green ring means here now and nothing else. */
+.you { width: 104px; height: 104px; }
+.you .face {
+  width: 104px; height: 104px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 36px; font-weight: 200; color: #fff4e3;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .45), transparent 52%),
+    radial-gradient(circle at 60% 72%, #6d3f1a, transparent 70%),
+    linear-gradient(145deg, #a0602a, #3b200c);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, .5), inset -10px -12px 26px rgba(0, 0, 0, .45),
+    0 0 46px rgba(255, 190, 110, .45);
+  transition: transform .45s var(--settle);
+}
+.you .ring {
+  position: absolute; inset: -9px; border-radius: 50%;
+  border: 1.5px solid rgba(140, 224, 164, .65);
+}
+/* Your name and your line sit beneath the whole system, never under the
+   moons crossing in front of you. */
+.who { position: absolute; left: 50%; transform: translateX(-50%); z-index: 60; text-align: center; white-space: nowrap; pointer-events: none; }
+.who b { display: block; font-weight: 400; font-size: 18px; }
+.who span { font-size: 12px; color: var(--fg-soft); }
+
+/* Offers: warm moons. Small and faceted with light, so no moon could be
+   mistaken for a person. */
+.moon { width: 30px; height: 30px; }
+.moon .ball {
+  width: 100%; height: 100%; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff5e0 0%, #ffcf8a 38%, #d9822b 78%, #7a3e10 100%);
+  box-shadow: 0 0 16px rgba(255, 190, 110, .55);
+  animation: spin 7s linear infinite;
+}
+.moon.is-paused .ball { filter: saturate(.2) brightness(.7); box-shadow: none; }
+@keyframes spin { to { rotate: 360deg; } }
+
+/* Posts: tiles of light, not balls — a picture is not a body. */
+.tile { width: 34px; height: 34px; }
+.tile .pic {
+  width: 100%; height: 100%; border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, .35);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45), 0 0 14px rgba(122, 215, 200, .25);
+  overflow: hidden;
+}
+.tile.is-pinned { width: 42px; height: 42px; }
+.tile .glint {
+  position: absolute; top: -4px; inset-inline-end: -4px; width: 14px; height: 14px;
+}
+
+/* Photon: the wave disc, floating beside you, carrying your balance. */
+.photon { width: 64px; height: 64px; }
+.photon svg { width: 64px; height: 64px; filter: drop-shadow(0 0 16px rgba(249, 180, 95, .6)); animation: bob 5s ease-in-out infinite; }
+@keyframes bob { 50% { translate: 0 -5px; } }
+.photon .amount {
+  position: absolute; top: 100%; margin-top: 4px; font-size: 14px;
+  color: var(--warm-bright); white-space: nowrap;
+}
+
+/* The quiet outer bodies: settings, and the staff door. */
+.far { width: 40px; height: 40px; }
+.far .mark {
+  width: 40px; height: 40px; border-radius: 12px; rotate: 45deg;
+  background: rgba(20, 12, 4, .7); border: 1px solid rgba(242, 176, 106, .35);
+  display: grid; place-items: center;
+}
+.far .mark svg { rotate: -45deg; color: var(--fg-soft); }
+
+/* A new moon, waiting to be born. */
+.seed { width: 26px; height: 26px; }
+.seed .spark {
+  width: 100%; height: 100%; border-radius: 50%;
+  border: 1.5px dashed rgba(246, 190, 130, .75);
+  display: grid; place-items: center; color: var(--warm-bright); font-size: 16px; line-height: 1;
+  animation: seed 2.4s ease-in-out infinite;
+}
+@keyframes seed { 50% { box-shadow: 0 0 16px rgba(255, 190, 110, .6); } }
+
+/* Seen from outside: what stays private becomes a dotted ghost. */
+.body.is-ghost .ball, .body.is-ghost .pic {
+  background: none !important; box-shadow: none; animation: none;
+  border: 1.5px dashed rgba(233, 242, 240, .3);
+}
+.body.is-ghost .pic > * { display: none; }
+.body.is-ghost { pointer-events: none; }
+
+/* People who passed close to you since last time: comets, as in the
+   approved regions prototype. */
+.comet {
+  position: absolute; width: 90px; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, rgba(255, 243, 222, 0), rgba(255, 243, 222, .8));
+  border-radius: 2px; opacity: 0;
+  animation: comet 9s linear infinite;
+}
+.comet::after {
+  content: ''; position: absolute; right: -2px; top: -2px; width: 6px; height: 6px; border-radius: 50%;
+  background: #fff3de; box-shadow: 0 0 10px #ffd9a2;
+}
+@keyframes comet {
+  0% { opacity: 0; transform: translate(-40px, 0) rotate(var(--a)); }
+  8% { opacity: .9; }
+  22% { opacity: 0; transform: translate(420px, 90px) rotate(var(--a)); }
+  100% { opacity: 0; transform: translate(420px, 90px) rotate(var(--a)); }
+}
+
+/* ------------------------------------------------------------- captions */
+.caption {
+  position: absolute; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  width: min(320px, calc(100% - 40px)); text-align: center; z-index: 60;
+  font-size: 13px; line-height: 1.9; color: var(--fg-soft);
+  transition: opacity .4s;
+}
+.caption b { font-weight: 400; color: var(--warm-bright); }
+.mirror-note {
+  position: absolute; top: calc(78px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%);
+  z-index: 70; padding: 8px 16px; border-radius: 999px; white-space: nowrap;
+  background: rgba(20, 12, 4, .75); border: 1px solid rgba(242, 176, 106, .35);
+  font-size: 12px; color: var(--warm-bright); opacity: 0; transition: opacity .4s; pointer-events: none;
+}
+.phone.is-outside .mirror-note { opacity: 1; }
+
+/* Sol, where it always is. */
+.sol-area {
+  position: absolute; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 72px; height: 72px;
+  margin-left: -36px; z-index: 80;
+}
+.sol {
+  width: 72px; height: 72px; border-radius: 50%; border: none; cursor: pointer;
+  background: radial-gradient(circle at 40% 34%, #fff 0%, #ffe9b4 22%, #ffc258 48%, #e9700c 88%);
+  box-shadow: 0 0 40px rgba(255, 190, 110, .7), 0 0 110px rgba(255, 170, 80, .3);
+}
+.mirror-btn {
+  position: absolute; bottom: calc(40px + env(safe-area-inset-bottom, 0px)); inset-inline-end: 20px; z-index: 80;
+  min-height: 44px; padding: 0 16px; border-radius: 22px;
+  border: 1px solid rgba(242, 176, 106, .45); background: rgba(20, 12, 4, .7);
+  color: var(--warm-bright); font: inherit; font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+}
+.mirror-btn[aria-pressed="true"] { background: var(--warm); color: #2b1704; border-color: transparent; }
+
+/* ----------------------------------------------------------------- sheet */
+.scrim { position: absolute; inset: 0; z-index: 100; background: rgba(4, 3, 1, .55); opacity: 0; pointer-events: none; transition: opacity .3s; }
+.scrim.is-open { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: absolute; inset-inline: 0; bottom: 0; z-index: 101;
+  max-height: 72%; overflow-y: auto;
+  padding: 10px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(180deg, #24170b 0%, #140c05 100%);
+  border-top: 1px solid rgba(242, 176, 106, .25);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, .5);
+  transform: translateY(105%); transition: transform .38s var(--settle);
+}
+.sheet.is-open { transform: none; }
+.grip { width: 40px; height: 4px; border-radius: 2px; background: rgba(233, 242, 240, .2); margin: 0 auto 14px; }
+.sheet h2 { margin: 0 0 4px; font-weight: 400; font-size: 19px; }
+.sheet .sub { margin: 0 0 16px; font-size: 13px; color: var(--fg-soft); }
+.row {
+  display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 0;
+  border-bottom: 1px solid rgba(233, 242, 240, .07); font-size: 14px;
+}
+.row:last-child { border-bottom: none; }
+.row .v { margin-inline-start: auto; color: var(--fg-soft); font-size: 13px; }
+.actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+.btn {
+  flex: 1; min-height: 48px; padding: 0 16px; border-radius: 24px; font: inherit; font-size: 14px; cursor: pointer;
+  border: 1px solid rgba(242, 176, 106, .35); background: rgba(242, 176, 106, .06); color: var(--fg);
+}
+.btn.warm { border: none; color: #2b1704; background: linear-gradient(160deg, #ffdda6 0%, #f9b45f 46%, #eb9433 100%); font-weight: 600; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; font-size: 13px; color: var(--fg-soft); }
+.field input, .field textarea {
+  font: inherit; font-size: 15px; color: var(--fg); background: rgba(0, 0, 0, .25);
+  border: 1px solid rgba(242, 176, 106, .25); border-radius: 14px; padding: 12px 14px; resize: none;
+}
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--warm); }
+.switch { margin-inline-start: auto; width: 46px; height: 28px; border-radius: 14px; background: rgba(233, 242, 240, .15); position: relative; border: none; cursor: pointer; }
+.switch::after { content: ''; position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: right .25s; }
+.switch[aria-pressed="true"] { background: var(--warm); }
+.switch[aria-pressed="true"]::after { right: 21px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.grid .cell { aspect-ratio: 1; border-radius: 12px; position: relative; overflow: hidden; }
+.grid .cell small { position: absolute; bottom: 6px; inset-inline-start: 8px; font-size: 10px; color: #fff; text-shadow: 0 1px 4px #000; }
+.stream { display: flex; justify-content: center; margin: 4px 0 10px; }
+.stream svg { width: 76px; height: 76px; filter: drop-shadow(0 0 18px rgba(249, 180, 95, .6)); }
+.balance { text-align: center; font-size: 34px; font-weight: 300; color: var(--warm-bright); }
+.balance small { display: block; font-family: var(--fa); font-size: 12px; color: var(--fg-faint); }
+
+.toast {
+  position: absolute; left: 50%; top: calc(120px + env(safe-area-inset-top, 0px)); transform: translateX(-50%);
+  z-index: 120; padding: 8px 16px; border-radius: 999px; white-space: nowrap;
+  background: rgba(20, 12, 4, .85); border: 1px solid rgba(242, 176, 106, .3);
+  font-size: 13px; color: var(--fg-soft); opacity: 0; transition: opacity .3s; pointer-events: none;
+}
+.toast.is-on { opacity: 1; }
+
+/* The light version, for phones that cannot carry the rich one: no depth
+   turning, no revolving, no comets, no glow — the same system, still. */
+.phone.is-light .comet, .phone.is-light .dust i { display: none; }
+.phone.is-light .moon .ball, .phone.is-light .photon svg { animation: none; }
+.phone.is-light .you .face { box-shadow: 0 10px 30px rgba(0, 0, 0, .5); }
+
+@media (prefers-reduced-motion: reduce) {
+  .comet, .dust i, .moon .ball, .photon svg, .seed .spark { animation: none; }
+  .sheet, .scrim { transition: none; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="pf" x1=".15" y1="0" x2=".85" y2="1">
+      <stop offset="0" stop-color="#ffe2b0"/><stop offset=".45" stop-color="#f9b45f"/><stop offset="1" stop-color="#df8428"/>
+    </linearGradient>
+    <mask id="pw"><rect width="24" height="24" fill="#fff"/><path d="M2.3 13.1c3-5.6 6-5.6 9.7-1.1s6.8 4.5 9.7-1.1" fill="none" stroke="#000" stroke-width="1.95" stroke-linecap="round"/></mask>
+    <symbol id="photon" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10.1" fill="url(#pf)" mask="url(#pw)"/>
+      <ellipse cx="8.6" cy="6.4" rx="3" ry="1.6" fill="#fff" opacity=".55" transform="rotate(-28 8.6 6.4)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="phone" id="phone">
+  <div class="dust" id="dust"></div>
+  <div class="comet" style="top:18%;--a:12deg;animation-delay:1s"></div>
+  <div class="comet" style="top:62%;--a:-8deg;animation-delay:4.5s"></div>
+  <div class="comet" style="top:78%;--a:6deg;animation-delay:7s"></div>
+
+  <div class="stage" id="stage">
+    <svg class="orbit-path" id="paths" aria-hidden="true"></svg>
+  </div>
+
+  <header class="topbar">
+    <div class="where"><b>من</b><span id="sub">خودت، از نزدیک</span></div>
+    <div class="toggles">
+      <button class="tg" id="tg-light" type="button" aria-pressed="false" aria-label="نسخه‌ی سبک، برای گوشی‌های ضعیف" title="نسخه‌ی سبک">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7z"/></svg>
+      </button>
+      <button class="tg" id="tg-tilt" type="button" aria-pressed="false" aria-label="چرخاندن با حرکتِ گوشی" title="حرکتِ گوشی">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="7" y="3" width="10" height="18" rx="2"/><path d="M3 9c-1 2-1 4 0 6M21 9c1 2 1 4 0 6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="who" id="who"></div>
+  <div class="mirror-note" id="mirror-note">این همان چیزی است که دیگران در جهان از تو می‌بینند</div>
+  <p class="caption" id="caption">از آخرین باری که آمدی، <b>۳ نفر</b> از کنارت گذشتند.<br>روی خودت یا هر چیزِ دورت بزن · بکش تا بچرخانی</p>
+
+  <button class="mirror-btn" id="mirror" type="button" aria-pressed="false">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/><path d="M12 7.5c-2.5 1-4 2.6-4 4.5s1.5 3.5 4 4.5" /></svg>
+    <span id="mirror-label">از بیرون</span>
+  </button>
+
+  <div class="sol-area"><button class="sol" id="sol" type="button" aria-label="سول: برگشت به جهان"></button></div>
+
+  <div class="scrim" id="scrim"></div>
+  <section class="sheet" id="sheet" aria-modal="true" role="dialog"></section>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id)
+  const phone = $('phone'), stage = $('stage'), paths = $('paths')
+  const fa = (n) => Number(n).toLocaleString('fa-IR')
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  // ------------------------------------------------------------ the data
+  // An example person. Offers and posts are what orbit them.
+  const me = { name: 'فاطمه', line: 'شب‌ها بیدارم، از فیلم حرف بزنیم', presence: 0.72, trust: 0.6 }
+  let wallet = 1840
+  const offers = [
+    { title: 'گپ درباره‌ی فیلم', photons: 40, minutes: 30, active: true, waiting: 2 },
+    { title: 'قدم زدن در شهر', photons: 80, minutes: 60, active: true, waiting: 0 },
+    { title: 'تمرینِ مکالمه‌ی انگلیسی', photons: 60, minutes: 45, active: false, waiting: 0 },
+  ]
+  const posts = [
+    { hue: 28, pinned: true, paid: false, public: true, kind: 'عکس' },
+    { hue: 190, pinned: false, paid: true, public: true, kind: 'ویدیو' },
+    { hue: 320, pinned: false, paid: false, public: false, kind: 'عکس' },
+    { hue: 90, pinned: false, paid: false, public: true, kind: 'عکس' },
+    { hue: 250, pinned: false, paid: false, public: false, kind: 'عکس' },
+  ]
+
+  // The world shows at most three moons for a person (section 29.14).
+  const PUBLIC_MOONS = 3
+  // More than this on one orbit and they would crowd into a tangle: the
+  // rest gather into one "more" body that opens a list (sized for eighty).
+  const MAX_ON_ORBIT = 7
+
+  // ------------------------------------------------------------ the view
+  let yaw = 0.35, pitch = 0.92, yawTarget = yaw, pitchTarget = pitch
+  let spin = 0
+  let outside = false
+  let light = false
+  let tiltOffset = { yaw: 0, pitch: 0 }
+  const F = 620 // perspective distance, px
+
+  const W = () => phone.clientWidth, H = () => phone.clientHeight
+  const center = () => ({ x: W() / 2, y: H() * 0.42 })
+
+  // Orbits: radius, extra lean, speed, and phase spread.
+  const ORBITS = {
+    offers: { r: 124, lean: -0.12, speed: 0.12 },
+    posts: { r: 176, lean: 0.14, speed: -0.07 },
+  }
+
+  /** A point on a horizontal circle, leaned and turned, then seen. */
+  function project(r, angle, lean, lift = 0) {
+    const a = angle + yaw + tiltOffset.yaw
+    const x = r * Math.cos(a)
+    const z0 = r * Math.sin(a)
+    const p = pitch + lean + tiltOffset.pitch
+    const y = -z0 * Math.cos(p) + lift
+    const z = z0 * Math.sin(p)
+    const s = F / (F + z)
+    const c = center()
+    return { x: c.x + x * s, y: c.y + y * s, s, z }
+  }
+
+  // ---------------------------------------------------------- the bodies
+  const bodies = []
+  function add(el, place, kind) {
+    stage.appendChild(el)
+    bodies.push({ el, place, kind })
+    return el
+  }
+
+  function button(cls, label, inner) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = `body ${cls}`
+    b.setAttribute('aria-label', label)
+    b.innerHTML = inner
+    return b
+  }
+
+  // You.
+  const you = add(button('you', `${me.name} — ویرایشِ خودت`,
+    `<span class="ring" aria-hidden="true"></span><span class="face" id="face">ف</span>`),
+    () => { const c = center(); return { x: c.x, y: c.y, s: 1, z: 0 } }, 'you')
+  you.addEventListener('click', () => tapped(() => openFace()))
+
+  function build() {
+    for (const b of bodies.splice(1)) b.el.remove()
+    // Offers: warm moons.
+    const shownOffers = offers.slice(0, MAX_ON_ORBIT)
+    shownOffers.forEach((o, i) => {
+      const n = shownOffers.length + 1
+      const el = add(button(`moon${o.active ? '' : ' is-paused'}`, `پیشنهاد: ${o.title}`,
+        `<span class="ball"></span><span class="label">${o.title}</span>`),
+        () => project(ORBITS.offers.r, (i / n) * Math.PI * 2 + spin * ORBITS.offers.speed, ORBITS.offers.lean), 'offer')
+      el.dataset.index = i
+      el.addEventListener('click', () => tapped(() => openOffer(i)))
+    })
+    // A moon waiting to be born.
+    const seedAt = shownOffers.length
+    const seed = add(button('seed', 'پیشنهادِ تازه', `<span class="spark">+</span><span class="label">پیشنهادِ تازه</span>`),
+      () => project(ORBITS.offers.r, (seedAt / (shownOffers.length + 1)) * Math.PI * 2 + spin * ORBITS.offers.speed, ORBITS.offers.lean), 'seed')
+    seed.addEventListener('click', () => tapped(() => openNewOffer()))
+
+    // Posts: tiles of light.
+    const shownPosts = posts.slice(0, MAX_ON_ORBIT)
+    shownPosts.forEach((p, i) => {
+      const el = add(button(`tile${p.pinned ? ' is-pinned' : ''}`, `${p.kind}`,
+        `<span class="pic" style="background:${picture(p.hue)}"></span>${p.paid ? '<svg class="glint" viewBox="0 0 24 24"><use href="#photon"/></svg>' : ''}`),
+        () => project(ORBITS.posts.r, (i / shownPosts.length) * Math.PI * 2 + 0.6 + spin * ORBITS.posts.speed, ORBITS.posts.lean), 'post')
+      el.dataset.index = i
+      el.addEventListener('click', () => tapped(() => openPosts()))
+    })
+
+    // Photon, floating beside you.
+    const photon = add(button('photon', `کیف پول: ${fa(wallet)} فوتون`,
+      `<svg viewBox="0 0 24 24"><use href="#photon"/></svg><span class="amount" id="amount">${fa(wallet)}</span>`),
+      () => { const c = center(); const q = project(78, -Math.PI * 0.75 - yaw, 0.0, -84); return { x: c.x - 118, y: c.y - 128, s: 1, z: -10, _q: q } }, 'photon')
+    photon.addEventListener('click', () => tapped(() => openWallet()))
+
+    // Settings: quiet, far out.
+    const set = add(button('far', 'تنظیمات',
+      `<span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg></span><span class="label">تنظیمات</span>`),
+      () => { const c = center(); return { x: c.x + 128, y: c.y - 128, s: 1, z: -10 } }, 'far')
+    set.addEventListener('click', () => tapped(() => openSettings()))
+    applyOutside()
+  }
+
+  function picture(h) {
+    return `radial-gradient(circle at 30% 30%, hsla(${h + 30},90%,80%,.9), transparent 45%),
+            radial-gradient(circle at 70% 75%, hsla(${h - 20},80%,35%,.95), transparent 60%),
+            linear-gradient(145deg, hsl(${h},70%,55%), hsl(${h + 40},60%,25%))`
+  }
+
+  // Drawing the orbit paths: dotted and far from the body, so they never
+  // read as the tight green ring that means "here now".
+  function drawPaths() {
+    paths.innerHTML = ''
+    for (const key of ['offers', 'posts']) {
+      const o = ORBITS[key]
+      const pts = []
+      for (let k = 0; k <= 48; k += 1) pts.push(project(o.r, (k / 48) * Math.PI * 2, o.lean))
+      const d = pts.map((p, k) => `${k ? 'L' : 'M'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      path.setAttribute('d', d)
+      path.setAttribute('fill', 'none')
+      path.setAttribute('stroke', 'rgba(242,176,106,.16)')
+      path.setAttribute('stroke-dasharray', '2 6')
+      paths.appendChild(path)
+    }
+  }
+
+  // --------------------------------------------------------------- frame
+  let last = performance.now()
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000)
+    last = now
+    if (!light && !reduced) spin += dt
+    yaw += (yawTarget - yaw) * (light ? 1 : 0.12)
+    pitch += (pitchTarget - pitch) * (light ? 1 : 0.12)
+    for (const b of bodies) {
+      const p = b.place()
+      const behind = p.z > 0
+      b.el.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%) scale(${(0.55 + p.s * 0.45).toFixed(3)})`
+      b.el.style.zIndex = b.kind === 'you' ? 50 : String(Math.round(50 - p.z / 4))
+      b.el.style.opacity = b.kind === 'you' || b.kind === 'photon' || b.kind === 'far' ? '' : String(behind ? Math.max(0.35, 1 - p.z / 260) : 1)
+      if (!light) b.el.style.filter = behind && b.kind !== 'you' ? `blur(${Math.min(1.6, p.z / 120).toFixed(2)}px)` : ''
+      else b.el.style.filter = ''
+      const label = b.el.querySelector('.label')
+      if (label && b.kind !== 'far') label.style.opacity = behind ? '0' : '1'
+    }
+    $('who').style.top = `${center().y + 200}px`
+    drawPaths()
+    requestAnimationFrame(frame)
+  }
+
+  // ---------------------------------------------------- turning the system
+  let drag = null
+  let moved = false
+  phone.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.sheet, .tg, .mirror-btn, .sol')) return
+    drag = { x: e.clientX, y: e.clientY, yaw: yawTarget, pitch: pitchTarget }
+    moved = false
+  })
+  window.addEventListener('pointermove', (e) => {
+    if (!drag) return
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y
+    if (Math.abs(dx) + Math.abs(dy) > 8) moved = true
+    if (!moved) return
+    yawTarget = drag.yaw - dx / 140
+    pitchTarget = Math.min(1.45, Math.max(0.55, drag.pitch - dy / 220))
+  })
+  window.addEventListener('pointerup', () => { drag = null })
+  function tapped(run) { if (!moved) run() }
+
+  // Tilt: the phone's own movement turns the system — what head movement
+  // would do in a headset. Optional, and asked for only when turned on.
+  $('tg-tilt').addEventListener('click', async (e) => {
+    const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'
+    if (on && typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) {
+      try { if ((await DeviceOrientationEvent.requestPermission()) !== 'granted') { say('اجازه‌ی حرکتِ گوشی داده نشد'); return } } catch { say('این مرورگر حرکتِ گوشی را نمی‌دهد'); return }
+    }
+    e.currentTarget.setAttribute('aria-pressed', String(on))
+    if (!on) tiltOffset = { yaw: 0, pitch: 0 }
+    say(on ? 'گوشی را کج کن تا منظومه‌ات بچرخد' : 'حرکتِ گوشی خاموش شد')
+    tiltOn = on
+  })
+  let tiltOn = false
+  window.addEventListener('deviceorientation', (e) => {
+    if (!tiltOn || e.gamma == null) return
+    tiltOffset = { yaw: (e.gamma / 45) * 0.6, pitch: ((e.beta - 45) / 90) * 0.35 }
+  })
+
+  $('tg-light').addEventListener('click', (e) => {
+    light = e.currentTarget.getAttribute('aria-pressed') !== 'true'
+    e.currentTarget.setAttribute('aria-pressed', String(light))
+    phone.classList.toggle('is-light', light)
+    say(light ? 'نسخه‌ی سبک: همان منظومه، بی‌حرکت و بی‌درخشش' : 'نسخه‌ی کامل')
+  })
+
+  // ---------------------------------------------------------- the mirror
+  // Turn the whole system half way round: you, from behind — which is what
+  // the world is shown. Private things become dotted ghosts, and only three
+  // moons stay, as in the world.
+  $('mirror').addEventListener('click', () => {
+    outside = !outside
+    $('mirror').setAttribute('aria-pressed', String(outside))
+    $('mirror-label').textContent = outside ? 'از درون' : 'از بیرون'
+    yawTarget += Math.PI
+    phone.classList.toggle('is-outside', outside)
+    const face = $('face')
+    face.style.transform = 'scaleX(0)'
+    setTimeout(() => { face.style.transform = '' }, reduced ? 0 : 380)
+    applyOutside()
+    $('sub').textContent = outside ? 'تو، آن‌طور که دیگران می‌بینند' : 'خودت، از نزدیک'
+    const hidden = offers.filter((o) => !o.active).length + posts.filter((p) => !p.public).length
+    $('caption').innerHTML = outside
+      ? `در جهان ${fa(PUBLIC_MOONS)} قمر دورت دیده می‌شود.<br><b>${fa(hidden)} چیز</b> فقط برای خودت است.`
+      : 'از آخرین باری که آمدی، <b>۳ نفر</b> از کنارت گذشتند.<br>روی خودت یا هر چیزِ دورت بزن · بکش تا بچرخانی'
+  })
+
+  function applyOutside() {
+    let publicMoons = 0
+    for (const b of bodies) {
+      let ghost = false
+      if (outside) {
+        if (b.kind === 'offer') {
+          const o = offers[b.el.dataset.index]
+          ghost = !o.active || publicMoons >= PUBLIC_MOONS
+          if (!ghost) publicMoons += 1
+        } else if (b.kind === 'post') {
+          const p = posts[b.el.dataset.index]
+          ghost = !p.public
+        } else if (b.kind === 'seed' || b.kind === 'photon' || b.kind === 'far') {
+          ghost = true
+        }
+      }
+      b.el.classList.toggle('is-ghost', ghost)
+      if (b.kind === 'seed' || b.kind === 'photon' || b.kind === 'far') b.el.style.visibility = ghost ? 'hidden' : ''
+    }
+  }
+
+  // --------------------------------------------------------------- sheets
+  const sheet = $('sheet'), scrim = $('scrim')
+  function open(html) {
+    sheet.innerHTML = `<div class="grip"></div>${html}`
+    sheet.classList.add('is-open'); scrim.classList.add('is-open')
+    sheet.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', close))
+  }
+  function close() { sheet.classList.remove('is-open'); scrim.classList.remove('is-open') }
+  scrim.addEventListener('click', close)
+
+  function openFace() {
+    open(`<h2>خودت</h2><p class="sub">همان چیزی که کسی می‌بیند وقتی در جهان به تو نزدیک می‌شود.</p>
+      <label class="field">اسم<input value="${me.name}" id="f-name"></label>
+      <label class="field">یک خط از خودت<textarea rows="2" id="f-line">${me.line}</textarea></label>
+      <div class="row">دیده شدن در جهان<button class="switch" aria-pressed="true" data-toggle></button></div>
+      <div class="actions"><button class="btn warm" id="f-save">نگه دار</button><button class="btn" data-close>بستن</button></div>`)
+    sheet.querySelector('[data-toggle]').addEventListener('click', (e) => { const b = e.currentTarget; b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')) })
+    $('f-save').addEventListener('click', () => {
+      me.name = $('f-name').value || me.name
+      me.line = $('f-line').value || me.line
+      showWho()
+      close(); say('نگه داشته شد')
+    })
+  }
+
+  function openOffer(i) {
+    const o = offers[i]
+    open(`<h2>${o.title}</h2><p class="sub">یکی از قمرهایت — در جهان کسی که به تو نزدیک شود، آن را می‌بیند.</p>
+      <div class="row">قیمت<span class="v">${fa(o.photons)} فوتون · ${fa(o.minutes)} دقیقه</span></div>
+      <div class="row">منتظرِ تأییدِ تو<span class="v">${o.waiting ? fa(o.waiting) + ' نفر' : 'کسی نیست'}</span></div>
+      <div class="row">فعال<button class="switch" aria-pressed="${o.active}" id="o-active"></button></div>
+      <div class="actions"><button class="btn" id="o-edit">ویرایش</button><button class="btn" data-close>بستن</button></div>`)
+    $('o-active').addEventListener('click', (e) => {
+      o.active = !o.active
+      e.currentTarget.setAttribute('aria-pressed', String(o.active))
+      build()
+      say(o.active ? 'قمر دوباره روشن شد' : 'قمر خاموش شد؛ در جهان دیده نمی‌شود')
+    })
+    $('o-edit').addEventListener('click', () => say('ویرایش در نمونه نیست'))
+  }
+
+  // The birth of a moon: a spark on the orbit becomes a body that swings
+  // out from you into its place.
+  function openNewOffer() {
+    open(`<h2>پیشنهادِ تازه</h2><p class="sub">یک قمرِ تازه دورت متولد می‌شود.</p>
+      <label class="field">چه پیشنهادی؟<input id="n-title" placeholder="مثلاً گپ درباره‌ی کتاب"></label>
+      <label class="field">چند فوتون، برای چند دقیقه؟<input id="n-price" inputmode="numeric" placeholder="۴۰ فوتون · ۳۰ دقیقه"></label>
+      <div class="actions"><button class="btn warm" id="n-save">بساز</button><button class="btn" data-close>بستن</button></div>`)
+    $('n-save').addEventListener('click', () => {
+      const title = $('n-title').value.trim() || 'پیشنهادِ تازه'
+      offers.push({ title, photons: 40, minutes: 30, active: true, waiting: 0 })
+      close()
+      build()
+      const born = bodies.filter((b) => b.kind === 'offer').pop()
+      if (born && !reduced && !light) {
+        born.el.animate([
+          { transform: `translate(${center().x}px, ${center().y}px) translate(-50%,-50%) scale(0.1)`, opacity: 0 },
+          { opacity: 1, offset: 0.3 },
+          { transform: born.el.style.transform || 'none', opacity: 1 },
+        ], { duration: 1100, easing: 'cubic-bezier(.2,.9,.25,1.04)' })
+      }
+      say('یک قمرِ تازه متولد شد')
+    })
+  }
+
+  function openPosts() {
+    const cells = posts.map((p) => `<div class="cell" style="background:${picture(p.hue)}"><small>${p.kind}${p.paid ? ' · پولی' : ''}${p.public ? '' : ' · فقط برای بعضی'}</small></div>`).join('')
+    open(`<h2>چیزهایی که گذاشته‌ای</h2><p class="sub">${fa(posts.length)} چیز — ${fa(posts.filter((p) => p.public).length)} تا برای همه.</p>
+      <div class="grid">${cells}</div>
+      <div class="actions"><button class="btn warm" id="p-new">گذاشتنِ چیزِ تازه</button><button class="btn" data-close>بستن</button></div>`)
+    $('p-new').addEventListener('click', () => {
+      posts.push({ hue: Math.round(Math.random() * 360), pinned: false, paid: false, public: true, kind: 'عکس' })
+      close(); build(); say('روی مدارت نشست')
+    })
+  }
+
+  function openWallet() {
+    open(`<div class="stream"><svg viewBox="0 0 24 24"><use href="#photon"/></svg></div>
+      <div class="balance" id="w-bal">${fa(wallet)}<small>فوتون</small></div>
+      <div class="row">نگه داشته شده برای جلسه‌ها<span class="v">${fa(120)} فوتون</span></div>
+      <div class="row">آخرین ورود<span class="v">+${fa(240)} از جلسه با هومن</span></div>
+      <div class="actions"><button class="btn warm" id="w-top">شارژ</button><button class="btn">برداشت</button><button class="btn">تاریخچه</button></div>`)
+    $('w-top').addEventListener('click', () => {
+      wallet += 200
+      $('w-bal').innerHTML = `${fa(wallet)}<small>فوتون</small>`
+      const amount = $('amount'); if (amount) amount.textContent = fa(wallet)
+      say('۲۰۰ فوتون به نورت اضافه شد')
+    })
+  }
+
+  function openSettings() {
+    open(`<h2>تنظیمات</h2>
+      <div class="row">زبان<span class="v">فارسی</span></div>
+      <div class="row">صدا<button class="switch" aria-pressed="false" data-t></button></div>
+      <div class="row">لرزش<button class="switch" aria-pressed="true" data-t></button></div>
+      <div class="row">نسخه‌ی سبک<button class="switch" aria-pressed="false" data-t></button></div>
+      <div class="actions"><button class="btn" data-close>بستن</button></div>`)
+    sheet.querySelectorAll('[data-t]').forEach((b) => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))))
+  }
+
+  // ----------------------------------------------------------------- misc
+  let toastTimer
+  function say(text) {
+    const t = $('toast'); t.textContent = text; t.classList.add('is-on')
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('is-on'), 2200)
+  }
+  $('sol').addEventListener('click', () => say('سول تو را به جهان برمی‌گرداند'))
+
+  const dust = $('dust')
+  for (let k = 0; k < 46; k += 1) {
+    const i = document.createElement('i')
+    i.style.left = `${Math.random() * 100}%`; i.style.top = `${Math.random() * 100}%`
+    i.style.animationDelay = `${-Math.random() * 4}s`; i.style.opacity = String(0.2 + Math.random() * 0.5)
+    dust.appendChild(i)
+  }
+
+  function showWho() { $('who').innerHTML = `<b>${me.name}</b><span>${me.line}</span>` }
+  showWho()
+  build()
+  requestAnimationFrame(frame)
+})()
+</script>
