@@ -1,0 +1,1114 @@
+<title>چرخِ من</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;500;600&family=Sora:wght@300;400&display=swap">
+<style>
+/* "Me" in Cosmos — a prototype. One deliberate look, the night sky of the
+   project's own visual language (frontend/src/styles/cosmos.css), warmed to
+   the "me" region's colour; no light variant, by choice. Two versions are
+   built from this one file: MODE "wheel" (the owner's idea — a finger-sized
+   orb that opens into a wheel of five places when held) and MODE "crown"
+   (Claude's idea — a crown at the thumb's edge, and your orb answering each
+   section). The eight sections and their contents are the same in both. */
+:root {
+  color-scheme: dark;
+  --ink: #0b0703;
+  --fg: #f3ede4;
+  --fg-soft: rgba(243, 237, 228, .68);
+  --fg-faint: rgba(243, 237, 228, .42);
+  --warm: #f2b06a;
+  --warm-bright: #ffcf94;
+  --warm-deep: #b8661c;
+  --cool: #7ad7c8;
+  --live: #8ce0a4;
+  --news: #ff4d7d;
+  --talk: #b69cff;
+  --echo: #6fa8ff;
+  --danger: #ff6f6f;
+  --glass: rgba(255, 214, 162, .06);
+  --glass-edge: rgba(255, 214, 162, .2);
+  --fa: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --en: 'Sora', 'Vazirmatn', system-ui, sans-serif;
+  --settle: cubic-bezier(.2, .9, .25, 1.04);
+  --pop: cubic-bezier(.2, .9, .3, 1.2);
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: #030201;
+  color: var(--fg);
+  font-family: var(--fa);
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.phone {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--ink);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 560px) {
+  .phone {
+    width: 410px;
+    height: min(100%, 880px);
+    border-radius: 34px;
+    box-shadow: 0 0 0 1px rgba(255, 206, 146, .12), 0 40px 120px rgba(0, 0, 0, .7);
+  }
+}
+#sky { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+button { font: inherit; color: inherit; }
+button:focus-visible, [tabindex]:focus-visible, [contenteditable]:focus-visible { outline: 2px solid var(--warm-bright); outline-offset: 3px; }
+
+/* ---------- header ---------- */
+.top {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+}
+.top b { font-weight: 400; font-size: 17px; transition: opacity .25s ease; }
+.top span { font-size: 12px; color: var(--fg-faint); transition: opacity .25s ease; }
+.top.swap b, .top.swap span { opacity: 0; }
+
+/* ---------- you: the orb that stays ----------
+   The same body the world sees: size is presence, inner glow is trust, the
+   green ring means "here right now". It moves and resizes between
+   sections instead of being drawn again, so you never leave yourself. */
+.me {
+  position: absolute;
+  left: 50%;
+  top: var(--oy, 190px);
+  width: var(--os, 118px);
+  height: var(--os, 118px);
+  margin-left: calc(var(--os, 118px) / -2);
+  margin-top: calc(var(--os, 118px) / -2);
+  z-index: 6;
+  transition: top .75s var(--settle), width .75s var(--settle), height .75s var(--settle), margin .75s var(--settle), transform .9s var(--settle);
+  transform-style: preserve-3d;
+}
+.me-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: calc(var(--os, 118px) * .38);
+  font-weight: 200;
+  color: #fff8ee;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .42), transparent 56%),
+    linear-gradient(145deg, #3e8f86, #1c3f52);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .55), inset -8px -10px 22px rgba(0, 0, 0, .45), 0 0 34px rgba(122, 215, 200, .35);
+  transition: font-size .75s var(--settle), filter .5s ease, opacity .5s ease, box-shadow .6s ease;
+  cursor: pointer;
+  animation: drift 12s ease-in-out infinite;
+}
+.me-body.photo { color: transparent; }
+.me-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .22), transparent 50%);
+  box-shadow: inset -6px -8px 16px rgba(0, 0, 0, .35);
+}
+.me-live { position: absolute; inset: -7px; border-radius: 50%; border: 1.5px solid rgba(140, 224, 164, .65); pointer-events: none; }
+@keyframes drift { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+
+/* What each section shows ON you (both versions; the crown makes it the
+   point). Layers that fade in and out; none of them is a ring around the
+   body, because a ring around a body already means "here right now". */
+.me-layer { position: absolute; left: 50%; top: 50%; pointer-events: none; opacity: 0; transition: opacity .6s ease; }
+.phone[data-sec="wallet"] .l-photon,
+.phone[data-sec="offers"] .l-moons,
+.phone[data-sec="follows"] .l-threads,
+.phone[data-sec="content"] .l-tiles { opacity: 1; }
+.l-photon { width: 220%; height: 220%; margin: -110% 0 0 -110%; border-radius: 50%; background: radial-gradient(circle, rgba(255, 207, 148, .38), rgba(255, 170, 80, .1) 45%, transparent 70%); animation: breathe 4s ease-in-out infinite; }
+@keyframes breathe { 50% { scale: 1.08; opacity: .85; } }
+.l-tiles { width: 0; height: 0; }
+.l-tiles i { position: absolute; width: 9px; height: 9px; border-radius: 2px; background: rgba(255, 220, 170, .8); box-shadow: 0 0 8px rgba(255, 200, 130, .8); animation: tile-orbit 9s linear infinite; }
+@keyframes tile-orbit { from { transform: rotate(0deg) translateX(calc(var(--os) * .75)) rotate(0deg); } to { transform: rotate(360deg) translateX(calc(var(--os) * .75)) rotate(-360deg); } }
+.phone[data-sec="privacy"] .me { transform: rotateY(180deg); }
+.phone[data-sec="privacy"] .me-body { box-shadow: 0 14px 40px rgba(0, 0, 0, .55), inset -8px -10px 22px rgba(0, 0, 0, .45); }
+.phone.hidden-self[data-sec="privacy"] .me-body { opacity: .38; filter: grayscale(.6); }
+
+/* ---------- sections: scenes in depth ---------- */
+.scene { position: absolute; inset: 0; perspective: 900px; z-index: 5; }
+.sec {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateZ(0) scale(1);
+  transition: opacity .42s ease, transform .6s var(--settle), filter .42s ease;
+}
+.sec.on { opacity: 1; pointer-events: auto; }
+.sec.leaving { opacity: 0; transform: scale(1.12); filter: blur(8px); }
+.sec.arriving { opacity: 0; transform: scale(.9) translateY(24px); transition: none; }
+
+.hint-line { position: absolute; left: 20px; right: 20px; text-align: center; font-size: 11px; color: var(--fg-faint); }
+
+/* A luminous button: the only kind of control here, in two weights. */
+.lum {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 22px;
+  border: 1px solid var(--glass-edge);
+  background: var(--glass);
+  color: var(--fg);
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.lum.warm { border: 0; color: #2b1704; font-weight: 500; background: linear-gradient(160deg, #ffdda6, #f9b45f 46%, #eb9433); box-shadow: 0 0 22px rgba(255, 178, 100, .35); }
+.lum.quiet { background: transparent; color: var(--fg-soft); }
+.lum.danger { border-color: rgba(255, 111, 111, .45); color: #ffb3b3; }
+.lum:active { scale: .97; }
+
+/* 1. personal info */
+.info-text { position: absolute; left: 24px; right: 24px; top: 272px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.info-text .nm { font-size: 26px; font-weight: 300; outline: none; border-radius: 8px; padding: 0 6px; }
+.info-text .un { font-family: var(--en); font-size: 13px; color: var(--fg-faint); direction: ltr; unicode-bidi: isolate; outline: none; border-radius: 6px; padding: 0 4px; }
+.info-text .bio { max-width: 28ch; font-size: 14px; line-height: 1.9; color: var(--fg-soft); text-wrap: balance; outline: none; border-radius: 8px; padding: 2px 6px; }
+.editable { cursor: text; transition: box-shadow .3s ease, background .3s ease; }
+.editable:focus { background: rgba(255, 214, 162, .07); box-shadow: 0 1px 0 var(--warm), 0 0 18px rgba(255, 190, 110, .18); }
+/* Interests orbit you on a tilted plane — a real ellipse in depth, each
+   word turned back to face you. */
+.interests { position: absolute; left: 50%; top: 170px; width: 0; height: 0; transform-style: preserve-3d; transform: rotateX(72deg); z-index: 4; }
+.interests .ring { position: absolute; left: 0; top: 0; transform-style: preserve-3d; animation: spin 46s linear infinite; }
+.interests .chip { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
+.interests .chip span {
+  display: block;
+  padding: 4px 11px;
+  border-radius: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--warm-bright);
+  background: rgba(60, 34, 10, .7);
+  border: 1px solid rgba(255, 207, 148, .3);
+  transform: translate(-50%, -50%) rotateX(-72deg);
+  animation: spin 46s linear infinite reverse;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.why { position: absolute; left: 24px; right: 24px; top: 470px; display: flex; flex-direction: column; gap: 8px; }
+.why div { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--fg-soft); }
+.why i { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-style: normal; }
+.why .sz i { border: 1px solid rgba(243, 237, 228, .3); }
+.why .sz i::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: #3e8f86; }
+.why .gl i { background: radial-gradient(circle, rgba(122, 215, 200, .7), transparent 70%); }
+.exit-row { position: absolute; left: 20px; right: 20px; top: 560px; display: flex; justify-content: center; gap: 8px; }
+
+/* 2. offers: your offers are moons — the world already draws them as moons
+   on your orb — on a tilted ring you turn; the one in front is described. */
+.moonring { position: absolute; left: 50%; top: 240px; width: 0; height: 0; transform-style: preserve-3d; transform: rotateX(68deg); }
+.moonring .rot { position: absolute; transform-style: preserve-3d; transition: transform .7s var(--settle); }
+.moon { position: absolute; left: 0; top: 0; transform-style: preserve-3d; cursor: pointer; }
+.moon b {
+  display: block;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotateX(-68deg);
+  background: radial-gradient(circle at 36% 30%, #fff3dc, #ffc56e 40%, #c7711e);
+  box-shadow: 0 0 16px rgba(255, 190, 110, .7);
+  transition: filter .4s ease, opacity .4s ease, scale .4s var(--pop);
+}
+.moon.off b { filter: grayscale(1) brightness(.55); box-shadow: none; }
+.moon.front b { scale: 1.35; }
+.moon.add b { background: transparent; border: 1.5px dashed rgba(255, 207, 148, .7); box-shadow: none; }
+.panel {
+  position: absolute;
+  left: 20px; right: 20px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(to bottom, rgba(60, 36, 12, .55), rgba(20, 12, 4, .55));
+  border: 1px solid var(--glass-edge);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transform: perspective(700px) rotateX(10deg);
+  transform-origin: 50% 100%;
+  transition: opacity .3s ease;
+}
+.panel h3 { margin: 0; font-weight: 400; font-size: 17px; }
+.panel .meta { font-size: 12px; color: var(--fg-soft); }
+.panel .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.switch { position: relative; width: 50px; height: 30px; border-radius: 15px; border: 1px solid var(--glass-edge); background: rgba(255, 255, 255, .06); cursor: pointer; flex: none; }
+.switch::after { content: ''; position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%; background: #8a7c6c; transition: right .3s var(--settle), background .3s ease; }
+.switch[aria-checked="true"] { background: rgba(242, 176, 106, .3); border-color: rgba(242, 176, 106, .6); }
+.switch[aria-checked="true"]::after { right: 23px; background: var(--warm-bright); box-shadow: 0 0 10px rgba(255, 190, 110, .8); }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--fg-soft); }
+.field input { min-height: 42px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--glass-edge); background: rgba(255, 255, 255, .05); color: var(--fg); font: inherit; font-size: 14px; }
+
+/* 3. content: tiles of light on a plane that leans away from you */
+.plane { position: absolute; left: 20px; right: 20px; top: 150px; height: 420px; transform-style: preserve-3d; transform: rotateX(22deg); transform-origin: 50% 100%; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.tile {
+  aspect-ratio: 3 / 4;
+  max-width: 100%;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255, 214, 162, .18);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, .45);
+  transform: translateZ(var(--z, 0));
+  transition: transform .5s var(--settle);
+  animation: float 7s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+@keyframes float { 50% { translate: 0 -6px; } }
+.tile p { position: absolute; left: 8px; right: 8px; bottom: 8px; margin: 0; font-size: 11px; line-height: 1.6; color: #fff; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); }
+.tile.add { display: grid; place-items: center; background: transparent; border-style: dashed; border-color: rgba(255, 207, 148, .5); font-size: 28px; color: var(--warm-bright); box-shadow: none; }
+.lifted { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(5, 3, 1, .7); animation: fade .3s ease; }
+.lifted .big { width: min(300px, calc(100% - 60px)); aspect-ratio: 3 / 4; border-radius: 20px; position: relative; overflow: hidden; animation: lift .5s var(--settle); box-shadow: 0 30px 80px rgba(0, 0, 0, .7); }
+.lifted .big p { position: absolute; left: 16px; right: 16px; bottom: 16px; margin: 0; font-size: 14px; line-height: 1.8; }
+@keyframes lift { from { transform: perspective(800px) rotateX(24deg) scale(.6); opacity: 0; } }
+@keyframes fade { from { opacity: 0; } }
+
+/* 4. records: a corridor into depth, the newest nearest */
+.corridor { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
+.rec {
+  position: absolute;
+  left: 20px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: linear-gradient(to left, rgba(70, 42, 14, .78), rgba(28, 16, 6, .7));
+  border: 1px solid rgba(255, 207, 148, .2);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .45);
+  transform-origin: 50% 50%;
+  transition: transform .6s var(--settle), opacity .4s ease;
+  cursor: pointer;
+}
+.rec .ic { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, .06); font-size: 15px; }
+.rec .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rec .tx b { font-weight: 400; font-size: 13px; }
+.rec .tx span { font-size: 11px; color: var(--fg-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pill { flex: none; font-size: 10px; padding: 3px 8px; border-radius: 10px; }
+.pill.done { color: var(--warm-bright); background: rgba(242, 176, 106, .14); }
+.pill.wait { color: #d6c8ff; background: rgba(182, 156, 255, .14); border: 1px dashed rgba(182, 156, 255, .5); }
+.pill.back { color: var(--fg-soft); background: rgba(255, 255, 255, .06); }
+.chips { position: absolute; left: 16px; right: 16px; top: calc(146px + env(safe-area-inset-top, 0px)); display: flex; justify-content: center; gap: 8px; z-index: 8; }
+.chips button { min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--glass-edge); background: rgba(40, 24, 8, .6); color: var(--fg-soft); font-size: 12px; cursor: pointer; }
+.chips button[aria-pressed="true"] { background: rgba(242, 176, 106, .24); color: var(--fg); border-color: rgba(242, 176, 106, .55); }
+
+/* 5. wallet: the number is light */
+.balance { position: absolute; left: 20px; right: 20px; top: 262px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.balance .n { font-family: var(--en); font-weight: 300; font-size: 54px; letter-spacing: .01em; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #fff6e6, #ffc674 60%, #e98d30); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 18px rgba(255, 190, 110, .45)); }
+.balance .unit { font-size: 13px; color: var(--warm-bright); }
+.balance .pend { font-size: 12px; color: var(--fg-faint); }
+.wave { width: 190px; height: 26px; margin-top: 6px; }
+.wave path { fill: none; stroke: var(--warm-bright); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 6 8; animation: flowd 1.6s linear infinite; filter: drop-shadow(0 0 4px rgba(255, 190, 110, .8)); }
+@keyframes flowd { to { stroke-dashoffset: -28; } }
+.wallet-act { position: absolute; left: 20px; right: 20px; top: 420px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.ledger { position: absolute; left: 30px; right: 30px; top: 486px; display: flex; flex-direction: column; gap: 6px; perspective: 600px; }
+.ledger div { display: flex; justify-content: space-between; font-size: 12px; color: var(--fg-soft); padding: 8px 12px; border-radius: 12px; background: rgba(255, 255, 255, .035); transform: rotateX(18deg); font-variant-numeric: tabular-nums; }
+.ledger .plus { color: var(--live); }
+
+/* 6. follows: the people who follow you orbit you */
+.people { position: absolute; left: 50%; top: 300px; width: 0; height: 0; }
+.pring { position: absolute; left: 0; top: 0; animation: spin var(--t, 60s) linear infinite; }
+.face { position: absolute; left: 0; top: 0; cursor: pointer; }
+.face b {
+  display: grid;
+  place-items: center;
+  width: 38px; height: 38px;
+  margin: -19px 0 0 -19px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 300;
+  color: #fff;
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .35), transparent 56%), linear-gradient(145deg, var(--a), var(--b));
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .5);
+  animation: spin var(--t, 60s) linear infinite reverse;
+}
+.phone[data-view="following"] .ring-followers, .phone[data-view="followers"] .ring-following { opacity: .18; filter: blur(2px); }
+.pring { transition: opacity .5s ease, filter .5s ease; }
+.requests { position: absolute; left: 20px; right: 20px; top: 470px; display: flex; flex-direction: column; gap: 8px; }
+.req { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: rgba(60, 10, 28, .45); border: 1px solid rgba(255, 77, 125, .3); }
+.req .face b { animation: none; margin: 0; }
+.req .face { position: relative; }
+.req span { flex: 1; font-size: 13px; }
+.req .lum { min-height: 38px; padding: 0 12px; font-size: 12px; }
+.follow-tabs { position: absolute; left: 20px; right: 20px; top: 430px; display: flex; justify-content: center; gap: 8px; }
+
+/* 7. privacy: the mirror — you, turned round, as the world sees you */
+.mirror-note { position: absolute; left: 24px; right: 24px; top: 290px; text-align: center; font-size: 12px; line-height: 1.9; color: var(--fg-soft); }
+.opts { position: absolute; left: 20px; right: 20px; top: 350px; display: flex; flex-direction: column; gap: 8px; perspective: 800px; }
+.opt { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(255, 255, 255, .035); border: 1px solid rgba(255, 214, 162, .12); transform: rotateX(8deg); }
+.opt div { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.opt b { font-weight: 400; font-size: 13px; }
+.opt span { font-size: 11px; line-height: 1.7; color: var(--fg-faint); }
+.opt.go { cursor: pointer; }
+.danger-zone { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 18px; border: 1px dashed rgba(255, 111, 111, .35); transform: rotateX(8deg); }
+.danger-zone p { margin: 0; font-size: 11px; line-height: 1.8; color: var(--fg-faint); }
+
+/* 8. settings */
+.setlist { position: absolute; left: 20px; right: 20px; top: 150px; display: flex; flex-direction: column; gap: 8px; perspective: 800px; }
+.seg { display: flex; border-radius: 16px; border: 1px solid var(--glass-edge); overflow: hidden; }
+.seg button { min-height: 38px; padding: 0 14px; border: 0; background: transparent; color: var(--fg-soft); font-size: 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: rgba(242, 176, 106, .24); color: var(--fg); }
+
+/* ---------- living icons, one per section ---------- */
+.ico { position: relative; width: 34px; height: 34px; display: grid; place-items: center; }
+.ico svg { width: 34px; height: 34px; overflow: visible; }
+.ico .stroke { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.i-info .dot { animation: breathe 3s ease-in-out infinite; transform-origin: 17px 17px; }
+.i-offers .mo { animation: spin 5s linear infinite; transform-origin: 17px 17px; }
+.i-content rect { animation: shimmer 2.4s ease-in-out infinite; }
+.i-content rect:nth-child(2) { animation-delay: .4s; }
+.i-content rect:nth-child(3) { animation-delay: .8s; }
+@keyframes shimmer { 50% { opacity: .35; } }
+.i-records .scan { animation: scan 2.2s ease-in-out infinite; }
+@keyframes scan { 0%, 100% { transform: translateY(-7px); opacity: 0; } 30%, 70% { opacity: 1; } 50% { transform: translateY(7px); } }
+.i-wallet path { stroke-dasharray: 5 5; animation: flowd 1.2s linear infinite; }
+.i-follows .th { stroke-dasharray: 3 4; animation: flowd 1s linear infinite; }
+.i-privacy .lid { animation: blink 4s ease-in-out infinite; transform-origin: 17px 17px; }
+@keyframes blink { 0%, 44%, 52%, 100% { transform: scaleY(1); } 48% { transform: scaleY(.1); } }
+.i-settings .k1 { animation: slide 3s ease-in-out infinite; }
+.i-settings .k2 { animation: slide 3s ease-in-out infinite reverse; }
+@keyframes slide { 50% { transform: translateX(6px); } }
+
+/* ---------- Sol ---------- */
+.sol {
+  position: absolute;
+  left: 50%;
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  width: var(--sol, 64px);
+  height: var(--sol, 64px);
+  margin-left: calc(var(--sol, 64px) / -2);
+  z-index: 30;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  touch-action: none;
+  background: radial-gradient(circle at 43% 37%, #fff 0%, #fffdf6 9%, #ffe9b4 26%, #ffc258 48%, #ff9a1f 70%, #e9700c 88%, #bf5405 100%);
+  box-shadow: 0 0 0 1px rgba(255, 248, 232, .9), 0 0 22px rgba(255, 214, 158, .95), 0 0 56px rgba(255, 172, 78, .58), 0 0 110px rgba(255, 160, 64, .3);
+  transition: scale .26s var(--pop);
+}
+.sol.held { scale: .9; }
+.sol::before { content: ''; position: absolute; inset: -60px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 196, 124, .3), rgba(255, 176, 100, .1) 38%, transparent 70%); z-index: -1; animation: breathe 5.5s ease-in-out infinite; }
+.sol::after { content: ''; position: absolute; inset: -2px; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0deg 236deg, rgba(255, 240, 212, .55) 296deg, #fff 330deg, rgba(255, 240, 212, .4) 348deg, transparent 360deg); -webkit-mask: radial-gradient(circle, transparent 0 calc(50% - 2.2px), #000 calc(50% - 2.2px) 50%, transparent 50%); mask: radial-gradient(circle, transparent 0 calc(50% - 2.2px), #000 calc(50% - 2.2px) 50%, transparent 50%); animation: spin 7s linear infinite; }
+
+.toast { position: absolute; left: 50%; top: calc(84px + env(safe-area-inset-top, 0px)); z-index: 60; transform: translateX(-50%); max-width: calc(100% - 40px); padding: 9px 16px; border-radius: 18px; font-size: 12px; line-height: 1.7; text-align: center; background: rgba(36, 22, 8, .94); border: 1px solid rgba(255, 214, 162, .18); animation: rise .35s var(--settle); }
+@keyframes rise { from { opacity: 0; translate: 0 8px; } }
+
+/* ============ MODE: wheel (the owner's idea) ============ */
+/* The finger-sized orb is Sol. Held, it opens into a wheel of the eight
+   sections, five in sight; the top one is lit, the others fade with
+   distance. The chosen section rises from Sol as a projection of light. */
+.m-wheel .sol { --sol: 58px; }
+.cur { position: absolute; left: 50%; bottom: calc(112px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 29; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--warm-bright); pointer-events: none; transition: opacity .25s ease; }
+.cur small { font-size: 11px; color: var(--fg-faint); }
+.hold-hint { position: absolute; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 29; font-size: 11px; color: var(--fg-faint); white-space: nowrap; pointer-events: none; transition: opacity .4s ease; }
+.hold-hint.gone { opacity: 0; }
+/* A beam from Sol up into the section, and a floor of light under it:
+   what makes the section read as projected rather than printed. */
+.beam { position: absolute; left: 50%; bottom: calc(60px + env(safe-area-inset-bottom, 0px)); width: 340px; height: 640px; margin-left: -170px; z-index: 3; pointer-events: none; background: radial-gradient(60% 100% at 50% 100%, rgba(255, 196, 124, .12), rgba(255, 196, 124, .03) 60%, transparent 80%); clip-path: polygon(46% 100%, 54% 100%, 100% 0, 0 0); opacity: .9; }
+.floor { position: absolute; left: -40%; right: -40%; bottom: -30px; height: 260px; z-index: 2; pointer-events: none; transform: perspective(400px) rotateX(72deg); transform-origin: 50% 100%; background-image: linear-gradient(rgba(255, 196, 124, .16) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 196, 124, .16) 1px, transparent 1px); background-size: 38px 38px; -webkit-mask: linear-gradient(to top, #000, transparent 85%); mask: linear-gradient(to top, #000, transparent 85%); animation: floor-run 6s linear infinite; }
+@keyframes floor-run { to { background-position: 0 38px, 0 0; } }
+.scanline { position: absolute; left: 0; right: 0; height: 90px; z-index: 7; pointer-events: none; background: linear-gradient(to bottom, transparent, rgba(255, 214, 162, .16), transparent); opacity: 0; }
+.scanline.go { animation: sweep .7s ease-out; }
+@keyframes sweep { 0% { top: 88%; opacity: 1; } 100% { top: 10%; opacity: 0; } }
+.m-wheel .sec.arriving { opacity: 0; transform: none; clip-path: inset(100% 0 0 0); filter: brightness(2); transition: none; }
+.m-wheel .sec.on { clip-path: inset(0 0 0 0); transition: opacity .42s ease, clip-path .7s cubic-bezier(.3, .8, .3, 1), filter .7s ease; }
+
+.wheel { position: absolute; left: 50%; bottom: calc(69px + env(safe-area-inset-bottom, 0px)); width: 0; height: 0; z-index: 28; pointer-events: none; }
+.wheel .disk { position: absolute; left: -175px; top: -175px; width: 350px; height: 350px; border-radius: 50%; background: radial-gradient(circle, rgba(40, 22, 6, .2) 30%, rgba(30, 16, 4, .88) 31%, rgba(20, 10, 2, .9) 64%, rgba(20, 10, 2, 0) 71%); transform: scale(.18); opacity: 0; transition: transform .45s var(--settle), opacity .3s ease; }
+.wheel .ticks { position: absolute; left: -150px; top: -150px; width: 300px; height: 300px; border-radius: 50%; background: repeating-conic-gradient(from -1deg, rgba(255, 214, 162, .35) 0deg 2deg, transparent 2deg 9deg); -webkit-mask: radial-gradient(circle, transparent 0 138px, #000 139px 146px, transparent 147px); mask: radial-gradient(circle, transparent 0 138px, #000 139px 146px, transparent 147px); opacity: 0; transition: opacity .3s ease; }
+.wheel .arc { position: absolute; left: -110px; top: -110px; width: 220px; height: 220px; border-radius: 50%; border: 1px solid rgba(255, 214, 162, .35); opacity: 0; transition: opacity .3s ease; }
+.wheel .rotor { position: absolute; left: 0; top: 0; }
+.slot { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--warm-bright); transform: translate(-50%, -50%); transition: opacity .25s ease; }
+.slot label { font-size: 12px; white-space: nowrap; color: var(--fg); text-shadow: 0 0 10px #000; opacity: 0; transition: opacity .2s ease; }
+.slot.top label { opacity: 1; }
+.phone.open .wheel .disk { transform: scale(1); opacity: 1; }
+.phone.open .wheel .ticks, .phone.open .wheel .arc { opacity: 1; }
+.phone.open .cur { opacity: 0; }
+.phone .wheel .slot { opacity: 0; }
+.veil { position: absolute; inset: 0; z-index: 27; background: linear-gradient(to top, rgba(8, 4, 1, .92), rgba(8, 4, 1, .55) 50%, rgba(8, 4, 1, .25)); opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+.phone.open .veil { opacity: 1; }
+.preview { position: absolute; left: 24px; right: 24px; bottom: calc(300px + env(safe-area-inset-bottom, 0px)); z-index: 29; text-align: center; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+.preview b { display: block; font-weight: 400; font-size: 22px; color: var(--warm-bright); }
+.preview span { font-size: 12px; color: var(--fg-soft); }
+.phone.open .preview { opacity: 1; }
+
+/* ============ MODE: crown (Claude's idea) ============ */
+/* A crown at the thumb's edge, half out of sight like a watch crown. It
+   turns a step at a time; the section facing the screen is the one shown.
+   Sol stays where it is everywhere else, and a tap on it goes home. */
+.crown { position: absolute; right: -96px; top: calc(100% - 250px - env(safe-area-inset-bottom, 0px)); width: 200px; height: 200px; z-index: 26; touch-action: none; cursor: grab; }
+.crown .dial { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 30% 50%, rgba(80, 48, 16, .92), rgba(30, 16, 4, .95) 70%); border: 1px solid rgba(255, 214, 162, .3); box-shadow: -10px 0 40px rgba(0, 0, 0, .6), inset 6px 0 18px rgba(255, 207, 148, .12); }
+.crown .knurl { position: absolute; inset: 6px; border-radius: 50%; background: repeating-conic-gradient(rgba(255, 214, 162, .22) 0deg 1.5deg, transparent 1.5deg 6deg); -webkit-mask: radial-gradient(circle, transparent 0 86px, #000 87px); mask: radial-gradient(circle, transparent 0 86px, #000 87px); transition: transform .5s var(--settle); }
+.crown .rotor { position: absolute; left: 100px; top: 100px; transition: transform .5s var(--settle); }
+.crown .slot { color: var(--warm-bright); }
+.crown .slot .ico { transform: scale(.72); }
+.crown-label { position: absolute; right: 118px; top: calc(100% - 150px - env(safe-area-inset-bottom, 0px)); transform: translateY(-50%); z-index: 26; text-align: left; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.crown-label b { font-weight: 400; font-size: 18px; color: var(--warm-bright); }
+.crown-label span { font-size: 11px; color: var(--fg-faint); }
+.crown-label.swap { opacity: 0; transition: opacity .15s ease; }
+.m-crown .sol { --sol: 64px; }
+.m-crown .hint-line { right: 120px; text-align: start; }
+
+/* A lighter version for phones that cannot carry the rest: the same
+   places and the same controls, without blur, glow and orbiting motion. */
+.phone.lite .sec.leaving { filter: none; }
+.phone.lite .interests .ring, .phone.lite .interests .chip span, .phone.lite .pring, .phone.lite .face b, .phone.lite .tile, .phone.lite .me-body, .phone.lite .floor, .phone.lite .l-tiles i { animation: none; }
+.phone.lite .panel, .phone.lite .lum { backdrop-filter: none; }
+.phone.lite .l-photon { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01s !important; animation-iteration-count: 1 !important; transition-duration: .01s !important; }
+}
+</style>
+
+<div class="phone" id="stage" dir="rtl" lang="fa" data-sec="info">
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="floor" id="floor" hidden></div>
+  <div class="beam" id="beam" hidden></div>
+
+  <header class="top" id="top"><b id="top-name"></b><span id="top-sub"></span></header>
+
+  <div class="scene" id="scene">
+    <div class="me" id="me">
+      <div class="me-layer l-photon"></div>
+      <div class="me-layer l-tiles"><i style="animation-delay:0s"></i><i style="animation-delay:-3s"></i><i style="animation-delay:-6s"></i></div>
+      <span class="me-live" aria-hidden="true"></span>
+      <div class="me-body" id="me-body" role="button" tabindex="0" aria-label="عکسِ تو؛ بزن تا عوضش کنی">م</div>
+      <input type="file" id="photo" accept="image/*" hidden>
+    </div>
+    <div id="sections"></div>
+  </div>
+  <div class="scanline" id="scan"></div>
+  <div class="veil" id="veil"></div>
+  <div class="preview" id="preview"><b></b><span></span></div>
+
+  <div id="nav"></div>
+  <button class="sol" id="sol" type="button" aria-label="سول"></button>
+  <div id="toast-slot" aria-live="polite"></div>
+</div>
+
+<script>
+/*
+ * "Me" — a prototype of the owner's region for everything about yourself
+ * (docs/TECHNICAL_REQUIREMENTS.md sections 30.22 and 30.23). Example data
+ * only; nothing here is anybody's real account.
+ */
+const MODE = 'wheel';
+const $ = (s, r = document) => r.querySelector(s);
+const stage = $('#stage');
+stage.classList.add(MODE === 'wheel' ? 'm-wheel' : 'm-crown');
+const fa = (n) => Number(n).toLocaleString('fa');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let buzzOn = true;
+const buzz = (p) => { if (buzzOn && navigator.vibrate) try { navigator.vibrate(p); } catch { /* ignore */ } };
+function toast(text, ms = 2600) {
+  const slot = $('#toast-slot');
+  slot.innerHTML = `<div class="toast">${text}</div>`;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { slot.innerHTML = ''; }, ms);
+}
+
+// ------------------------------------------------------------- example data
+const ME = { name: 'مهسا', user: 'mahsa.sky', bio: 'آدمِ حرف‌های نصفه‌کاره‌ام؛ عصرها کتاب، شب‌ها آسمان.', interests: ['کتاب', 'جاز', 'کوه', 'عکاسی', 'فلسفه', 'قهوه'], days: 4, sessions: 6 };
+const OFFERS = [
+  { t: 'گفتگو درباره‌ی کتاب', p: 120, min: 30, on: true, req: 2 },
+  { t: 'تمرینِ مکالمه‌ی انگلیسی', p: 160, min: 30, on: true, req: 0 },
+  { t: 'چند نکته درباره‌ی عکاسیِ شب', p: 200, min: 60, on: false, req: 0 },
+];
+const TILES = [
+  { c: ['#2b4a6b', '#e39b52'], t: 'غروبِ دیروز از پشت‌بام', z: 30 },
+  { c: ['#3a2350', '#d98b6b'], t: 'یک جمله از «صد سال تنهایی»', z: 0 },
+  { c: ['#16384a', '#7ad7c8'], t: 'مسیرِ کوهِ دارآباد', z: 20 },
+  { c: ['#4a2a12', '#ffcf94'], t: 'سه آلبومِ جاز برای شروع', z: 10 },
+  { c: ['#1d2a44', '#b69cff'], t: 'عکسِ ماه، بدونِ سه‌پایه', z: 40 },
+];
+const RECORDS = [
+  { k: 'session', ic: '◐', t: 'جلسه با هومن', s: '۴ بلوک · ۲۴۰ فوتون · دیروز', st: 'done', pill: 'آزاد شد' },
+  { k: 'request', ic: '↗', t: 'درخواستت از کیان', s: '«گفتگو درباره‌ی سینما» · ۱۶۰ فوتون', st: 'wait', pill: 'منتظرِ پرداختِ تو' },
+  { k: 'request', ic: '↙', t: 'آرش پیشنهادت را پذیرفت', s: '«گفتگو درباره‌ی کتاب» · ۱۲۰ فوتون', st: 'wait', pill: 'منتظرِ تأییدِ تو' },
+  { k: 'session', ic: '◐', t: 'جلسه با شبنم', s: '۲ از ۴ بلوک · به انتخابِ شبنم زودتر تمام شد', st: 'back', pill: '۲ بلوک برگشت' },
+  { k: 'session', ic: '◐', t: 'جلسه با نگار', s: '۴ بلوک · ۱۲۰ فوتون · هفته‌ی پیش', st: 'done', pill: 'آزاد شد' },
+  { k: 'request', ic: '↗', t: 'درخواستت از بهار', s: '«قدم‌زدن و حرف» · رد شد', st: 'back', pill: 'رد شد' },
+  { k: 'session', ic: '◐', t: 'جلسه با سامان', s: '۴ بلوک · ۲۰۰ فوتون · دو هفته پیش', st: 'done', pill: 'آزاد شد' },
+];
+const BODIES = [['#3e8f86', '#1c3f52'], ['#8a4f7d', '#2d1a3c'], ['#a8753a', '#3d2410'], ['#4f6fa8', '#1a2540'], ['#6f8f3e', '#243312'], ['#a84f4f', '#3c1a1a']];
+const FOLLOWERS = ['ه', 'ش', 'ن', 'ک', 'س', 'ب'];
+const FOLLOWING = ['آ', 'ت', 'د', 'ر'];
+const REQUESTS = [{ n: 'زاله', i: 'ز' }, { n: 'فرهاد', i: 'ف' }];
+
+// ---------------------------------------------------------------- sections
+// Where you stand in each section: your orb moves and resizes rather than
+// being drawn again. oy is its centre from the top, os its size.
+const SECTIONS = [
+  { id: 'info', name: 'اطلاعاتِ شخصی', sub: () => `@${ME.user}`, oy: 170, os: 118 },
+  { id: 'offers', name: 'پیشنهادها', sub: () => `${fa(OFFERS.filter((o) => o.on).length)} روشن · ${fa(OFFERS.reduce((a, o) => a + o.req, 0))} درخواستِ تازه`, oy: 240, os: 72 },
+  { id: 'content', name: 'محتواها', sub: () => `${fa(TILES.length)} چیز گذاشته‌ای`, oy: 112, os: 46 },
+  { id: 'records', name: 'پرونده‌ها', sub: () => `${fa(RECORDS.length)} جلسه و درخواست`, oy: 112, os: 46 },
+  { id: 'wallet', name: 'کیف پول', sub: () => '۱٬۲۴۰ فوتون · ۱۸۰ در راه', oy: 180, os: 84 },
+  { id: 'follows', name: 'دنبال‌ها', sub: () => `${fa(FOLLOWERS.length)} دنبال‌کننده · ${fa(REQUESTS.length)} منتظرِ جواب`, oy: 300, os: 62 },
+  { id: 'privacy', name: 'حریمِ خصوصی', sub: () => 'آینه: تو همان‌طور که دیگران می‌بینند', oy: 190, os: 110 },
+  { id: 'settings', name: 'تنظیمات', sub: () => 'زبان، لرزش، گرافیک', oy: 112, os: 46 },
+];
+
+const ICONS = {
+  info: '<svg viewBox="0 0 34 34"><circle class="stroke" cx="17" cy="17" r="12"/><circle class="dot" cx="17" cy="17" r="5" fill="currentColor"/></svg>',
+  offers: '<svg viewBox="0 0 34 34"><circle cx="17" cy="17" r="6" fill="currentColor" opacity=".9"/><g class="mo"><circle cx="30" cy="17" r="3" fill="currentColor"/></g><ellipse class="stroke" cx="17" cy="17" rx="13" ry="13" opacity=".35"/></svg>',
+  content: '<svg viewBox="0 0 34 34"><rect x="4" y="6" width="11" height="10" rx="2" fill="currentColor"/><rect x="19" y="6" width="11" height="10" rx="2" fill="currentColor"/><rect x="4" y="19" width="11" height="10" rx="2" fill="currentColor"/><rect class="stroke" x="19" y="19" width="11" height="10" rx="2" stroke-dasharray="3 3"/></svg>',
+  records: '<svg viewBox="0 0 34 34"><path class="stroke" d="M8 9h18M10 15h14M12 21h10M14 27h6"/><rect class="scan" x="5" y="16" width="24" height="2" rx="1" fill="currentColor"/></svg>',
+  wallet: '<svg viewBox="0 0 34 34"><path class="stroke" d="M3 17c3-6 6-6 9 0s6 6 9 0 6-6 9 0"/></svg>',
+  follows: '<svg viewBox="0 0 34 34"><circle cx="8" cy="20" r="4" fill="currentColor"/><circle cx="26" cy="12" r="4" fill="currentColor"/><path class="stroke th" d="M11 18 L23 13"/></svg>',
+  privacy: '<svg viewBox="0 0 34 34"><path class="stroke" d="M3 17s5-9 14-9 14 9 14 9-5 9-14 9S3 17 3 17z"/><g class="lid"><circle cx="17" cy="17" r="4.5" fill="currentColor"/></g></svg>',
+  settings: '<svg viewBox="0 0 34 34"><path class="stroke" d="M5 11h24M5 23h24" opacity=".45"/><circle class="k1" cx="12" cy="11" r="3.5" fill="currentColor"/><circle class="k2" cx="22" cy="23" r="3.5" fill="currentColor"/></svg>',
+};
+const icon = (id) => `<span class="ico i-${id}" aria-hidden="true">${ICONS[id]}</span>`;
+
+const host = $('#sections');
+function section(id, html) {
+  const el = document.createElement('section');
+  el.className = 'sec';
+  el.id = `sec-${id}`;
+  el.setAttribute('aria-label', SECTIONS.find((s) => s.id === id).name);
+  el.innerHTML = html;
+  host.appendChild(el);
+  return el;
+}
+
+// 1. personal info — you, your words around you; tap any of them to edit.
+const orbitChips = ME.interests.map((w, k) => {
+  const a = (k / ME.interests.length) * Math.PI * 2;
+  return `<div class="chip" style="transform: translate(${(Math.cos(a) * 128).toFixed(1)}px, ${(Math.sin(a) * 128).toFixed(1)}px)"><span>${w}</span></div>`;
+}).join('');
+section('info', `
+  <div class="interests" aria-label="علاقه‌ها"><div class="ring">${orbitChips}</div></div>
+  <div class="info-text">
+    <span class="nm editable" contenteditable="true" spellcheck="false" id="f-name">${ME.name}</span>
+    <span class="un editable" contenteditable="true" spellcheck="false" id="f-user">@${ME.user}</span>
+    <span class="bio editable" contenteditable="true" spellcheck="false" id="f-bio">${ME.bio}</span>
+  </div>
+  <div class="why">
+    <div class="sz"><i></i>گوی‌ات این اندازه است چون این هفته ${fa(ME.days)} روز آمده‌ای.</div>
+    <div class="gl"><i></i>این‌قدر می‌درخشد چون ${fa(ME.sessions)} جلسه را تا آخر رفته‌ای.</div>
+  </div>
+  <div class="exit-row" id="exit-row"><button class="lum quiet" type="button" data-act="exit">خروج از حساب</button></div>
+  <p class="hint-line" style="top:640px">روی هر نوشته بزن تا ویرایشش کنی؛ روی گوی بزن تا عکست را عوض کنی.</p>`);
+
+// 2. offers — moons on a ring you turn; the front one is described below.
+const offersEl = section('offers', `
+  <div class="moonring"><div class="rot" id="rot"></div></div>
+  <div class="panel" id="offer-panel" style="top:360px"></div>
+  <p class="hint-line" style="top:620px">ماه‌ها را به چپ و راست بکش؛ روی نقطه‌چین بزن تا پیشنهادِ تازه بسازی.</p>`);
+let offerFront = 0;
+function drawOffers() {
+  const rot = $('#rot');
+  const n = OFFERS.length + 1;
+  const R = 118;
+  rot.innerHTML = [...OFFERS.map((o, k) => ({ o, k })), { add: true, k: OFFERS.length }].map(({ o, k, add }) => {
+    const a = (k / n) * Math.PI * 2 + Math.PI / 2;
+    return `<div class="moon${add ? ' add' : ''}${o && !o.on ? ' off' : ''}${k === offerFront ? ' front' : ''}" data-k="${k}" style="transform: translate(${(Math.cos(a) * R).toFixed(1)}px, ${(Math.sin(a) * R).toFixed(1)}px)"><b></b></div>`;
+  }).join('');
+  rot.style.transform = `rotate(${(-offerFront / n) * 360}deg)`;
+  rot.querySelectorAll('.moon b').forEach((b) => { b.style.transform = `translate(-50%, -50%) rotate(${(offerFront / n) * 360}deg) rotateX(-68deg)`; });
+  const panel = $('#offer-panel');
+  if (offerFront === OFFERS.length) {
+    panel.innerHTML = `<h3>پیشنهادِ تازه</h3>
+      <label class="field">چه پیشنهادی می‌دهی؟<input id="new-title" type="text" placeholder="مثلاً: گفتگو درباره‌ی موسیقی"></label>
+      <label class="field">چند فوتون؟ (برای ۳۰ دقیقه، چهار بلوک)<input id="new-price" type="number" inputmode="numeric" value="120" min="4" step="4"></label>
+      <div class="row"><button class="lum warm" type="button" data-act="birth">ساختن</button></div>`;
+    return;
+  }
+  const o = OFFERS[offerFront];
+  panel.innerHTML = `<h3>${o.t}</h3>
+    <span class="meta">${fa(o.p)} فوتون · ${fa(o.min)} دقیقه در چهار بلوک</span>
+    <div class="row"><button class="switch" role="switch" aria-checked="${o.on}" aria-label="روشن بودنِ پیشنهاد" data-act="toggle"></button><span class="meta">${o.on ? 'روشن — در جهان یک ماه کنارِ تو دیده می‌شود' : 'خاموش — کسی نمی‌بیندش'}</span></div>
+    <div class="row">${o.req ? `<button class="lum warm" type="button" data-act="reqs">${fa(o.req)} درخواستِ تازه</button>` : ''}<button class="lum" type="button" data-act="edit">ویرایش</button></div>`;
+}
+drawOffers();
+
+// 3. content — tiles of light on a plane leaning away; tap to lift one.
+const tilesHTML = TILES.map((t, k) => `<div class="tile" style="--z:${t.z}px; --d:${-k * 1.3}s; background: linear-gradient(160deg, ${t.c[0]}, ${t.c[1]})" data-k="${k}" role="button" tabindex="0"><p>${t.t}</p></div>`).join('');
+section('content', `
+  <div class="plane"><div class="tiles">${tilesHTML}<div class="tile add" data-act="post" role="button" tabindex="0" aria-label="گذاشتنِ چیزِ تازه">+</div></div></div>
+  <p class="hint-line" style="top:640px">روی هر کاشی بزن تا جلو بیاید.</p>`);
+
+// 4. records — a corridor into depth, newest nearest; drag to walk it.
+section('records', `
+  <div class="chips" id="rec-chips" role="group" aria-label="نوعِ پرونده">
+    <button type="button" data-f="all" aria-pressed="true">همه</button>
+    <button type="button" data-f="session" aria-pressed="false">جلسه‌ها</button>
+    <button type="button" data-f="request" aria-pressed="false">درخواست‌ها</button>
+  </div>
+  <div class="corridor" id="corridor"></div>`);
+let recScroll = 0, recFilter = 'all';
+function drawRecords() {
+  const c = $('#corridor');
+  const W = stage.clientWidth;
+  const list = RECORDS.filter((r) => recFilter === 'all' || r.k === recFilter);
+  if (!c.children.length || c.dataset.f !== recFilter) {
+    c.dataset.f = recFilter;
+    c.innerHTML = list.map((r, k) => `<div class="rec" data-k="${k}" style="width:${W - 40}px"><span class="ic">${r.ic}</span><span class="tx"><b>${r.t}</b><span>${r.s}</span></span><span class="pill ${r.st}">${r.pill}</span></div>`).join('');
+  }
+  const nearest = stage.clientHeight - 330;
+  [...c.children].forEach((el, k) => {
+    const d = k - recScroll;
+    let y, sc, op, z;
+    if (d < 0) { y = nearest - d * 140; sc = 1 - d * .1; op = Math.max(0, 1 + d * 2); z = 200; }
+    else { y = nearest - ((1 - Math.pow(.82, d)) / .18) * 78; sc = Math.max(.42, Math.pow(.82, d)); op = Math.max(0, 1 - d * .12); z = 100 - k; }
+    el.style.transform = `translate3d(0, ${(y - 32).toFixed(1)}px, 0) scale(${sc.toFixed(3)})`;
+    el.style.opacity = op.toFixed(2);
+    el.style.zIndex = z;
+    el.style.pointerEvents = op > .35 ? 'auto' : 'none';
+  });
+}
+
+// 5. wallet — the number is light; Photon flows under it.
+section('wallet', `
+  <div class="balance">
+    <span class="n">1,240</span>
+    <span class="unit">فوتونِ قابلِ خرج</span>
+    <svg class="wave" viewBox="0 0 190 26" aria-hidden="true"><path d="M2 13c12-12 24-12 36 0s24 12 36 0 24-12 36 0 24 12 36 0 24-12 36 0"/></svg>
+    <span class="pend">۱۸۰ فوتون در راهِ رسیدن به تو، از جلسه‌های دیروز</span>
+  </div>
+  <div class="wallet-act"><button class="lum warm" type="button" data-act="topup">شارژ</button><button class="lum" type="button" data-act="withdraw">برداشت</button><button class="lum quiet" type="button" data-act="banks">حساب‌های بانکی</button></div>
+  <div class="ledger" aria-label="آخرین جابه‌جایی‌ها">
+    <div><span>جلسه با هومن — آزاد شد</span><span class="plus">+۲۴۰</span></div>
+    <div><span>شارژ</span><span class="plus">+۵۰۰</span></div>
+    <div><span>درخواست از کیان — کنار گذاشته شد</span><span>−۱۶۰</span></div>
+  </div>`);
+
+// 6. follows — the people who follow you orbit you; requests wait in front.
+const faceHTML = (ch, k) => { const [a, b] = BODIES[k % BODIES.length]; return `<b style="--a:${a};--b:${b}">${ch}</b>`; };
+const ringOf = (list, R, t, cls) => `<div class="pring ${cls}" style="--t:${t}s">${list.map((ch, k) => {
+  const a = (k / list.length) * Math.PI * 2;
+  return `<div class="face" style="--t:${t}s; transform: translate(${(Math.cos(a) * R).toFixed(1)}px, ${(Math.sin(a) * R * .78).toFixed(1)}px)" role="button" tabindex="0" aria-label="یک نفر">${faceHTML(ch, k)}</div>`;
+}).join('')}</div>`;
+section('follows', `
+  <div class="people">${ringOf(FOLLOWING, 78, 70, 'ring-following')}${ringOf(FOLLOWERS, 138, 110, 'ring-followers')}</div>
+  <div class="follow-tabs" id="follow-tabs" role="group" aria-label="کدام">
+    <button class="lum" type="button" data-v="followers" aria-pressed="false">${fa(FOLLOWERS.length)} دنبال‌کننده</button>
+    <button class="lum" type="button" data-v="following" aria-pressed="false">${fa(FOLLOWING.length)} دنبال‌شده</button>
+  </div>
+  <div class="requests" id="requests">${REQUESTS.map((r, k) => `<div class="req" data-k="${k}"><span class="face">${faceHTML(r.i, k + 2)}</span><span>${r.n} می‌خواهد دنبالت کند</span><button class="lum warm" type="button" data-act="accept">پذیرفتن</button><button class="lum quiet" type="button" data-act="refuse">رد</button></div>`).join('')}</div>`);
+
+// 7. privacy — the mirror, and what decides it.
+section('privacy', `
+  <p class="mirror-note" id="mirror-note">این تویی، از پشت — همان‌طور که دیگران می‌بینند: نام و گوی و پیشنهادهای روشن. بقیه فقط مالِ خودت است.</p>
+  <div class="opts">
+    <div class="opt"><div><b>دیده شدنِ نزدیک شدنم</b><span>اگر خاموشش کنی، کسی نمی‌بیند از کنارش گذشته‌ای — و تو هم نمی‌بینی چه کسی از کنارت گذشت.</span></div><button class="switch" role="switch" aria-checked="true" aria-label="دیده شدنِ نزدیک شدنم" data-act="seen"></button></div>
+    <div class="opt"><div><b>پیدا شدن در Echo</b><span>غریبه‌ها می‌توانند تصادفی به تو برسند.</span></div><button class="switch" role="switch" aria-checked="true" aria-label="پیدا شدن در Echo" data-act="echo"></button></div>
+    <div class="opt go" role="button" tabindex="0" data-act="blocked"><div><b>مسدودها</b><span>۲ نفر — نه تو را می‌بینند، نه تو آن‌ها را.</span></div><span aria-hidden="true">‹</span></div>
+    <div class="danger-zone" id="danger"><b style="font-weight:400;font-size:13px;color:#ffb3b3">حذفِ حساب</b><p>پیام‌ها و گوی‌ات از جهان برداشته می‌شوند. فوتون‌های قابلِ خرج را قبلش برداشت کن.</p><div class="row" style="display:flex;gap:8px"><button class="lum danger" type="button" data-act="delete">حذفِ حساب</button></div></div>
+  </div>`);
+
+// 8. settings
+section('settings', `
+  <div class="setlist">
+    <div class="opt"><div><b>زبان</b><span>نوشته‌ها و جهتِ صفحه</span></div><div class="seg" role="group" aria-label="زبان"><button type="button" aria-pressed="true">فارسی</button><button type="button" aria-pressed="false">English</button></div></div>
+    <div class="opt"><div><b>لرزش</b><span>ضربه‌های کوچک زیرِ انگشت</span></div><button class="switch" role="switch" aria-checked="true" aria-label="لرزش" data-act="buzz"></button></div>
+    <div class="opt"><div><b>گرافیکِ سبک</b><span>برای گوشی‌هایی که کند می‌شوند: همان جاها، بی‌تاری و بی‌درخشش</span></div><button class="switch" role="switch" aria-checked="false" aria-label="گرافیکِ سبک" data-act="lite"></button></div>
+    <div class="opt go" role="button" tabindex="0" data-act="help"><div><b>راهنما و گزارشِ مشکل</b><span>سؤال، پیشنهاد یا چیزی که درست کار نمی‌کند</span></div><span aria-hidden="true">‹</span></div>
+  </div>`);
+
+// ----------------------------------------------------------- going between
+let current = 0;
+function setHeader(k) {
+  const top = $('#top');
+  top.classList.add('swap');
+  setTimeout(() => {
+    $('#top-name').textContent = SECTIONS[k].name;
+    $('#top-sub').textContent = SECTIONS[k].sub();
+    top.classList.remove('swap');
+  }, 180);
+}
+function placeMe(k) {
+  const me = $('#me');
+  me.style.setProperty('--oy', `${SECTIONS[k].oy}px`);
+  me.style.setProperty('--os', `${SECTIONS[k].os}px`);
+}
+function show(k, instant) {
+  const next = SECTIONS[k];
+  const prevEl = $(`#sec-${SECTIONS[current].id}`);
+  const nextEl = $(`#sec-${next.id}`);
+  if (k === current && !instant) return;
+  current = k;
+  stage.dataset.sec = next.id;
+  placeMe(k);
+  setHeader(k);
+  if (next.id === 'records') drawRecords();
+  if (instant) { nextEl.classList.add('on'); return; }
+  prevEl.classList.remove('on');
+  prevEl.classList.add('leaving');
+  setTimeout(() => prevEl.classList.remove('leaving'), 420);
+  nextEl.classList.add('arriving', 'on');
+  requestAnimationFrame(() => requestAnimationFrame(() => nextEl.classList.remove('arriving')));
+  if (MODE === 'wheel') { const s = $('#scan'); s.classList.remove('go'); void s.offsetWidth; s.classList.add('go'); }
+}
+
+// ------------------------------------------------------------------- Sol
+const sol = $('#sol');
+function goWorld() { toast('در برنامه‌ی واقعی این‌جا به جهان برمی‌گشتی.'); buzz([14]); }
+
+if (MODE === 'wheel') {
+  // The finger-sized orb IS Sol: a tap goes home to the world, as it does
+  // everywhere; holding it opens the wheel. One rule for the whole app.
+  $('#floor').hidden = false;
+  $('#beam').hidden = false;
+  const nav = $('#nav');
+  nav.innerHTML = `
+    <div class="cur" id="cur"></div>
+    <div class="wheel" id="wheel"><div class="disk"></div><div class="ticks"></div><div class="arc"></div><div class="rotor" id="rotor"></div></div>
+    <div class="hold-hint" id="hold-hint">سول را نگه دار تا بخش‌ها باز شوند · بزن تا به جهان برگردی</div>`;
+  const STEP = 36, R = 132;
+  const rotor = $('#rotor');
+  rotor.innerHTML = SECTIONS.map((s, k) => `<div class="slot" data-k="${k}">${icon(s.id)}<label>${s.name}</label></div>`).join('');
+  const slots = [...rotor.children];
+  let spin = 0;          // continuous, in steps; the top item is round(spin)
+  let open = false, pressT = 0, startX = 0, spin0 = 0, lastTop = -1, holdTimer = 0, moved = false;
+  const topIndex = () => ((Math.round(spin) % 8) + 8) % 8;
+  function layoutWheel() {
+    slots.forEach((el, k) => {
+      let d = k - spin; d = ((d + 4) % 8 + 8) % 8 - 4;   // -4..4, nearest way round
+      const ang = (-90 + d * STEP) * Math.PI / 180;
+      const ad = Math.abs(d);
+      const vis = ad <= 2.5;
+      el.style.transform = `translate(calc(-50% + ${(Math.cos(ang) * R).toFixed(1)}px), calc(-50% + ${(Math.sin(ang) * R).toFixed(1)}px)) scale(${(1.3 - Math.min(ad, 2.5) * .22).toFixed(3)})`;
+      el.style.opacity = open && vis ? String(Math.max(0, 1 - ad * .36).toFixed(2)) : '0';
+      el.classList.toggle('top', ad < .5);
+    });
+    const k = topIndex();
+    if (k !== lastTop) {
+      lastTop = k;
+      if (open) buzz([8]);
+      const pv = $('#preview');
+      pv.querySelector('b').textContent = SECTIONS[k].name;
+      pv.querySelector('span').textContent = SECTIONS[k].sub();
+    }
+  }
+  function drawCur() {
+    const s = SECTIONS[current];
+    $('#cur').innerHTML = `${icon(s.id)}<small>${s.name}</small>`;
+  }
+  function openWheel() {
+    open = true;
+    spin = current; spin0 = spin; lastTop = -1;
+    stage.classList.add('open');
+    $('#hold-hint').classList.add('gone');
+    buzz([12]);
+    layoutWheel();
+  }
+  function closeWheel(commit) {
+    open = false;
+    stage.classList.remove('open');
+    const k = topIndex();
+    spin = k;
+    layoutWheel();
+    if (commit && k !== current) { show(k); drawCur(); buzz([10, 30, 10]); }
+  }
+  sol.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    sol.setPointerCapture(e.pointerId);
+    sol.classList.add('held');
+    pressT = performance.now(); startX = e.clientX; moved = false;
+    holdTimer = setTimeout(openWheel, 170);
+  });
+  sol.addEventListener('pointermove', (e) => {
+    const dx = e.clientX - startX;
+    if (!open && Math.abs(dx) > 10) { clearTimeout(holdTimer); openWheel(); }
+    if (!open) return;
+    if (Math.abs(dx) > 6) moved = true;
+    // A finger moving right turns the wheel so what was on the left comes
+    // to the top, the way a real dial under a thumb turns.
+    spin = spin0 - dx / 46;
+    layoutWheel();
+  });
+  sol.addEventListener('pointerup', () => {
+    clearTimeout(holdTimer);
+    sol.classList.remove('held');
+    if (!open) { goWorld(); return; }
+    closeWheel(true);
+  });
+  sol.addEventListener('pointercancel', () => { clearTimeout(holdTimer); sol.classList.remove('held'); if (open) closeWheel(false); });
+  // Keyboard: arrows turn, Enter chooses, Escape closes.
+  sol.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { if (!open) openWheel(); spin += e.key === 'ArrowLeft' ? 1 : -1; spin = Math.round(spin); layoutWheel(); e.preventDefault(); }
+    else if (e.key === 'Enter' || e.key === ' ') { if (open) closeWheel(true); else goWorld(); e.preventDefault(); }
+    else if (e.key === 'Escape' && open) closeWheel(false);
+  });
+  drawCur();
+  layoutWheel();
+} else {
+  // The crown at the thumb's edge. Sol stays where it is in every region:
+  // a tap on it goes home to the world.
+  const nav = $('#nav');
+  nav.innerHTML = `
+    <div class="crown" id="crown" role="slider" tabindex="0" aria-label="بخش‌ها" aria-valuemin="1" aria-valuemax="8" aria-valuenow="1"><div class="dial"></div><div class="knurl" id="knurl"></div><div class="rotor" id="rotor"></div></div>
+    <div class="crown-label" id="crown-label"><b></b><span></span></div>`;
+  const STEP = 45, R = 76;
+  const rotor = $('#rotor');
+  rotor.innerHTML = SECTIONS.map((s, k) => `<div class="slot" data-k="${k}" role="button" tabindex="-1" aria-label="${s.name}">${icon(s.id)}</div>`).join('');
+  const slots = [...rotor.children];
+  let spin = 0, dragging = false, y0 = 0, spin0 = 0, lastTop = 0;
+  const topIndex = () => ((Math.round(spin) % 8) + 8) % 8;
+  function layoutCrown(snap) {
+    // The item facing the screen sits at the crown's left edge (180°).
+    slots.forEach((el, k) => {
+      const ang = (180 + (k - spin) * STEP) * Math.PI / 180;
+      let d = k - spin; d = ((d + 4) % 8 + 8) % 8 - 4;
+      el.style.transform = `translate(calc(-50% + ${(Math.cos(ang) * R).toFixed(1)}px), calc(-50% + ${(Math.sin(ang) * R).toFixed(1)}px))`;
+      el.style.opacity = Math.abs(d) > 2.2 ? '0' : String((1 - Math.abs(d) * .3).toFixed(2));
+    });
+    $('#knurl').style.transform = `rotate(${(-spin * STEP).toFixed(1)}deg)`;
+    const k = topIndex();
+    if (k !== lastTop || snap) {
+      if (k !== lastTop) buzz([8]);
+      lastTop = k;
+      const lab = $('#crown-label');
+      lab.classList.add('swap');
+      setTimeout(() => {
+        lab.querySelector('b').textContent = SECTIONS[k].name;
+        lab.querySelector('span').textContent = SECTIONS[k].sub();
+        lab.classList.remove('swap');
+      }, 120);
+      $('#crown').setAttribute('aria-valuenow', String(k + 1));
+      if (k !== current) show(k);
+    }
+  }
+  const crown = $('#crown');
+  crown.addEventListener('pointerdown', (e) => {
+    crown.setPointerCapture(e.pointerId);
+    dragging = true; y0 = e.clientY; spin0 = spin;
+    rotor.style.transition = 'none'; $('#knurl').style.transition = 'none';
+  });
+  crown.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    // Thumb down turns the crown so the next section comes up to face you.
+    spin = spin0 + (e.clientY - y0) / 42;
+    layoutCrown();
+  });
+  crown.addEventListener('pointerup', () => {
+    dragging = false;
+    rotor.style.transition = ''; $('#knurl').style.transition = '';
+    spin = Math.round(spin);
+    layoutCrown(true);
+  });
+  crown.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { spin = Math.round(spin) + (e.key === 'ArrowDown' ? 1 : -1); layoutCrown(true); e.preventDefault(); }
+  });
+  slots.forEach((el, k) => el.addEventListener('click', () => { spin = spin + ((((k - spin) + 4) % 8 + 8) % 8 - 4); spin = Math.round(spin); layoutCrown(true); }));
+  sol.addEventListener('click', goWorld);
+  layoutCrown(true);
+  // The first time, the crown turns half a step and back, so it is plain it
+  // turns without anybody having to read that it does.
+  if (!reduceMotion) setTimeout(() => { spin = .45; layoutCrown(); setTimeout(() => { spin = 0; layoutCrown(true); }, 520); }, 1200);
+}
+
+// ------------------------------------------------------------ interactions
+stage.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'exit') {
+    $('#exit-row').innerHTML = '<button class="lum danger" type="button" data-act="exit-yes">بله، خروج</button><button class="lum quiet" type="button" data-act="exit-no">انصراف</button>';
+  } else if (act === 'exit-no') {
+    $('#exit-row').innerHTML = '<button class="lum quiet" type="button" data-act="exit">خروج از حساب</button>';
+  } else if (act === 'exit-yes') {
+    toast('در نمونه از حساب خارج نمی‌شوی.');
+    $('#exit-row').innerHTML = '<button class="lum quiet" type="button" data-act="exit">خروج از حساب</button>';
+  } else if (act === 'toggle') {
+    OFFERS[offerFront].on = !OFFERS[offerFront].on; drawOffers(); setHeader(current); buzz([8]);
+  } else if (act === 'reqs') {
+    toast('دو نفر این پیشنهاد را پذیرفته‌اند؛ در گفتگوها منتظرِ تأییدِ تو هستند.');
+  } else if (act === 'edit') {
+    toast('ویرایشِ پیشنهاد همین پنل است، با همان فیلدهای ساختن.');
+  } else if (act === 'birth') {
+    const title = ($('#new-title').value || '').trim();
+    const price = Math.max(4, Math.round((Number($('#new-price').value) || 120) / 4) * 4);
+    if (!title) { toast('اول بنویس چه پیشنهادی می‌دهی.'); return; }
+    OFFERS.push({ t: title, p: price, min: 30, on: true, req: 0 });
+    offerFront = OFFERS.length - 1;
+    drawOffers(); setHeader(current); buzz([10, 40, 10]);
+    toast('یک ماهِ تازه دورِ تو به مدار رفت.');
+  } else if (act === 'post') {
+    toast('گذاشتنِ عکس یا نوشته از همین‌جا — در نمونه ساخته نشده.');
+  } else if (act === 'topup' || act === 'withdraw' || act === 'banks') {
+    toast({ topup: 'شارژ، برداشت و حساب‌ها همان صفحه‌های فعلی‌اند که از این‌جا باز می‌شوند.', withdraw: 'برداشت همان صفحه‌ی فعلی است.', banks: 'حساب‌های بانکی همان صفحه‌ی فعلی است.' }[act]);
+  } else if (act === 'accept' || act === 'refuse') {
+    const row = t.closest('.req');
+    const name = REQUESTS[Number(row.dataset.k)].n;
+    row.style.transition = 'opacity .35s ease, transform .35s ease';
+    row.style.opacity = '0'; row.style.transform = act === 'accept' ? 'translateY(-30px) scale(.9)' : 'translateX(60px)';
+    setTimeout(() => row.remove(), 360);
+    toast(act === 'accept' ? `${name} حالا دنبالت می‌کند.` : `درخواستِ ${name} رد شد.`);
+    buzz([10]);
+  } else if (act === 'seen' || act === 'echo' || act === 'buzz' || act === 'lite') {
+    const on = t.getAttribute('aria-checked') !== 'true';
+    t.setAttribute('aria-checked', String(on));
+    if (act === 'seen') {
+      stage.classList.toggle('hidden-self', !on);
+      $('#mirror-note').textContent = on ? 'این تویی، از پشت — همان‌طور که دیگران می‌بینند: نام و گوی و پیشنهادهای روشن. بقیه فقط مالِ خودت است.' : 'حالا نزدیک شدنت دیده نمی‌شود — و تو هم نمی‌بینی چه کسی از کنارت گذشت.';
+    }
+    if (act === 'buzz') buzzOn = on;
+    if (act === 'lite') stage.classList.toggle('lite', on);
+    buzz([8]);
+  } else if (act === 'blocked') {
+    toast('فهرستِ مسدودها با امکانِ برداشتنِ هر کدام.');
+  } else if (act === 'delete') {
+    $('#danger .row').innerHTML = '<button class="lum danger" type="button" data-act="delete-yes">بله، برای همیشه حذف کن</button><button class="lum quiet" type="button" data-act="delete-no">انصراف</button>';
+  } else if (act === 'delete-no') {
+    $('#danger .row').innerHTML = '<button class="lum danger" type="button" data-act="delete">حذفِ حساب</button>';
+  } else if (act === 'delete-yes') {
+    toast('در نمونه چیزی حذف نمی‌شود.');
+    $('#danger .row').innerHTML = '<button class="lum danger" type="button" data-act="delete">حذفِ حساب</button>';
+  } else if (act === 'help') {
+    toast('راهنما و فرمِ گزارشِ مشکل.');
+  }
+});
+
+// Offers: tap a moon to bring it round, or drag the ring.
+offersEl.addEventListener('click', (e) => {
+  const m = e.target.closest('.moon');
+  if (!m) return;
+  offerFront = Number(m.dataset.k); drawOffers(); buzz([8]);
+});
+let ringDrag = null;
+offersEl.addEventListener('pointerdown', (e) => { if (e.target.closest('.panel')) return; ringDrag = { x: e.clientX, f: offerFront }; });
+offersEl.addEventListener('pointerup', (e) => {
+  if (!ringDrag) return;
+  const dx = e.clientX - ringDrag.x;
+  const n = OFFERS.length + 1;
+  if (Math.abs(dx) > 30) { offerFront = (ringDrag.f + (dx > 0 ? 1 : -1) + n) % n; drawOffers(); buzz([8]); }
+  ringDrag = null;
+});
+
+// Content: lift a tile.
+$('#sec-content').addEventListener('click', (e) => {
+  const t = e.target.closest('.tile:not(.add)');
+  if (!t) return;
+  const d = TILES[Number(t.dataset.k)];
+  const layer = document.createElement('div');
+  layer.className = 'lifted';
+  layer.innerHTML = `<div class="big" style="background: linear-gradient(160deg, ${d.c[0]}, ${d.c[1]})"><p>${d.t}</p></div>`;
+  layer.addEventListener('click', () => layer.remove());
+  stage.appendChild(layer);
+});
+
+// Records: filter, and walk the corridor by dragging.
+$('#rec-chips').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  recFilter = b.dataset.f; recScroll = 0;
+  $('#rec-chips').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  drawRecords();
+});
+let recDrag = null;
+$('#corridor').addEventListener('pointerdown', (e) => { recDrag = { y: e.clientY, s: recScroll }; $('#corridor').setPointerCapture(e.pointerId); });
+$('#corridor').addEventListener('pointermove', (e) => {
+  if (!recDrag) return;
+  const count = $('#corridor').children.length;
+  recScroll = Math.max(0, Math.min(count - 1, recDrag.s + (e.clientY - recDrag.y) / 80));
+  [...$('#corridor').children].forEach((el) => { el.style.transition = 'none'; });
+  drawRecords();
+});
+$('#corridor').addEventListener('pointerup', (e) => {
+  if (!recDrag) return;
+  const tapped = Math.abs(e.clientY - recDrag.y) < 8;
+  recDrag = null;
+  [...$('#corridor').children].forEach((el) => { el.style.transition = ''; });
+  recScroll = Math.round(recScroll);
+  drawRecords();
+  if (tapped) {
+    const row = e.target.closest('.rec');
+    if (row) toast('جزئیاتِ جلسه، و اگر مشکلی بود «گزارشِ مشکل» — همین‌جا، نه کنارِ آزادسازی.', 3200);
+  }
+});
+
+// Follows: which ring to bring forward.
+$('#follow-tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const on = b.getAttribute('aria-pressed') !== 'true';
+  $('#follow-tabs').querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b && on)));
+  stage.dataset.view = on ? b.dataset.v : '';
+});
+
+// Settings: language segment (visual only in the prototype).
+$('#sec-settings').addEventListener('click', (e) => {
+  const b = e.target.closest('.seg button');
+  if (!b) return;
+  b.parentElement.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  if (b.textContent === 'English') toast('در برنامه‌ی واقعی کلِ صفحه چپ‌به‌راست و انگلیسی می‌شود.');
+});
+
+// Your photo: tap your orb to change it (the file stays in this page).
+$('#me-body').addEventListener('click', () => $('#photo').click());
+$('#photo').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const url = URL.createObjectURL(f);
+  const body = $('#me-body');
+  body.style.backgroundImage = `radial-gradient(circle at 34% 28%, rgba(255,255,255,.3), transparent 56%), url("${url}")`;
+  body.classList.add('photo');
+  toast('عکست عوض شد — در جهان هم همین دیده می‌شود.');
+});
+document.querySelectorAll('.editable').forEach((el) => el.addEventListener('blur', () => {
+  if (el.id === 'f-name') ME.name = el.textContent.trim() || ME.name;
+  if (el.id === 'f-user') ME.user = el.textContent.replace('@', '').trim() || ME.user;
+  if (current === 0) setHeader(0);
+}));
+
+// ------------------------------------------------------------------- sky
+const sky = $('#sky');
+const ctx = sky.getContext('2d');
+let W = 0, H = 0;
+const stars = Array.from({ length: 230 }, () => ({ x: Math.random(), y: Math.random(), z: .15 + Math.random() * .85, r: Math.random() < .08 ? 1.5 : .4 + Math.random() * .8, tw: Math.random() * 6.28 }));
+function resize() {
+  const b = stage.getBoundingClientRect();
+  W = b.width; H = b.height;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  sky.width = Math.round(W * dpr); sky.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (SECTIONS[current].id === 'records') drawRecords();
+}
+function drawSky(t) {
+  // The "me" region's sky: a warm heart just above the middle, a faint glow
+  // of your own light high on the far side, and the stars over it.
+  ctx.fillStyle = 'rgb(13,8,3)';
+  ctx.fillRect(0, 0, W, H);
+  let g = ctx.createRadialGradient(W * .5, H * .42, 0, W * .5, H * .42, Math.max(W, H) * .8);
+  g.addColorStop(0, 'rgba(54,34,8,1)'); g.addColorStop(1, 'rgba(54,34,8,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  g = ctx.createRadialGradient(W * .78, H * .18, 0, W * .78, H * .18, W * .9);
+  g.addColorStop(0, 'rgba(242,176,106,.1)'); g.addColorStop(1, 'rgba(242,176,106,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (const s of stars) {
+    ctx.globalAlpha = (.3 + s.z * .6) * (stage.classList.contains('lite') ? .8 : (.55 + .45 * Math.sin(t * .0012 + s.tw)));
+    ctx.fillStyle = '#f1e6d6';
+    ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r, 0, 6.2832); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(drawSky);
+}
+addEventListener('resize', resize);
+resize();
+requestAnimationFrame(drawSky);
+
+show(0, true);
+</script>
