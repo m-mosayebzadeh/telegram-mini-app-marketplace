@@ -1,10 +1,9 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import Sky, { regionOf } from './Sky'
 import type { World } from '../lib/worldApi'
-import type { NewsItem } from '../lib/news'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }),
@@ -55,22 +54,19 @@ describe('regions of the world', () => {
       root.render(
         <MemoryRouter initialEntries={[at]}>
           <Routes>
-            <Route path="/sky/:region?" element={<><Sky /><Where /></>} />
+            <Route path="/sky/:region?" element={<><Sky /><Where /><Nav /></>} />
           </Routes>
         </MemoryRouter>,
       ),
     )
   }
 
-  function tapSol() {
-    const sol = host.querySelector('.cos-core') as HTMLElement
-    for (const type of ['pointerdown', 'pointerup']) {
-      act(() => {
-        const e = new Event(type, { bubbles: true, cancelable: true })
-        Object.assign(e, { pointerId: 1, clientX: 0, clientY: 0 })
-        sol.dispatchEvent(e)
-      })
-    }
+  /** Travel as the bar does: by address. */
+  let go: (to: string) => void = () => {}
+  function Nav() {
+    const navigate = useNavigate()
+    go = (to) => navigate(to)
+    return null
   }
 
   it('reads only the regions it knows from the address', () => {
@@ -80,18 +76,19 @@ describe('regions of the world', () => {
     expect(regionOf('nonsense')).toBe('world')
   })
 
-  it('opens a region straight from its address', async () => {
+  it('opens the conversations straight from their address, as a list', async () => {
     await open('/sky/talk')
-    expect(host.querySelector('.cos-stair')).not.toBeNull()
+    expect(host.querySelector('.cos-talklist')).not.toBeNull()
+    expect(host.querySelector('.cos-stair')).toBeNull()
     expect(host.querySelector('.cos-screen')?.classList.contains('is-region-talk')).toBe(true)
   })
 
-  it('brings you back to the world when Sol is tapped in a region, as a journey', async () => {
+  it('goes back to the world as a journey', async () => {
     await open('/sky/news')
     expect(host.querySelector('.cos-news-stream')).not.toBeNull()
     // In the news, the world is another place, not a backdrop.
     expect(host.querySelector('.cos-world')?.classList.contains('is-away')).toBe(true)
-    tapSol()
+    act(() => go('/sky'))
     expect(path).toBe('/sky')
     // First the news rushes past and the stars streak…
     expect(host.querySelector('.cos-region-layer')?.classList.contains('is-leaving')).toBe(true)
@@ -103,45 +100,21 @@ describe('regions of the world', () => {
     expect(host.querySelector('.cos-world')?.className).toBe('cos-world')
   })
 
-  it('lets the people on the stair fly home before it goes', async () => {
+  it('leaves the conversations for the world as a journey, like any place', async () => {
     await open('/sky/talk')
-    tapSol()
-    expect(host.querySelector('.cos-stair')?.classList.contains('is-leaving')).toBe(true)
-    // The prototype's timing: 950 ms, and 45 more for each person.
-    act(() => { vi.advanceTimersByTime(900) })
-    expect(host.querySelector('.cos-stair')).not.toBeNull()
-    act(() => { vi.advanceTimersByTime(100) })
-    expect(host.querySelector('.cos-stair')).toBeNull()
-  })
-
-  it('opens the menu when Sol is tapped at home', async () => {
-    await open('/sky')
-    tapSol()
-    expect(host.querySelector('.cos-core-area')?.classList.contains('is-tapmode')).toBe(true)
-  })
-
-  it('shows waiting news beside Sol, and takes you to it', async () => {
-    const item: NewsItem = { key: 'm', kind: 'message', userId: 2, name: 'Sara', avatarUrl: null, at: new Date().toISOString(), conversationId: 3 }
-    world.current = { ...world.current, news: [item] }
-    await open('/sky')
-    const badge = host.querySelector('.cos-news-badge') as HTMLElement
-    expect(badge.textContent).toContain('1')
-    act(() => badge.click())
-    expect(path).toBe('/sky/news')
+    act(() => go('/sky'))
+    expect(host.querySelector('.cos-region-layer')?.classList.contains('is-leaving')).toBe(true)
+    act(() => { vi.advanceTimersByTime(400) })
+    expect(host.querySelector('.cos-talklist')).toBeNull()
   })
 
   // Behind "the news region shows nothing": the frame that ends an arrival
   // was cancelled by the journey's own clean-up, so a place reached by a
-  // journey stayed small and invisible for good. Only a real browser shows
-  // that failure — here React renders inside the timer, before the frame is
-  // even asked for — so it was caught, and is checked, by screenshot; this
-  // keeps the arrival's ending itself from going missing.
+  // journey stayed small and invisible for good. This keeps the arrival's
+  // ending itself from going missing.
   it('lets a place reached by a journey finish arriving', async () => {
-    const item: NewsItem = { key: 'm', kind: 'message', userId: 2, name: 'Sara', avatarUrl: null, at: new Date().toISOString(), conversationId: 3 }
-    world.current = { ...world.current, news: [item] }
     await open('/sky/talk')
-    act(() => (host.querySelector('.cos-news-badge') as HTMLElement).click())
-    expect(path).toBe('/sky/news')
+    act(() => go('/sky/news'))
     act(() => { vi.advanceTimersByTime(400) })
     expect(host.querySelector('.cos-news-stream')).not.toBeNull()
     act(() => { vi.advanceTimersByTime(100) })
@@ -150,10 +123,23 @@ describe('regions of the world', () => {
     expect(layer.classList.contains('is-leaving')).toBe(false)
   })
 
-  it('keeps the count beside Sol in the news region too, as the prototype does', async () => {
-    const item: NewsItem = { key: 'm', kind: 'message', userId: 2, name: 'Sara', avatarUrl: null, at: new Date().toISOString(), conversationId: 3 }
-    world.current = { ...world.current, news: [item] }
-    await open('/sky/news')
-    expect(host.querySelector('.cos-news-badge')).not.toBeNull()
+  // Section 32: the hold-and-sweep menu on Sol is gone; the bar's five doors
+  // are the way around, and Sol there always means the world.
+  it('has no menu of its own any more', async () => {
+    await open('/sky')
+    expect(host.querySelector('.cos-core')).toBeNull()
+    expect(host.querySelector('.cos-news-badge')).toBeNull()
+  })
+
+  it('tells a newcomer the one thing to do, in the world', async () => {
+    localStorage.removeItem('cos-world-hint-seen')
+    await open('/sky')
+    expect(host.querySelector('.cos-sol-hint')?.textContent).toBe('sky.worldHint')
+  })
+
+  it('takes Sol, tapped in the world, as "home" without falling over', async () => {
+    await open('/sky')
+    act(() => { window.dispatchEvent(new Event('cos:home')) })
+    expect(path).toBe('/sky')
   })
 })

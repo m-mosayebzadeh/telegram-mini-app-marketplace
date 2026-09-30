@@ -95,7 +95,7 @@ describe('Echo, when the door is shut', () => {
     mocks.api.mockResolvedValue(status({ open_now: false, minutes_until_open: 30 }))
     await render()
 
-    expect(buttonsWith('echo.go')).toHaveLength(0)
+    expect(buttonsWith('seek.go')).toHaveLength(0)
   })
 })
 
@@ -154,122 +154,108 @@ describe('Echo, when the profile is missing something', () => {
   })
 })
 
+const match = (over: Record<string, unknown> = {}) => ({
+  session_id: 42,
+  conversation_id: 7,
+  other_user_id: 3,
+  display_name: 'Sara',
+  username: null,
+  avatar_url: null,
+  shared_tags: ['music'],
+  gender_as_asked: true,
+  age_as_asked: true,
+  follow_status: 'none' as const,
+  tagline: 'Up at night.',
+  started_at: new Date().toISOString(),
+  ...over,
+})
+
 describe('Echo, when it is open', () => {
-  it('asks the three questions', async () => {
-    mocks.api.mockResolvedValue(status())
+  // The approved prototype (section 32): one big button, interests optional.
+  it('offers one big button and the interests, and asks nothing else', async () => {
+    mocks.api.mockResolvedValue(status({ online_now: 12 }))
     await render()
 
-    expect(container.textContent).toContain('echo.whoLabel')
-    expect(container.textContent).toContain('echo.ageLabel')
-    expect(container.textContent).toContain('echo.tagsLabel')
+    expect(buttonsWith('seek.go')).toHaveLength(1)
+    expect(buttonsWith('echo.tag.music')).toHaveLength(1)
+    expect(container.textContent).not.toContain('echo.whoLabel')
+    expect(container.textContent).not.toContain('echo.ageLabel')
+    expect(container.textContent).toContain('seek.online {"n":"۱۲"}')
   })
 
-  it('says out loud that the answers do not rule anybody out', async () => {
-    // Somebody who believes these are filters keeps them wide out of
-    // fear, and then the ranking has nothing to work with.
+  it('names the button after the interests once some are chosen', async () => {
     mocks.api.mockResolvedValue(status())
     await render()
-
-    expect(container.textContent).toContain('echo.rankNote')
+    await click(buttonsWith('echo.tag.music')[0])
+    expect(buttonsWith('seek.goWith')).toHaveLength(1)
   })
 
-  it('starts on "anyone" rather than a guess about what you want', async () => {
-    mocks.api.mockResolvedValue(status())
-    await render()
-
-    const anyone = buttonsWith('echo.whoAnyone')[0]
-    expect(anyone.getAttribute('aria-pressed')).toBe('true')
-  })
-
-  it('remembers the last search but still shows it', async () => {
-    // A mood re-applied behind somebody's back quietly becomes a setting
-    // they never chose, so it is pre-filled and visible, never hidden.
+  it('remembers the last interests but still shows them', async () => {
     mocks.api.mockResolvedValue(
-      status({
-        last_search: {
-          wants_gender: 'female',
-          wants_age_min: 25,
-          wants_age_max: 35,
-          tags: ['music'],
-        },
-      }),
+      status({ last_search: { wants_gender: 'female', wants_age_min: 25, wants_age_max: 35, tags: ['music'] } }),
     )
     await render()
-
-    expect(buttonsWith('echo.whoFemale')[0].getAttribute('aria-pressed')).toBe('true')
     expect(buttonsWith('echo.tag.music')[0].getAttribute('aria-pressed')).toBe('true')
-    expect(container.textContent).toContain('25–35')
   })
 
-  it('stops at three tags and disables the rest', async () => {
+  it('stops at three interests and disables the rest', async () => {
     mocks.api.mockResolvedValue(status())
     await render()
-
     for (const tag of ['music', 'film', 'books']) {
       await click(buttonsWith(`echo.tag.${tag}`)[0])
     }
-
     expect(buttonsWith('echo.tag.games')[0].disabled).toBe(true)
-    // Already-chosen ones stay pressable, or there would be no way back.
     expect(buttonsWith('echo.tag.music')[0].disabled).toBe(false)
   })
 
-  it('sends no age range at all when the range was left wide', async () => {
-    // "Eighteen to eighty" and "I do not mind" are different answers, and
-    // sending the first as if it were a preference would weigh a
-    // preference nobody expressed.
+  it('searches for anyone, at any age, with the chosen interests and the clock', async () => {
     mocks.api.mockResolvedValue(status())
     await render()
+    await click(buttonsWith('echo.tag.film')[0])
     mocks.api.mockClear()
     mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: '2026-01-01T00:00:00Z' }))
 
-    await click(buttonsWith('echo.go')[0])
+    await click(buttonsWith('seek.goWith')[0])
 
     const body = JSON.parse(mocks.api.mock.calls[0][1].body)
+    expect(body.wants_gender).toBe('anyone')
     expect(body.wants_age_min).toBeNull()
     expect(body.wants_age_max).toBeNull()
-  })
-
-  it('sends the clock reading with the search', async () => {
-    // The nightly window is ten at night wherever the viewer is, and the
-    // pool nudges two people awake at the same odd hour together. The
-    // server stores no timezone, so the device has to say.
-    mocks.api.mockResolvedValue(status())
-    await render()
-    mocks.api.mockClear()
-    mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: '2026-01-01T00:00:00Z' }))
-
-    await click(buttonsWith('echo.go')[0])
-
-    const body = JSON.parse(mocks.api.mock.calls[0][1].body)
-    expect(typeof body.local_minute).toBe('number')
+    expect(body.tags).toEqual(['film'])
     expect(body.local_minute).toBeGreaterThanOrEqual(0)
     expect(body.local_minute).toBeLessThan(1440)
   })
 })
 
 describe('Echo, while waiting', () => {
-  it('shows how long it has been and a way out', async () => {
+  it('shows the real people waiting as lights, the numbers, and a way out', async () => {
     mocks.api.mockResolvedValue(
-      status({ waiting: true, waiting_since: new Date().toISOString() }),
+      status({ waiting: true, waiting_since: new Date().toISOString(), online_now: 9, waiting_now: 3 }),
     )
     await render()
 
-    expect(container.textContent).toContain('echo.waiting')
+    expect(container.textContent).toContain('seek.searching')
+    expect(container.querySelectorAll('.cos-seek-orbit > i')).toHaveLength(3)
+    expect(container.textContent).toContain('۹')
     expect(buttonsWith('echo.stop')).toHaveLength(1)
   })
 
-  it('asks the server again while it waits, and stops once it is not waiting', async () => {
-    // Nothing ticks on the server, so being matched is something you find
-    // out by asking — but a screen that keeps asking after it knows is
-    // how a battery disappears.
+  it('after a long wait with nobody, says so and offers to change the interests', async () => {
+    const since = new Date(Date.now() - 60_000).toISOString()
+    mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: since }))
+    await render()
+
+    expect(container.textContent).toContain('seek.long')
+    expect(buttonsWith('seek.change')).toHaveLength(1)
+    await click(buttonsWith('seek.keepWaiting')[0])
+    expect(container.textContent).not.toContain('seek.long')
+  })
+
+  it('asks the server again while it waits', async () => {
     vi.useFakeTimers()
-    mocks.api.mockResolvedValue(
-      status({ waiting: true, waiting_since: new Date().toISOString() }),
-    )
+    mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: new Date().toISOString() }))
     await render()
     const afterFirstLoad = mocks.api.mock.calls.length
-
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2600)
     })
@@ -278,29 +264,32 @@ describe('Echo, while waiting', () => {
 })
 
 describe('Echo, when somebody arrives', () => {
-  it('hands over to the conversation instead of showing them here', async () => {
-    mocks.api.mockResolvedValue(
-      status({
-        matched: {
-          session_id: 42,
-          conversation_id: 7,
-          other_user_id: 3,
-          display_name: 'Sara',
-          username: null,
-          avatar_url: null,
-          shared_tags: ['music'],
-          gender_as_asked: true,
-          age_as_asked: true,
-          follow_status: 'none',
-        },
-      }),
-    )
+  it('shows who arrived, and starts the conversation on a tap', async () => {
+    mocks.api.mockResolvedValue(status({ matched: match() }))
     await render()
 
-    // The thread the matcher created, by its id. Echo already knows which
-    // one, and `replace` means going back from the conversation returns to
-    // the world rather than to a search that has already finished.
-    expect(mocks.navigate).toHaveBeenCalledWith('/conversations/7', { replace: true })
+    expect(container.textContent).toContain('seek.found {"name":"Sara"}')
+    expect(container.textContent).toContain('Up at night.')
+    expect(mocks.navigate).not.toHaveBeenCalled()
+    await click(buttonsWith('seek.start')[0])
+    expect(mocks.navigate).toHaveBeenCalledWith('/conversations/7')
+  })
+
+  it('offers somebody new right away, which is a new search', async () => {
+    mocks.api.mockResolvedValue(status({ matched: match() }))
+    await render()
+    mocks.api.mockClear()
+    mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: new Date().toISOString() }))
+    await click(buttonsWith('seek.another')[0])
+    expect(mocks.api.mock.calls[0][0]).toBe('/random-chat/search')
+  })
+
+  it('does not show somebody met long ago as if they had just arrived', async () => {
+    const old = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+    mocks.api.mockResolvedValue(status({ matched: match({ started_at: old }) }))
+    await render()
+    expect(container.textContent).not.toContain('seek.found')
+    expect(buttonsWith('seek.go')).toHaveLength(1)
   })
 })
 
@@ -310,6 +299,6 @@ describe('Echo, when the account is suspended', () => {
     await render()
 
     expect(container.textContent).toContain('echo.suspended')
-    expect(buttonsWith('echo.go')).toHaveLength(0)
+    expect(buttonsWith('seek.go')).toHaveLength(0)
   })
 })

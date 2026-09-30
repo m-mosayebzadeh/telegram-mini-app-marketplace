@@ -31,7 +31,7 @@ describe('the stair of conversations', () => {
 
   const relation = (userId: number, over: Partial<Relation> = {}): Relation => ({
     userId, name: `P${userId}`, avatarUrl: null, stage: 'chat', conversationId: userId * 10,
-    lastText: 'hi', lastAt: new Date().toISOString(), unread: false, unreadCount: 0, request: null, session: null, ...over,
+    lastText: 'hi', lastAt: new Date().toISOString(), unread: false, unreadCount: 0, origin: 'world', request: null, session: null, ...over,
   })
 
   function render(relations: Relation[], opened: number[] = [], originOf = () => ({ x: 100, y: 100 })) {

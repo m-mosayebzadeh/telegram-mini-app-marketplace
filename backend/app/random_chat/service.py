@@ -236,7 +236,16 @@ def set_kept(db: Session, session: RandomChatSession, user_id: int, kept: bool) 
 
 
 def _settle_thread(db: Session, session: RandomChatSession) -> None:
-    """Clears the transcript of a random conversation once it ends.
+    """What happens to the thread when a random conversation ends: nothing.
+
+    Section 32 and the owner's decision: an Echo meeting becomes an ordinary
+    conversation that stays, with nothing to ask and nothing to keep — you
+    come back to it from your conversations whenever you like, and either
+    of you can delete it. The earlier rule, below, cleared both sides'
+    view unless both had asked to keep each other; it is kept only as the
+    record of what was decided against.
+
+    (The earlier rule's reasoning:)
 
     **What is kept is the person, never the conversation.** The whole
     value of talking to a stranger is that people say things they would
@@ -251,9 +260,8 @@ def _settle_thread(db: Session, session: RandomChatSession) -> None:
     A thread these two already had is never touched: it existed before
     this meeting and their earlier history is not ours to clear.
     """
-    if not session.created_conversation:
-        return
-
+    return
+    # pragma: no cover — the earlier clearing, no longer applied:
     conversation = db.get(Conversation, session.conversation_id)
     if conversation is None:  # pragma: no cover - the FK makes this impossible
         return

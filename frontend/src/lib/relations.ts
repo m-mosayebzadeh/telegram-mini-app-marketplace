@@ -53,6 +53,8 @@ export interface Relation {
   unread: boolean
   /** How many unread messages — the number on the row. */
   unreadCount: number
+  /** How you met: "echo" when Echo made the thread, "world" otherwise. */
+  origin: 'world' | 'echo'
   /** The request behind a pending stage. */
   request: RequestActivity | null
   /** The session behind the 'session' stage. */
@@ -84,7 +86,7 @@ export function buildRelations(
   const ensure = (userId: number, name: string, avatarUrl: string | null): Relation => {
     let r = byUser.get(userId)
     if (!r) {
-      r = { userId, name, avatarUrl, stage: 'chat', conversationId: null, lastText: null, lastAt: '', unread: false, unreadCount: 0, request: null, session: null }
+      r = { userId, name, avatarUrl, stage: 'chat', conversationId: null, lastText: null, lastAt: '', unread: false, unreadCount: 0, origin: 'world', request: null, session: null }
       byUser.set(userId, r)
     }
     return r
@@ -98,6 +100,7 @@ export function buildRelations(
     const r = ensure(other.user_id, other.display_name, other.avatar_url)
     r.conversationId = c.id
     r.lastText = c.last_text
+    r.origin = c.origin === 'echo' ? 'echo' : 'world'
     r.lastAt = later(r.lastAt, c.last_message_at ?? c.created_at)
     r.unread = c.unread
     // An older server sends only the flag: count it as one rather than

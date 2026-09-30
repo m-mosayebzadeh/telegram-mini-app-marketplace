@@ -13,12 +13,12 @@ Nothing ticks anywhere, the same as every other deadline in this app.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.new_people import new_people_left, new_people_limit
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import ONLINE_WITHIN, get_current_user, require_admin
 from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.profile import Profile
@@ -88,6 +88,11 @@ class MatchedOut(BaseModel):
     #: loud when they did not, rather than handing over a quiet mismatch.
     gender_as_asked: bool
     age_as_asked: bool
+    #: Their own line, for the "found" card.
+    tagline: str | None = None
+    #: When you met — so the screen shows "found" only for a meeting that
+    #: just happened, not one from days ago that nobody closed.
+    started_at: str | None = None
     #: The follow button at the top of the conversation. "requested" once
     #: this person has pressed it, "following" once the other side has
     #: agreed too — which is what greys the button out.
@@ -124,6 +129,10 @@ class StatusOut(BaseModel):
     #: How many conversations are left today. None means unlimited, which
     #: is where the cap starts.
     remaining_today: int | None
+    #: Honest numbers for the waiting screen: people here right now, and
+    #: people other than you waiting for somebody new this moment.
+    online_now: int = 0
+    waiting_now: int = 0
 
 
 def _matched_out(
@@ -156,6 +165,8 @@ def _matched_out(
         gender_as_asked=True,
         age_as_asked=True,
         follow_status=follow_status,
+        tagline=(_profile_of(db, other_id).bio if _profile_of(db, other_id) else None),
+        started_at=session.started_at.isoformat() if session.started_at else None,
     )
 
 
@@ -209,6 +220,16 @@ def get_status(
             else None
         ),
         remaining_today=remaining,
+        online_now=db.scalar(
+            select(func.count(User.id)).where(
+                User.last_seen_at >= utcnow() - ONLINE_WITHIN, User.id != current_user.id
+            )
+        ) or 0,
+        waiting_now=db.scalar(
+            select(func.count(RandomChatTicket.id)).where(
+                RandomChatTicket.active.is_(True), RandomChatTicket.user_id != current_user.id
+            )
+        ) or 0,
     )
 
 
@@ -259,17 +280,20 @@ def join_pool(
             status.HTTP_429_TOO_MANY_REQUESTS,
             detail={"reason": "daily_quota_reached", "limit": quota},
         )
-    if active_session_for(db, current_user.id) is None and new_people_left(db, current_user.id) <= 0:
+    # Searching again while an earlier meeting is still open ends that
+    # meeting — its conversation stays, it just stops being "the Echo you
+    # are in" — so going back to Echo after talking to somebody finds a new
+    # person instead of landing on the old one (section 32).
+    earlier = active_session_for(db, current_user.id)
+    if earlier is not None:
+        end_session(db, earlier, ended_by_user_id=current_user.id)
+        db.flush()
+
+    if new_people_left(db, current_user.id) <= 0:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             detail={"reason": "daily_new_people_limit", "limit": new_people_limit(db)},
         )
-
-    # Already in a conversation: hand it back rather than starting another.
-    # Somebody who reopens the app mid-chat should land where they were.
-    existing_session = active_session_for(db, current_user.id)
-    if existing_session is not None:
-        return get_status(payload.local_minute, current_user, db)
 
     ticket = ticket_for(db, current_user.id, active_only=False)
     if ticket is not None:
@@ -386,6 +410,8 @@ def list_tags() -> list[str]:
 
 class ScheduleIn(BaseModel):
     enabled: bool
+    #: Open all day; the window below is kept but does not apply.
+    always_open: bool = False
     opens_at_minute: int = Field(default=0, ge=0, le=1440)
     closes_at_minute: int = Field(default=1440, ge=0, le=1440)
     #: The number in the panel, kept even while the tick box above it says
@@ -396,6 +422,7 @@ class ScheduleIn(BaseModel):
 
 class ScheduleOut(BaseModel):
     enabled: bool
+    always_open: bool
     opens_at_minute: int
     closes_at_minute: int
     daily_quota: int
@@ -410,6 +437,7 @@ def get_schedule(
     schedule = schedule_for(db)
     return ScheduleOut(
         enabled=schedule.enabled,
+        always_open=schedule.always_open,
         opens_at_minute=schedule.opens_at_minute,
         closes_at_minute=schedule.closes_at_minute,
         daily_quota=schedule.daily_quota,
@@ -432,6 +460,7 @@ def set_schedule(
     """
     schedule = schedule_row(db)
     schedule.enabled = payload.enabled
+    schedule.always_open = payload.always_open
     schedule.opens_at_minute = payload.opens_at_minute
     schedule.closes_at_minute = payload.closes_at_minute
     schedule.daily_quota = payload.daily_quota
@@ -439,6 +468,7 @@ def set_schedule(
     db.commit()
     return ScheduleOut(
         enabled=schedule.enabled,
+        always_open=schedule.always_open,
         opens_at_minute=schedule.opens_at_minute,
         closes_at_minute=schedule.closes_at_minute,
         daily_quota=schedule.daily_quota,

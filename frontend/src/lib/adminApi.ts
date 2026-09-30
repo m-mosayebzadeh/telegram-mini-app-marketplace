@@ -175,3 +175,24 @@ export function updatePlatformRates(rates: {
 }): Promise<PlatformRates> {
   return apiFetch<PlatformRates>('/admin/rates', { method: 'PUT', body: JSON.stringify(rates) })
 }
+
+// ---------------------------------------------------------------- Echo hours
+
+/** Echo's switch and hours (backend/app/random_chat/router.py). */
+export interface EchoSchedule {
+  enabled: boolean
+  /** Open all day; the hours are kept but do not apply. */
+  always_open: boolean
+  opens_at_minute: number
+  closes_at_minute: number
+  daily_quota: number
+  daily_quota_unlimited: boolean
+}
+
+export function getEchoSchedule(): Promise<EchoSchedule> {
+  return apiFetch<EchoSchedule>('/admin/random-chat/schedule')
+}
+
+export function updateEchoSchedule(schedule: EchoSchedule): Promise<EchoSchedule> {
+  return apiFetch<EchoSchedule>('/admin/random-chat/schedule', { method: 'PUT', body: JSON.stringify(schedule) })
+}

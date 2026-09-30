@@ -36,6 +36,8 @@ export interface Conversation {
   unread: boolean
   /** How many messages from the others are unread. */
   unread_count?: number
+  /** How the two of you met: Echo made the thread, or a hello from the world. */
+  origin?: 'world' | 'echo'
   last_text: string | null
   /** How far anybody else has read. Your messages up to here show two
    *  ticks. */

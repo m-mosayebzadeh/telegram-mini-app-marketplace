@@ -12,6 +12,8 @@ import Discover from './pages/Discover'
 import Sky from './pages/Sky'
 import Conversation from './pages/Conversation'
 import Echo from './pages/Echo'
+import Events from './pages/Events'
+import { WorldBar, doorOf } from './components/cosmos/WorldBar'
 import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
@@ -28,6 +30,7 @@ import BuyerSummary from './pages/BuyerSummary'
 import Activity from './pages/Activity'
 import TopUp from './pages/TopUp'
 import AdminHub from './pages/AdminHub'
+import AdminEcho from './pages/AdminEcho'
 import AdminFinance from './pages/AdminFinance'
 import AdminTopUps from './pages/AdminTopUps'
 import AdminRates from './pages/AdminRates'
@@ -120,8 +123,13 @@ function AppShell() {
   // their own navigation. The core at the bottom IS the nav, and a second
   // bar underneath it would be two navigations arguing over the same
   // corner of the screen — plus it sits exactly where the core opens.
-  const COSMOS = ['/sky', '/echo', '/conversations']
+  const COSMOS = ['/sky', '/echo', '/conversations', '/events']
+  // The world's five doors (section 32) own the bottom wherever one of them
+  // is the page — your own profile included — so the older tab bar steps
+  // aside there rather than stacking a second navigation under the first.
+  const door = doorOf(location.pathname)
   const immersive =
+    door !== null ||
     location.pathname.startsWith('/chat-sessions/') ||
     COSMOS.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))
 
@@ -143,6 +151,7 @@ function AppShell() {
             the phone's back button still leaves a region. */}
         <Route path="/sky/:region?" element={<Sky />} />
         <Route path="/echo" element={<Echo />} />
+        <Route path="/events" element={<Events />} />
         {/* Two ways in: by person, from the world, which opens the
             one thread those two have; and by thread, from the chat
             list and from Echo, which already know which one. */}
@@ -162,6 +171,7 @@ function AppShell() {
         <Route path="/wallet/history" element={<WalletHistory />} />
         <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
         <Route path="/admin" element={<AdminHub />} />
+        <Route path="/admin/echo" element={<AdminEcho />} />
         <Route path="/admin/finance" element={<AdminFinance />} />
         <Route path="/admin/topups" element={<AdminTopUps />} />
         <Route path="/admin/rates" element={<AdminRates />} />
@@ -184,6 +194,7 @@ function AppShell() {
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
         <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
+      {door !== null && <WorldBar />}
       {!immersive && (
       <nav className="ui-nav">
         {TABS.map((tab) => {

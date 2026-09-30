@@ -686,7 +686,8 @@
     "solHint": "Tap Sol, or hold it and sweep towards a place",
     "hasNewsForYou": "Has news for you",
     "sessionRunning": "Your paid session is running",
-    "dailyLimit": "You've met as many new people as you can today; you can say hello again tomorrow."
+    "dailyLimit": "You've met as many new people as you can today; you can say hello again tomorrow.",
+    "worldHint": "Drag the world and tap anyone"
   },
   "echo": {
     "back": "Back",
@@ -1003,5 +1004,70 @@
       "received": "Over · {{photons}} Photons reached you",
       "over": "Over"
     }
+  },
+  "bar": {
+    "label": "Places",
+    "talk": "Conversations",
+    "echo": "Echo",
+    "world": "World",
+    "events": "Events",
+    "me": "Me",
+    "unread_one": "{{count}} conversation with new messages",
+    "unread_other": "{{count}} conversations with new messages"
+  },
+  "sheet": {
+    "close": "Close"
+  },
+  "events": {
+    "title": "Events",
+    "sub": "With new people, at a set hour",
+    "soonTitle": "Coming soon",
+    "soonBody": "Echo nights — meeting new people at a set hour around a theme — and events where groups compete together."
+  },
+  "talkList": {
+    "empty": "You haven't talked to anyone yet. Tap someone in the world and say hello.",
+    "noPreview": "A message",
+    "from": {
+      "world": "From the world",
+      "echo": "From Echo"
+    }
+  },
+  "seek": {
+    "sub": "Meeting new people",
+    "title": "Someone new",
+    "text": "One tap connects you with someone you have not met yet. Pick up to three interests if you like.",
+    "go": "Find someone",
+    "goWith": "Find someone with these interests",
+    "online": "{{n}} people online right now",
+    "searching": "Looking for someone new…",
+    "withTags": "Into {{tags}}",
+    "anyone": "Anyone who is ready",
+    "factOnline": "online",
+    "factWaiting": "looking for someone new",
+    "factTime": "waiting",
+    "tip1": "When someone arrives, open with a question: it is easier to answer than a hello.",
+    "tip2": "The interests you share show at the top of the conversation; start there.",
+    "tip3": "A conversation started here stays; carry on from Conversations whenever you like.",
+    "long": "Nobody yet. You can keep waiting, or change your interests so more people fit.",
+    "keepWaiting": "Keep waiting",
+    "change": "Change interests",
+    "found": "{{name}} is here",
+    "shared": "You both like {{tags}}",
+    "start": "Start talking",
+    "another": "Someone else new"
+  },
+  "adminEcho": {
+    "title": "Echo",
+    "hubHint": "On or off, and its hours",
+    "enabled": "Echo is on",
+    "enabledHint": "Off means it opens for nobody.",
+    "alwaysOpen": "Always open",
+    "alwaysOpenHint": "Open round the clock; the hours below are kept for when you switch this off.",
+    "hours": "Opening hours",
+    "from": "From",
+    "to": "To",
+    "hoursHint": "On each person's own clock. A window past midnight (say 22 to 2) works too.",
+    "save": "Save",
+    "saved": "Saved"
   }
 }

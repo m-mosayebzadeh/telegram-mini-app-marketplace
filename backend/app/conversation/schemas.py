@@ -44,6 +44,9 @@ class ConversationOut(BaseModel):
     #: How many messages from the others are unread — the number on the
     #: conversation's row. Follows the same visibility rules as the list.
     unread_count: int = 0
+    #: How the two of you met: "echo" when Echo made this thread, "world"
+    #: otherwise (a hello from the world). Shown under the row in the list.
+    origin: str = "world"
 
     #: A short preview for the list. Null when the last thing said was not
     #: text, or when there is nothing to show yet.

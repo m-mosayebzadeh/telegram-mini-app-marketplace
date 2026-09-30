@@ -45,6 +45,10 @@ export interface EchoMatch {
   gender_as_asked: boolean
   age_as_asked: boolean
   follow_status: 'none' | 'requested' | 'following'
+  /** Their own line, for the "found" card. */
+  tagline?: string | null
+  /** When you met; "found" is shown only for a meeting that just happened. */
+  started_at?: string | null
 }
 
 export interface EchoSearch {
@@ -69,6 +73,10 @@ export interface EchoStatus {
   last_search: EchoSearch | null
   /** Null means unlimited, which is where the cap starts. */
   remaining_today: number | null
+  /** People here right now, and others waiting for somebody new — the
+   *  honest numbers the waiting screen is built from. */
+  online_now?: number
+  waiting_now?: number
 }
 
 /**

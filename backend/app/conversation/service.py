@@ -184,4 +184,7 @@ def kept_random_thread(db: Session, conversation_id: int, user_id: int) -> bool:
         .where(RandomChatSession.conversation_id == conversation_id)
         .order_by(RandomChatSession.started_at.desc())
     )
-    return session is not None and session.kept_by(user_id)
+    # Every Echo meeting is kept now (section 32), so a thread Echo made is
+    # listed even before anybody has written — the person you just met is
+    # in your conversations the moment you meet them.
+    return session is not None and user_id in (session.user_a_id, session.user_b_id)

@@ -306,3 +306,9 @@ def test_the_conversation_says_roughly_when_the_other_was_here(client, db_sessio
     other = _row(client, thread, 8070)["others"][0]
     # They opened the app a moment ago, so they are here now.
     assert other["seen"] == "now"
+
+
+def test_a_hello_from_the_world_says_it_came_from_the_world(client, db_session):
+    thread = _pair(client, db_session, 8080, 8081)
+    _say(client, thread, 8080, "hello")
+    assert _row(client, thread, 8081)["origin"] == "world"

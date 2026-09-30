@@ -6,7 +6,7 @@ import type { ChatSession, IncomingFollowRequest, RequestActivity } from './type
 function relation(userId: number, over: Partial<Relation> = {}): Relation {
   return {
     userId, name: `P${userId}`, avatarUrl: null, stage: 'chat', conversationId: 100 + userId,
-    lastText: 'hi', lastAt: '2026-09-01T10:00:00Z', unread: false, unreadCount: 0, request: null, session: null, ...over,
+    lastText: 'hi', lastAt: '2026-09-01T10:00:00Z', unread: false, unreadCount: 0, origin: 'world', request: null, session: null, ...over,
   }
 }
 

@@ -57,6 +57,11 @@ class FeatureSchedule(Base):
     opens_at_minute: Mapped[int] = mapped_column(Integer, default=0)
     closes_at_minute: Mapped[int] = mapped_column(Integer, default=1440)
 
+    #: Open all day, whatever the window says. A switch of its own rather
+    #: than setting the window to 0..1440, so turning it off brings back
+    #: the hours that were set before instead of losing them (section 32).
+    always_open: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
     #: How many times a day one person may use this feature, and whether
     #: that number applies at all.
     #:
@@ -92,6 +97,8 @@ class FeatureSchedule(Base):
         """
         if not self.enabled:
             return False
+        if self.always_open:
+            return True
         if self.opens_at_minute == self.closes_at_minute:
             return False
         if self.opens_at_minute < self.closes_at_minute:

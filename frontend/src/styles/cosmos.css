@@ -4111,3 +4111,312 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
   .cos-burn-btn.is-last { animation: none; }
   .cos-burn-edge i { display: none; }
 }
+
+/* ------------------------------------------------------- the simple world
+   Section 32: the world as beautiful as before, and every way around it one
+   plain tap. The bar holds five doors with Sol in the middle, which always
+   means the world. Fixed rather than absolute, because it also sits under
+   ordinary pages (your profile), not only over the world's own screens. */
+:root { --cos-event: #ffcf5a; }
+.cos-worldbar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: end;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, rgb(4 9 12 / 96%) 60%, rgb(4 9 12 / 0%));
+}
+.cos-worldbar-door {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 6px 0 0;
+  border: 0;
+  background: none;
+  color: var(--cos-fg-faint);
+  font: inherit;
+  font-size: var(--cos-text-caption);
+  cursor: pointer;
+  transition: color var(--cos-t-quick) ease;
+}
+.cos-worldbar-door svg { width: 24px; height: 24px; }
+.cos-worldbar-door.is-talk { --tone: var(--cos-talk); }
+.cos-worldbar-door.is-echo { --tone: var(--cos-echo); }
+.cos-worldbar-door.is-events { --tone: var(--cos-event); }
+.cos-worldbar-door.is-me { --tone: var(--cos-warm); }
+.cos-worldbar-door[aria-current='page'] { color: var(--tone); }
+/* The door you are behind glows in its place's own light — and its name
+   takes the colour too, so where you are is never told by colour alone. */
+.cos-worldbar-door[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--tone), transparent 70%);
+  opacity: 0.25;
+}
+.cos-worldbar-door[aria-current='page'] span { font-weight: 500; }
+.cos-worldbar-door:focus-visible,
+.cos-worldbar-sol:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; border-radius: 14px; }
+.cos-worldbar-count {
+  position: absolute;
+  top: 2px;
+  left: calc(50% + 6px);
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 500;
+  color: #140a2a;
+  background: var(--cos-talk-line);
+}
+.cos-worldbar-sol {
+  align-self: center;
+  justify-self: center;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: radial-gradient(circle at 43% 37%, #fff 0%, #fffdf6 9%, #ffe9b4 26%, #ffc258 48%, #ff9a1f 70%, #e9700c 88%, #bf5405 100%);
+  box-shadow: 0 0 0 1px rgb(255 248 232 / 90%), 0 0 20px rgb(255 214 158 / 90%), 0 0 48px rgb(255 172 78 / 50%);
+  transition: scale var(--cos-t-quick) var(--cos-ease-pop);
+}
+.cos-worldbar-sol:active { scale: 0.92; }
+.cos-worldbar-sol:not(.is-here) { opacity: 0.85; }
+
+/* Somebody tapped: a sheet from the bottom. */
+.cos-person { position: fixed; inset: 0; z-index: 60; }
+.cos-person-veil { position: absolute; inset: 0; border: 0; padding: 0; background: rgb(2 5 6 / 50%); cursor: pointer; animation: cos-person-fade 0.25s ease; }
+.cos-person-sheet {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  /* Clear of the bar underneath: the bar stays, so where you are and the
+     way back stay in sight while somebody is open. */
+  padding: 12px 20px calc(96px + env(safe-area-inset-bottom, 0px));
+  border-radius: 26px 26px 0 0;
+  background: linear-gradient(to bottom, #0f2227, #081316);
+  border-top: 1px solid rgb(122 215 200 / 20%);
+  animation: cos-person-up 0.38s var(--cos-ease-settle);
+}
+.cos-person-grab { width: 38px; height: 4px; border-radius: 2px; background: rgb(233 242 240 / 20%); }
+.cos-person-face { display: grid; place-items: center; min-height: 64px; }
+.cos-person-face .cos-orb-wrap { animation: none; }
+.cos-person-name { margin: 0; font-weight: 400; font-size: var(--cos-text-title); }
+.cos-person-flag { font-size: var(--cos-text-caption); color: var(--cos-news); }
+.cos-person-flag.is-live { color: var(--cos-live); }
+.cos-person-line { margin: 0; max-width: 30ch; text-align: center; font-size: var(--cos-text-body); line-height: var(--cos-leading-read); color: var(--cos-fg-soft); }
+.cos-person-limit { margin: 0; font-size: var(--cos-text-label); color: var(--cos-warm-bright); text-align: center; }
+.cos-person-say,
+.cos-person-see { width: 100%; min-height: 52px; border-radius: var(--cos-radius-pill); font: inherit; cursor: pointer; }
+.cos-person-say { border: 0; font-size: 15px; font-weight: 500; color: #2b1704; background: linear-gradient(160deg, #ffdda6, #f9b45f 46%, #eb9433); box-shadow: 0 0 30px rgb(255 178 100 / 35%); }
+.cos-person-see { border: 1px solid rgb(158 226 214 / 26%); background: rgb(14 32 37 / 60%); color: var(--cos-fg); font-size: 14px; }
+.cos-person-say:focus-visible,
+.cos-person-see:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
+@keyframes cos-person-up { from { transform: translateY(100%); } }
+@keyframes cos-person-fade { from { opacity: 0; } }
+
+/* Events, first form. */
+.cos-events .cos-ground::before {
+  opacity: 1;
+  background: radial-gradient(90% 70% at 50% 0%, rgb(42 32 8), rgb(12 9 3) 70%);
+}
+.cos-events-soon { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 0 32px 90px; text-align: center; }
+.cos-events-soon h2 { margin: 0; font-weight: 300; font-size: var(--cos-text-title); }
+.cos-events-soon p { margin: 0; max-width: 32ch; font-size: var(--cos-text-body); line-height: var(--cos-leading-read); color: var(--cos-fg-soft); }
+.cos-events-star { width: 44px; height: 44px; background: var(--cos-event); clip-path: polygon(50% 0, 61% 36%, 100% 38%, 69% 60%, 80% 98%, 50% 76%, 20% 98%, 31% 60%, 0 38%, 39% 36%); filter: drop-shadow(0 0 14px rgb(255 207 90 / 60%)); animation: cos-mini-breathe 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-person-veil, .cos-person-sheet, .cos-events-star { animation: none; }
+}
+
+/* ---------------------------------------------------------- conversations
+   Step 2 of section 32: an ordinary list under the conversations region's
+   own purple sky — one tap to a conversation, nothing to learn. */
+.cos-talklist {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: calc(84px + env(safe-area-inset-top, 0px)) 16px calc(100px + env(safe-area-inset-bottom, 0px));
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+.cos-talklist-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cos-talklist-row {
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgb(182 156 255 / 12%);
+  border-radius: 18px;
+  background: rgb(46 28 92 / 32%);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--cos-t-quick) ease;
+}
+.cos-talklist-row:active { background: rgb(60 38 112 / 55%); }
+.cos-talklist-row:focus-visible { outline: 2px solid var(--cos-talk); outline-offset: 2px; }
+.cos-talklist-row.is-unread { border-color: rgb(143 232 255 / 30%); }
+.cos-talklist-face {
+  flex: none;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 200;
+  color: #f5fbf9;
+  background: radial-gradient(circle at 34% 28%, rgb(255 255 255 / 34%), transparent 56%), linear-gradient(145deg, var(--a), var(--b));
+  box-shadow: 0 6px 16px rgb(0 0 0 / 40%);
+}
+.cos-talklist-face img { width: 100%; height: 100%; object-fit: cover; }
+.cos-talklist-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cos-talklist-text b { font-weight: 400; font-size: 14px; color: #f1ebff; }
+.cos-talklist-last { font-size: var(--cos-text-label); color: rgb(214 200 255 / 74%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cos-talklist-row.is-unread .cos-talklist-last { color: #f1ebff; }
+.cos-talklist-origin { font-size: 10px; color: var(--cos-fg-faint); }
+.cos-talklist-meta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: 10px; color: rgb(214 200 255 / 55%); }
+.cos-talklist-meta i { font-style: normal; }
+.cos-talklist-count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: var(--cos-text-caption);
+  font-weight: 500;
+  color: #140a2a;
+  background: var(--cos-talk-line);
+}
+.cos-talklist-empty { margin: 30vh 16px 0; text-align: center; font-size: var(--cos-text-body); line-height: var(--cos-leading-read); color: var(--cos-fg-soft); }
+.cos-talklist-end { height: 1px; }
+@media (prefers-reduced-motion: reduce) { .cos-talklist { animation: none; } }
+
+/* ------------------------------------------------------------------- Echo
+   Step 3 of section 32, as the approved prototype: Echo's own blue sky, the
+   two lights that look for each other, one big button and optional
+   interests. While waiting, the real people waiting now are drawn as
+   faceless lights circling the search — every light is a person. */
+.cos-seek .cos-ground::before {
+  opacity: 1;
+  background: radial-gradient(120% 70% at 50% 35%, rgb(14 31 72), rgb(3 7 20) 70%);
+}
+.cos-seek-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: calc(84px + env(safe-area-inset-top, 0px)) 24px calc(104px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  overflow-y: auto;
+}
+.cos-seek-lights { position: relative; width: 180px; height: 110px; flex: none; }
+.cos-seek-lights i { position: absolute; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--cos-echo); box-shadow: 0 0 20px var(--cos-echo); }
+.cos-seek-lights .is-a { left: 20px; animation: cos-seek-a 3.2s ease-in-out infinite; }
+.cos-seek-lights .is-b { right: 20px; animation: cos-seek-b 3.2s ease-in-out infinite; }
+.cos-seek-lights.is-fast .is-a,
+.cos-seek-lights.is-fast .is-b { animation-duration: 1s; }
+@keyframes cos-seek-a { 50% { transform: translate(55px, -18px); } }
+@keyframes cos-seek-b { 50% { transform: translate(-55px, 18px); } }
+.cos-seek-title { margin: 0; font-weight: 300; font-size: 22px; text-wrap: balance; }
+.cos-seek-text { margin: 0; max-width: 32ch; font-size: var(--cos-text-body); line-height: var(--cos-leading-read); color: var(--cos-fg-soft); }
+.cos-seek-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 360px; }
+.cos-seek-tag { min-height: 40px; padding: 0 14px; border-radius: 20px; border: 1px solid rgb(111 168 255 / 30%); background: rgb(20 40 90 / 45%); color: var(--cos-fg-soft); font: inherit; font-size: var(--cos-text-label); cursor: pointer; }
+.cos-seek-tag[aria-pressed='true'] { background: rgb(111 168 255 / 30%); color: var(--cos-fg); border-color: rgb(111 168 255 / 70%); }
+.cos-seek-tag:disabled { opacity: 0.4; cursor: default; }
+.cos-seek-go { width: min(300px, 100%); min-height: 56px; border: 0; border-radius: 28px; font: inherit; font-size: 15px; font-weight: 500; color: #04122e; background: linear-gradient(160deg, #cfe2ff, #7fb0ff 50%, #4f86e8); box-shadow: 0 0 34px rgb(111 168 255 / 45%); cursor: pointer; flex: none; }
+.cos-seek-go:disabled { opacity: 0.6; cursor: default; }
+.cos-seek-again { min-height: 44px; padding: 0 18px; border-radius: 22px; border: 1px solid rgb(111 168 255 / 30%); background: transparent; color: var(--cos-fg-soft); font: inherit; font-size: var(--cos-text-label); cursor: pointer; }
+.cos-seek-go:focus-visible,
+.cos-seek-again:focus-visible,
+.cos-seek-tag:focus-visible { outline: 2px solid #cfe2ff; outline-offset: 2px; }
+.cos-seek-small { margin: 0; font-size: var(--cos-text-caption); color: var(--cos-fg-faint); }
+.cos-seek-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+/* waiting */
+.cos-seek-orbit { position: relative; width: 220px; height: 170px; flex: none; display: grid; place-items: center; }
+.cos-seek-orbit > i {
+  --r: calc(62px + var(--k) * 4px);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #dbe8ff;
+  box-shadow: 0 0 10px rgb(170 200 255 / 80%);
+  animation: cos-seek-circle calc(9s + var(--k) * 0.7s) linear infinite;
+  animation-delay: calc(var(--k) * -1.3s);
+}
+@keyframes cos-seek-circle {
+  from { transform: rotate(0deg) translateX(var(--r)); }
+  to { transform: rotate(360deg) translateX(var(--r)); }
+}
+.cos-seek-facts { display: flex; gap: 18px; justify-content: center; }
+.cos-seek-facts span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: var(--cos-text-caption); color: var(--cos-fg-faint); }
+.cos-seek-facts b { font-weight: 400; font-size: 18px; color: var(--cos-fg); font-variant-numeric: tabular-nums; }
+.cos-seek-tip { margin: 0; max-width: 32ch; font-size: var(--cos-text-label); line-height: var(--cos-leading-read); color: #cfe2ff; animation: cos-rise 0.5s var(--cos-ease-settle); }
+.cos-seek-long { display: flex; flex-direction: column; gap: 10px; max-width: 34ch; }
+.cos-seek-long p { margin: 0; font-size: var(--cos-text-body); line-height: var(--cos-leading-read); color: var(--cos-fg-soft); }
+
+/* found */
+.cos-seek-face { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; font-size: 34px; font-weight: 200; background: linear-gradient(145deg, #4f6fa8, #1a2540); box-shadow: 0 0 0 2px rgb(207 226 255 / 60%), 0 0 40px rgb(111 168 255 / 50%); animation: cos-seek-arrive 0.7s var(--cos-ease-pop) both; }
+.cos-seek-face img { width: 100%; height: 100%; object-fit: cover; }
+@keyframes cos-seek-arrive { from { transform: scale(0.3); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-seek-lights i,
+  .cos-seek-orbit > i,
+  .cos-seek-tip,
+  .cos-seek-face { animation: none; }
+}
+
+/* The quiet way to the profile under Echo's questions, clear of the bar. */
+.cos-seek .cos-actions {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  justify-content: center;
+}
+.cos-seek .cos-action {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 22px;
+  border: 1px solid rgb(111 168 255 / 30%);
+  background: transparent;
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-label);
+  cursor: pointer;
+}

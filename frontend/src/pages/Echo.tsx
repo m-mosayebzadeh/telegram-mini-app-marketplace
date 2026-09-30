@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
-import { IconEcho } from '../components/cosmos/icons'
 import {
   BirthdayCosSheet,
   GenderSheet,
@@ -14,45 +13,55 @@ import {
   MAX_TAGS,
   SEARCH_TAGS,
   WANT_ANYONE,
-  WANT_FEMALE,
-  WANT_MALE,
   cancelEchoSearch,
   fetchEchoStatus,
   startEchoSearch,
-  type EchoSearch,
+  type EchoMatch,
   type EchoStatus,
 } from '../lib/echoApi'
 
 /**
- * Echo — you stop choosing, and the world brings somebody.
+ * Echo — a new person, with one tap (TECHNICAL_REQUIREMENTS.md section 32,
+ * step 3; the approved "simple world" prototype).
  *
- * One screen with several faces, because they are one thing at different
- * moments rather than several places: shut for the night, missing a fact
- * about you, asking what you are in the mood for, waiting in the dark,
- * and finally sitting with somebody. Making these separate routes would
- * mean a back button that goes somewhere meaningless from four of them.
+ * One big button, and up to three interests if you want them. The earlier
+ * screen also asked which gender and which ages; the approved prototype
+ * asks only for interests, so that is all this asks — the matcher still
+ * ranks by everything it knows, it just no longer makes you fill it in.
  *
- * The server keeps no timers (TECHNICAL_REQUIREMENTS.md section 28.1), so
- * being matched is something you find out by asking. Only the waiting
- * face polls, and it stops the moment it has an answer — a screen that
- * keeps asking after it knows is how a phone's battery disappears.
+ * The faces of one screen: shut (a countdown), missing a fact about you
+ * (asked right here), suspended, asking, waiting, and found. Found shows
+ * who arrived and their own line, and "start talking" opens the ordinary
+ * conversation — which stays, with nothing to keep (section 32).
+ *
+ * The server keeps no timers (section 28.1), so being matched is found out
+ * by asking; only the waiting face polls, and stops once it has an answer.
  */
 
-/** How often the waiting screen asks whether somebody has arrived. Slow
- *  enough that a hundred people waiting is a trickle, fast enough that
- *  the wait never feels like the app has forgotten you. */
+/** How often the waiting screen asks whether somebody has arrived. */
 const POLL_MS = 2500
 
-/** The ages the range picker offers. Eighteen is the floor everywhere
- *  (section 28), and the top is open rather than a number. */
-const AGE_MIN = 18
-const AGE_MAX = 80
+/** After this long without anybody, the waiting screen says so and offers
+ *  a way to change the interests — honest about a small pool rather than
+ *  spinning forever (section 32's discussion of the first days). */
+export const LONG_WAIT_S = 40
 
-type Face = 'loading' | 'shut' | 'gate' | 'suspended' | 'asking' | 'waiting'
+/** A meeting counts as "just found" for this long; after that, coming back
+ *  to Echo starts a new search instead of showing somebody from days ago. */
+const FRESH_MS = 30 * 60 * 1000
+
+type Face = 'loading' | 'shut' | 'gate' | 'suspended' | 'asking' | 'waiting' | 'found'
+
+function isFresh(match: EchoMatch | null, now = Date.now()): boolean {
+  if (!match) return false
+  if (!match.started_at) return true
+  return now - new Date(match.started_at).getTime() < FRESH_MS
+}
 
 function faceOf(status: EchoStatus | null): Face {
   if (status === null) return 'loading'
   if (status.suspended) return 'suspended'
+  if (isFresh(status.matched)) return 'found'
   if (!status.open_now) return 'shut'
   if (status.missing.length > 0) return 'gate'
   if (status.waiting) return 'waiting'
@@ -65,21 +74,25 @@ function splitMinutes(total: number): { hours: number; minutes: number } {
   return { hours: Math.floor(total / 60), minutes: total % 60 }
 }
 
+/** The two lights that look for each other — Echo's mark, and on the
+ *  waiting screen the faster search. */
+function Lights({ fast }: { fast?: boolean }) {
+  return (
+    <div className={`cos-seek-lights${fast ? ' is-fast' : ''}`} aria-hidden="true">
+      <i className="is-a" />
+      <i className="is-b" />
+    </div>
+  )
+}
+
 export default function Echo() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const n = (value: number) => value.toLocaleString(i18n.language)
 
   const [status, setStatus] = useState<EchoStatus | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-
-  // The three questions. Seeded from the last search once it arrives, so
-  // somebody who searches twice in an evening does not answer them twice
-  // — but they are still SHOWN, because a mood re-applied silently
-  // becomes a setting nobody chose.
-  const [wantsGender, setWantsGender] = useState<string>(WANT_ANYONE)
-  const [ageMin, setAgeMin] = useState<number>(AGE_MIN)
-  const [ageMax, setAgeMax] = useState<number>(AGE_MAX)
   const [tags, setTags] = useState<string[]>([])
   const seeded = useRef(false)
 
@@ -88,11 +101,10 @@ export default function Echo() {
       const next = await fetchEchoStatus()
       setStatus(next)
       setError('')
+      // The interests from last time, shown again rather than applied
+      // silently: a mood re-applied behind your back becomes a setting.
       if (!seeded.current && next.last_search) {
         seeded.current = true
-        setWantsGender(next.last_search.wants_gender)
-        setAgeMin(next.last_search.wants_age_min ?? AGE_MIN)
-        setAgeMax(next.last_search.wants_age_max ?? AGE_MAX)
         setTags(next.last_search.tags)
       }
       return next
@@ -106,26 +118,21 @@ export default function Echo() {
     void load()
   }, [load])
 
-  // Somebody arrived. The conversation is a screen of its own; this one
-  // has done its job the moment there is a person to hand over.
-  //
-  // Straight into the thread the matcher created, by its id — Echo
-  // already knows which one, so there is nothing to look up. `replace`
-  // means going back from the conversation returns to the world rather
-  // than to a search screen that has already finished.
-  useEffect(() => {
-    if (status?.matched) {
-      navigate(`/conversations/${status.matched.conversation_id}`, { replace: true })
-    }
-  }, [status, navigate])
-
-  // Only while waiting, and it stops on its own. An interval that outlives
-  // the screen keeps a phone awake for nothing.
+  // Only while waiting, and it stops on its own.
   useEffect(() => {
     if (!status?.waiting) return
     const timer = window.setInterval(() => void load(), POLL_MS)
     return () => window.clearInterval(timer)
   }, [status?.waiting, load])
+
+  // Arriving at "found" from the waiting screen is the moment of the whole
+  // feature: a small buzz, the way a match is felt without looking.
+  const face = faceOf(status)
+  const lastFace = useRef<Face>('loading')
+  useEffect(() => {
+    if (face === 'found' && lastFace.current === 'waiting') navigator.vibrate?.([10, 40, 10])
+    lastFace.current = face
+  }, [face])
 
   function toggleTag(tag: string) {
     setTags((current) =>
@@ -141,15 +148,7 @@ export default function Echo() {
     setBusy(true)
     setError('')
     try {
-      const body: EchoSearch = {
-        wants_gender: wantsGender,
-        // The full range means no preference at all, which is a different
-        // thing from asking for eighteen-to-eighty and worth saying so.
-        wants_age_min: ageMin === AGE_MIN && ageMax === AGE_MAX ? null : ageMin,
-        wants_age_max: ageMin === AGE_MIN && ageMax === AGE_MAX ? null : ageMax,
-        tags,
-      }
-      setStatus(await startEchoSearch(body))
+      setStatus(await startEchoSearch({ wants_gender: WANT_ANYONE, wants_age_min: null, wants_age_max: null, tags }))
     } catch (err) {
       const reason = apiReason(err)
       setError(reason === 'daily_new_people_limit' || reason === 'daily_quota_reached' ? t('echo.usedUp') : formatApiError(err))
@@ -170,65 +169,97 @@ export default function Echo() {
     }
   }
 
-  const face = faceOf(status)
-
   return (
-    <div className="cos-screen">
+    <div className="cos-screen cos-seek">
       <SpaceGround />
 
-      <header className="cos-echo-top">
-        <button type="button" className="cos-echo-back" onClick={() => navigate('/sky')}>
-          {t('echo.back')}
-        </button>
-        {/* Centred and large enough to be the screen's name rather than a
-            decoration in a corner: this IS Echo, and the mark only becomes
-            readable on its own after a long time spent beside the word. */}
-        <span className="cos-echo-title">
-          <IconEcho size={26} />
-          <span className="cos-en">Echo</span>
-        </span>
+      <header className="cos-header">
+        <span className="cos-header-place"><b className="cos-header-name">{t('bar.echo')}</b></span>
+        <span className="cos-header-count">{t('seek.sub')}</span>
       </header>
 
       {face === 'loading' && (
-        <div className="cos-echo-body cos-centre">
-          <p className="cos-message">{t('common.loading')}</p>
-        </div>
+        <div className="cos-seek-stage"><p className="cos-message">{t('common.loading')}</p></div>
       )}
 
       {face === 'shut' && <Shut minutes={status?.minutes_until_open ?? null} />}
 
       {face === 'suspended' && (
-        <div className="cos-echo-body cos-centre">
-          <p className="cos-message">{t('echo.suspended')}</p>
-        </div>
+        <div className="cos-seek-stage"><p className="cos-message">{t('echo.suspended')}</p></div>
       )}
 
       {face === 'gate' && (
-        <Gate
-          missing={status?.missing ?? []}
-          onDone={load}
-          onGo={() => navigate('/profile/edit')}
-        />
-      )}
-
-      {face === 'waiting' && (
-        <Waiting since={status?.waiting_since ?? null} onStop={stop} busy={busy} />
+        <Gate missing={status?.missing ?? []} onDone={load} onGo={() => navigate('/profile/edit')} />
       )}
 
       {face === 'asking' && (
-        <Asking
-          wantsGender={wantsGender}
-          onGender={setWantsGender}
-          ageMin={ageMin}
-          ageMax={ageMax}
-          onAgeMin={setAgeMin}
-          onAgeMax={setAgeMax}
+        <div className="cos-seek-stage">
+          <Lights />
+          <h2 className="cos-seek-title">{t('seek.title')}</h2>
+          <p className="cos-seek-text">{t('seek.text')}</p>
+          <div className="cos-seek-tags" role="group" aria-label={t('echo.tagsLabel')}>
+            {SEARCH_TAGS.map((tag) => {
+              const on = tags.includes(tag)
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  className="cos-seek-tag"
+                  aria-pressed={on}
+                  disabled={!on && tags.length >= MAX_TAGS}
+                  onClick={() => toggleTag(tag)}
+                >
+                  {t(`echo.tag.${tag}`)}
+                </button>
+              )
+            })}
+          </div>
+          <button
+            type="button"
+            className="cos-seek-go"
+            onClick={() => void search()}
+            disabled={busy || status?.remaining_today === 0}
+          >
+            {busy ? t('common.loading') : tags.length ? t('seek.goWith') : t('seek.go')}
+          </button>
+          <p className="cos-seek-small">
+            {status?.remaining_today === 0
+              ? t('echo.usedUp')
+              : t('seek.online', { n: n(status?.online_now ?? 0) })}
+          </p>
+        </div>
+      )}
+
+      {face === 'waiting' && (
+        <Waiting
+          since={status?.waiting_since ?? null}
+          online={status?.online_now ?? 0}
+          waiting={status?.waiting_now ?? 0}
           tags={tags}
-          onToggleTag={toggleTag}
-          remaining={status?.remaining_today ?? null}
           busy={busy}
-          onSearch={search}
+          onStop={() => void stop()}
         />
+      )}
+
+      {face === 'found' && status?.matched && (
+        <div className="cos-seek-stage cos-seek-found">
+          <span className="cos-seek-face">
+            {status.matched.avatar_url ? <img src={status.matched.avatar_url} alt="" draggable={false} /> : status.matched.display_name.slice(0, 1)}
+          </span>
+          <h2 className="cos-seek-title">{t('seek.found', { name: status.matched.display_name })}</h2>
+          {status.matched.tagline && <p className="cos-seek-text">«{status.matched.tagline}»</p>}
+          {status.matched.shared_tags.length > 0 && (
+            <p className="cos-seek-small">
+              {t('seek.shared', { tags: status.matched.shared_tags.map((tag) => t(`echo.tag.${tag}`)).join('، ') })}
+            </p>
+          )}
+          <button type="button" className="cos-seek-go" onClick={() => navigate(`/conversations/${status.matched!.conversation_id}`)}>
+            {t('seek.start')}
+          </button>
+          <button type="button" className="cos-seek-again" onClick={() => void search()} disabled={busy}>
+            {t('seek.another')}
+          </button>
+        </div>
       )}
 
       {error !== '' && <p className="cos-echo-error">{error}</p>}
@@ -246,7 +277,7 @@ function Shut({ minutes }: { minutes: number | null }) {
   const left = minutes === null ? null : splitMinutes(minutes)
 
   return (
-    <div className="cos-echo-body cos-centre">
+    <div className="cos-seek-stage">
       <div className="cos-echo-shut">
         <p className="cos-echo-shut-label">{t('echo.opensIn')}</p>
         {left ? (
@@ -330,7 +361,7 @@ function Gate({
 
   return (
     <>
-      <div className="cos-echo-body cos-centre">
+      <div className="cos-seek-stage">
         <div className="cos-echo-shut">
           <p className="cos-echo-shut-label">{t('echo.gateTitle')}</p>
 
@@ -391,20 +422,25 @@ function Gate({
 
 /* ------------------------------------------------------------- waiting */
 
-/** The heart of the feature, and the only screen allowed to be still.
- *  Nothing here reports progress, because there is none to report — what
- *  it shows is that something is happening and that leaving is easy. */
-function Waiting({
-  since,
-  onStop,
-  busy,
-}: {
+/** What people waiting see (section 32): the real people waiting right
+ *  now, drawn as faceless lights — every light is a person, nothing here is
+ *  decoration — the honest numbers, the interests you asked for, how long
+ *  it has been, a tip for the first message, and, after a while with
+ *  nobody, a plain way to change the interests instead of spinning on. */
+const TIPS = ['seek.tip1', 'seek.tip2', 'seek.tip3']
+
+function Waiting({ since, online, waiting, tags, busy, onStop }: {
   since: string | null
-  onStop: () => void
+  online: number
+  waiting: number
+  tags: string[]
   busy: boolean
+  onStop: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const n = (value: number) => value.toLocaleString(i18n.language)
   const [seconds, setSeconds] = useState(0)
+  const [waitOn, setWaitOn] = useState(false)
 
   useEffect(() => {
     if (!since) return
@@ -415,155 +451,44 @@ function Waiting({
     return () => window.clearInterval(timer)
   }, [since])
 
-  const shown = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  const shown = `${n(Math.floor(seconds / 60))}:${n(seconds % 60).padStart(2, n(0))}`
+  const tip = TIPS[Math.floor(seconds / 7) % TIPS.length]
+  const long = seconds >= LONG_WAIT_S && !waitOn
+  // At most twelve lights: beyond that the picture says "many" as well as
+  // twelve does, and a hundred small animations would cost a cheap phone.
+  const lights = Math.min(waiting, 12)
 
   return (
-    <>
-      <div className="cos-echo-body cos-centre">
-        <div className="cos-echo-wait">
-          <div className="cos-echo-pulse" aria-hidden="true">
-            <i />
-            <i />
-            <i />
+    <div className="cos-seek-stage cos-seek-waiting">
+      <div className="cos-seek-orbit" aria-hidden="true">
+        {Array.from({ length: lights }, (_, k) => (
+          <i key={k} style={{ '--k': k, '--of': lights } as React.CSSProperties} />
+        ))}
+        <Lights fast />
+      </div>
+      <h2 className="cos-seek-title">{t('seek.searching')}</h2>
+      <p className="cos-seek-text">
+        {tags.length ? t('seek.withTags', { tags: tags.map((tag) => t(`echo.tag.${tag}`)).join('، ') }) : t('seek.anyone')}
+      </p>
+      <div className="cos-seek-facts">
+        <span><b>{n(online)}</b>{t('seek.factOnline')}</span>
+        <span><b>{n(waiting)}</b>{t('seek.factWaiting')}</span>
+        <span><b className="cos-en">{shown}</b>{t('seek.factTime')}</span>
+      </div>
+      {long ? (
+        <div className="cos-seek-long" role="status">
+          <p>{t('seek.long')}</p>
+          <div className="cos-seek-row">
+            <button type="button" className="cos-seek-again" onClick={() => setWaitOn(true)}>{t('seek.keepWaiting')}</button>
+            <button type="button" className="cos-seek-again" onClick={onStop} disabled={busy}>{t('seek.change')}</button>
           </div>
-          <p className="cos-echo-wait-line">{t('echo.waiting')}</p>
-          <p className="cos-echo-wait-time cos-en">{shown}</p>
         </div>
-      </div>
-      <div className="cos-actions">
-        <button type="button" className="cos-action cos-action-quiet" onClick={onStop} disabled={busy}>
-          {t('echo.stop')}
-        </button>
-      </div>
-    </>
-  )
-}
-
-/* ------------------------------------------------------------- asking */
-
-/** The three questions. Every one of them is optional and none of them
- *  narrows the pool — they rank it, so an answer never produces an empty
- *  result (section 28). The screen says that out loud, because a person
- *  who thinks these are filters will keep them wide out of fear. */
-function Asking(props: {
-  wantsGender: string
-  onGender: (value: string) => void
-  ageMin: number
-  ageMax: number
-  onAgeMin: (value: number) => void
-  onAgeMax: (value: number) => void
-  tags: string[]
-  onToggleTag: (tag: string) => void
-  remaining: number | null
-  busy: boolean
-  onSearch: () => void
-}) {
-  const { t } = useTranslation()
-  const wide = props.ageMin === AGE_MIN && props.ageMax === AGE_MAX
-
-  return (
-    <>
-      <div className="cos-echo-body cos-echo-form">
-        <section className="cos-echo-q">
-          <h2 className="cos-echo-q-label">{t('echo.whoLabel')}</h2>
-          <div className="cos-echo-choices">
-            {[
-              { id: WANT_ANYONE, text: t('echo.whoAnyone') },
-              { id: WANT_FEMALE, text: t('echo.whoFemale') },
-              { id: WANT_MALE, text: t('echo.whoMale') },
-            ].map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className={`cos-echo-choice${props.wantsGender === option.id ? ' is-on' : ''}`}
-                onClick={() => props.onGender(option.id)}
-                aria-pressed={props.wantsGender === option.id}
-              >
-                {option.text}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="cos-echo-q">
-          <h2 className="cos-echo-q-label">
-            {t('echo.ageLabel')}
-            <span className="cos-echo-q-value cos-en">
-              {wide ? t('echo.ageAny') : `${props.ageMin}–${props.ageMax}`}
-            </span>
-          </h2>
-          <div className="cos-echo-range">
-            <input
-              type="range"
-              min={AGE_MIN}
-              max={AGE_MAX}
-              value={props.ageMin}
-              aria-label={t('echo.ageFrom')}
-              onChange={(event) => {
-                const next = Number(event.target.value)
-                props.onAgeMin(Math.min(next, props.ageMax))
-              }}
-            />
-            <input
-              type="range"
-              min={AGE_MIN}
-              max={AGE_MAX}
-              value={props.ageMax}
-              aria-label={t('echo.ageTo')}
-              onChange={(event) => {
-                const next = Number(event.target.value)
-                props.onAgeMax(Math.max(next, props.ageMin))
-              }}
-            />
-          </div>
-        </section>
-
-        <section className="cos-echo-q">
-          <h2 className="cos-echo-q-label">
-            {t('echo.tagsLabel')}
-            <span className="cos-echo-q-value">{t('echo.tagsCount', { n: props.tags.length, max: MAX_TAGS })}</span>
-          </h2>
-          <div className="cos-echo-tags">
-            {SEARCH_TAGS.map((tag) => {
-              const on = props.tags.includes(tag)
-              const full = !on && props.tags.length >= MAX_TAGS
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  className={`cos-echo-tag${on ? ' is-on' : ''}`}
-                  onClick={() => props.onToggleTag(tag)}
-                  aria-pressed={on}
-                  disabled={full}
-                >
-                  {t(`echo.tag.${tag}`)}
-                </button>
-              )
-            })}
-          </div>
-          <p className="cos-echo-note">{t('echo.rankNote')}</p>
-        </section>
-      </div>
-
-      <div className="cos-actions">
-        {/* Today's budget for new people, shared with "say hello" in the
-            world (section 30.21): said before the button, and when it is
-            spent the button says so rather than failing on a tap. */}
-        {props.remaining !== null && (
-          <p className={`cos-echo-remaining${props.remaining === 0 ? ' is-spent' : ''}`}>
-            {props.remaining === 0 ? t('echo.usedUp') : t('echo.remaining', { n: props.remaining })}
-          </p>
-        )}
-        <button
-          type="button"
-          className="cos-action cos-action-primary cos-echo-go"
-          onClick={props.onSearch}
-          disabled={props.busy || props.remaining === 0}
-        >
-          {props.busy ? t('common.loading') : t('echo.go')}
-        </button>
-        <p className="cos-echo-what">{t('echo.what')}</p>
-      </div>
-    </>
+      ) : (
+        <p className="cos-seek-tip" key={tip}>{t(tip)}</p>
+      )}
+      {!long && (
+        <button type="button" className="cos-seek-again" onClick={onStop} disabled={busy}>{t('echo.stop')}</button>
+      )}
+    </div>
   )
 }

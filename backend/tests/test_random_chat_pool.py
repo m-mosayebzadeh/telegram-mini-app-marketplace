@@ -207,7 +207,9 @@ def test_two_people_are_matched_and_both_stop_waiting(client, db_session):
     assert first["matched"]["session_id"] == second["matched"]["session_id"]
 
 
-def test_reopening_mid_conversation_lands_you_back_in_it(client, db_session):
+def test_searching_again_ends_the_last_meeting_but_keeps_its_conversation(client, db_session):
+    """Section 32: going back to Echo after talking to somebody finds a new
+    person. The earlier meeting ends, and its conversation stays."""
     _open_the_feature(db_session)
     _person(client, db_session, 9012, gender=GENDER_MALE, birth_year=1995)
     _person(client, db_session, 9013, gender=GENDER_FEMALE, birth_year=1996)
@@ -215,11 +217,13 @@ def test_reopening_mid_conversation_lands_you_back_in_it(client, db_session):
     matched = client.post("/random-chat/search", json={}, headers=_auth(9013)).json()
 
     again = client.post("/random-chat/search", json={}, headers=_auth(9013)).json()
-    assert again["matched"]["session_id"] == matched["matched"]["session_id"]
-    assert db_session.query(RandomChatSession).count() == 1
-
-
-# --- the matcher ------------------------------------------------------
+    assert again["matched"] is None
+    assert again["waiting"] is True
+    session = db_session.query(RandomChatSession).one()
+    db_session.refresh(session)
+    assert session.ended_at is not None
+    listed = client.get("/conversations", headers=_auth(9013)).json()
+    assert [c["id"] for c in listed] == [matched["matched"]["conversation_id"]]
 
 
 def test_a_preference_that_cannot_be_met_still_produces_a_match(db_session):
@@ -348,32 +352,34 @@ def test_leaving_tells_the_other_person_but_does_not_take_the_thread(client, db_
     assert messages.status_code == 200
 
 
-def test_a_thread_nobody_kept_disappears_from_both_lists(client, db_session):
-    session_id, _ = _matched_pair(client, db_session, a=9042, b=9043)
+def test_an_echo_meeting_stays_in_both_lists_after_it_ends(client, db_session):
+    """Section 32: nothing to ask and nothing to keep — the conversation
+    stays for both, whoever left, until one of them deletes it."""
+    session_id, conversation_id = _matched_pair(client, db_session, a=9042, b=9043)
     client.post(f"/random-chat/sessions/{session_id}/leave", headers=_auth(9042))
 
     for telegram_id in (9042, 9043):
         listed = client.get("/conversations", headers=_auth(telegram_id)).json()
-        assert listed == []
+        assert [c["id"] for c in listed] == [conversation_id]
+        assert listed[0]["origin"] == "echo"
 
 
-def test_the_transcript_never_survives_for_either_person(client, db_session):
-    """What is kept is the person, never the conversation.
-
-    People say things to a stranger that they would not say to somebody
-    who will still be there tomorrow, and a permanent transcript makes
-    everyone careful — which is the one thing this feature cannot afford.
-    """
-    session_id, _ = _matched_pair(client, db_session, a=9044, b=9045)
-    for telegram_id in (9044, 9045):
-        assert client.post(
-            f"/random-chat/sessions/{session_id}/follow", headers=_auth(telegram_id)
-        ).status_code == 200
-
+def test_what_was_said_stays_for_both_after_it_ends(client, db_session):
+    """The earlier rule cleared the transcript unless both kept each other;
+    the owner decided against it (section 32)."""
+    session_id, conversation_id = _matched_pair(client, db_session, a=9044, b=9045)
+    client.post(
+        f"/conversations/{conversation_id}/messages",
+        data={"type": "text", "text": "nice to meet you"},
+        headers=_auth(9044),
+    )
     client.post(f"/random-chat/sessions/{session_id}/leave", headers=_auth(9044))
 
     for telegram_id in (9044, 9045):
-        assert client.get("/conversations", headers=_auth(telegram_id)).json() == []
+        texts = [m["text"] for m in client.get(
+            f"/conversations/{conversation_id}/messages", headers=_auth(telegram_id)
+        ).json()]
+        assert texts == ["nice to meet you"]
 
 
 def test_following_from_the_chat_is_an_ordinary_request(client, db_session):
@@ -616,9 +622,9 @@ def test_an_empty_thread_does_not_count_as_knowing_someone(client, db_session):
     assert second["matched"] is not None
 
 
-def test_meeting_the_same_person_again_at_random_is_allowed(client, db_session):
-    """Nothing of a random conversation is kept, so there is no thread
-    between them and nothing stopping it happening twice."""
+def test_two_people_who_met_through_echo_are_not_matched_again(client, db_session):
+    """Their conversation stays now, so they already talk — and Echo is for
+    somebody new. The way back to each other is that conversation."""
     _open_the_feature(db_session)
     _person(client, db_session, 9084, gender=GENDER_MALE, birth_year=1995)
     _person(client, db_session, 9085, gender=GENDER_FEMALE, birth_year=1996)
@@ -630,14 +636,10 @@ def test_meeting_the_same_person_again_at_random_is_allowed(client, db_session):
         data={"type": "text", "text": "hi"},
         headers=_auth(9084),
     )
-    client.post(
-        f"/random-chat/sessions/{first['matched']['session_id']}/leave",
-        headers=_auth(9084),
-    )
 
     client.post("/random-chat/search", json={}, headers=_auth(9084))
     again = client.post("/random-chat/search", json={}, headers=_auth(9085)).json()
-    assert again["matched"] is not None
+    assert again["matched"] is None
 
 
 def test_a_new_face_wins_a_tie_against_someone_already_met(db_session):
@@ -646,3 +648,73 @@ def test_a_new_face_wins_a_tie_against_someone_already_met(db_session):
     fresh = score_pair(_ticket(1), _ticket(2), met_before=False)
     again = score_pair(_ticket(1), _ticket(3), met_before=True)
     assert fresh.score > again.score
+
+
+# --- how two people met, on the conversation list ----------------------
+
+
+def test_a_thread_echo_made_says_it_came_from_echo(client, db_session):
+    _open_the_feature(db_session)
+    _person(client, db_session, 9090, gender=GENDER_MALE, birth_year=1995)
+    _person(client, db_session, 9091, gender=GENDER_FEMALE, birth_year=1996)
+    client.post("/random-chat/search", json={}, headers=_auth(9090))
+    client.post("/random-chat/search", json={}, headers=_auth(9091))
+    session = db_session.query(RandomChatSession).one()
+    client.post(
+        f"/conversations/{session.conversation_id}/messages",
+        data={"type": "text", "text": "hi"},
+        headers=_auth(9090),
+    )
+
+    listed = client.get("/conversations", headers=_auth(9091)).json()
+    row = next(c for c in listed if c["id"] == session.conversation_id)
+    assert row["origin"] == "echo"
+
+
+# --- open all day, and honest numbers ------------------------------------
+
+
+def test_always_open_ignores_the_window_and_keeps_it(db_session):
+    from app.models.feature_schedule import FeatureSchedule
+
+    schedule = FeatureSchedule(feature="x", enabled=True, opens_at_minute=22 * 60, closes_at_minute=23 * 60)
+    assert schedule.is_open_at(10 * 60) is False
+    schedule.always_open = True
+    assert schedule.is_open_at(10 * 60) is True
+    assert schedule.minutes_until_open(10 * 60) is None
+    # The hours are still there for when it is switched off again.
+    assert (schedule.opens_at_minute, schedule.closes_at_minute) == (22 * 60, 23 * 60)
+    schedule.enabled = False
+    assert schedule.is_open_at(10 * 60) is False
+
+
+def test_the_status_says_how_many_are_here_and_waiting(client, db_session):
+    _open_the_feature(db_session)
+    _person(client, db_session, 9092, gender=GENDER_MALE, birth_year=1995)
+    _person(client, db_session, 9093, gender=GENDER_FEMALE, birth_year=1996)
+    client.post("/random-chat/search", json={"wants_gender": "male"}, headers=_auth(9092))
+    status = client.get("/random-chat/status", headers=_auth(9093)).json()
+    assert status["online_now"] >= 1
+    assert status["waiting_now"] == 1
+
+
+def test_the_panel_can_open_echo_all_day(client, db_session):
+    """Section 32: a switch in the panel that opens Echo round the clock and
+    leaves the hours as they were, for when it is switched off."""
+    from app.core.config import settings
+
+    original = settings.owner_telegram_id
+    settings.owner_telegram_id = 9094
+    try:
+        _open_the_feature(db_session, opens=22 * 60, closes=23 * 60)
+        client.get("/me", headers=_auth(9094, "Owner"))
+        body = {"enabled": True, "always_open": True, "opens_at_minute": 22 * 60, "closes_at_minute": 23 * 60,
+                "daily_quota": 10, "daily_quota_unlimited": True}
+        saved = client.put("/admin/random-chat/schedule", json=body, headers=_auth(9094, "Owner"))
+        assert saved.status_code == 200, saved.text
+        assert saved.json()["always_open"] is True
+        assert saved.json()["opens_at_minute"] == 22 * 60
+        status = client.get("/random-chat/status?local_minute=600", headers=_auth(9094, "Owner")).json()
+        assert status["open_now"] is True
+    finally:
+        settings.owner_telegram_id = original

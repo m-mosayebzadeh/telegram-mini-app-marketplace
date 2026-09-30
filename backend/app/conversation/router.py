@@ -60,6 +60,7 @@ from app.models.conversation import (
     ConversationParticipant,
 )
 from app.models.message_actions import HiddenMessage
+from app.models.random_chat import RandomChatSession
 from app.models.user import User
 from app.profile.photos import get_current_avatar_urls
 
@@ -131,6 +132,22 @@ def _unread_count(
     return db.scalar(query) or 0
 
 
+def _origin(db: Session, conversation: Conversation) -> str:
+    """How these people met, for the line under the row: "echo" when an
+    Echo meeting created this thread, "world" when somebody said hello.
+
+    Only the meeting that CREATED the thread counts. Two people who already
+    talked and later met again through Echo still met in the world first.
+    """
+    made_by_echo = db.scalar(
+        select(RandomChatSession.id).where(
+            RandomChatSession.conversation_id == conversation.id,
+            RandomChatSession.created_conversation.is_(True),
+        ).limit(1)
+    )
+    return "echo" if made_by_echo is not None else "world"
+
+
 def serialize(
     db: Session, conversation: Conversation, participant: ConversationParticipant
 ) -> ConversationOut:
@@ -168,6 +185,7 @@ def serialize(
 
     return ConversationOut(
         unread_count=_unread_count(db, conversation, participant),
+        origin=_origin(db, conversation),
         id=conversation.id,
         kind=conversation.kind,
         created_at=conversation.created_at,
