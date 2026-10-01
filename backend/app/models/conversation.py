@@ -209,6 +209,20 @@ class ConversationParticipant(Base):
     # same reason as everything else here.
     archived: Mapped[bool] = mapped_column(default=False)
 
+    # "Delete chat", as opposed to "clear history" (the owner's split,
+    # section 32): both hide the messages up to now (`cleared_at`), but
+    # only deleting also takes the thread out of the list — until somebody
+    # writes again, which brings it back on its own.
+    hidden_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    # Muted: kept out of the unread number on the conversations door. When
+    # notifications exist they will respect it too.
+    muted: Mapped[bool] = mapped_column(default=False, server_default="false")
+
+    # Pinned to the top of the list, and when: the first pinned stays the
+    # highest, the ones pinned after it come under it (the owner's rule).
+    pinned_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     # How far this person has read, for the unread marker.
     last_read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
@@ -222,6 +236,22 @@ class ConversationParticipant(Base):
 
     def clear(self, when: datetime) -> None:
         self.cleared_at = when
+        # What was cleared cannot still be waiting to be read: without this
+        # an unread message from before would keep the thread "unread"
+        # with nothing in it to read.
+        if self.last_read_at is None or self.last_read_at < when:
+            self.last_read_at = when
+
+    def hide(self, when: datetime) -> None:
+        """Delete the chat from this person's side: cleared, and out of
+        the list until something new is said."""
+        self.clear(when)
+        self.hidden_at = when
+
+    def hidden_from_list(self, last_message_at: datetime | None) -> bool:
+        return self.hidden_at is not None and (
+            last_message_at is None or last_message_at <= self.hidden_at
+        )
 
     def sees_message_at(self, created_at: datetime) -> bool:
         return self.cleared_at is None or created_at > self.cleared_at

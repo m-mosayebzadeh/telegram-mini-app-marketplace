@@ -55,6 +55,11 @@ export interface Relation {
   unreadCount: number
   /** How you met: "echo" when Echo made the thread, "world" otherwise. */
   origin: 'world' | 'echo'
+  /** Muted by you: shown on the row, and not counted on the door. */
+  muted?: boolean
+  /** Pinned: its place among the pinned (0 is the first pinned, highest),
+   *  or null when not pinned. */
+  pinnedRank?: number | null
   /** The request behind a pending stage. */
   request: RequestActivity | null
   /** The session behind the 'session' stage. */
@@ -93,7 +98,9 @@ export function buildRelations(
   }
 
   // Conversations first: they carry the last message and the unread flag.
-  // Only one-to-one threads — a group is not a person.
+  // Only one-to-one threads — a group is not a person. They arrive pinned
+  // first, in the order they were pinned, which is what the rank keeps.
+  let pinnedSoFar = 0
   for (const c of conversations) {
     if (c.kind !== 'direct' || c.others.length !== 1) continue
     const other = c.others[0]
@@ -101,6 +108,8 @@ export function buildRelations(
     r.conversationId = c.id
     r.lastText = c.last_text
     r.origin = c.origin === 'echo' ? 'echo' : 'world'
+    r.muted = c.muted ?? false
+    r.pinnedRank = c.pinned ? pinnedSoFar++ : null
     r.lastAt = later(r.lastAt, c.last_message_at ?? c.created_at)
     r.unread = c.unread
     // An older server sends only the flag: count it as one rather than

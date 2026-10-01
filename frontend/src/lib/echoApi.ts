@@ -17,16 +17,29 @@ export const WANT_ANYONE = 'anyone'
 export const WANT_MALE = 'male'
 export const WANT_FEMALE = 'female'
 
-/** The tags the server accepts, in the order they should be shown. Kept
- *  here rather than fetched: they change about once a year, and a list
- *  that arrives late means a form that jumps while somebody is reading
- *  it. `GET /random-chat/tags` exists and stays the source of truth if
- *  the two ever disagree. */
-export const SEARCH_TAGS = [
-  'music', 'film', 'books', 'games', 'sport', 'travel', 'food', 'art',
-  'tech', 'study', 'work', 'startup', 'animals', 'nature', 'photography',
-  'nightowl', 'deeptalk', 'smalltalk', 'advice', 'language',
-] as const
+/** The interests the server accepts, in the groups the picker shows them
+ *  in (section 32). Kept here rather than fetched: they change rarely, and
+ *  a list that arrives late means a form that jumps while somebody is
+ *  reading it. The server's copy (backend/app/random_chat/tags.py) is the
+ *  source of truth; the two must stay the same. */
+export const TAG_GROUPS = {
+  fun: ['music', 'film', 'art', 'photography', 'games'],
+  learning: ['books', 'study', 'language', 'tech'],
+  work: ['work', 'startup', 'advice'],
+  life: ['sport', 'travel', 'food', 'nature', 'animals'],
+  talk: ['nightowl', 'deeptalk', 'smalltalk'],
+} as const satisfies Record<string, readonly string[]>
+
+export type TagGroup = keyof typeof TAG_GROUPS
+export const GROUPS = Object.keys(TAG_GROUPS) as TagGroup[]
+
+/** Every interest, once, in the groups' order. */
+export const SEARCH_TAGS: readonly string[] = GROUPS.flatMap((group) => TAG_GROUPS[group])
+
+/** Which group an interest is in. */
+export function groupOf(tag: string): TagGroup | undefined {
+  return GROUPS.find((group) => (TAG_GROUPS[group] as readonly string[]).includes(tag))
+}
 
 /** At most three, because tags are openers rather than requirements —
  *  the point is having something to say, not narrowing a small pool. */
@@ -58,6 +71,24 @@ export interface EchoSearch {
   tags: string[]
 }
 
+/**
+ * Somebody found for you, held while you both decide (section 32). No name
+ * and no photo: only their own line and what you share, so the one thing
+ * the card lets you judge is whether there is something to talk about.
+ */
+export interface EchoProposal {
+  id: number
+  tagline: string | null
+  shared_tags: string[]
+  /** Groups both picked in, said only when no interest is shared. */
+  shared_groups?: string[]
+  expires_at: string
+  /** The whole hold, for the ring that empties around the card. */
+  seconds: number
+  /** You have said "start" and are waiting for them. */
+  accepted: boolean
+}
+
 export interface EchoStatus {
   /** The admin switch and the nightly window, already combined. */
   open_now: boolean
@@ -73,10 +104,14 @@ export interface EchoStatus {
   last_search: EchoSearch | null
   /** Null means unlimited, which is where the cap starts. */
   remaining_today: number | null
-  /** People here right now, and others waiting for somebody new — the
-   *  honest numbers the waiting screen is built from. */
+  /** People here right now, and people waiting for somebody new — you
+   *  included in both — the honest numbers the waiting screen is built from. */
   online_now?: number
   waiting_now?: number
+  /** The panel's switch: false means the waiting screen shows no numbers. */
+  show_counts?: boolean
+  /** Somebody found for you and waiting for both answers. */
+  proposal?: EchoProposal | null
 }
 
 /**
@@ -91,8 +126,20 @@ export function localMinuteNow(now: Date = new Date()): number {
   return now.getHours() * 60 + now.getMinutes()
 }
 
+/** Sends this device's own clock: whether Echo is open depends on the
+ *  hour where the person is, not on one hour worldwide. */
 export function fetchEchoStatus(): Promise<EchoStatus> {
-  return apiFetch<EchoStatus>('/random-chat/status')
+  return apiFetch<EchoStatus>(`/random-chat/status?local_minute=${localMinuteNow()}`)
+}
+
+/** "Start". Once both have said it, the status carries the conversation. */
+export function acceptEchoProposal(id: number): Promise<EchoStatus> {
+  return apiFetch<EchoStatus>(`/random-chat/proposals/${id}/accept?local_minute=${localMinuteNow()}`, { method: 'POST' })
+}
+
+/** "No" — both go back to searching, and neither is told who said it. */
+export function declineEchoProposal(id: number): Promise<EchoStatus> {
+  return apiFetch<EchoStatus>(`/random-chat/proposals/${id}/decline?local_minute=${localMinuteNow()}`, { method: 'POST' })
 }
 
 export function startEchoSearch(search: EchoSearch): Promise<EchoStatus> {
@@ -100,6 +147,18 @@ export function startEchoSearch(search: EchoSearch): Promise<EchoStatus> {
     method: 'POST',
     body: JSON.stringify({ ...search, local_minute: localMinuteNow() }),
   })
+}
+
+/** One interest in tonight's order: `tonight` when at least three people
+ *  in Echo right now chose it. */
+export interface TonightTag {
+  tag: string
+  tonight: boolean
+}
+
+/** Every interest, the ones most chosen in Echo right now first. */
+export function fetchTonightTags(): Promise<TonightTag[]> {
+  return apiFetch<TonightTag[]>('/random-chat/tags/tonight')
 }
 
 export function cancelEchoSearch(): Promise<void> {

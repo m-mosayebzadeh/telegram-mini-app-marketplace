@@ -7,6 +7,7 @@ import { SpaceGround, DUST_LAYERS, seededRandom } from '../components/cosmos/Spa
 import { Orbits } from '../components/cosmos/Orbits'
 import { PersonSheet } from '../components/cosmos/PersonSheet'
 import { HOME_EVENT } from '../components/cosmos/WorldBar'
+import { useUnread } from '../lib/useUnread'
 import { SkyHeader } from '../components/cosmos/SkyHeader'
 import { TalkList } from '../components/cosmos/TalkList'
 import { NewsFeed } from '../components/cosmos/NewsFeed'
@@ -136,6 +137,7 @@ export default function Sky() {
   const location = useLocation()
   const region = regionOf(useParams().region)
   const world = useWorld()
+  const unreadTotal = useUnread()
   /** The region on screen. Trails `region` by the length of a journey, so
    *  the place being left can rush past before the new one arrives. */
   const [shown, setShown] = useState<Region>(region)
@@ -721,6 +723,7 @@ export default function Sky() {
           hasMore={world.hasMore}
           onNearEnd={world.loadMore}
           onOpen={(relation) => navigate(`/conversations/with/${relation.userId}`)}
+          onChanged={world.reload}
         />
         </div>
       )}
@@ -748,7 +751,9 @@ export default function Sky() {
             {shown === 'talk'
               ? t('world.talkSub', {
                   n: world.relations.filter((r) => r.conversationId !== null).length.toLocaleString(i18n.language),
-                  m: world.relations.filter((r) => r.unread).length.toLocaleString(i18n.language),
+                  // From the server, over every conversation: the list
+                  // here holds only its first page.
+                  m: unreadTotal.toLocaleString(i18n.language),
                 })
               : news.length > 0
                 ? t('world.newsSub', { n: news.length.toLocaleString(i18n.language) })

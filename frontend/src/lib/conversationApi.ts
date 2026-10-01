@@ -33,6 +33,10 @@ export interface Conversation {
   capabilities: string[]
   active_session_id: number | null
   archived: boolean
+  /** Kept out of the unread number on the conversations door. */
+  muted?: boolean
+  /** Pinned to the top of the list; the server sends pinned ones first. */
+  pinned?: boolean
   unread: boolean
   /** How many messages from the others are unread. */
   unread_count?: number
@@ -86,6 +90,48 @@ export interface ConversationMessage {
 export function fetchConversations(page?: { limit: number; offset?: number }): Promise<Conversation[]> {
   if (!page) return apiFetch<Conversation[]>('/conversations')
   return apiFetch<Conversation[]>(`/conversations?limit=${page.limit}&offset=${page.offset ?? 0}`)
+}
+
+/** Pins a chat to the top of the list, or unpins it. At most five: the
+ *  sixth is refused with the reason "pin_limit". */
+export function setConversationPinned(id: number, pinned: boolean): Promise<void> {
+  return apiFetch<void>(`/conversations/${id}/pin?pinned=${pinned}`, { method: 'POST' })
+}
+
+/** Moves a chat into the archive, or back out of it. */
+export function setConversationArchived(id: number, archived: boolean): Promise<void> {
+  return apiFetch<void>(`/conversations/${id}/archive?archived=${archived}`, { method: 'POST' })
+}
+
+/** The archived chats. */
+export function fetchArchivedConversations(): Promise<Conversation[]> {
+  return apiFetch<Conversation[]>('/conversations?archived=true')
+}
+
+/** Mutes or unmutes a chat, for you alone. */
+export function setConversationMuted(id: number, muted: boolean): Promise<void> {
+  return apiFetch<void>(`/conversations/${id}/mute?muted=${muted}`, { method: 'POST' })
+}
+
+/** Clears the history: the chat stays in the list, empty. With
+ *  `forEveryone`, the other person's copy is cleared too. */
+export function clearConversationHistory(id: number, forEveryone: boolean): Promise<void> {
+  return apiFetch<void>(`/conversations/${id}/clear?for_everyone=${forEveryone}`, { method: 'POST' })
+}
+
+/** Deletes the chat: cleared, and out of the list until somebody writes
+ *  again. With `forEveryone`, for the other person as well. */
+export function deleteConversation(id: number, forEveryone: boolean): Promise<void> {
+  return apiFetch<void>(`/conversations/${id}?for_everyone=${forEveryone}`, { method: 'DELETE' })
+}
+
+/**
+ * How many conversations have something unread, across all of them — not
+ * only the page the list has loaded. The door and the list's header both
+ * show this, so they can never disagree.
+ */
+export function fetchUnreadCount(): Promise<number> {
+  return apiFetch<{ conversations: number }>('/conversations/unread').then((r) => r.conversations)
 }
 
 /**

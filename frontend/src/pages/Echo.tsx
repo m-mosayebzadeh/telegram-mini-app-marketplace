@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { setEcho, useEcho } from '../lib/echoStore'
+import { TagPicker } from '../components/cosmos/TagPicker'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
@@ -11,12 +13,10 @@ import { apiFetch } from '../lib/api'
 import { apiReason, formatApiError } from '../lib/api'
 import {
   MAX_TAGS,
-  SEARCH_TAGS,
   WANT_ANYONE,
   cancelEchoSearch,
   fetchEchoStatus,
   startEchoSearch,
-  type EchoMatch,
   type EchoStatus,
 } from '../lib/echoApi'
 
@@ -30,38 +30,26 @@ import {
  * ranks by everything it knows, it just no longer makes you fill it in.
  *
  * The faces of one screen: shut (a countdown), missing a fact about you
- * (asked right here), suspended, asking, waiting, and found. Found shows
- * who arrived and their own line, and "start talking" opens the ordinary
- * conversation — which stays, with nothing to keep (section 32).
+ * (asked right here), suspended, asking and waiting. Somebody found is no
+ * longer a face of this screen: it is a card that reaches you on any
+ * screen (components/cosmos/EchoOffer.tsx), because searching does not
+ * keep you here — and once you have both said "start" it opens the
+ * conversation itself.
  *
- * The server keeps no timers (section 28.1), so being matched is found out
- * by asking; only the waiting face polls, and stops once it has an answer.
+ * The status is the shared one (lib/echoStore.ts), which the door in the
+ * bar and that card read too; it keeps asking while you are searching.
  */
-
-/** How often the waiting screen asks whether somebody has arrived. */
-const POLL_MS = 2500
 
 /** After this long without anybody, the waiting screen says so and offers
  *  a way to change the interests — honest about a small pool rather than
  *  spinning forever (section 32's discussion of the first days). */
 export const LONG_WAIT_S = 40
 
-/** A meeting counts as "just found" for this long; after that, coming back
- *  to Echo starts a new search instead of showing somebody from days ago. */
-const FRESH_MS = 30 * 60 * 1000
-
-type Face = 'loading' | 'shut' | 'gate' | 'suspended' | 'asking' | 'waiting' | 'found'
-
-function isFresh(match: EchoMatch | null, now = Date.now()): boolean {
-  if (!match) return false
-  if (!match.started_at) return true
-  return now - new Date(match.started_at).getTime() < FRESH_MS
-}
+type Face = 'loading' | 'shut' | 'gate' | 'suspended' | 'asking' | 'waiting'
 
 function faceOf(status: EchoStatus | null): Face {
   if (status === null) return 'loading'
   if (status.suspended) return 'suspended'
-  if (isFresh(status.matched)) return 'found'
   if (!status.open_now) return 'shut'
   if (status.missing.length > 0) return 'gate'
   if (status.waiting) return 'waiting'
@@ -86,11 +74,10 @@ function Lights({ fast }: { fast?: boolean }) {
 }
 
 export default function Echo() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const navigate = useNavigate()
-  const n = (value: number) => value.toLocaleString(i18n.language)
 
-  const [status, setStatus] = useState<EchoStatus | null>(null)
+  const status = useEcho()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [tags, setTags] = useState<string[]>([])
@@ -99,7 +86,7 @@ export default function Echo() {
   const load = useCallback(async () => {
     try {
       const next = await fetchEchoStatus()
-      setStatus(next)
+      setEcho(next)
       setError('')
       // The interests from last time, shown again rather than applied
       // silently: a mood re-applied behind your back becomes a setting.
@@ -118,21 +105,7 @@ export default function Echo() {
     void load()
   }, [load])
 
-  // Only while waiting, and it stops on its own.
-  useEffect(() => {
-    if (!status?.waiting) return
-    const timer = window.setInterval(() => void load(), POLL_MS)
-    return () => window.clearInterval(timer)
-  }, [status?.waiting, load])
-
-  // Arriving at "found" from the waiting screen is the moment of the whole
-  // feature: a small buzz, the way a match is felt without looking.
   const face = faceOf(status)
-  const lastFace = useRef<Face>('loading')
-  useEffect(() => {
-    if (face === 'found' && lastFace.current === 'waiting') navigator.vibrate?.([10, 40, 10])
-    lastFace.current = face
-  }, [face])
 
   function toggleTag(tag: string) {
     setTags((current) =>
@@ -148,7 +121,7 @@ export default function Echo() {
     setBusy(true)
     setError('')
     try {
-      setStatus(await startEchoSearch({ wants_gender: WANT_ANYONE, wants_age_min: null, wants_age_max: null, tags }))
+      setEcho(await startEchoSearch({ wants_gender: WANT_ANYONE, wants_age_min: null, wants_age_max: null, tags }))
     } catch (err) {
       const reason = apiReason(err)
       setError(reason === 'daily_new_people_limit' || reason === 'daily_quota_reached' ? t('echo.usedUp') : formatApiError(err))
@@ -197,36 +170,24 @@ export default function Echo() {
           <Lights />
           <h2 className="cos-seek-title">{t('seek.title')}</h2>
           <p className="cos-seek-text">{t('seek.text')}</p>
-          <div className="cos-seek-tags" role="group" aria-label={t('echo.tagsLabel')}>
-            {SEARCH_TAGS.map((tag) => {
-              const on = tags.includes(tag)
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  className="cos-seek-tag"
-                  aria-pressed={on}
-                  disabled={!on && tags.length >= MAX_TAGS}
-                  onClick={() => toggleTag(tag)}
-                >
-                  {t(`echo.tag.${tag}`)}
-                </button>
-              )
-            })}
-          </div>
+          <TagPicker chosen={tags} onToggle={toggleTag} />
           <button
             type="button"
             className="cos-seek-go"
             onClick={() => void search()}
             disabled={busy || status?.remaining_today === 0}
           >
-            {busy ? t('common.loading') : tags.length ? t('seek.goWith') : t('seek.go')}
+            {/* The day's budget used up is said on the button itself: the
+                line that used to sit under it fell behind Sol and the bar
+                (the owner removed it). */}
+            {busy
+              ? t('common.loading')
+              : status?.remaining_today === 0
+                ? t('echo.usedUp')
+                : tags.length
+                  ? t('seek.goWith')
+                  : t('seek.go')}
           </button>
-          <p className="cos-seek-small">
-            {status?.remaining_today === 0
-              ? t('echo.usedUp')
-              : t('seek.online', { n: n(status?.online_now ?? 0) })}
-          </p>
         </div>
       )}
 
@@ -235,31 +196,11 @@ export default function Echo() {
           since={status?.waiting_since ?? null}
           online={status?.online_now ?? 0}
           waiting={status?.waiting_now ?? 0}
+          showCounts={status?.show_counts !== false}
           tags={tags}
           busy={busy}
           onStop={() => void stop()}
         />
-      )}
-
-      {face === 'found' && status?.matched && (
-        <div className="cos-seek-stage cos-seek-found">
-          <span className="cos-seek-face">
-            {status.matched.avatar_url ? <img src={status.matched.avatar_url} alt="" draggable={false} /> : status.matched.display_name.slice(0, 1)}
-          </span>
-          <h2 className="cos-seek-title">{t('seek.found', { name: status.matched.display_name })}</h2>
-          {status.matched.tagline && <p className="cos-seek-text">«{status.matched.tagline}»</p>}
-          {status.matched.shared_tags.length > 0 && (
-            <p className="cos-seek-small">
-              {t('seek.shared', { tags: status.matched.shared_tags.map((tag) => t(`echo.tag.${tag}`)).join('، ') })}
-            </p>
-          )}
-          <button type="button" className="cos-seek-go" onClick={() => navigate(`/conversations/${status.matched!.conversation_id}`)}>
-            {t('seek.start')}
-          </button>
-          <button type="button" className="cos-seek-again" onClick={() => void search()} disabled={busy}>
-            {t('seek.another')}
-          </button>
-        </div>
       )}
 
       {error !== '' && <p className="cos-echo-error">{error}</p>}
@@ -429,10 +370,15 @@ function Gate({
  *  nobody, a plain way to change the interests instead of spinning on. */
 const TIPS = ['seek.tip1', 'seek.tip2', 'seek.tip3']
 
-function Waiting({ since, online, waiting, tags, busy, onStop }: {
+function Waiting({ since, online, waiting, showCounts, tags, busy, onStop }: {
   since: string | null
   online: number
+  /** Everyone searching, you included. */
   waiting: number
+  /** The panel's switch. Off, the numbers go and only the time stays; the
+   *  lights stay too, since they say "somebody is here" without a number
+   *  that looks small. */
+  showCounts: boolean
   tags: string[]
   busy: boolean
   onStop: () => void
@@ -440,7 +386,6 @@ function Waiting({ since, online, waiting, tags, busy, onStop }: {
   const { t, i18n } = useTranslation()
   const n = (value: number) => value.toLocaleString(i18n.language)
   const [seconds, setSeconds] = useState(0)
-  const [waitOn, setWaitOn] = useState(false)
 
   useEffect(() => {
     if (!since) return
@@ -453,10 +398,11 @@ function Waiting({ since, online, waiting, tags, busy, onStop }: {
 
   const shown = `${n(Math.floor(seconds / 60))}:${n(seconds % 60).padStart(2, n(0))}`
   const tip = TIPS[Math.floor(seconds / 7) % TIPS.length]
-  const long = seconds >= LONG_WAIT_S && !waitOn
+  const long = seconds >= LONG_WAIT_S
   // At most twelve lights: beyond that the picture says "many" as well as
   // twelve does, and a hundred small animations would cost a cheap phone.
-  const lights = Math.min(waiting, 12)
+  // The lights are the others: you are the one in the middle.
+  const lights = Math.min(Math.max(0, waiting - 1), 12)
 
   return (
     <div className="cos-seek-stage cos-seek-waiting">
@@ -471,15 +417,16 @@ function Waiting({ since, online, waiting, tags, busy, onStop }: {
         {tags.length ? t('seek.withTags', { tags: tags.map((tag) => t(`echo.tag.${tag}`)).join('، ') }) : t('seek.anyone')}
       </p>
       <div className="cos-seek-facts">
-        <span><b>{n(online)}</b>{t('seek.factOnline')}</span>
-        <span><b>{n(waiting)}</b>{t('seek.factWaiting')}</span>
+        {showCounts && <span><b>{n(online)}</b>{t('seek.factOnline')}</span>}
+        {showCounts && <span><b>{n(waiting)}</b>{t('seek.factWaiting')}</span>}
         <span><b className="cos-en">{shown}</b>{t('seek.factTime')}</span>
       </div>
       {long ? (
         <div className="cos-seek-long" role="status">
           <p>{t('seek.long')}</p>
+          {/* No "I will wait": the search goes on whatever you press, so
+              that button did nothing (the owner's point). Only the change. */}
           <div className="cos-seek-row">
-            <button type="button" className="cos-seek-again" onClick={() => setWaitOn(true)}>{t('seek.keepWaiting')}</button>
             <button type="button" className="cos-seek-again" onClick={onStop} disabled={busy}>{t('seek.change')}</button>
           </div>
         </div>

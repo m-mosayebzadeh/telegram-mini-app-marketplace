@@ -30,6 +30,7 @@ from app.core.time import utcnow
 from app.models.block import Block
 from app.models.conversation import ConversationParticipant
 from app.models.profile import GENDER_UNSAID
+from app.random_chat.tags import shared_groups
 from app.models.random_chat import (
     WANT_ANYONE,
     RandomChatSession,
@@ -54,6 +55,13 @@ SCORE_AGE_IN_RANGE = 60
 #: weight, which is right: two people who picked the same three things
 #: have something to say to each other.
 SCORE_PER_SHARED_TAG = 25
+
+#: Per group both picked something in, besides the groups where they
+#: picked the very same interest (section 32, the owner's idea): physics
+#: and chemistry still have something to say to each other. Less than an
+#: interest in common, so the same interest is found first, then the same
+#: group, then anybody.
+SCORE_PER_SHARED_GROUP = 10
 
 #: Being awake at the same odd hour. Deliberately modest: it is a nice
 #: coincidence, not a preference anybody stated.
@@ -87,6 +95,8 @@ class Pairing:
     other: RandomChatTicket
     score: int
     shared_tags: list[str]
+    #: Groups both picked in without picking the same interest there.
+    shared_groups: list[str]
     #: Whether each side actually got what they asked for. The screen uses
     #: these to say "this is not quite what you asked for" rather than
     #: quietly handing over a mismatch.
@@ -143,11 +153,13 @@ def score_pair(
     theirs_age = _age_satisfied(other, ticket)
 
     shared = [tag for tag in (ticket.tags or []) if tag in (other.tags or [])]
+    groups = shared_groups(ticket.tags, other.tags)
 
     score = 0
     score += SCORE_GENDER_MATCH * (int(mine_gender) + int(theirs_gender))
     score += SCORE_AGE_IN_RANGE * (int(mine_age) + int(theirs_age))
     score += SCORE_PER_SHARED_TAG * len(shared) * 2
+    score += SCORE_PER_SHARED_GROUP * len(groups) * 2
 
     clock_gap = abs(ticket.local_minute - other.local_minute)
     clock_gap = min(clock_gap, 1440 - clock_gap)  # the day is a circle
@@ -165,6 +177,7 @@ def score_pair(
         other=other,
         score=score,
         shared_tags=shared,
+        shared_groups=groups,
         gender_as_asked=mine_gender,
         age_as_asked=mine_age,
     )
@@ -229,15 +242,23 @@ def blocked_user_ids(db: Session, user_id: int) -> set[int]:
     return {blocker if blocked == user_id else blocked for blocker, blocked in rows}
 
 
-def find_match(db: Session, ticket: RandomChatTicket, *, now=None) -> Pairing | None:
+def find_match(
+    db: Session, ticket: RandomChatTicket, *, now=None, exclude: set[int] | None = None
+) -> Pairing | None:
     """The best person currently waiting for this one, if there is any.
 
     Returns None when the pool holds nobody they may be matched with — an
     empty pool, or one containing only people they have blocked.
+
+    `exclude` is whoever else is off limits this time: people already held
+    in a proposal, and people this person was passed over with today
+    (app/random_chat/proposals.py).
     """
     now = now or utcnow()
-    forbidden = blocked_user_ids(db, ticket.user_id) | already_talking_user_ids(
-        db, ticket.user_id
+    forbidden = (
+        blocked_user_ids(db, ticket.user_id)
+        | already_talking_user_ids(db, ticket.user_id)
+        | (exclude or set())
     )
     met_before = met_before_user_ids(db, ticket.user_id)
 

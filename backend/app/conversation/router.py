@@ -46,6 +46,7 @@ from app.chat_message.actions import (
 )
 from app.core.new_people import new_people_left, new_people_limit
 from app.live.events import (
+    announce_cleared,
     announce_deleted,
     announce_edited,
     announce_message,
@@ -148,6 +149,51 @@ def _origin(db: Session, conversation: Conversation) -> str:
     return "echo" if made_by_echo is not None else "world"
 
 
+def _is_unread(
+    conversation: Conversation,
+    participant: ConversationParticipant,
+    last_message: ChatMessage | None,
+) -> bool:
+    """Something arrived after this person last read the thread, and it was
+    not them who said it. The one definition of "unread", used by the row
+    itself, by the order of the list and by the count on the door."""
+    return (
+        conversation.last_message_at is not None
+        and (
+            participant.last_read_at is None
+            or conversation.last_message_at > participant.last_read_at
+        )
+        and last_message is not None
+        and last_message.sender_id != participant.user_id
+    )
+
+
+def _last_message(db: Session, conversation_id: int) -> ChatMessage | None:
+    """The newest message still standing in a thread."""
+    return db.scalar(
+        select(ChatMessage)
+        .where(
+            ChatMessage.conversation_id == conversation_id,
+            ChatMessage.deleted_at.is_(None),
+        )
+        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
+        .limit(1)
+    )
+
+
+def _unread_cheaply(db: Session, participant: ConversationParticipant) -> bool:
+    """`_is_unread` without describing the whole thread. The date check is
+    free and rules out almost every read thread, so the one extra query
+    runs only for threads that may really be unread."""
+    conversation = participant.conversation
+    if conversation.last_message_at is None or (
+        participant.last_read_at is not None
+        and conversation.last_message_at <= participant.last_read_at
+    ):
+        return False
+    return _is_unread(conversation, participant, _last_message(db, conversation.id))
+
+
 def serialize(
     db: Session, conversation: Conversation, participant: ConversationParticipant
 ) -> ConversationOut:
@@ -164,16 +210,8 @@ def serialize(
 
     session = active_paid_session(db, conversation.id)
 
-    last_message = db.scalar(
-        select(ChatMessage)
-        .where(
-            ChatMessage.conversation_id == conversation.id,
-            # A message deleted for everyone must not live on as the preview.
-            ChatMessage.deleted_at.is_(None),
-        )
-        .order_by(ChatMessage.created_at.desc(), ChatMessage.id.desc())
-        .limit(1)
-    )
+    # A message deleted for everyone must not live on as the preview.
+    last_message = _last_message(db, conversation.id)
     # A preview the viewer is not allowed to see would leak the content of
     # a thread they cleared, so it follows exactly the same rule the
     # message list does.
@@ -204,17 +242,9 @@ def serialize(
         capabilities=capabilities_now(conversation, session),
         active_session_id=session.id if session is not None else None,
         archived=participant.archived,
-        unread=(
-            conversation.last_message_at is not None
-            and (
-                participant.last_read_at is None
-                or conversation.last_message_at > participant.last_read_at
-            )
-            and (
-                last_message is not None
-                and last_message.sender_id != participant.user_id
-            )
-        ),
+        muted=participant.muted,
+        pinned=participant.pinned_at is not None,
+        unread=_is_unread(conversation, participant, last_message),
         last_text=last_message.text if visible_preview else None,
         others_read_at=max(
             (p.last_read_at for p in others if p.last_read_at is not None),
@@ -223,24 +253,13 @@ def serialize(
     )
 
 
-@router.get("", response_model=list[ConversationOut])
-def list_conversations(
-    archived: bool = False,
-    limit: int | None = Query(None, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> list[ConversationOut]:
-    """The threads this person is in, most recent first — a page at a time.
+def _visible_threads(
+    db: Session, current_user: User, archived: bool
+) -> list[ConversationParticipant]:
+    """The threads this person should see in their list, unordered.
 
     A cleared thread with nothing said since is left out: clearing it means
     they wanted it gone, and it comes back on its own when somebody writes.
-
-    `limit`/`offset` page through them. Only the page is fully described
-    (people, previews, unread counts), because describing a thread costs
-    several queries: somebody with three hundred conversations used to pay
-    for all three hundred every time the stair opened (the owner felt it).
-    Without `limit`, everything, as before.
     """
     rows = db.scalars(
         select(ConversationParticipant).where(
@@ -262,17 +281,68 @@ def list_conversations(
                 db, conversation.id, current_user.id
             ):
                 continue
-        elif not participant.sees_message_at(conversation.last_message_at):
+        if participant.hidden_from_list(conversation.last_message_at):
+            # Deleted from this side, and nothing said since.
             continue
         kept.append(participant)
 
+    return kept
+
+
+@router.get("", response_model=list[ConversationOut])
+def list_conversations(
+    archived: bool = False,
+    limit: int | None = Query(None, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ConversationOut]:
+    """The threads this person is in — pinned first, in the order they
+    were pinned, then the most recent — a page at a time. What is left out
+    is decided in `_visible_threads`.
+
+    `limit`/`offset` page through them. Only the page is fully described
+    (people, previews, unread counts), because describing a thread costs
+    several queries: somebody with three hundred conversations used to pay
+    for all three hundred every time the stair opened (the owner felt it).
+    Without `limit`, everything, as before.
+    """
+    kept = _visible_threads(db, current_user, archived)
+    # By date, newest first — not unread first: the owner may not want to
+    # look at one message for days (section 32). Pinned chats come before
+    # everything, the first pinned highest. Decided here, over every
+    # thread, because the phone only ever holds the first page.
     # Ordered and cut BEFORE the expensive part, so a page costs a page.
     kept.sort(
         key=lambda p: p.conversation.last_message_at or p.conversation.created_at,
         reverse=True,
     )
+    # Stable, so the unpinned keep the date order from the line above.
+    kept.sort(key=lambda p: (p.pinned_at is None, p.pinned_at.timestamp() if p.pinned_at else 0))
     page = kept[offset : offset + limit] if limit is not None else kept[offset:]
     return [serialize(db, p.conversation, p) for p in page]
+
+
+class UnreadOut(BaseModel):
+    conversations: int
+
+
+@router.get("/unread", response_model=UnreadOut)
+def unread_conversations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UnreadOut:
+    """How many threads have something unread, across ALL of them — the
+    number on the conversations door and in the list's header. Its own
+    question so neither has to fetch every conversation to count them."""
+    return UnreadOut(
+        conversations=sum(
+            1
+            for p in _visible_threads(db, current_user, archived=False)
+            # A muted chat asked not to be counted.
+            if not p.muted and _unread_cheaply(db, p)
+        )
+    )
 
 
 class NewPeopleOut(BaseModel):
@@ -586,22 +656,103 @@ def archive(
     db.commit()
 
 
+def _sides(
+    conversation: Conversation, participant: ConversationParticipant, for_everyone: bool
+) -> list[ConversationParticipant]:
+    """Whose view a clear or a delete applies to: yours, or — when the box
+    "also for them" is ticked — everybody's in the thread."""
+    if not for_everyone:
+        return [participant]
+    return [p for p in conversation.participants if p.left_at is None]
+
+
 @router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
-def clear_conversation(
+def delete_conversation(
     conversation_id: int,
+    for_everyone: bool = False,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
-    """Clears a thread from this person's own side.
+    """Deletes the chat: its messages are hidden and it leaves the list.
 
-    One write, not one per message: a single timestamp hides everything
-    older, and anything said afterwards appears normally. The other person
-    sees no change at all — a conversation two people took part in is not
-    one of them to erase.
+    From your own side unless `for_everyone` — the "also delete for them"
+    box, which the owner asked for (section 32), as in Telegram. Either way
+    it is one timestamp per person, never one write per message, and the
+    messages themselves stay stored, so a complaint about them can still be
+    looked into.
 
-    This is not a block. Someone who writes again will reach them, which
-    is why blocking exists separately.
+    Not a block: somebody who writes again brings the chat back.
     """
+    conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
+    now = utcnow()
+    for side in _sides(conversation, participant, for_everyone):
+        side.hide(now)
+    db.commit()
+    if for_everyone:
+        announce_cleared(conversation)
+
+
+@router.post("/{conversation_id}/clear", status_code=status.HTTP_204_NO_CONTENT)
+def clear_history(
+    conversation_id: int,
+    for_everyone: bool = False,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Clears the history: the messages so far are hidden, and the chat
+    stays in the list, empty, ready for the next word. For both sides when
+    `for_everyone` is ticked."""
+    conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
+    now = utcnow()
+    for side in _sides(conversation, participant, for_everyone):
+        side.clear(now)
+    db.commit()
+    if for_everyone:
+        announce_cleared(conversation)
+
+
+#: How many chats may be pinned at once (the owner's number).
+MAX_PINNED = 5
+
+
+@router.post("/{conversation_id}/pin", status_code=status.HTTP_204_NO_CONTENT)
+def pin(
+    conversation_id: int,
+    pinned: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Pins the chat to the top of your list, or unpins it. At most five;
+    the sixth is refused with a reason the app can say in words."""
     _, participant = _participant_or_404(db, conversation_id, current_user.id)
-    participant.clear(utcnow())
+    if not pinned:
+        participant.pinned_at = None
+        db.commit()
+        return
+    if participant.pinned_at is not None:
+        return
+    already = db.scalar(
+        select(func.count(ConversationParticipant.id)).where(
+            ConversationParticipant.user_id == current_user.id,
+            ConversationParticipant.pinned_at.is_not(None),
+        )
+    )
+    if already >= MAX_PINNED:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail={"reason": "pin_limit", "limit": MAX_PINNED}
+        )
+    participant.pinned_at = utcnow()
+    db.commit()
+
+
+@router.post("/{conversation_id}/mute", status_code=status.HTTP_204_NO_CONTENT)
+def mute(
+    conversation_id: int,
+    muted: bool = True,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """Mutes or unmutes the chat, for you alone."""
+    _, participant = _participant_or_404(db, conversation_id, current_user.id)
+    participant.muted = muted
     db.commit()

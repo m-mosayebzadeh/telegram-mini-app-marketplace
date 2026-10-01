@@ -93,3 +93,35 @@ def announce_requests(user_ids: list[int]) -> None:
     nudge alone keeps every countdown and every queued card honest.
     """
     hub.publish(user_ids, {"type": "requests"})
+
+
+def announce_cleared(conversation: Conversation) -> None:
+    """Somebody cleared or deleted this chat for everyone in it: whoever has
+    it open reads it again, and finds it empty."""
+    hub.publish(
+        _everyone_in(conversation), {"type": "cleared", "conversation_id": conversation.id}
+    )
+
+
+def announce_echo_to_everyone() -> None:
+    """Echo itself changed: the panel switched it on or off, or moved its
+    hours. Everyone with the app open hears it, so the Echo mark in the bar
+    changes at once instead of when somebody next opens Echo (the owner's
+    report).
+
+    Marked "everyone" so each app waits a moment of its own before asking:
+    a whole crowd asking for its status in the same instant is a spike the
+    server does not need.
+    """
+    hub.publish(hub.connected_user_ids(), {"type": "echo", "everyone": True})
+
+
+def announce_echo(user_ids: list[int]) -> None:
+    """Something about these people's Echo changed: they were put in front
+    of somebody, somebody answered, or it was settled.
+
+    Carries no details, like the request nudge: reading Echo's status is
+    also what settles a proposal whose time has run out, so the nudge alone
+    keeps every card and every countdown honest.
+    """
+    hub.publish(user_ids, {"type": "echo"})

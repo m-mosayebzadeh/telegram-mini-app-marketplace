@@ -187,6 +187,11 @@ export interface EchoSchedule {
   closes_at_minute: number
   daily_quota: number
   daily_quota_unlimited: boolean
+  /** How many seconds two people found for each other are held while they
+   *  both decide (section 32). */
+  proposal_seconds: number
+  /** Whether the waiting screen shows how many are here and searching. */
+  show_counts: boolean
 }
 
 export function getEchoSchedule(): Promise<EchoSchedule> {

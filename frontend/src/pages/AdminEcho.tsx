@@ -6,20 +6,25 @@ import { formatApiError } from '../lib/api'
 import { Button, EmptyState, ErrorState, PageHeader, SkeletonRows, useToast } from '../components/ui'
 import { IconShieldLock } from '../components/icons'
 import { useMe } from '../lib/MeContext'
+import { refreshEcho } from '../lib/echoStore'
 
 /**
  * "مدیریت → Echo": whether Echo is on, and when it is open
  * (TECHNICAL_REQUIREMENTS.md section 32, step 3).
  *
- * Three decisions, in the order they apply: the master switch (Echo held
- * shut until the community is big enough); "always open", which ignores
- * the hours without losing them; and the nightly hours themselves, on each
- * person's own clock. The server had all three; nothing in the panel could
+ * Echo is either off or on. On, it has hours — on each person's own
+ * clock — or is open all day, which keeps the hours without using them.
+ * The hours are shown only while Echo is on (the owner's report: "always
+ * open" greyed out under a switched-off Echo read as a broken switch). The server had all three; nothing in the panel could
  * set them until now.
  */
 
-/** "22:30" ⇄ minutes past midnight. 1440 is written "24:00". */
+/** "22:30" ⇄ minutes past midnight. 1440, the end of the day, is written
+ *  "00:00": a time field has no "24:00" and showed it empty. Saved back it
+ *  becomes 0, which the server reads as the same midnight (a window that
+ *  closes at 0 wraps, so 22:00 to 00:00 is still "after 22:00"). */
 export function toClock(minutes: number): string {
+  if (minutes >= 1440) return '00:00'
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
@@ -30,6 +35,9 @@ export function fromClock(value: string): number | null {
   const minutes = Number(match[1]) * 60 + Number(match[2])
   return minutes >= 0 && minutes <= 1440 ? minutes : null
 }
+
+const DEFAULT_OPENS = 22 * 60
+const DEFAULT_CLOSES = 23 * 60
 
 export default function AdminEcho() {
   const { t } = useTranslation()
@@ -50,8 +58,12 @@ export default function AdminEcho() {
     getEchoSchedule()
       .then((s) => {
         setSchedule(s)
-        setOpens(toClock(s.opens_at_minute))
-        setCloses(toClock(s.closes_at_minute))
+        // Never set (the whole day, 00:00 to 00:00, which the server would
+        // read as never open): start from the hours section 32 talks about,
+        // ten to eleven at night, instead of an empty field.
+        const unset = s.opens_at_minute === 0 && s.closes_at_minute === 1440
+        setOpens(toClock(unset ? DEFAULT_OPENS : s.opens_at_minute))
+        setCloses(toClock(unset ? DEFAULT_CLOSES : s.closes_at_minute))
       })
       .catch((err) => setLoadError(formatApiError(err)))
   }, [hasAccess])
@@ -83,7 +95,13 @@ export default function AdminEcho() {
 
   const opensAt = fromClock(opens)
   const closesAt = fromClock(closes)
-  const valid = schedule.always_open || (opensAt !== null && closesAt !== null && opensAt !== closesAt)
+  // Off, the hours do not matter and are not shown, so they cannot block
+  // saving.
+  const hoursValid = !schedule.enabled || schedule.always_open || (opensAt !== null && closesAt !== null && opensAt !== closesAt)
+  // The server takes 5 to 120 seconds; anything else would only come back
+  // as an error after pressing save.
+  const holdValid = Number.isInteger(schedule.proposal_seconds) && schedule.proposal_seconds >= 5 && schedule.proposal_seconds <= 120
+  const valid = hoursValid && holdValid
 
   async function save() {
     if (!schedule) return
@@ -95,6 +113,8 @@ export default function AdminEcho() {
         closes_at_minute: closesAt ?? schedule.closes_at_minute,
       })
       setSchedule(saved)
+      // Your own bar changes at once; everybody else's hears it live.
+      void refreshEcho()
       toast.success(t('adminEcho.saved'))
     } catch (err) {
       toast.error(formatApiError(err))
@@ -103,7 +123,7 @@ export default function AdminEcho() {
     }
   }
 
-  const toggle = (key: 'enabled' | 'always_open') => setSchedule({ ...schedule, [key]: !schedule[key] })
+  const toggle = (key: 'enabled' | 'always_open' | 'show_counts') => setSchedule({ ...schedule, [key]: !schedule[key] })
 
   return (
     <div className="ui-page">
@@ -111,44 +131,89 @@ export default function AdminEcho() {
       <div className="ui-page-body ui-page-body-action">
         <section className="ui-section">
           <div className="ui-list">
-            <button type="button" className="ui-row" role="switch" aria-checked={schedule.enabled} onClick={() => toggle('enabled')}>
+            <button type="button" className="ui-row is-wrap" role="switch" aria-checked={schedule.enabled} onClick={() => toggle('enabled')}>
               <span className="ui-row-main">
                 <span className="ui-row-title">{t('adminEcho.enabled')}</span>
                 <span className="ui-row-subtitle">{t('adminEcho.enabledHint')}</span>
               </span>
               <span className="ui-row-trailing"><span className="ui-switch" aria-hidden="true" aria-checked={schedule.enabled} /></span>
             </button>
-            <button
-              type="button"
-              className="ui-row"
-              role="switch"
-              aria-checked={schedule.always_open}
-              disabled={!schedule.enabled}
-              onClick={() => toggle('always_open')}
-            >
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('adminEcho.alwaysOpen')}</span>
-                <span className="ui-row-subtitle">{t('adminEcho.alwaysOpenHint')}</span>
-              </span>
-              <span className="ui-row-trailing"><span className="ui-switch" aria-hidden="true" aria-checked={schedule.always_open} /></span>
-            </button>
+          </div>
+        </section>
+
+        {/* Echo is either off or on (the owner's words); the hours belong to
+            "on", so they are shown only then. Off, they are kept as they
+            were, for when it is switched back on. */}
+        {schedule.enabled && (
+          <section className="ui-section">
+            <h2 className="ui-section-title">{t('adminEcho.hours')}</h2>
+            <div className="ui-list">
+              <button
+                type="button"
+                className="ui-row is-wrap"
+                role="switch"
+                aria-checked={schedule.always_open}
+                onClick={() => toggle('always_open')}
+              >
+                <span className="ui-row-main">
+                  <span className="ui-row-title">{t('adminEcho.alwaysOpen')}</span>
+                  <span className="ui-row-subtitle">{t('adminEcho.alwaysOpenHint')}</span>
+                </span>
+                <span className="ui-row-trailing"><span className="ui-switch" aria-hidden="true" aria-checked={schedule.always_open} /></span>
+              </button>
+            </div>
+            {!schedule.always_open && (
+              <div className="co-form ui-echo-hours">
+                <label className="ui-field" htmlFor="echo-opens">
+                  <span className="ui-field-label">{t('adminEcho.from')}</span>
+                  <input id="echo-opens" className="ui-input" type="time" value={opens} onChange={(e) => setOpens(e.target.value)} />
+                </label>
+                <label className="ui-field" htmlFor="echo-closes">
+                  <span className="ui-field-label">{t('adminEcho.to')}</span>
+                  <input id="echo-closes" className="ui-input" type="time" value={closes} onChange={(e) => setCloses(e.target.value)} />
+                </label>
+                <span className="ui-field-help">{t('adminEcho.hoursHint')}</span>
+              </div>
+            )}
+          </section>
+        )}
+
+        <section className="ui-section">
+          <h2 className="ui-section-title">{t('adminEcho.holdTitle')}</h2>
+          <div className="co-form">
+            <label className="ui-field" htmlFor="echo-hold">
+              <span className="ui-field-label">{t('adminEcho.holdLabel')}</span>
+              <input
+                id="echo-hold"
+                className="ui-input"
+                type="number"
+                inputMode="numeric"
+                min={5}
+                max={120}
+                value={schedule.proposal_seconds}
+                onChange={(e) => setSchedule({ ...schedule, proposal_seconds: Number(e.target.value) })}
+              />
+            </label>
+            <span className="ui-field-help">{t('adminEcho.holdHint')}</span>
           </div>
         </section>
 
         <section className="ui-section">
-          <h2 className="ui-section-title">{t('adminEcho.hours')}</h2>
-          {/* Greyed rather than hidden while "always open" is on: the hours
-              are still there, and come back when it is switched off. */}
-          <div className="co-form">
-            <label className="ui-field" htmlFor="echo-opens">
-              <span className="ui-field-label">{t('adminEcho.from')}</span>
-              <input id="echo-opens" className="ui-input" type="time" value={opens} disabled={schedule.always_open || !schedule.enabled} onChange={(e) => setOpens(e.target.value)} />
-            </label>
-            <label className="ui-field" htmlFor="echo-closes">
-              <span className="ui-field-label">{t('adminEcho.to')}</span>
-              <input id="echo-closes" className="ui-input" type="time" value={closes} disabled={schedule.always_open || !schedule.enabled} onChange={(e) => setCloses(e.target.value)} />
-            </label>
-            <span className="ui-field-help">{t('adminEcho.hoursHint')}</span>
+          <h2 className="ui-section-title">{t('adminEcho.countsTitle')}</h2>
+          <div className="ui-list">
+            <button
+              type="button"
+              className="ui-row is-wrap"
+              role="switch"
+              aria-checked={schedule.show_counts}
+              onClick={() => toggle('show_counts')}
+            >
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('adminEcho.countsLabel')}</span>
+                <span className="ui-row-subtitle">{t('adminEcho.countsHint')}</span>
+              </span>
+              <span className="ui-row-trailing"><span className="ui-switch" aria-hidden="true" aria-checked={schedule.show_counts} /></span>
+            </button>
           </div>
         </section>
       </div>

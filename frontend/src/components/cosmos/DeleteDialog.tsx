@@ -11,6 +11,9 @@ interface DeleteDialogProps {
   alsoFor: string | null
   onConfirm: (forEveryone: boolean) => void
   onCancel: () => void
+  /** Other words for the same question — clearing a chat's history or
+   *  deleting the chat use this dialog too, with their own sentences. */
+  words?: { title: string; sure: string; alsoFor: string; confirm: string }
 }
 
 /**
@@ -22,7 +25,7 @@ interface DeleteDialogProps {
  * the one extra line of the choice. The box starts unticked: deleting for
  * the other person is the bigger act and should be chosen, not defaulted.
  */
-export function DeleteDialog({ count, alsoFor, onConfirm, onCancel }: DeleteDialogProps) {
+export function DeleteDialog({ count, alsoFor, onConfirm, onCancel, words }: DeleteDialogProps) {
   const { t } = useTranslation()
   const [forEveryone, setForEveryone] = useState(false)
 
@@ -40,11 +43,11 @@ export function DeleteDialog({ count, alsoFor, onConfirm, onCancel }: DeleteDial
         className="ui-dialog cos-dialog"
         role="alertdialog"
         aria-modal="true"
-        aria-label={t('talk.delete.title', { count })}
+        aria-label={words?.title ?? t('talk.delete.title', { count })}
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="ui-dialog-title">{t('talk.delete.title', { count })}</h2>
-        <p className="ui-dialog-text">{t('talk.delete.sure', { count })}</p>
+        <h2 className="ui-dialog-title">{words?.title ?? t('talk.delete.title', { count })}</h2>
+        <p className="ui-dialog-text">{words?.sure ?? t('talk.delete.sure', { count })}</p>
 
         {alsoFor && (
           <label className="cos-delete-also">
@@ -54,7 +57,7 @@ export function DeleteDialog({ count, alsoFor, onConfirm, onCancel }: DeleteDial
               onChange={(event) => setForEveryone(event.target.checked)}
             />
             <span className="cos-delete-box" aria-hidden="true" />
-            {t('talk.delete.alsoFor', { name: alsoFor })}
+            {words ? words.alsoFor : t('talk.delete.alsoFor', { name: alsoFor })}
           </label>
         )}
 
@@ -63,7 +66,7 @@ export function DeleteDialog({ count, alsoFor, onConfirm, onCancel }: DeleteDial
             {t('common.cancel')}
           </Button>
           <Button variant="danger" onClick={() => onConfirm(alsoFor !== null && forEveryone)}>
-            {t('talk.delete.confirm')}
+            {words?.confirm ?? t('talk.delete.confirm')}
           </Button>
         </div>
       </div>

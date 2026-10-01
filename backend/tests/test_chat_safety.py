@@ -315,6 +315,47 @@ def test_conversations_come_a_page_at_a_time(client, db_session):
     assert first[0]["id"] == others[-1]
 
 
+def test_the_unread_count_knows_about_an_old_thread_on_a_later_page(client, db_session):
+    """The list is fetched fifteen at a time; an old unread thread on page
+    two once made the door say "1" while the header said "0". The count is
+    its own question now, over every thread."""
+    client.get("/me", headers=_auth(6950, "Me"))
+    threads = []
+    for n in range(4):
+        client.get("/me", headers=_auth(6951 + n, f"Q{n}"))
+        other = db_session.query(User).filter_by(telegram_id=6951 + n).one()
+        thread = client.post("/conversations", json={"user_id": other.id}, headers=_auth(6950)).json()
+        threads.append(thread["id"])
+    # The oldest thread gets a message from the other side and stays unread...
+    client.post(f"/conversations/{threads[0]}/messages", data={"text": "hi"}, headers=_auth(6951))
+    # ...and three newer ones arrive and are read.
+    for n in range(1, 4):
+        client.post(f"/conversations/{threads[n]}/messages", data={"text": "hey"}, headers=_auth(6951 + n))
+        client.post(f"/conversations/{threads[n]}/read", headers=_auth(6950))
+
+    # By date, not unread first (the owner's decision): the old unread
+    # thread waits on a later page, and the count still knows about it.
+    first = client.get("/conversations?limit=2", headers=_auth(6950)).json()
+    assert [c["id"] for c in first] == [threads[3], threads[2]]
+
+    count = client.get("/conversations/unread", headers=_auth(6950)).json()
+    assert count == {"conversations": 1}
+
+    client.post(f"/conversations/{threads[0]}/read", headers=_auth(6950))
+    assert client.get("/conversations/unread", headers=_auth(6950)).json() == {"conversations": 0}
+
+
+def test_your_own_last_message_is_not_unread(client, db_session):
+    """Writing in a thread does not make it count as waiting for you."""
+    client.get("/me", headers=_auth(6960, "Me"))
+    client.get("/me", headers=_auth(6961, "R"))
+    other = db_session.query(User).filter_by(telegram_id=6961).one()
+    thread = client.post("/conversations", json={"user_id": other.id}, headers=_auth(6960)).json()
+    client.post(f"/conversations/{thread['id']}/messages", data={"text": "hi"}, headers=_auth(6960))
+    assert client.get("/conversations/unread", headers=_auth(6960)).json() == {"conversations": 0}
+    assert client.get("/conversations/unread", headers=_auth(6961)).json() == {"conversations": 1}
+
+
 # --- one daily budget for new people: "say hello" and Echo together ------
 
 

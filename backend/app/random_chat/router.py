@@ -21,6 +21,7 @@ from app.core.new_people import new_people_left, new_people_limit
 from app.auth.dependencies import ONLINE_WITHIN, get_current_user, require_admin
 from app.core.database import get_db
 from app.core.time import utcnow
+from app.live.events import announce_echo_to_everyone
 from app.models.profile import Profile
 from app.models.random_chat import (
     MAX_SEARCH_TAGS,
@@ -33,7 +34,10 @@ from app.models.follow import Follow, FollowStatus
 from app.models.report import SUSPEND_RANDOM_CHAT
 from app.models.user import User
 from app.profile.photos import get_current_avatar_url
-from app.random_chat.matching import find_match
+from app.random_chat import proposals
+from app.models.random_chat import DEFAULT_PROPOSAL_SECONDS, EchoProposal
+# The interest list lives with its groups (tags.py).
+from app.random_chat.tags import SEARCH_TAGS
 from app.random_chat.readiness import age_from_birth_year, missing_for_random_chat
 from app.random_chat.service import (
     active_session_for,
@@ -45,22 +49,11 @@ from app.random_chat.service import (
     leave_pool,
     schedule_for,
     set_kept,
-    start_session,
     ticket_for,
 )
 
 router = APIRouter(prefix="/random-chat", tags=["random-chat"])
 admin_router = APIRouter(prefix="/admin/random-chat", tags=["admin"])
-
-#: The tag list, fixed and short. Tags are conversation openers, not
-#: filters, so this is about having something to say rather than about
-#: describing yourself exhaustively — a long list would make the choice a
-#: chore and the overlap meaningless.
-SEARCH_TAGS = (
-    "music", "film", "books", "games", "sport", "travel", "food", "art",
-    "tech", "study", "work", "startup", "animals", "nature", "photography",
-    "nightowl", "deeptalk", "smalltalk", "advice", "language",
-)
 
 
 class SearchIn(BaseModel):
@@ -114,6 +107,27 @@ class LastSearchOut(BaseModel):
     tags: list[str]
 
 
+class ProposalOut(BaseModel):
+    """Somebody found for you, held while you both decide (section 32).
+
+    No name and no photo on purpose: the only thing the card lets you judge
+    is whether there is something to talk about. Both are revealed once you
+    have both said "start".
+    """
+
+    id: int
+    #: Their own line, if they wrote one.
+    tagline: str | None
+    shared_tags: list[str]
+    #: Said only when there is no interest in common: "both into ...".
+    shared_groups: list[str] = []
+    expires_at: str
+    #: The whole hold, so the ring around the card can show how much is left.
+    seconds: int
+    #: You have said "start" and are waiting for them.
+    accepted: bool
+
+
 class StatusOut(BaseModel):
     #: The admin switch and the nightly window together.
     open_now: bool
@@ -130,9 +144,13 @@ class StatusOut(BaseModel):
     #: is where the cap starts.
     remaining_today: int | None
     #: Honest numbers for the waiting screen: people here right now, and
-    #: people other than you waiting for somebody new this moment.
+    #: people waiting for somebody new this moment — you included in both.
     online_now: int = 0
     waiting_now: int = 0
+    #: The panel's switch: False means the waiting screen shows no numbers.
+    show_counts: bool = True
+    #: Somebody found for you and waiting for both answers, or None.
+    proposal: ProposalOut | None = None
 
 
 def _matched_out(
@@ -170,6 +188,20 @@ def _matched_out(
     )
 
 
+def _proposal_out(db: Session, proposal: EchoProposal, viewer_id: int) -> ProposalOut:
+    other = _profile_of(db, proposal.other_user_id(viewer_id))
+    held = (proposal.expires_at - proposal.created_at).total_seconds()
+    return ProposalOut(
+        id=proposal.id,
+        tagline=other.bio if other and other.bio else None,
+        shared_tags=proposal.shared_tags or [],
+        shared_groups=proposal.shared_groups or [],
+        expires_at=proposal.expires_at.isoformat(),
+        seconds=round(held) or DEFAULT_PROPOSAL_SECONDS,
+        accepted=proposal.accepted_by(viewer_id),
+    )
+
+
 def _profile_of(db: Session, user_id: int) -> Profile | None:
     return db.scalar(select(Profile).where(Profile.user_id == user_id))
 
@@ -185,13 +217,19 @@ def get_status(
     It is also how a waiting person discovers they were matched: the
     matcher runs when somebody joins, so the person who was already
     waiting finds out by asking.
+
+    Asking is also what settles a proposal whose time has run out, so a
+    card that nobody answered ends on the next look from either side.
     """
+    proposals.sweep_due(db)
+    db.commit()
     schedule = schedule_for(db)
     open_now = schedule.is_open_at(local_minute)
     until_open = schedule.minutes_until_open(local_minute)
 
     session = active_session_for(db, current_user.id)
     ticket = ticket_for(db, current_user.id)
+    proposal = proposals.open_proposal_for(db, current_user.id)
     remembered = ticket_for(db, current_user.id, active_only=False)
 
     quota = schedule.effective_daily_quota
@@ -222,14 +260,18 @@ def get_status(
         remaining_today=remaining,
         online_now=db.scalar(
             select(func.count(User.id)).where(
-                User.last_seen_at >= utcnow() - ONLINE_WITHIN, User.id != current_user.id
+                # You are counted too (the owner's decision): without
+                # yourself, two people online each read "1" and feel alone.
+                User.last_seen_at >= utcnow() - ONLINE_WITHIN
             )
         ) or 0,
+        # You are counted here too, like above: searching with one other
+        # person reads "2", not "1" (the owner's point).
         waiting_now=db.scalar(
-            select(func.count(RandomChatTicket.id)).where(
-                RandomChatTicket.active.is_(True), RandomChatTicket.user_id != current_user.id
-            )
+            select(func.count(RandomChatTicket.id)).where(RandomChatTicket.active.is_(True))
         ) or 0,
+        show_counts=schedule.show_counts is not False,
+        proposal=_proposal_out(db, proposal, current_user.id) if proposal else None,
     )
 
 
@@ -239,7 +281,9 @@ def join_pool(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> StatusOut:
-    """Joins the pool, and matches immediately if anyone suitable waits."""
+    """Joins the pool, and if anyone suitable waits, puts the two of you in
+    front of each other (a proposal both must accept, section 32)."""
+    proposals.sweep_due(db)
     schedule = schedule_for(db)
     if not schedule.is_open_at(payload.local_minute):
         raise HTTPException(
@@ -337,11 +381,7 @@ def join_pool(
             # guarantee; the one that lost simply uses the row that won.
             ticket = ticket_for(db, current_user.id, active_only=False)
 
-    pairing = find_match(db, ticket)
-    if pairing is not None:
-        start_session(
-            db, one=pairing.ticket, other=pairing.other, shared_tags=pairing.shared_tags
-        )
+    proposals.try_match(db, ticket)
     db.commit()
     return get_status(payload.local_minute, current_user, db)
 
@@ -351,9 +391,59 @@ def leave(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
-    """Stops waiting. Harmless when not waiting."""
+    """Stops waiting. Harmless when not waiting.
+
+    Stopping while a card is up counts as saying no to it: the other person
+    goes back to searching at once instead of waiting out the time.
+    """
     leave_pool(db, current_user.id)
+    proposal = proposals.open_proposal_for(db, current_user.id)
+    if proposal is not None:
+        db.flush()
+        proposals.decline(db, proposal, current_user.id)
     db.commit()
+
+
+def _my_proposal_or_404(db: Session, proposal_id: int, user_id: int) -> EchoProposal:
+    proposal = db.get(EchoProposal, proposal_id)
+    if proposal is None or user_id not in (proposal.user_a_id, proposal.user_b_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proposal not found.")
+    return proposal
+
+
+@router.post("/proposals/{proposal_id}/accept", response_model=StatusOut)
+def accept_proposal(
+    proposal_id: int,
+    local_minute: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StatusOut:
+    """Says "start". Once the other person has said it too, the
+    conversation is made and the status carries it as `matched`."""
+    proposals.sweep_due(db)
+    proposal = _my_proposal_or_404(db, proposal_id, current_user.id)
+    # Too late (it ran out, or the other side said no) is not an error to
+    # show anybody: the card simply goes, and the status says what now.
+    if proposal.outcome is None:
+        proposals.accept(db, proposal, current_user.id)
+    db.commit()
+    return get_status(local_minute, current_user, db)
+
+
+@router.post("/proposals/{proposal_id}/decline", response_model=StatusOut)
+def decline_proposal(
+    proposal_id: int,
+    local_minute: int = 0,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> StatusOut:
+    """Says no, by button or by throwing the card aside. Both go back to
+    searching; neither is told which of them said it."""
+    proposals.sweep_due(db)
+    proposal = _my_proposal_or_404(db, proposal_id, current_user.id)
+    proposals.decline(db, proposal, current_user.id)
+    db.commit()
+    return get_status(local_minute, current_user, db)
 
 
 def _my_session_or_404(db: Session, session_id: int, user_id: int) -> RandomChatSession:
@@ -408,6 +498,63 @@ def list_tags() -> list[str]:
     return list(SEARCH_TAGS)
 
 
+#: Below this many people, a tag is not called "chosen tonight": with one
+#: or two, it would tell you what a particular person picked.
+TONIGHT_AT_LEAST = 3
+
+
+class TonightTagOut(BaseModel):
+    tag: str
+    #: Chosen right now by at least TONIGHT_AT_LEAST people in Echo.
+    tonight: bool
+
+
+def tonight_order(counts: dict[str, int]) -> list[TonightTagOut]:
+    """Every tag, the ones most chosen right now first.
+
+    Only tags at least TONIGHT_AT_LEAST people chose move up; the rest
+    keep the list's own order, so the order itself never gives away what
+    one or two particular people picked.
+    """
+    hot = sorted(
+        (tag for tag in SEARCH_TAGS if counts.get(tag, 0) >= TONIGHT_AT_LEAST),
+        key=lambda tag: -counts[tag],
+    )
+    rest = [tag for tag in SEARCH_TAGS if tag not in hot]
+    return [TonightTagOut(tag=tag, tonight=True) for tag in hot] + [
+        TonightTagOut(tag=tag, tonight=False) for tag in rest
+    ]
+
+
+@router.get("/tags/tonight", response_model=list[TonightTagOut])
+def tags_tonight(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[TonightTagOut]:
+    """The interests, ordered by what the people in Echo right now chose
+    (the owner's design, section 32): choosing one of those is the fastest
+    way to somebody. "Right now" is everybody searching, and everybody in a
+    meeting that has not ended — their last search is what brought them.
+    """
+    in_meetings = db.execute(
+        select(RandomChatSession.user_a_id, RandomChatSession.user_b_id).where(
+            RandomChatSession.ended_at.is_(None)
+        )
+    ).all()
+    talking = {user_id for pair in in_meetings for user_id in pair}
+    tickets = db.scalars(
+        select(RandomChatTicket).where(
+            RandomChatTicket.user_id != current_user.id,
+            RandomChatTicket.active.is_(True) | RandomChatTicket.user_id.in_(talking or {-1}),
+        )
+    ).all()
+    counts: dict[str, int] = {}
+    for ticket in tickets:
+        for tag in set(ticket.tags or []):
+            counts[tag] = counts.get(tag, 0) + 1
+    return tonight_order(counts)
+
+
 class ScheduleIn(BaseModel):
     enabled: bool
     #: Open all day; the window below is kept but does not apply.
@@ -418,6 +565,10 @@ class ScheduleIn(BaseModel):
     #: unlimited — so untick and the old number is still there.
     daily_quota: int = Field(default=10, ge=1, le=1000)
     daily_quota_unlimited: bool = True
+    #: How long two people found for each other are held while they decide.
+    proposal_seconds: int = Field(default=DEFAULT_PROPOSAL_SECONDS, ge=5, le=120)
+    #: Whether the waiting screen shows how many are here and searching.
+    show_counts: bool = True
 
 
 class ScheduleOut(BaseModel):
@@ -427,6 +578,8 @@ class ScheduleOut(BaseModel):
     closes_at_minute: int
     daily_quota: int
     daily_quota_unlimited: bool
+    proposal_seconds: int
+    show_counts: bool
 
 
 @admin_router.get("/schedule", response_model=ScheduleOut)
@@ -442,6 +595,8 @@ def get_schedule(
         closes_at_minute=schedule.closes_at_minute,
         daily_quota=schedule.daily_quota,
         daily_quota_unlimited=schedule.daily_quota_unlimited,
+        proposal_seconds=schedule.proposal_seconds or DEFAULT_PROPOSAL_SECONDS,
+        show_counts=schedule.show_counts is not False,
     )
 
 
@@ -465,7 +620,10 @@ def set_schedule(
     schedule.closes_at_minute = payload.closes_at_minute
     schedule.daily_quota = payload.daily_quota
     schedule.daily_quota_unlimited = payload.daily_quota_unlimited
+    schedule.proposal_seconds = payload.proposal_seconds
+    schedule.show_counts = payload.show_counts
     db.commit()
+    announce_echo_to_everyone()
     return ScheduleOut(
         enabled=schedule.enabled,
         always_open=schedule.always_open,
@@ -473,6 +631,8 @@ def set_schedule(
         closes_at_minute=schedule.closes_at_minute,
         daily_quota=schedule.daily_quota,
         daily_quota_unlimited=schedule.daily_quota_unlimited,
+        proposal_seconds=schedule.proposal_seconds or DEFAULT_PROPOSAL_SECONDS,
+        show_counts=schedule.show_counts is not False,
     )
 
 

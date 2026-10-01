@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import Echo from './Echo'
 import type { EchoStatus } from '../lib/echoApi'
+import { resetEchoStore } from '../lib/echoStore'
 
 const mocks = vi.hoisted(() => ({
   api: vi.fn(),
@@ -66,6 +67,8 @@ async function click(element: Element) {
 }
 
 beforeEach(() => {
+  // The status is shared across screens; each test starts from nothing.
+  resetEchoStore()
   mocks.api.mockReset()
   mocks.navigate.mockReset()
   container = document.createElement('div')
@@ -180,13 +183,24 @@ describe('Echo, when it is open', () => {
     expect(buttonsWith('echo.tag.music')).toHaveLength(1)
     expect(container.textContent).not.toContain('echo.whoLabel')
     expect(container.textContent).not.toContain('echo.ageLabel')
-    expect(container.textContent).toContain('seek.online {"n":"۱۲"}')
+    // No line under the button: it fell behind Sol and the bar, and the owner
+    // removed it.
+    expect(container.textContent).not.toContain('seek.online')
   })
+
+  /** Opens an interest's group (the interests live in groups now) and
+   *  returns its button. */
+  async function inGroup(tag: string, group: string) {
+    const back = buttonsWith('seek.allGroups')[0]
+    if (back) await click(back)
+    await click(buttonsWith(`echo.group.${group}`)[0])
+    return buttonsWith(`echo.tag.${tag}`)[0]
+  }
 
   it('names the button after the interests once some are chosen', async () => {
     mocks.api.mockResolvedValue(status())
     await render()
-    await click(buttonsWith('echo.tag.music')[0])
+    await click(await inGroup('music', 'fun'))
     expect(buttonsWith('seek.goWith')).toHaveLength(1)
   })
 
@@ -201,17 +215,18 @@ describe('Echo, when it is open', () => {
   it('stops at three interests and disables the rest', async () => {
     mocks.api.mockResolvedValue(status())
     await render()
-    for (const tag of ['music', 'film', 'books']) {
-      await click(buttonsWith(`echo.tag.${tag}`)[0])
-    }
-    expect(buttonsWith('echo.tag.games')[0].disabled).toBe(true)
+    await click(await inGroup('music', 'fun'))
+    await click(buttonsWith('echo.tag.film')[0])
+    await click(await inGroup('books', 'learning'))
+    expect((await inGroup('games', 'fun')).disabled).toBe(true)
+    // What you chose stays above, and can still be taken off.
     expect(buttonsWith('echo.tag.music')[0].disabled).toBe(false)
   })
 
   it('searches for anyone, at any age, with the chosen interests and the clock', async () => {
     mocks.api.mockResolvedValue(status())
     await render()
-    await click(buttonsWith('echo.tag.film')[0])
+    await click(await inGroup('film', 'fun'))
     mocks.api.mockClear()
     mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: '2026-01-01T00:00:00Z' }))
 
@@ -235,9 +250,23 @@ describe('Echo, while waiting', () => {
     await render()
 
     expect(container.textContent).toContain('seek.searching')
-    expect(container.querySelectorAll('.cos-seek-orbit > i')).toHaveLength(3)
+    // Three searching with you: two lights, you are the middle.
+    expect(container.querySelectorAll('.cos-seek-orbit > i')).toHaveLength(2)
     expect(container.textContent).toContain('۹')
+    expect(container.textContent).toContain('seek.factWaiting')
     expect(buttonsWith('echo.stop')).toHaveLength(1)
+  })
+
+  it('shows no numbers when the panel switched them off, only the time', async () => {
+    mocks.api.mockResolvedValue(
+      status({ waiting: true, waiting_since: new Date().toISOString(), online_now: 9, waiting_now: 3, show_counts: false }),
+    )
+    await render()
+
+    expect(container.textContent).not.toContain('seek.factOnline')
+    expect(container.textContent).not.toContain('seek.factWaiting')
+    expect(container.textContent).toContain('seek.factTime')
+    expect(container.querySelectorAll('.cos-seek-orbit > i')).toHaveLength(2)
   })
 
   it('after a long wait with nobody, says so and offers to change the interests', async () => {
@@ -247,8 +276,8 @@ describe('Echo, while waiting', () => {
 
     expect(container.textContent).toContain('seek.long')
     expect(buttonsWith('seek.change')).toHaveLength(1)
-    await click(buttonsWith('seek.keepWaiting')[0])
-    expect(container.textContent).not.toContain('seek.long')
+    // No "I will wait": the search goes on regardless, so it did nothing.
+    expect(buttonsWith('seek.keepWaiting')).toHaveLength(0)
   })
 
   it('asks the server again while it waits', async () => {
@@ -257,36 +286,19 @@ describe('Echo, while waiting', () => {
     await render()
     const afterFirstLoad = mocks.api.mock.calls.length
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(2600)
+      // The shared status asks every four seconds while searching.
+      await vi.advanceTimersByTimeAsync(4100)
     })
     expect(mocks.api.mock.calls.length).toBeGreaterThan(afterFirstLoad)
   })
 })
 
-describe('Echo, when somebody arrives', () => {
-  it('shows who arrived, and starts the conversation on a tap', async () => {
+describe('Echo, after meeting somebody', () => {
+  // Somebody found is a card on any screen now (EchoOffer), and a meeting
+  // both started opens its conversation from there — so a meeting, new or
+  // old, never takes over this screen: it simply offers a new search.
+  it('offers a new search rather than showing the last meeting', async () => {
     mocks.api.mockResolvedValue(status({ matched: match() }))
-    await render()
-
-    expect(container.textContent).toContain('seek.found {"name":"Sara"}')
-    expect(container.textContent).toContain('Up at night.')
-    expect(mocks.navigate).not.toHaveBeenCalled()
-    await click(buttonsWith('seek.start')[0])
-    expect(mocks.navigate).toHaveBeenCalledWith('/conversations/7')
-  })
-
-  it('offers somebody new right away, which is a new search', async () => {
-    mocks.api.mockResolvedValue(status({ matched: match() }))
-    await render()
-    mocks.api.mockClear()
-    mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: new Date().toISOString() }))
-    await click(buttonsWith('seek.another')[0])
-    expect(mocks.api.mock.calls[0][0]).toBe('/random-chat/search')
-  })
-
-  it('does not show somebody met long ago as if they had just arrived', async () => {
-    const old = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-    mocks.api.mockResolvedValue(status({ matched: match({ started_at: old }) }))
     await render()
     expect(container.textContent).not.toContain('seek.found')
     expect(buttonsWith('seek.go')).toHaveLength(1)

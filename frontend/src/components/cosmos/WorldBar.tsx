@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { fetchConversations } from '../../lib/conversationApi'
-import { subscribe } from '../../lib/live'
+import { useUnread } from '../../lib/useUnread'
+import { useEcho } from '../../lib/echoStore'
+import type { EchoStatus } from '../../lib/echoApi'
 
 /**
  * The five doors along the bottom (TECHNICAL_REQUIREMENTS.md section 32).
@@ -42,30 +42,53 @@ const PATH: Record<Door, string> = {
 }
 
 /**
- * How many conversations have something unread, for the dot on the door.
- * Asked again when a message arrives and on a slow clock; the first page
- * of conversations is enough, since unread ones sort to the top.
+ * What Echo's door says without a word (section 32, the owner's design):
+ *
+ * - shut — the two lights still, faint, a little apart;
+ * - open — the two turn slowly round each other: Echo's world is alive;
+ * - busy — the same, a little quicker: somebody is waiting right now for
+ *   a new person, an invitation rather than an alarm;
+ * - seeking — you are searching: one light (you) stays in the middle and
+ *   the other circles it, looking for you. A different motion from "open",
+ *   not only a faster one, so the two states never read as each other.
+ *
+ * Told apart by motion and shape, never by colour alone.
  */
-function useUnread(): number {
-  const [count, setCount] = useState(0)
-  useEffect(() => {
-    let alive = true
-    const read = () =>
-      fetchConversations()
-        .then((list) => { if (alive && Array.isArray(list)) setCount(list.filter((c) => c.unread).length) })
-        .catch(() => {})
-    void read()
-    const timer = setInterval(read, 30_000)
-    const unsubscribe = subscribe((event) => {
-      if (event.type === 'message' || event.type === 'read' || event.type === 'ready') void read()
-    })
-    return () => {
-      alive = false
-      clearInterval(timer)
-      unsubscribe()
-    }
-  }, [])
-  return count
+export type EchoDoor = 'shut' | 'open' | 'busy' | 'seeking'
+
+export function echoDoorOf(status: EchoStatus | null): EchoDoor {
+  if (!status || !status.open_now) return status?.waiting ? 'seeking' : 'shut'
+  if (status.waiting) return 'seeking'
+  return (status.waiting_now ?? 0) > 0 ? 'busy' : 'open'
+}
+
+function EchoMark({ state }: { state: EchoDoor }) {
+  if (state === 'seeking') {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="cos-echo-mark is-seeking">
+        <circle cx="12" cy="12" r="3" />
+        <g className="cos-echo-orbit">
+          <circle cx="12" cy="4.2" r="2.3" />
+        </g>
+      </svg>
+    )
+  }
+  if (state === 'shut') {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="cos-echo-mark is-shut">
+        <circle cx="5.5" cy="15.5" r="2.6" />
+        <circle cx="18.5" cy="8.5" r="2.6" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={`cos-echo-mark is-${state}`}>
+      <g className="cos-echo-pair">
+        <circle cx="7" cy="14" r="3" />
+        <circle cx="17" cy="10" r="3" />
+      </g>
+    </svg>
+  )
 }
 
 export function WorldBar() {
@@ -74,6 +97,7 @@ export function WorldBar() {
   const { pathname } = useLocation()
   const here = doorOf(pathname)
   const unread = useUnread()
+  const echoDoor = echoDoorOf(useEcho())
 
   function open(door: Door) {
     if (door === 'world' && here === 'world' && pathname === '/sky') {
@@ -84,10 +108,11 @@ export function WorldBar() {
     navigate(PATH[door])
   }
 
-  const plain = (door: Exclude<Door, 'world'>, icon: React.ReactNode, extra?: React.ReactNode) => (
+  const plain = (door: Exclude<Door, 'world'>, icon: React.ReactNode, extra?: React.ReactNode, state?: string) => (
     <button
       type="button"
       className={`cos-worldbar-door is-${door}`}
+      aria-label={state ? `${t(`bar.${door}`)} · ${state}` : undefined}
       aria-current={here === door ? 'page' : undefined}
       onClick={() => open(door)}
     >
@@ -108,7 +133,7 @@ export function WorldBar() {
           </span>
         ) : null,
       )}
-      {plain('echo', <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="7" cy="14" r="3" /><circle cx="17" cy="10" r="3" /></svg>)}
+      {plain('echo', <EchoMark state={echoDoor} />, null, t(`bar.echoState.${echoDoor}`))}
       <button
         type="button"
         className={`cos-worldbar-sol${here === 'world' ? ' is-here' : ''}`}

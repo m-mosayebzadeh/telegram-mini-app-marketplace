@@ -89,6 +89,11 @@ class LiveHub:
         with self._lock:
             return user_id in self._by_user
 
+    def connected_user_ids(self) -> list[int]:
+        """Everyone with the app open right now, on this server."""
+        with self._lock:
+            return list(self._by_user)
+
     def publish(self, user_ids: Iterable[int], event: dict[str, Any]) -> None:
         """Hands `event` to every open connection of every person listed.
 

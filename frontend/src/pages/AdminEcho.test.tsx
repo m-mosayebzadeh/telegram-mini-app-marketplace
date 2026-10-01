@@ -14,6 +14,7 @@ vi.mock('react-i18next', () => ({
 }))
 vi.mock('../lib/adminApi', () => ({ getEchoSchedule: mocks.get, updateEchoSchedule: mocks.put }))
 vi.mock('../lib/MeContext', () => ({ useMe: () => ({ adminAccess: mocks.access }) }))
+vi.mock('../lib/echoStore', () => ({ refreshEcho: vi.fn(async () => null) }))
 vi.mock('../components/ui', async (original) => ({
   ...(await original<typeof import('../components/ui')>()),
   useToast: () => ({ success: vi.fn(), error: vi.fn() }),
@@ -27,7 +28,7 @@ vi.mock('../components/ui', async (original) => ({
 describe('Echo in the admin panel', () => {
   let host: HTMLDivElement
   let root: Root
-  const schedule = { enabled: true, always_open: false, opens_at_minute: 22 * 60, closes_at_minute: 23 * 60, daily_quota: 10, daily_quota_unlimited: true }
+  const schedule = { enabled: true, always_open: false, opens_at_minute: 22 * 60, closes_at_minute: 23 * 60, daily_quota: 10, daily_quota_unlimited: true, proposal_seconds: 15, show_counts: true }
 
   beforeEach(() => {
     mocks.get.mockReset().mockResolvedValue(schedule)
@@ -49,20 +50,34 @@ describe('Echo in the admin panel', () => {
 
   it('turns minutes into a clock and back', () => {
     expect(toClock(22 * 60 + 5)).toBe('22:05')
-    expect(toClock(1440)).toBe('24:00')
+    expect(toClock(1440)).toBe('00:00')
     expect(fromClock('07:30')).toBe(450)
     expect(fromClock('nonsense')).toBeNull()
     expect(fromClock('25:00')).toBeNull()
   })
 
-  it('shows the hours, and greys them out once "always open" is on', async () => {
+  it('shows the hours, and hides them once "around the clock" is on', async () => {
     await open()
     const opens = host.querySelector('#echo-opens') as HTMLInputElement
     expect(opens.value).toBe('22:00')
-    expect(opens.disabled).toBe(false)
     await act(async () => switches()[1].click())
     expect(switches()[1].getAttribute('aria-checked')).toBe('true')
-    expect((host.querySelector('#echo-opens') as HTMLInputElement).disabled).toBe(true)
+    expect(host.querySelector('#echo-opens')).toBeNull()
+  })
+
+  it('hides the hours while Echo is off, and still saves', async () => {
+    await open()
+    await act(async () => switches()[0].click())
+    expect(host.querySelector('#echo-opens')).toBeNull()
+    await act(async () => (host.querySelector('.ui-action-bar button') as HTMLButtonElement).click())
+    expect(mocks.put).toHaveBeenCalledWith(expect.objectContaining({ enabled: false, opens_at_minute: 22 * 60 }))
+  })
+
+  it('fills in ten to eleven at night when the hours were never set', async () => {
+    mocks.get.mockResolvedValue({ ...schedule, opens_at_minute: 0, closes_at_minute: 1440 })
+    await open()
+    expect((host.querySelector('#echo-opens') as HTMLInputElement).value).toBe('22:00')
+    expect((host.querySelector('#echo-closes') as HTMLInputElement).value).toBe('23:00')
   })
 
   it('saves "always open" without losing the hours', async () => {
@@ -70,6 +85,15 @@ describe('Echo in the admin panel', () => {
     await act(async () => switches()[1].click())
     await act(async () => (host.querySelector('.ui-action-bar button') as HTMLButtonElement).click())
     expect(mocks.put).toHaveBeenCalledWith(expect.objectContaining({ always_open: true, opens_at_minute: 22 * 60, closes_at_minute: 23 * 60 }))
+  })
+
+  it('turns the waiting screen numbers off, and saves it', async () => {
+    await open()
+    const counts = switches()[2]
+    expect(counts.getAttribute('aria-checked')).toBe('true')
+    await act(async () => counts.click())
+    await act(async () => (host.querySelector('.ui-action-bar button') as HTMLButtonElement).click())
+    expect(mocks.put).toHaveBeenCalledWith(expect.objectContaining({ show_counts: false }))
   })
 
   it('is closed to somebody without the right', async () => {

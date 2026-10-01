@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
@@ -26,6 +26,8 @@ import { Emoji, EmojiText } from '../lib/emojiImage'
 import { useHold } from '../lib/useHold'
 import { MessageMenu, type MessageAction } from '../components/cosmos/MessageMenu'
 import { DeleteDialog } from '../components/cosmos/DeleteDialog'
+import { ChatMenu, type ChatMenuAction } from '../components/cosmos/ChatMenu'
+import { findInChat } from '../lib/chatSearch'
 import { EmojiPanel } from '../components/cosmos/EmojiPanel'
 import { useMe } from '../lib/MeContext'
 import { ThreadDeal } from '../components/cosmos/ThreadDeal'
@@ -36,6 +38,8 @@ import { timeAgo } from '../lib/timeAgo'
 import { SessionBand } from '../components/cosmos/SessionBand'
 import { canRecordVoice, startVoiceRecording, type VoiceSession } from '../lib/voiceRecorder'
 import {
+  clearConversationHistory,
+  deleteConversation,
   deleteMessages,
   editMessage,
   fetchConversation,
@@ -47,6 +51,7 @@ import {
   sendText,
   sendVoice,
   setReaction,
+  setConversationMuted,
   type Conversation as Thread,
   type ConversationMessage,
 } from '../lib/conversationApi'
@@ -100,6 +105,15 @@ export default function Conversation() {
 
   /** The message whose menu is open, and where it sits on screen. */
   const [menuFor, setMenuFor] = useState<{ message: ShownMessage; rect: DOMRect } | null>(null)
+  /** The chat's own menu (the three dots), and what was chosen from it
+   *  that still needs a yes. */
+  const [chatMenu, setChatMenu] = useState(false)
+  const [chatAction, setChatAction] = useState<'clear' | 'delete' | null>(null)
+  const [muted, setMuted] = useState(false)
+  /** Searching inside the chat: the words, or null when not searching, and
+   *  which result is in view (0 is the newest). */
+  const [finding, setFinding] = useState<string | null>(null)
+  const [findAt, setFindAt] = useState(0)
   /** Messages picked by holding one. Empty means not selecting. */
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
   const [replyingTo, setReplyingTo] = useState<ShownMessage | null>(null)
@@ -139,6 +153,7 @@ export default function Conversation() {
       .then(async (found) => {
         setThread(found)
         setOthersReadAt(found.others_read_at)
+        setMuted(found.muted ?? false)
         setMessages(await fetchMessages(found.id))
         markRead(found.id).catch(() => {})
       })
@@ -421,6 +436,41 @@ export default function Conversation() {
     setMenuFor({ message, rect: bubble.getBoundingClientRect() })
   }
 
+  /** What the chat menu does. Mute is immediate; clearing and deleting
+   *  ask first, with the "also for them" box. */
+  function chooseFromChatMenu(action: ChatMenuAction) {
+    setChatMenu(false)
+    if (!thread) return
+    if (action === 'mute') {
+      const next = !muted
+      setMuted(next)
+      setConversationMuted(thread.id, next).catch(() => setMuted(!next))
+    } else if (action === 'search') {
+      setFinding('')
+      setFindAt(0)
+    } else {
+      setChatAction(action)
+    }
+  }
+
+  async function confirmChatAction(forEveryone: boolean) {
+    const action = chatAction
+    setChatAction(null)
+    if (!thread || !action) return
+    try {
+      if (action === 'delete') {
+        await deleteConversation(thread.id, forEveryone)
+        // The chat is gone from the list; back to where the list is.
+        navigate('/sky/talk', { replace: true })
+        return
+      }
+      await clearConversationHistory(thread.id, forEveryone)
+      setMessages(await fetchMessages(thread.id))
+    } catch (err) {
+      setError(formatApiError(err))
+    }
+  }
+
   /** Jumps to the message a reply quotes, and marks it for a moment so the
    *  eye finds it. */
   function showOriginal(id: number) {
@@ -458,7 +508,14 @@ export default function Conversation() {
         return
       }
       // Request changes are the deal's business (useDeal listens for them).
-      if (event.type === 'requests') return
+      // Nor are Echo's (lib/echoStore.ts listens for them).
+      if (event.type === 'requests' || event.type === 'echo') return
+      // The other person cleared or deleted this chat for both of you:
+      // read it again, and find it as they left it.
+      if (event.type === 'cleared') {
+        if (event.conversation_id === threadId) fetchMessages(threadId).then(setMessages).catch(() => {})
+        return
+      }
       if (event.conversation_id !== threadId) return
       if (event.type === 'typing') {
         if (event.user_id === me?.id) return
@@ -570,6 +627,21 @@ export default function Conversation() {
   }
 
   const other = thread?.others[0]
+
+  /** The messages the search finds, newest first, and the one in view
+   *  brought to the middle of the screen and marked for a moment. */
+  const findResults = useMemo(() => findInChat(messages, finding ?? ''), [messages, finding])
+  useEffect(() => {
+    if (finding === null) return
+    const id = findResults[findAt]
+    const row = id === undefined ? null : document.getElementById(`message-${id}`)
+    if (!row) return
+    row.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    row.classList.add('is-found')
+    const timer = window.setTimeout(() => row.classList.remove('is-found'), 1400)
+    return () => window.clearTimeout(timer)
+  }, [finding, findAt, findResults])
+
   // What is going on with this person besides talking: a request, a
   // running session, a session that just ended (lib/deal.ts). Only for a
   // one-to-one thread — a group has no single other person to deal with.
@@ -744,7 +816,21 @@ export default function Conversation() {
         </header>
       )}
 
-      <header className="cos-talk-head" hidden={selecting}>
+      {finding !== null && !selecting && (
+        <FindBar
+          query={finding}
+          at={findAt}
+          results={findResults}
+          onQuery={(query) => {
+            setFinding(query)
+            setFindAt(0)
+          }}
+          onStep={(step) => setFindAt((at) => Math.min(Math.max(at + step, 0), findResults.length - 1))}
+          onClose={() => setFinding(null)}
+        />
+      )}
+
+      <header className="cos-talk-head" hidden={selecting || finding !== null}>
         <button className="cos-talk-back" onClick={() => navigate(-1)} aria-label={t('talk.back')}>
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
             <path
@@ -776,15 +862,33 @@ export default function Conversation() {
             other && <span className="cos-talk-seen">{t(`talk.lastHere.${other.seen ?? 'long'}`)}</span>
           )}
         </span>
-        {other && (
+        {other && thread?.origin !== 'echo' && (
           // Back to the world with this person held, so a conversation is
-          // never a dead end away from the place they live in.
+          // never a dead end away from the place they live in. Not for a
+          // chat Echo made: that was a meeting at random, and it stays one
+          // (the owner's decision).
           <button
             type="button"
             className="cos-talk-go"
             onClick={() => navigate('/sky', { state: { hold: other.user_id } })}
           >
             {t('talk.seeInWorld')}
+          </button>
+        )}
+        {thread && (
+          <button
+            type="button"
+            className="cos-talk-more"
+            aria-label={t('talk.menu.label')}
+            aria-haspopup="menu"
+            aria-expanded={chatMenu}
+            onClick={() => setChatMenu(true)}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="currentColor">
+              <circle cx="12" cy="5.5" r="1.7" />
+              <circle cx="12" cy="12" r="1.7" />
+              <circle cx="12" cy="18.5" r="1.7" />
+            </svg>
           </button>
         )}
       </header>
@@ -1023,6 +1127,23 @@ export default function Conversation() {
       </div>
 
       {viewing && <MediaViewer url={viewing} kind="photo" onClose={() => setViewing(null)} />}
+
+      {chatMenu && <ChatMenu muted={muted} onChoose={chooseFromChatMenu} onClose={() => setChatMenu(false)} />}
+
+      {chatAction && (
+        <DeleteDialog
+          count={1}
+          alsoFor={other?.display_name ?? null}
+          onCancel={() => setChatAction(null)}
+          onConfirm={(forEveryone) => void confirmChatAction(forEveryone)}
+          words={{
+            title: t(chatAction === 'clear' ? 'talk.clearChat.title' : 'talk.deleteChat.title'),
+            sure: t(chatAction === 'clear' ? 'talk.clearChat.sure' : 'talk.deleteChat.sure'),
+            alsoFor: t(chatAction === 'clear' ? 'talk.clearChat.alsoFor' : 'talk.deleteChat.alsoFor', { name: other?.display_name ?? '' }),
+            confirm: t(chatAction === 'clear' ? 'talk.clearChat.confirm' : 'talk.deleteChat.confirm'),
+          }}
+        />
+      )}
 
       {menuFor && (
         <MessageMenu
@@ -1323,4 +1444,66 @@ function hasPhysicalKeyboard(): boolean {
   return typeof window.matchMedia === 'function'
     ? window.matchMedia('(hover: hover) and (pointer: fine)').matches
     : true
+}
+
+/**
+ * Searching inside the chat: takes the header's place while it is open,
+ * the way selecting does. The words, how many were found and which one is
+ * in view, and two arrows to step between them — up for older, as in
+ * Telegram, since the newest is where it starts.
+ */
+function FindBar({
+  query,
+  at,
+  results,
+  onQuery,
+  onStep,
+  onClose,
+}: {
+  query: string
+  at: number
+  results: number[]
+  onQuery: (query: string) => void
+  onStep: (step: number) => void
+  onClose: () => void
+}) {
+  const { t, i18n } = useTranslation()
+  const n = (value: number) => value.toLocaleString(i18n.language)
+  return (
+    <header className="cos-talk-head cos-find-bar">
+      <button className="cos-talk-back" onClick={onClose} aria-label={t('talk.find.close')}>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+        </svg>
+      </button>
+      <input
+        className="cos-find-field"
+        type="search"
+        autoFocus
+        value={query}
+        placeholder={t('talk.find.placeholder')}
+        aria-label={t('talk.find.placeholder')}
+        onChange={(event) => onQuery(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') onStep(1)
+          if (event.key === 'Escape') onClose()
+        }}
+      />
+      {query.trim() !== '' && (
+        <span className="cos-find-count" role="status">
+          {results.length === 0 ? t('talk.find.none') : t('talk.find.count', { i: n(at + 1), n: n(results.length) })}
+        </span>
+      )}
+      <button className="cos-talk-tool" aria-label={t('talk.find.older')} disabled={at >= results.length - 1} onClick={() => onStep(1)}>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m6 15 6-6 6 6" />
+        </svg>
+      </button>
+      <button className="cos-talk-tool" aria-label={t('talk.find.newer')} disabled={at <= 0} onClick={() => onStep(-1)}>
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </button>
+    </header>
+  )
 }

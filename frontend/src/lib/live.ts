@@ -29,6 +29,8 @@ export type LiveEvent =
   /** A request between you and somebody changed — made, confirmed,
    *  refused, withdrawn, paid or run out. No details: read them again. */
   | { type: 'requests' }
+  | { type: 'echo'; everyone?: boolean }
+  | { type: 'cleared'; conversation_id: number }
 
 type Listener = (event: LiveEvent) => void
 

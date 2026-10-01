@@ -140,3 +140,77 @@ class RandomChatSession(Base):
     @property
     def kept_by_both(self) -> bool:
         return self.kept_by_a and self.kept_by_b
+
+
+#: How a proposal ended. None while it is still open.
+PROPOSAL_STARTED = "started"
+PROPOSAL_DECLINED = "declined"
+PROPOSAL_EXPIRED = "expired"
+
+#: How long two people are held for each other while they decide, when the
+#: panel has not said otherwise.
+DEFAULT_PROPOSAL_SECONDS = 30
+
+
+class EchoProposal(Base):
+    """Two waiting people put in front of each other, before anything starts.
+
+    The owner's design (TECHNICAL_REQUIREMENTS.md section 32): the matcher
+    no longer drops two strangers straight into a conversation. It holds
+    them for each other for a few seconds and shows both a small card;
+    only when BOTH say "start" does a conversation exist. Anything else —
+    a "no", or the time running out — puts them quietly back in the pool,
+    and neither is ever told which of the two it was, so being passed over
+    is never a rejection anybody feels.
+
+    The card carries no name and no photo, only the other person's own
+    line and the interests you share: the one thing it lets you judge is
+    whether there is something to talk about, which is what Echo is for.
+    """
+
+    __tablename__ = "echo_proposals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    #: Smallest id first, the convention every pair in this app uses.
+    user_a_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_b_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    shared_tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    #: Groups both picked in without the same interest there: "both into
+    #: science" on the card when there is no interest in common.
+    shared_groups: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
+
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    #: Read lazily, like every other deadline here: a proposal is over the
+    #: moment somebody looks and finds it past this.
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
+
+    accepted_by_a: Mapped[bool] = mapped_column(Boolean, default=False)
+    accepted_by_b: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    #: None while open; then started, declined or expired.
+    outcome: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
+    decided_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    #: Who said no. Kept so the same two are not put in front of each other
+    #: again that day; never shown to anybody.
+    declined_by_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
+    session_id: Mapped[int | None] = mapped_column(
+        ForeignKey("random_chat_sessions.id"), nullable=True
+    )
+
+    def other_user_id(self, user_id: int) -> int:
+        return self.user_b_id if user_id == self.user_a_id else self.user_a_id
+
+    def accepted_by(self, user_id: int) -> bool:
+        return self.accepted_by_a if user_id == self.user_a_id else self.accepted_by_b
+
+    def accept(self, user_id: int) -> None:
+        if user_id == self.user_a_id:
+            self.accepted_by_a = True
+        else:
+            self.accepted_by_b = True
+
+    @property
+    def accepted_by_both(self) -> bool:
+        return self.accepted_by_a and self.accepted_by_b

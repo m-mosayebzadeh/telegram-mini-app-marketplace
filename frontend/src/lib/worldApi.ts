@@ -160,6 +160,8 @@ export function useWorld(): World {
       // A request changed on the other side (confirmed, paid, run out):
       // the countdowns and the queued cards must follow at once.
       if (event.type === 'requests') void reload()
+      // A chat cleared or deleted for both: the list follows.
+      if (event.type === 'cleared') readConversations().catch(() => {})
     })
     return () => {
       alive.current = false

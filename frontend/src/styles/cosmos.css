@@ -4420,3 +4420,450 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
   font-size: var(--cos-text-label);
   cursor: pointer;
 }
+
+/* ------------------------------------------------------------- Echo's door
+   Four states told apart by motion and shape (section 32): still and apart
+   when shut, turning slowly round each other when open, a little quicker
+   when somebody is waiting right now, and one light circling the other
+   while you search. */
+.cos-echo-mark .cos-echo-pair,
+.cos-echo-mark .cos-echo-orbit {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+}
+.cos-echo-mark.is-open .cos-echo-pair { animation: cos-echo-turn 9s linear infinite; }
+.cos-echo-mark.is-busy .cos-echo-pair { animation: cos-echo-turn 4.5s linear infinite; }
+.cos-echo-mark.is-seeking .cos-echo-orbit { animation: cos-echo-turn 2.4s linear infinite; }
+.cos-echo-mark.is-shut { opacity: 0.45; }
+@keyframes cos-echo-turn { to { transform: rotate(360deg); } }
+
+/* ------------------------------------------------------- somebody found
+   The card that rises on any screen when Echo finds somebody (section 32).
+   Echo's blue night glass; the two lights meeting at the top; their own
+   line large, what you share under it; a big "start" and a small "no".
+   A thin ring round the edge empties as the time to decide runs out. */
+.cos-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.cos-offer-slot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.cos-offer {
+  position: relative;
+  width: min(380px, 100%);
+  padding: 18px 20px 14px;
+  border-radius: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--cos-fg);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgb(111 168 255 / 22%), transparent 70%),
+    linear-gradient(to bottom, rgb(14 26 56 / 96%), rgb(6 12 28 / 97%));
+  border: 1px solid rgb(111 168 255 / 22%);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 60%), 0 0 40px rgb(111 168 255 / 16%);
+  pointer-events: auto;
+  touch-action: pan-y;
+  translate: calc(var(--drag, 0) * 1px) 0;
+  rotate: calc(var(--drag, 0) * 0.04deg);
+  animation: cos-offer-rise 0.55s var(--cos-ease-settle);
+  transition: translate 0.3s var(--cos-ease-settle), rotate 0.3s var(--cos-ease-settle), opacity 0.4s ease;
+}
+@keyframes cos-offer-rise {
+  from { opacity: 0; transform: translateY(40px) scale(0.96); }
+}
+.cos-offer.is-thrown { opacity: 0; transition: translate 0.42s ease-in, rotate 0.42s ease-in, opacity 0.42s ease-in; }
+.cos-offer.is-next { opacity: 0.85; }
+
+/* The ring that empties: one CSS animation over the whole hold. */
+.cos-offer-ring {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  pointer-events: none;
+  overflow: visible;
+}
+.cos-offer-ring rect {
+  fill: none;
+  stroke: var(--cos-echo);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 100 100;
+  filter: drop-shadow(0 0 6px rgb(111 168 255 / 70%));
+  animation-name: cos-offer-drain;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+@keyframes cos-offer-drain {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -100; }
+}
+/* The last seconds: urgency by motion — the ring breathes — never by red.
+   On the ring as a whole, not on the line that drains: adding a second
+   animation to the line would restart its drain from the beginning. */
+.cos-offer.is-last .cos-offer-ring { animation: cos-offer-breathe 0.9s ease-in-out infinite; }
+@keyframes cos-offer-breathe { 50% { opacity: 0.45; } }
+
+/* The two lights, meeting: Echo's mark, arrived. */
+.cos-offer-lights { position: relative; width: 64px; height: 18px; }
+.cos-offer-lights i {
+  position: absolute;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--cos-echo);
+  box-shadow: 0 0 16px var(--cos-echo);
+}
+.cos-offer-lights .is-a { left: 12px; animation: cos-offer-meet-a 2.4s ease-in-out infinite; }
+.cos-offer-lights .is-b { right: 12px; animation: cos-offer-meet-b 2.4s ease-in-out infinite; }
+@keyframes cos-offer-meet-a { 50% { transform: translateX(13px); } }
+@keyframes cos-offer-meet-b { 50% { transform: translateX(-13px); } }
+.cos-offer.is-accepted .cos-offer-lights i { animation-duration: 1.1s; }
+
+.cos-offer-kicker { margin: 0; font-size: var(--cos-text-caption); letter-spacing: 0.02em; color: #a9c8ff; }
+.cos-offer-line {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 17px;
+  font-weight: 300;
+  line-height: 1.8;
+  text-wrap: balance;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cos-offer-shared { margin: 0; font-size: var(--cos-text-label); color: var(--cos-fg-soft); }
+.cos-offer-start {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 26px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: #04122e;
+  background: linear-gradient(160deg, #cfe2ff, #7fb0ff 50%, #4f86e8);
+  box-shadow: 0 0 30px rgb(111 168 255 / 40%);
+  cursor: pointer;
+}
+.cos-offer-start:disabled { cursor: default; }
+.cos-offer.is-accepted .cos-offer-start { background: rgb(111 168 255 / 16%); color: #cfe2ff; box-shadow: none; }
+.cos-offer-no {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--cos-text-label);
+  color: var(--cos-fg-soft);
+  cursor: pointer;
+}
+.cos-offer-next { margin: 4px 0 10px; font-size: var(--cos-text-body); color: #cfe2ff; }
+.cos-offer-start:focus-visible,
+.cos-offer-no:focus-visible { outline: 2px solid #cfe2ff; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-echo-mark .cos-echo-pair,
+  .cos-echo-mark .cos-echo-orbit,
+  .cos-offer,
+  .cos-offer-lights i { animation: none; }
+  .cos-offer { transition: opacity 0.2s ease; }
+  .cos-offer-ring rect { animation-name: cos-offer-drain; }
+  .cos-offer.is-last .cos-offer-ring { animation: none; }
+}
+
+/* ------------------------------------------------------------ chat menu
+   The three dots at the top of a chat and what they open (section 32):
+   mute, search, clear history, delete chat. A plain menu — a chat is a
+   utility screen, and restraint is right here. */
+.cos-talk-more {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--cos-fg-soft);
+  cursor: pointer;
+}
+/* At the far edge always. With "see in the world" it follows that button;
+   without it (a chat Echo made) nothing pushed it there, and it sat in the
+   middle beside the name. */
+.cos-talk-more { margin-inline-start: auto; }
+.cos-talk-go + .cos-talk-more { margin-inline-start: 0; }
+.cos-talk-more:focus-visible { outline: 2px solid #dff8ff; outline-offset: 2px; }
+.cos-chatmenu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+}
+.cos-chatmenu {
+  position: absolute;
+  top: calc(58px + env(safe-area-inset-top, 0px));
+  inset-inline-end: 10px;
+  min-width: 210px;
+  padding: 6px;
+  border-radius: 16px;
+  background: rgb(24 20 40 / 97%);
+  border: 1px solid rgb(255 255 255 / 8%);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 55%);
+  animation: cos-chatmenu-in 0.18s ease-out;
+  transform-origin: top left;
+}
+[dir='ltr'] .cos-chatmenu { transform-origin: top right; }
+@keyframes cos-chatmenu-in { from { opacity: 0; transform: scale(0.94); } }
+.cos-chatmenu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  text-align: start;
+  cursor: pointer;
+}
+.cos-chatmenu-item svg { flex: none; color: var(--cos-fg-soft); }
+.cos-chatmenu-item:hover,
+.cos-chatmenu-item:focus-visible { background: rgb(255 255 255 / 6%); outline: none; }
+.cos-chatmenu-item.is-danger,
+.cos-chatmenu-item.is-danger svg { color: #ff8a8a; }
+
+/* Searching inside the chat: the bar that takes the header's place. */
+.cos-find-bar { gap: 6px; }
+.cos-find-field {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1px solid rgb(255 255 255 / 12%);
+  background: rgb(255 255 255 / 6%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-body);
+}
+.cos-find-field:focus { outline: none; border-color: rgb(182 156 255 / 60%); }
+.cos-find-count {
+  flex: none;
+  font-size: var(--cos-text-caption);
+  color: var(--cos-fg-soft);
+  white-space: nowrap;
+}
+.cos-find-bar .cos-talk-tool:disabled { opacity: 0.35; cursor: default; }
+
+/* A muted chat in the list: the small crossed-out speaker beside the
+   name, and its unread number quieter — still there, just not calling. */
+.cos-talklist-muted {
+  width: 14px;
+  height: 14px;
+  margin-inline-start: 6px;
+  vertical-align: -2px;
+  color: var(--cos-fg-soft);
+}
+.cos-talklist-row.is-muted .cos-talklist-count { background: rgb(255 255 255 / 18%); color: var(--cos-fg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-chatmenu { animation: none; }
+}
+
+/* ------------------------------------------------------- Echo interests
+   A field to type into, then ten at a time in tonight's order (section
+   32). A small light marks the ones chosen in Echo right now. */
+.cos-tagpick {
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.cos-tagpick-field {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 21px;
+  border: 1px solid rgb(111 168 255 / 28%);
+  background: rgb(20 40 90 / 35%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-body);
+}
+.cos-tagpick-field::placeholder { color: var(--cos-fg-soft); }
+.cos-tagpick-field:focus { outline: none; border-color: rgb(111 168 255 / 70%); }
+/* Interests in groups (section 32): the groups as a two-column grid of
+   tiles, each with a taste of what is inside; a group open shows a way
+   back and its interests; a search shows interests with their group. */
+.cos-tagpick-chosen { padding-bottom: 2px; }
+.cos-tagpick-now { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cos-tagpick-caption,
+.cos-tagpick-title { margin: 0; font-size: var(--cos-text-caption); font-weight: 400; color: var(--cos-fg-soft); }
+.cos-tagpick-title { font-size: var(--cos-text-label); color: var(--cos-fg); }
+.cos-tagpick-groups { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cos-tagpick-group {
+  position: relative;
+  min-height: 64px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 18px;
+  border: 1px solid rgb(111 168 255 / 26%);
+  background: rgb(20 40 90 / 35%);
+  color: var(--cos-fg);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+/* An odd one out spans the row instead of leaving a hole beside it. */
+.cos-tagpick-group:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.cos-tagpick-group b { font-weight: 500; font-size: var(--cos-text-label); }
+.cos-tagpick-group span { font-size: var(--cos-text-caption); color: var(--cos-fg-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cos-tagpick-group:focus-visible,
+.cos-tagpick-back:focus-visible { outline: 2px solid #cfe2ff; outline-offset: 2px; }
+.cos-tagpick-picked {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 10px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 11px;
+  background: rgb(111 168 255 / 30%);
+  color: var(--cos-fg);
+}
+.cos-tagpick-inside { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.cos-tagpick-back {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 12px 0 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-label);
+  cursor: pointer;
+}
+[dir='rtl'] .cos-tagpick-back svg { transform: scaleX(-1); }
+.cos-tagpick-of { margin-inline-start: 6px; font-size: 10px; color: var(--cos-fg-faint); }
+.cos-tagpick-none { margin: 4px 0; font-size: var(--cos-text-label); color: var(--cos-fg-soft); }
+
+
+/* The browser's own clear button inside a search field: it crowded the
+   result count, and closing the search already empties it. */
+.cos-find-field::-webkit-search-cancel-button,
+.cos-tagpick-field::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+/* ------------------------------------------------- selecting in the list
+   Holding a chat selects it (section 32); the bar of what can be done to
+   all of them takes the top of the screen, over the region's name. */
+.cos-talklist-select {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 400; /* over the region's own header (300) */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 8px 10px;
+  /* Solid: the region's name behind it showed through. */
+  background: rgb(14 10 30);
+  border-bottom: 1px solid rgb(182 156 255 / 14%);
+  animation: cos-chatmenu-in 0.16s ease-out;
+}
+.cos-talklist-select .cos-select-count { flex: 1; font-size: var(--cos-text-read); }
+.cos-talklist-select .cos-select-actions { display: flex; align-items: center; }
+.cos-talklist-row.is-selected { background: rgb(182 156 255 / 14%); border-color: rgb(182 156 255 / 40%); }
+.cos-talklist-facewrap { position: relative; flex: none; display: grid; }
+.cos-talklist-check {
+  position: absolute;
+  inset-inline-end: -2px;
+  bottom: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cos-talk);
+  border: 2px solid rgb(14 10 30);
+}
+.cos-talklist-check::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  width: 5px;
+  height: 9px;
+  border: solid #140c2a;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.cos-talklist-pin { color: var(--cos-fg-soft); display: inline-grid; }
+.cos-talklist-pin svg { width: 16px; height: 16px; }
+.cos-talklist-archive {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 8px;
+  padding: 0 16px;
+  border-radius: 18px;
+  border: 1px solid rgb(182 156 255 / 14%);
+  background: rgb(255 255 255 / 3%);
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  cursor: pointer;
+}
+.cos-talklist-archive i { margin-inline-start: auto; font-style: normal; font-size: var(--cos-text-caption); }
+.cos-talklist-notice {
+  position: fixed;
+  left: 50%;
+  top: calc(80px + env(safe-area-inset-top, 0px));
+  z-index: 450;
+  translate: -50%;
+  margin: 0;
+  padding: 9px 16px;
+  border-radius: 18px;
+  font-size: var(--cos-text-caption);
+  background: rgb(36 26 60 / 96%);
+  border: 1px solid rgb(182 156 255 / 25%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cos-talklist-select { animation: none; }
+}

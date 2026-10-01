@@ -27,7 +27,7 @@ from app.models.platform_rates import PlatformRates  # noqa: F401
 from app.models.profile import Profile  # noqa: F401
 from app.models.profile_photo import ProfilePhoto  # noqa: F401
 from app.models.request import Request  # noqa: F401
-from app.models.random_chat import RandomChatSession, RandomChatTicket  # noqa: F401
+from app.models.random_chat import EchoProposal, RandomChatSession, RandomChatTicket  # noqa: F401
 from app.models.report import Report, Suspension  # noqa: F401
 from app.models.role import Role  # noqa: F401
 from app.models.topup_request import TopUpRequest  # noqa: F401

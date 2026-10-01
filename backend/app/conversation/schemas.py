@@ -40,6 +40,10 @@ class ConversationOut(BaseModel):
 
     #: This person's own view of the thread.
     archived: bool
+    #: Kept out of the unread number on the door.
+    muted: bool = False
+    #: Pinned to the top of the list.
+    pinned: bool = False
     unread: bool
     #: How many messages from the others are unread — the number on the
     #: conversation's row. Follows the same visibility rules as the list.

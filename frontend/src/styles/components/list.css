@@ -82,6 +82,14 @@
   white-space: nowrap;
 }
 
+/* For a row whose words are a setting's explanation: cut off with "…" the
+   explanation was half a sentence (the owner's report). */
+.ui-row.is-wrap .ui-row-title,
+.ui-row.is-wrap .ui-row-subtitle {
+  white-space: normal;
+  overflow: visible;
+}
+
 .ui-row-trailing {
   display: flex;
   align-items: center;

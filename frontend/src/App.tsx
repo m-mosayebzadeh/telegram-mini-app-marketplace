@@ -14,6 +14,7 @@ import Conversation from './pages/Conversation'
 import Echo from './pages/Echo'
 import Events from './pages/Events'
 import { WorldBar, doorOf } from './components/cosmos/WorldBar'
+import { EchoOffer } from './components/cosmos/EchoOffer'
 import Login from './pages/Login'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
@@ -195,6 +196,9 @@ function AppShell() {
         <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
       {door !== null && <WorldBar />}
+      {/* Wherever you are: somebody found in Echo reaches you on any
+          screen, because searching does not keep you on Echo's. */}
+      <EchoOffer />
       {!immersive && (
       <nav className="ui-nav">
         {TABS.map((tab) => {

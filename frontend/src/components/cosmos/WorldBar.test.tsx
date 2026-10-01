@@ -8,7 +8,10 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }),
 }))
 const conversations = vi.hoisted(() => ({ list: [] as Array<{ unread: boolean }> }))
-vi.mock('../../lib/conversationApi', () => ({ fetchConversations: vi.fn(async () => conversations.list) }))
+// The server counts over every conversation; here the count is the list's.
+vi.mock('../../lib/conversationApi', () => ({
+  fetchUnreadCount: vi.fn(async () => conversations.list.filter((c) => c.unread).length),
+}))
 vi.mock('../../lib/live', () => ({ subscribe: () => () => {} }))
 
 /**

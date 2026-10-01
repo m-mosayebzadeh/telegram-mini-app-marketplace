@@ -751,7 +751,14 @@
     "monthLabel": "Month",
     "yearLabel": "Year",
     "save": "Save",
-    "usedUp": "You've used today's conversations with new people. You can again tomorrow."
+    "usedUp": "You've used today's conversations with new people. You can again tomorrow.",
+    "group": {
+      "fun": "Art & fun",
+      "learning": "Learning",
+      "work": "Work & future",
+      "life": "Lifestyle",
+      "talk": "Talk"
+    }
   },
   "talk": {
     "back": "Back",
@@ -806,7 +813,36 @@
       "days": "Here a few days ago",
       "long": "Not here for a while"
     },
-    "dailyLimit": "You've met as many new people as you can today. You can again tomorrow; the conversations you have all stay open."
+    "dailyLimit": "You've met as many new people as you can today. You can again tomorrow; the conversations you have all stay open.",
+    "menu": {
+      "label": "Chat options",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "mutedLabel": "Muted",
+      "search": "Search",
+      "clear": "Clear history",
+      "delete": "Delete chat"
+    },
+    "find": {
+      "placeholder": "Search this chat",
+      "count": "{{i}} of {{n}}",
+      "none": "Not found",
+      "newer": "Newer result",
+      "older": "Older result",
+      "close": "Close search"
+    },
+    "clearChat": {
+      "title": "Clear history",
+      "sure": "Every message in this chat is cleared, but the chat stays in your list.",
+      "alsoFor": "Also clear it for {{name}}",
+      "confirm": "Clear"
+    },
+    "deleteChat": {
+      "title": "Delete chat",
+      "sure": "The messages are cleared and the chat leaves your list. A new message brings it back.",
+      "alsoFor": "Also delete it for {{name}}",
+      "confirm": "Delete"
+    }
   },
   "report": {
     "title": "Report {{name}}",
@@ -1013,7 +1049,13 @@
     "events": "Events",
     "me": "Me",
     "unread_one": "{{count}} conversation with new messages",
-    "unread_other": "{{count}} conversations with new messages"
+    "unread_other": "{{count}} conversations with new messages",
+    "echoState": {
+      "shut": "closed",
+      "open": "open",
+      "busy": "somebody is waiting right now",
+      "seeking": "you are searching"
+    }
   },
   "sheet": {
     "close": "Close"
@@ -1030,6 +1072,35 @@
     "from": {
       "world": "From the world",
       "echo": "From Echo"
+    },
+    "archive": "Archive",
+    "archiveBack": "Back to conversations",
+    "archiveEmpty": "Nothing in the archive",
+    "pinned": "Pinned",
+    "select": {
+      "count": "{{n}} selected",
+      "cancel": "Cancel selection",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "delete": "Delete",
+      "more": "More options",
+      "archive": "Archive",
+      "unarchive": "Move out of the archive",
+      "read": "Mark as read",
+      "clear": "Clear history",
+      "pinLimit": "No more than {{n}} conversations can be pinned."
+    },
+    "deleteMany": {
+      "title": "Delete {{n}} conversations",
+      "sure": "The messages are cleared for you and these conversations leave your list. Nothing changes for the other people.",
+      "confirm": "Delete"
+    },
+    "clearMany": {
+      "title": "Clear history of {{n}} conversations",
+      "sure": "The messages are cleared for you, but the conversations stay in your list. Nothing changes for the other people.",
+      "confirm": "Clear"
     }
   },
   "seek": {
@@ -1048,26 +1119,51 @@
     "tip1": "When someone arrives, open with a question: it is easier to answer than a hello.",
     "tip2": "The interests you share show at the top of the conversation; start there.",
     "tip3": "A conversation started here stays; carry on from Conversations whenever you like.",
-    "long": "Nobody yet. You can keep waiting, or change your interests so more people fit.",
+    "long": "Nobody yet.",
     "keepWaiting": "Keep waiting",
     "change": "Change interests",
     "found": "{{name}} is here",
     "shared": "You both like {{tags}}",
     "start": "Start talking",
-    "another": "Someone else new"
+    "another": "Someone else new",
+    "findTag": "Type an interest",
+    "noTag": "Nothing found",
+    "now": "Right now",
+    "groups": "Groups",
+    "allGroups": "All groups",
+    "chosen": "Chosen interests",
+    "pickedHere": "{{n}} chosen from this group"
   },
   "adminEcho": {
     "title": "Echo",
     "hubHint": "On or off, and its hours",
     "enabled": "Echo is on",
     "enabledHint": "Off means it opens for nobody.",
-    "alwaysOpen": "Always open",
-    "alwaysOpenHint": "Open round the clock; the hours below are kept for when you switch this off.",
+    "alwaysOpen": "Open around the clock",
+    "alwaysOpenHint": "While on, the hours are not used but are kept.",
     "hours": "Opening hours",
     "from": "From",
     "to": "To",
     "hoursHint": "On each person's own clock. A window past midnight (say 22 to 2) works too.",
     "save": "Save",
-    "saved": "Saved"
+    "saved": "Saved",
+    "holdTitle": "Time to decide",
+    "holdLabel": "Seconds two people are held for each other",
+    "holdHint": "When two people are found for each other, both see a card and have this long to tap \"Start talking\". Between 5 and 120 seconds.",
+    "countsTitle": "Numbers on the waiting screen",
+    "countsLabel": "Show how many are online and searching",
+    "countsHint": "When off, whoever is waiting sees only how long they have waited. While few people are here, a small number makes the place look empty."
+  },
+  "echoOffer": {
+    "label": "Somebody found in Echo",
+    "found": "Somebody found",
+    "fallback": "They are looking for somebody new right now, too.",
+    "shared": "You both chose: {{tags}}",
+    "start": "Start talking",
+    "decline": "No, thanks",
+    "waitingOther": "Waiting for them…",
+    "next": "Looking for the next person",
+    "secondsLeft": "{{n}} seconds left",
+    "sharedGroups": "Both into {{groups}}"
   }
 }

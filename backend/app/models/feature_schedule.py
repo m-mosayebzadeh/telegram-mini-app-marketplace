@@ -72,6 +72,16 @@ class FeatureSchedule(Base):
     daily_quota: Mapped[int] = mapped_column(Integer, default=10)
     daily_quota_unlimited: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    #: How many seconds two people found for each other are held while
+    #: they decide (section 32). Long enough to read a line and a few
+    #: interests while in the middle of something else; set in the panel.
+    proposal_seconds: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+
+    #: Whether the waiting screen shows how many are here and searching.
+    #: On to begin with; the owner turns it off from the panel if small
+    #: numbers make the place feel empty (section 32).
+    show_counts: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
     @property
     def effective_daily_quota(self) -> int | None:
         """The cap that actually applies, or None for unlimited."""
