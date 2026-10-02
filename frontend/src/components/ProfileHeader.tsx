@@ -6,6 +6,7 @@ import { daysUntilNextBirthday, formatBirthday } from '../lib/jalali'
 import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'
 import { AvatarGallery } from './AvatarGallery'
+import { NoteBubble } from './profile/NoteBubble'
 import { Sheet } from './ui/Sheet'
 import { Button } from './ui/Button'
 import {
@@ -24,6 +25,8 @@ interface ProfileHeaderProps {
   /** Called after a new avatar finishes uploading, so the parent can
    *  reload `profile` — this component only ever receives it read-only. */
   onAvatarUploaded: () => void
+  /** Called after your own note of the day changes, to reload. */
+  onNoteSaved?: () => void
 }
 
 /**
@@ -47,6 +50,7 @@ export function ProfileHeader({
   onFollow,
   onUnfollow,
   onAvatarUploaded,
+  onNoteSaved,
 }: ProfileHeaderProps) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
@@ -144,11 +148,10 @@ export function ProfileHeader({
 
       {profile.username && <p className="pf-username">@{profile.username}</p>}
 
-      {profile.bio && (
-        <p className="pf-bio" dir="auto">
-          {profile.bio}
-        </p>
-      )}
+      {/* The note of the day in place of a bio (section 32, step 4): the
+          owner found a bio dull for this app. No note on somebody else's
+          profile, nothing; on your own, an invitation to write one. */}
+      <NoteBubble note={profile.note} isOwn={isOwn} onSaved={onNoteSaved ?? onAvatarUploaded} />
 
       {hasBirthday && (
         <div className="pf-meta">
@@ -166,15 +169,9 @@ export function ProfileHeader({
         </div>
       )}
 
-      {profile.interests.length > 0 && (
-        <div className="pf-tags">
-          {profile.interests.map((tag) => (
-            <span key={tag} className="ui-tag">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* No interests on a profile any more (the owner's decision): a
+          fixed list about yourself is a bio in tags. Interests live in
+          Echo, chosen fresh on every search. */}
 
       <div className="pf-stats">
         <button

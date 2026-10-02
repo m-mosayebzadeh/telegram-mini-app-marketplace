@@ -20,7 +20,7 @@ from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.admin_grant import AdminGrant
 from app.models.role import Role
-from app.models.user import User
+from app.models.user import User, UserStatus
 
 # FastAPI's `Depends` mechanism supports nesting: this dependency itself
 # depends on `get_db`, so FastAPI resolves get_db() first, gets a Session,
@@ -47,6 +47,11 @@ def _get_telegram_user(x_telegram_init_data: str = Header(...)) -> TelegramUser:
         ) from error
 
 
+#: The verified Telegram identity alone, for the one route that must work
+#: without an account behind it (starting again after deleting one).
+get_telegram_user = _get_telegram_user
+
+
 def get_current_user(
     telegram_user: TelegramUser = Depends(_get_telegram_user),
     db: Session = Depends(get_db),
@@ -59,6 +64,13 @@ def get_current_user(
         db.query(User).filter(User.telegram_id == telegram_user.id).first()
     )
     if existing_user is not None:
+        # A deleted account stays shut rather than quietly becoming a new
+        # one: the app keeps asking things in the background, and each of
+        # those would otherwise create an empty account that shows up in
+        # the world. Starting again is a deliberate step of its own
+        # (POST /me/start-over, app/account/router.py).
+        if existing_user.status == UserStatus.DELETED:
+            raise HTTPException(status.HTTP_410_GONE, detail={"reason": "account_deleted"})
         _touch_last_seen(db, existing_user)
         return existing_user
 

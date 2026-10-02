@@ -8,10 +8,13 @@ is what actually enforces the "one-to-one" part — without it, this would
 be a regular one-to-many relationship (one user could have many profiles).
 """
 
+from datetime import datetime
+
 from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+from app.core.time import UTCDateTime
 
 # A simple cap so "interests" can't turn into an unbounded free-for-all —
 # enforced in app/profile/router.py, not the database (JSON columns can't
@@ -27,16 +30,16 @@ MAX_BIO_LENGTH = 100
 
 #: How someone can be reached (see TECHNICAL_REQUIREMENTS.md section 24).
 #:
-#: OPEN — anyone may start a free text conversation.
-#: PAID — reaching this person means buying one of their offers.
+#: OPEN — anyone may start a conversation. The default: the freest
+#: setting, and whoever wants it narrower narrows it (the owner's rule).
+#: FRIENDS — only your friends may start one.
 #:
-#: Left to each person rather than decided by us, because the thing that
-#: is actually scarce is a sought-after person's time, and only they know
-#: when it has become scarce. Someone new wants conversation and leaves
-#: the door open; someone in demand closes it. The market prices itself.
+#: There used to be a PAID door, reaching somebody by buying one of their
+#: offers; it went with the paid layer (section 32). For a few days the
+#: other choice was "people I follow", until friends replaced following.
 CHAT_DOOR_OPEN = "open"
-CHAT_DOOR_PAID = "paid"
-CHAT_DOORS = (CHAT_DOOR_OPEN, CHAT_DOOR_PAID)
+CHAT_DOOR_FRIENDS = "friends"
+CHAT_DOORS = (CHAT_DOOR_OPEN, CHAT_DOOR_FRIENDS)
 
 
 #: Gender. Optional everywhere except the door into random chat, which
@@ -132,9 +135,28 @@ class Profile(Base):
         String(16), default=CHAT_DOOR_OPEN, server_default=CHAT_DOOR_OPEN, nullable=False
     )
 
+    #: Not shown as online, and — the same rule as Telegram — not shown
+    #: anybody else's online either. Without the second half everybody
+    #: would hide and the ring around a body would mean nothing.
+    hide_online: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
+
+    #: The note of the day, in place of a bio (app/profile/note.py). Kept
+    #: after it fades, so writing tomorrow's starts from today's words.
+    note: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
+    #: Who may see this person's list of friends (models/friendship.py):
+    #: everyone, friends, people they choose, or nobody. Everyone to begin
+    #: with, the owner's rule for every privacy setting.
+    friends_seen_by: Mapped[str] = mapped_column(
+        String(16), default="everyone", server_default="everyone", nullable=False
+    )
+    note_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
     __table_args__ = (
         CheckConstraint(
-            "chat_door IN ('open', 'paid')",
+            "chat_door IN ('open', 'friends')",
             name="ck_profile_chat_door",
         ),
         CheckConstraint(

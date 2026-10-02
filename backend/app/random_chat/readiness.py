@@ -34,29 +34,30 @@ MISSING_GENDER = "gender"
 MISSING_BIRTH_YEAR = "birth_year"
 
 
-def missing_for_random_chat(profile: Profile | None) -> list[str]:
+#: Said "eighteen or over" (section 32): asked the first time Echo opens.
+MISSING_ADULT = "adult"
+
+
+def missing_for_random_chat(user, schedule=None) -> list[str]:
     """
-    The facts this person still owes us before they can be matched.
+    What this person still owes before they can be matched.
 
-    An empty list means the door is open. Someone with no profile row at
-    all owes both — the same answer as someone who has a profile but has
-    filled in neither, because from the matcher's side those are the same
-    situation.
-
-    Order is fixed rather than incidental, so the interface can show the
-    questions in a stable order without sorting them itself.
+    Gender and birth date used to be asked here, for the matcher's
+    preferences; the owner took them out of Echo (section 32): not asked,
+    not matched on. What remains is "eighteen or over", asked the first
+    time Echo opens — Echo is where strangers meet — and never again once
+    given. The panel can turn the question off (`schedule.ask_adult`).
     """
-    missing: list[str] = []
-    if profile is None or profile.gender is None:
-        missing.append(MISSING_GENDER)
-    if profile is None or profile.birthday_year is None:
-        missing.append(MISSING_BIRTH_YEAR)
-    return missing
+    if schedule is not None and getattr(schedule, "ask_adult", True) is False:
+        return []
+    if getattr(user, "adult_confirmed_at", None) is None:
+        return [MISSING_ADULT]
+    return []
 
 
-def is_ready_for_random_chat(profile: Profile | None) -> bool:
+def is_ready_for_random_chat(user, schedule=None) -> bool:
     """Shorthand for "nothing is missing"."""
-    return not missing_for_random_chat(profile)
+    return not missing_for_random_chat(user, schedule)
 
 
 def age_from_birth_year(birth_year: int | None, *, today: date | None = None) -> int | None:

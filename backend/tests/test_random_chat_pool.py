@@ -67,6 +67,8 @@ def _person(client, db_session, telegram_id, *, gender, birth_year, name="Test")
     profile.birthday_year = birth_year
     profile.birthday_month = 3
     profile.birthday_day = 21
+    # Said "eighteen or over", which Echo asks the first time (section 32).
+    user.adult_confirmed_at = utcnow()
     db_session.commit()
     return user
 
@@ -123,13 +125,30 @@ def test_the_countdown_says_how_long_until_it_opens(db_session):
     assert schedule.minutes_until_open(23 * 60) is None
 
 
-def test_someone_who_has_not_been_through_the_door_is_refused(client, db_session):
+def test_echo_asks_eighteen_or_over_once_and_nothing_else(client, db_session):
+    """Section 32: no gender or birthday any more; "eighteen or over" the
+    first time Echo opens, and never again once said."""
     _open_the_feature(db_session)
     client.get("/me", headers=_auth(9002))
+    assert client.get("/random-chat/status", headers=_auth(9002)).json()["missing"] == ["adult"]
+    refused = client.post("/random-chat/search", json={}, headers=_auth(9002))
+    assert refused.status_code == 409
+    assert refused.json()["detail"]["missing"] == ["adult"]
+
+    client.post("/me/adult", headers=_auth(9002))
+    assert client.get("/random-chat/status", headers=_auth(9002)).json()["missing"] == []
     response = client.post("/random-chat/search", json={}, headers=_auth(9002))
-    assert response.status_code == 409
-    assert response.json()["detail"]["reason"] == "profile_incomplete"
-    assert "gender" in response.json()["detail"]["missing"]
+    assert response.status_code == 200, response.text
+    assert response.json()["waiting"] is True
+
+
+def test_the_panel_can_stop_asking_eighteen_or_over(client, db_session):
+    _open_the_feature(db_session)
+    schedule = db_session.query(FeatureSchedule).filter_by(feature=FEATURE_RANDOM_CHAT).one()
+    schedule.ask_adult = False
+    db_session.commit()
+    client.get("/me", headers=_auth(9004))
+    assert client.get("/random-chat/status", headers=_auth(9004)).json()["missing"] == []
 
 
 def test_a_suspended_account_cannot_search(client, db_session):

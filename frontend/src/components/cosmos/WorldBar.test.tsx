@@ -57,9 +57,11 @@ describe('the bar along the bottom', () => {
     expect(doorOf('/echo')).toBe('echo')
     expect(doorOf('/events')).toBe('events')
     expect(doorOf('/profile')).toBe('me')
-    // A conversation owns the whole screen; somebody else's profile is not "me".
+    expect(doorOf('/friends')).toBe('me')
+    // A conversation owns the whole screen; somebody else's page is reached
+    // from the world, so the world's door is the lit one there.
     expect(doorOf('/conversations/3')).toBeNull()
-    expect(doorOf('/profiles/7')).toBeNull()
+    expect(doorOf('/profiles/7')).toBe('world')
   })
 
   it('shows five doors, marking the one you are behind', async () => {

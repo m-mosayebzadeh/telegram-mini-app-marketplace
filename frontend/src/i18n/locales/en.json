@@ -86,7 +86,6 @@
     "moreButton": "More",
     "moreReport": "Report",
     "moreBlock": "Block",
-    "moreComingSoon": "Not available yet",
     "editButton": "Edit profile",
     "setPhotoButton": "Set Photo",
     "deletePhotoTitle": "Delete photo",
@@ -134,14 +133,52 @@
     "interestsFull": "That is the limit of {{max, number}}.",
     "interestsRemove": "Remove {{tag}}",
     "genderLabel": "Gender",
-    "notSet": "Not set"
+    "notSet": "Not set",
+    "reported": "Report sent.",
+    "blockTitle": "Block {{name}}?",
+    "blockText": "You will not see them in the world or in Echo, and they cannot message you. They are not told. You can unblock them in settings.",
+    "blocked": "Blocked",
+    "moreComingSoon": "Not available yet",
+    "changePhoto": "Change photo"
   },
   "settings": {
     "title": "Settings",
     "accountGroup": "Account",
-    "walletGroup": "Money",
-    "appGroup": "App",
-    "devGroup": "Development"
+    "appGroup": "The app",
+    "devGroup": "Development",
+    "youGroup": "You",
+    "privacyGroup": "Privacy",
+    "helpGroup": "Help",
+    "door": "Who can message you",
+    "doorHint": "Conversations you already have stay open; this is only about starting a new one.",
+    "doorOpen": "Everyone",
+    "hideOnline": "Hide when I am online",
+    "hideOnlineHint": "Nobody sees that you are here right now, and you do not see anybody else's either.",
+    "blocked": "Blocked people",
+    "lite": "Light graphics",
+    "liteHint": "For phones that slow down: no blur and no drifting dust. This phone only.",
+    "report": "Report a problem",
+    "delete": "Delete account",
+    "deleteTitle": "Delete account",
+    "deleteText": "Your profile, photos, follows and your place in the world and in Echo are removed, and nobody can find you. Messages you sent stay with the other person.",
+    "deleteNext": "Continue",
+    "deleteSureTitle": "Are you sure?",
+    "deleteSureText": "This cannot be undone. If you come back, you start from nothing.",
+    "deleteConfirm": "Delete my account",
+    "doorFriends": "My friends",
+    "friendsSeen": "Who sees your friends",
+    "friendsSeenHint": "Shared friends are in the same list; closed means nobody is shown.",
+    "seen": {
+      "everyone": "Everyone",
+      "friends": "Friends",
+      "chosen": "Chosen",
+      "nobody": "Nobody"
+    },
+    "chooseViewers": "Choose people",
+    "chosenTitle": "Who sees your friends",
+    "chosenHint": "From your friends only.",
+    "chosenSave": "Save",
+    "chosenEmpty": "You need a friend first."
   },
   "followRequests": {
     "link": "Follow requests",
@@ -811,7 +848,8 @@
       "minutes": "Here a few minutes ago",
       "hours": "Here a few hours ago",
       "days": "Here a few days ago",
-      "long": "Not here for a while"
+      "long": "Not here for a while",
+      "recently": "Here recently"
     },
     "dailyLimit": "You've met as many new people as you can today. You can again tomorrow; the conversations you have all stay open.",
     "menu": {
@@ -842,12 +880,13 @@
       "sure": "The messages are cleared and the chat leaves your list. A new message brings it back.",
       "alsoFor": "Also delete it for {{name}}",
       "confirm": "Delete"
-    }
+    },
+    "doorFriends": "They only take messages from their friends."
   },
   "report": {
     "title": "Report {{name}}",
     "why": "Why?",
-    "send": "Send report",
+    "send": "Send",
     "noteLabel": "Anything to add? (optional)",
     "notePlaceholder": "If it helps, say briefly what happened.",
     "reasons": {
@@ -857,7 +896,11 @@
       "sexual": "Sexual content",
       "spam": "Spam",
       "other": "Something else"
-    }
+    },
+    "label": "What happened?",
+    "placeholder": "Anything that did not work or confused you, or an idea you have…",
+    "hint": "The Cosmos team reads every one. To report a person, use their profile or your conversation.",
+    "sent": "Thank you; it arrived."
   },
   "voice": {
     "play": "Play",
@@ -1055,7 +1098,8 @@
       "open": "open",
       "busy": "somebody is waiting right now",
       "seeking": "you are searching"
-    }
+    },
+    "friendRequests": "{{count}} friend requests"
   },
   "sheet": {
     "close": "Close"
@@ -1152,12 +1196,14 @@
     "holdHint": "When two people are found for each other, both see a card and have this long to tap \"Start talking\". Between 5 and 120 seconds.",
     "countsTitle": "Numbers on the waiting screen",
     "countsLabel": "Show how many are online and searching",
-    "countsHint": "When off, whoever is waiting sees only how long they have waited. While few people are here, a small number makes the place look empty."
+    "countsHint": "When off, whoever is waiting sees only how long they have waited. While few people are here, a small number makes the place look empty.",
+    "adultTitle": "Eighteen or over",
+    "adultLabel": "Ask \"I am eighteen or over\" on the first Echo",
+    "adultHint": "Once for each person, the first time they open Echo. \"No\" takes them back to the world, and they are asked again next time."
   },
   "echoOffer": {
     "label": "Somebody found in Echo",
     "found": "Somebody found",
-    "fallback": "They are looking for somebody new right now, too.",
     "shared": "You both chose: {{tags}}",
     "start": "Start talking",
     "decline": "No, thanks",
@@ -1165,5 +1211,70 @@
     "next": "Looking for the next person",
     "secondsLeft": "{{n}} seconds left",
     "sharedGroups": "Both into {{groups}}"
+  },
+  "blocked": {
+    "empty": "You have not blocked anybody",
+    "emptyHint": "You can block anybody from their profile. They are not told.",
+    "unblock": "Unblock",
+    "unblocked": "{{name}} is unblocked"
+  },
+  "adult": {
+    "title": "Before your first Echo",
+    "text": "Echo connects you with people you do not know yet, and it is only for people who are eighteen or over.",
+    "yes": "I am eighteen or over",
+    "no": "I am under eighteen"
+  },
+  "gone": {
+    "title": "Your account was deleted",
+    "text": "You can start again whenever you like. A new account is empty, with nothing from before in it.",
+    "again": "Start again"
+  },
+  "adminFeedback": {
+    "title": "Reported problems",
+    "hint": "What people sent through \"report a problem\"",
+    "empty": "Nothing yet"
+  },
+  "note": {
+    "add": "+ Today's note",
+    "title": "Today's note",
+    "label": "How are you today?",
+    "placeholder": "For example: looking for a good film tonight",
+    "hint": "Shown under your name and on your card, and gone after a day.",
+    "save": "Post",
+    "remove": "Take the note down"
+  },
+  "friends": {
+    "title": "Friends",
+    "rowHint": "People you are friends with",
+    "newRequest": "You have a new request",
+    "settingsRow": "Privacy and settings",
+    "settingsHint": "Who can message you, who sees your friends, language",
+    "hello": "Say hello",
+    "ask": "Be friends",
+    "requested": "Request sent",
+    "accept": "Accept",
+    "are": "Friends",
+    "no": "No",
+    "sent": "Friend request sent",
+    "nowFriends": "You and {{name}} are friends now",
+    "closed": "{{name}} keeps their friends private.",
+    "meet": "Where your skies meet",
+    "theirSky": "{{name}}'s sky",
+    "yourSky": "Your sky",
+    "meetAt": "Your skies meet in {{names}}.",
+    "and": " and ",
+    "theirs": "{{name}}'s friends",
+    "both": "Friend of you both",
+    "unfriendTitle": "Stop being friends with {{name}}?",
+    "unfriendText": "You leave each other's lists. They are not told.",
+    "unfriend": "End it",
+    "requests": "New requests",
+    "yours": "Your friends",
+    "wants": "Wants to be friends",
+    "asSky": "Constellation",
+    "asList": "List",
+    "blinkHint": "A blinking star is a new request; tap it to accept.",
+    "acceptStar": "{{name}}'s request; tap to accept",
+    "empty": "No friends yet. Tap somebody in the world and choose \"Be friends\"."
   }
 }

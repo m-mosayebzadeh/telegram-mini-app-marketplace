@@ -12,8 +12,6 @@ import pytest
 
 from app.models.profile import GENDER_FEMALE, GENDER_MALE, GENDER_UNSAID, Profile
 from app.random_chat.readiness import (
-    MISSING_BIRTH_YEAR,
-    MISSING_GENDER,
     age_from_birth_year,
     is_ready_for_random_chat,
     missing_for_random_chat,
@@ -28,47 +26,20 @@ def _auth(telegram_id: int, first_name: str = "Test") -> dict:
 # --- what the door asks for -------------------------------------------
 
 
-def test_somebody_who_has_never_filled_anything_owes_both():
-    """No profile row at all is the same situation as an empty one — the
-    matcher cannot use either."""
-    assert missing_for_random_chat(None) == [MISSING_GENDER, MISSING_BIRTH_YEAR]
+def test_echo_no_longer_asks_for_gender_or_birthday():
+    """Section 32: gender and age were taken out of Echo, not asked and not
+    matched on. The eighteen-or-over confirmation is asked on the first
+    visit instead, before anything opens."""
+    from types import SimpleNamespace
 
+    from app.core.time import utcnow
 
-def test_a_profile_with_neither_owes_both():
-    assert missing_for_random_chat(Profile()) == [MISSING_GENDER, MISSING_BIRTH_YEAR]
-
-
-def test_gender_alone_is_not_enough():
-    assert missing_for_random_chat(Profile(gender=GENDER_MALE)) == [MISSING_BIRTH_YEAR]
-
-
-def test_a_birth_year_alone_is_not_enough():
-    assert missing_for_random_chat(Profile(birthday_year=1995)) == [MISSING_GENDER]
-
-
-def test_both_opens_the_door():
-    profile = Profile(gender=GENDER_FEMALE, birthday_year=1995)
-    assert missing_for_random_chat(profile) == []
-    assert is_ready_for_random_chat(profile) is True
-
-
-def test_declining_to_say_still_opens_the_door():
-    """"Prefer not to say" is an answer. Someone who gave it is through
-    the door; someone who was never asked is not. The column holds both
-    states and they are not the same."""
-    declined = Profile(gender=GENDER_UNSAID, birthday_year=1995)
-    assert missing_for_random_chat(declined) == []
-
-    never_asked = Profile(gender=None, birthday_year=1995)
-    assert missing_for_random_chat(never_asked) == [MISSING_GENDER]
-
-
-def test_the_door_asks_for_nothing_else():
-    """A bio, a photo, a location, interests — none of them are the
-    matcher's business. Adding any of them here would be adding a
-    question at the most expensive moment in the product."""
-    bare = Profile(gender=GENDER_MALE, birthday_year=1990)
-    assert is_ready_for_random_chat(bare) is True
+    # Only "eighteen or over" is asked, the first time Echo opens.
+    assert missing_for_random_chat(SimpleNamespace(adult_confirmed_at=None)) == ["adult"]
+    assert is_ready_for_random_chat(SimpleNamespace(adult_confirmed_at=utcnow())) is True
+    # And the panel can turn the question off.
+    off = SimpleNamespace(ask_adult=False)
+    assert missing_for_random_chat(SimpleNamespace(adult_confirmed_at=None), off) == []
 
 
 # --- age --------------------------------------------------------------
@@ -235,8 +206,6 @@ def test_a_hidden_year_is_still_there_for_matching(client, db_session):
     """Hiding is about other people's eyes. The matcher reads the column,
     and if it stopped being stored the whole switch would be pointless."""
     from app.models.profile import Profile as ProfileModel
-    from app.random_chat.readiness import is_ready_for_random_chat
-
     alice = _auth(1, "Alice")
     client.get("/me", headers=alice)
     client.put(
@@ -253,7 +222,6 @@ def test_a_hidden_year_is_still_there_for_matching(client, db_session):
 
     stored = db_session.query(ProfileModel).first()
     assert stored.birthday_year == 1995
-    assert is_ready_for_random_chat(stored) is True
 
 
 def test_declining_to_say_is_accepted_by_the_endpoint(client):

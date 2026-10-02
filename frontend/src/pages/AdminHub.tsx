@@ -23,7 +23,8 @@ export default function AdminHub() {
   const hasFinance =
     adminAccess.is_owner || adminAccess.scopes.some((s) => s.startsWith('finance.'))
   const hasEcho = adminAccess.is_owner || adminAccess.scopes.includes('moderation.random_chat')
-  const nothing = !hasFinance && !hasEcho && !adminAccess.is_owner
+  const hasFeedback = adminAccess.is_owner || adminAccess.scopes.includes('moderation.reports')
+  const nothing = !hasFinance && !hasEcho && !hasFeedback && !adminAccess.is_owner
 
   return (
     <div className="ui-page">
@@ -52,6 +53,14 @@ export default function AdminHub() {
                 title={t('adminEcho.title')}
                 subtitle={t('adminEcho.hubHint')}
                 onClick={() => navigate('/admin/echo')}
+              />
+            )}
+            {hasFeedback && (
+              <NavRow
+                icon={<IconShieldLock size={20} />}
+                title={t('adminFeedback.title')}
+                subtitle={t('adminFeedback.hint')}
+                onClick={() => navigate('/admin/feedback')}
               />
             )}
             {adminAccess.is_owner && (

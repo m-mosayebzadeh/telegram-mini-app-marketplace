@@ -203,9 +203,13 @@ export function EchoOffer() {
             {/* Their line is in whatever language they wrote it, so it takes
                 its direction from itself: an English line in a Persian app
                 otherwise loses its full stop to the wrong end. */}
-            <p className="cos-offer-line" dir={card.tagline ? 'auto' : undefined}>
-              {card.tagline ? `«${card.tagline}»` : t('echoOffer.fallback')}
-            </p>
+            {/* Their note of the day, if they wrote one; otherwise nothing
+                (the owner's decision), and what you share carries the card. */}
+            {card.tagline && (
+              <p className="cos-offer-line" dir="auto">
+                «{card.tagline}»
+              </p>
+            )}
             {shared !== '' && <p className="cos-offer-shared">{t('echoOffer.shared', { tags: shared })}</p>}
             {shared === '' && groups !== '' && <p className="cos-offer-shared">{t('echoOffer.sharedGroups', { groups })}</p>}
             <span className="cos-visually-hidden" aria-live="polite">{t('echoOffer.secondsLeft', { n: secondsLeft })}</span>

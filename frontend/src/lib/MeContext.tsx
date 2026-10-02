@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { getMyAdminAccess } from './adminApi'
-import { apiFetch } from './api'
+import { apiFetch, ApiError } from './api'
+import { subscribe } from './live'
 import type { Me, MyAdminAccess } from './types'
 
 interface MeState {
@@ -19,9 +20,21 @@ interface MeState {
   // offer's own request list, so the bottom nav's dot updates within
   // the same session instead of only on the next full app load).
   refreshMe: () => void
+  /** The account was deleted (section 32, step 4): the app shows only the
+   *  way to start again, and asks the server nothing else. */
+  deleted: boolean
+  /** Called right after deleting, so the app stops at once. */
+  markDeleted: () => void
 }
 
-const MeContext = createContext<MeState>({ me: null, error: null, adminAccess: null, refreshMe: () => {} })
+const MeContext = createContext<MeState>({
+  me: null,
+  error: null,
+  adminAccess: null,
+  refreshMe: () => {},
+  deleted: false,
+  markDeleted: () => {},
+})
 
 /**
  * Fetches GET /me exactly once for the whole app and shares the result
@@ -32,12 +45,25 @@ const MeContext = createContext<MeState>({ me: null, error: null, adminAccess: n
  * as the app's single entry point into the backend.
  */
 export function MeProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<Omit<MeState, 'refreshMe'>>({ me: null, error: null, adminAccess: null })
+  const [state, setState] = useState<Omit<MeState, 'refreshMe' | 'markDeleted'>>({
+    me: null,
+    error: null,
+    adminAccess: null,
+    deleted: false,
+  })
+  // The server answers 410 for an account that was deleted.
+  const failed = (err: unknown) =>
+    setState((s) => ({
+      ...s,
+      me: null,
+      deleted: err instanceof ApiError && err.status === 410,
+      error: err instanceof Error ? err.message : String(err),
+    }))
 
   function fetchMe() {
     apiFetch<Me>('/me')
       .then((me) => setState((s) => ({ ...s, me, error: null })))
-      .catch((err) => setState((s) => ({ ...s, me: null, error: err instanceof Error ? err.message : String(err) })))
+      .catch(failed)
   }
 
   useEffect(() => {
@@ -48,10 +74,15 @@ export function MeProvider({ children }: { children: ReactNode }) {
           .then((adminAccess) => setState((s) => ({ ...s, adminAccess })))
           .catch(() => setState((s) => ({ ...s, adminAccess: { is_owner: false, scopes: [] } })))
       })
-      .catch((err) => setState((s) => ({ ...s, me: null, error: err instanceof Error ? err.message : String(err) })))
+      .catch(failed)
   }, [])
 
-  return <MeContext.Provider value={{ ...state, refreshMe: fetchMe }}>{children}</MeContext.Provider>
+  // A friend request arrived or was answered: the badge on the "me" door
+  // reads from here, so it is asked again — told live, never on a clock.
+  useEffect(() => subscribe((event) => { if (event.type === 'friends') fetchMe() }), [])
+
+  const markDeleted = () => setState((s) => ({ ...s, me: null, deleted: true }))
+  return <MeContext.Provider value={{ ...state, refreshMe: fetchMe, markDeleted }}>{children}</MeContext.Provider>
 }
 
 /** `me` is null while still loading OR if the fetch failed — check

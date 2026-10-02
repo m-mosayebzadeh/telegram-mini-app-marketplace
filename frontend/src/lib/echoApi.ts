@@ -112,6 +112,8 @@ export interface EchoStatus {
   show_counts?: boolean
   /** Somebody found for you and waiting for both answers. */
   proposal?: EchoProposal | null
+  /** When an open Echo shuts, so the door changes by itself. */
+  minutes_until_close?: number | null
 }
 
 /**

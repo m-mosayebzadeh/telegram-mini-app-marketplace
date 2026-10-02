@@ -82,6 +82,11 @@ class FeatureSchedule(Base):
     #: numbers make the place feel empty (section 32).
     show_counts: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
+    #: Ask "eighteen or over" the first time somebody opens Echo (section
+    #: 32): Echo is where strangers meet, so that is where it is asked,
+    #: once. On to begin with; the owner can turn it off in the panel.
+    ask_adult: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+
     @property
     def effective_daily_quota(self) -> int | None:
         """The cap that actually applies, or None for unlimited."""
@@ -115,6 +120,16 @@ class FeatureSchedule(Base):
             return self.opens_at_minute <= local_minute < self.closes_at_minute
         # Wraps past midnight: 22:00 to 02:00 is "after 22:00" or "before 02:00".
         return local_minute >= self.opens_at_minute or local_minute < self.closes_at_minute
+
+    def minutes_until_close(self, local_minute: int) -> int | None:
+        """How long until it shuts, or None when it is shut or open all day.
+
+        Sent so the app can change the Echo door at the right minute by
+        itself, rather than asking the server every minute whether it has.
+        """
+        if not self.is_open_at(local_minute) or self.always_open:
+            return None
+        return (self.closes_at_minute - local_minute) % 1440 or 1440
 
     def minutes_until_open(self, local_minute: int) -> int | None:
         """How long until it opens, or None when it is open or switched off.

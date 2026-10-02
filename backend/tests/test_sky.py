@@ -114,15 +114,21 @@ def test_the_sky_never_hands_over_more_than_one_screen(client, db_session):
     assert len(sky) == 3
 
 
-def test_a_tagline_comes_from_their_own_words(client, db_session):
-    one = _someone(client, db_session, 7040, "Ali")
+def test_the_line_under_a_body_is_their_note_of_the_day_not_a_bio(client, db_session):
+    """Section 32: the bio is gone; the note of the day takes its place, and
+    with no note there is nothing — only the name."""
+    _someone(client, db_session, 7040, "Ali")
     two = _someone(client, db_session, 7041, "Sara")
-    db_session.add(Profile(user_id=two.id, bio="I am awake at odd hours"))
+    db_session.add(Profile(user_id=two.id, bio="An old bio nobody sees any more"))
     db_session.commit()
 
     sky = client.get("/sky", headers=_auth(7040)).json()
-    assert sky[0]["tagline"] == "I am awake at odd hours"
+    assert sky[0]["tagline"] is None
     assert sky[0]["initial"] == "S"
+
+    client.put("/profile/me/note", json={"text": "I am awake at odd hours"}, headers=_auth(7041))
+    sky = client.get("/sky", headers=_auth(7040)).json()
+    assert sky[0]["tagline"] == "I am awake at odd hours"
 
 
 def test_being_in_the_app_is_what_makes_you_online(client, db_session):
@@ -208,3 +214,26 @@ def test_only_what_everyone_can_see_counts(client, db_session):
     _content(db_session, sara, deleted=True)
     _offer(db_session, sara, active=False)
     assert _moons(client, 7207, "Sara") == 0
+
+
+def test_the_world_reads_one_page_and_keeps_a_hidden_online_out_of_the_front(client, db_session):
+    """Section 32: the database picks the page (never everybody), and
+    somebody hiding when they are online is not put first for being here."""
+    from datetime import timedelta
+
+    from app.core.time import utcnow
+
+    _someone(client, db_session, 7090, "Viewer")
+    hider = _someone(client, db_session, 7091, "Hider")
+    shown = _someone(client, db_session, 7092, "Shown")
+    away = _someone(client, db_session, 7093, "Away")
+    client.put("/me/privacy", json={"hide_online": True}, headers=_auth(7091))
+    away.last_seen_at = utcnow() - timedelta(days=3)
+    hider.last_seen_at = utcnow()
+    shown.last_seen_at = utcnow() - timedelta(minutes=1)
+    db_session.commit()
+
+    sky = client.get("/sky?limit=2", headers=_auth(7090)).json()
+    assert len(sky) == 2
+    assert sky[0]["user_id"] == shown.id and sky[0]["online"] is True
+    assert sky[1]["user_id"] == hider.id and sky[1]["online"] is False

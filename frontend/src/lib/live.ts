@@ -30,6 +30,11 @@ export type LiveEvent =
    *  refused, withdrawn, paid or run out. No details: read them again. */
   | { type: 'requests' }
   | { type: 'echo'; everyone?: boolean }
+  /** Echo's numbers, sent by the server's heartbeat when they change
+   *  (backend/app/live/pulse.py), so nobody waiting has to ask. */
+  | { type: 'echo_counts'; waiting_now: number; online_now: number }
+  /** A friend request arrived, or one you sent was accepted. */
+  | { type: 'friends' }
   | { type: 'cleared'; conversation_id: number }
 
 type Listener = (event: LiveEvent) => void

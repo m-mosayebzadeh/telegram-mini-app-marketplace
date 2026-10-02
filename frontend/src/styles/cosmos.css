@@ -4867,3 +4867,384 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
 @media (prefers-reduced-motion: reduce) {
   .cos-talklist-select { animation: none; }
 }
+
+/* ------------------------------------------------------ light graphics
+   One switch in settings (lib/lightGraphics.ts) for the phones that need
+   it: no blur — distance still reads by size and fading, only not by
+   focus — and no drifting dust, the two things a cheap phone pays most
+   for. Motion that carries a meaning stays; reduced motion is for that. */
+html.cos-lite [class*='cos-'],
+html.cos-lite [class*='cos-']::before,
+html.cos-lite [class*='cos-']::after {
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+html.cos-lite .cos-dust { display: none; }
+
+/* --------------------------------------------- in front of the whole app
+   "Eighteen or over" on the first visit, and the screen after deleting
+   the account (components/cosmos/AccountDoors.tsx). The night sky with
+   nothing in it yet: two small lights, a sentence, one button. */
+.cos-door-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  color: var(--cos-fg);
+  background: radial-gradient(125% 72% at 50% 44%, var(--cos-rise) 0%, var(--cos-deep) 46%, var(--cos-ink) 100%);
+}
+.cos-door-lights { position: relative; width: 120px; height: 70px; margin-bottom: 8px; }
+.cos-door-lights i {
+  position: absolute;
+  top: 28px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #cfe2ff;
+  box-shadow: 0 0 18px #7fb0ff;
+  animation: cos-door-near 4.5s ease-in-out infinite;
+}
+.cos-door-lights i:first-child { left: 22px; }
+.cos-door-lights i:last-child { right: 22px; animation-direction: reverse; }
+@keyframes cos-door-near { 50% { transform: translateX(var(--toward, 14px)); } }
+.cos-door-lights i:last-child { --toward: -14px; animation-direction: normal; }
+.cos-door-title { margin: 0; font-size: 22px; font-weight: 500; }
+.cos-door-text { margin: 0 0 12px; max-width: 320px; font-size: var(--cos-text-body); line-height: 1.8; color: var(--cos-fg-soft); }
+.cos-echo-error { margin: 0; font-size: var(--cos-text-label); color: #ffb4a8; }
+@media (prefers-reduced-motion: reduce) {
+  .cos-door-lights i { animation: none; }
+}
+
+/* ------------------------------------------------------------------ me
+   "Me", and anybody else's page (section 32, step 4; the approved
+   prototype). A piece of night sky: the orb rises over the curve of a
+   world, today's note floats above it, and friends are a constellation.
+   Your sky is the cool light (--cos-cool), theirs the lilac one
+   (--cos-talk): the colour of a side, never alone; the side is also its
+   place on the page and its name in words. Nothing here is a ring around
+   a body; a ring means online. */
+.cos-me {
+  --cos-me-mine: var(--cos-cool);
+  --cos-me-theirs: var(--cos-talk);
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  color: var(--cos-fg);
+  font-family: var(--cos-font-fa);
+  background: radial-gradient(120% 60% at 50% 22%, var(--cos-rise) 0%, var(--cos-deep) 50%, var(--cos-ink) 100%);
+}
+.cos-me-head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0;
+}
+.cos-me-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 22px;
+  background: rgb(233 242 240 / 7%);
+  color: var(--cos-fg-soft);
+  cursor: pointer;
+}
+.cos-me-icon svg { width: 20px; height: 20px; }
+[dir="rtl"] .cos-me-back svg,
+[dir="rtl"] .cos-me-chev { transform: scaleX(-1); }
+.cos-me button:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
+
+.cos-me-hero { position: relative; display: flex; flex-direction: column; align-items: center; padding-top: 28px; }
+/* The curve of a world the orb rises over: one wide circle, its rim lit. */
+.cos-me-horizon {
+  position: absolute;
+  left: 50%;
+  top: 214px;
+  width: 760px;
+  height: 760px;
+  margin-left: -380px;
+  border-radius: 50%;
+  pointer-events: none;
+  /* Only the rim and a little of the ground show; further down the world
+     fades into the night, so a long page never meets its far edge. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 110px, transparent 240px);
+  mask-image: linear-gradient(to bottom, #000 0, #000 110px, transparent 240px);
+  background:
+    radial-gradient(closest-side, rgb(7 18 21 / 0%) 96%, color-mix(in srgb, var(--cos-me-mine) 24%, transparent) 99.2%, transparent 100%),
+    radial-gradient(closest-side, var(--cos-deep) 97%, transparent 100%);
+}
+.cos-me.is-theirs .cos-me-horizon {
+  background:
+    radial-gradient(closest-side, rgb(7 18 21 / 0%) 96%, color-mix(in srgb, var(--cos-me-theirs) 26%, transparent) 99.2%, transparent 100%),
+    radial-gradient(closest-side, var(--cos-deep) 97%, transparent 100%);
+}
+/* Today's note, a thought above the orb, as it floats in the world. */
+.cos-me-note {
+  position: relative;
+  z-index: 2;
+  max-width: 250px;
+  min-height: 40px;
+  margin: 0;
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: 1px solid rgb(233 242 240 / 18%);
+  background: rgb(14 32 37 / 90%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  line-height: 1.6;
+  text-align: center;
+  animation: cos-me-float 6s ease-in-out infinite;
+}
+button.cos-me-note { cursor: pointer; }
+.cos-me-note::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: inherit;
+  border: inherit;
+}
+.cos-me-note.is-empty { border-style: dashed; background: transparent; color: var(--cos-fg-soft); }
+@keyframes cos-me-float { 50% { transform: translateY(-4px); } }
+.cos-me-orb {
+  position: relative;
+  z-index: 2;
+  width: 150px;
+  height: 150px;
+  margin-top: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgb(233 242 240 / 8%);
+  color: var(--cos-fg);
+  font-size: 54px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 8%), 0 0 70px color-mix(in srgb, var(--cos-me-mine) 26%, transparent), 0 24px 50px rgb(0 0 0 / 60%);
+}
+button.cos-me-orb { cursor: pointer; }
+.cos-me.is-theirs .cos-me-orb { box-shadow: 0 0 0 1px rgb(255 255 255 / 8%), 0 0 70px color-mix(in srgb, var(--cos-me-theirs) 30%, transparent), 0 24px 50px rgb(0 0 0 / 60%); }
+.cos-me-orb img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.cos-me-orb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, rgb(255 255 255 / 32%) 0, transparent 42%);
+  pointer-events: none;
+}
+.cos-me-cam {
+  position: absolute;
+  bottom: 6px;
+  inset-inline-end: 6px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--cos-warm);
+  color: #2a1606;
+  border: 3px solid var(--cos-deep);
+}
+.cos-me-cam svg { width: 16px; height: 16px; }
+.cos-me-name { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+.cos-me-name h1 { margin: 0; font-size: 22px; font-weight: 500; }
+.cos-me-pen {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgb(233 242 240 / 7%);
+  color: var(--cos-fg-soft);
+  cursor: pointer;
+}
+.cos-me-pen svg { width: 15px; height: 15px; }
+.cos-me-handle { position: relative; z-index: 2; margin: 2px 0 0; font-family: var(--cos-font-en); font-size: var(--cos-text-label); color: var(--cos-fg-faint); direction: ltr; }
+.cos-me-actions { position: relative; z-index: 2; display: flex; gap: 8px; margin-top: 16px; }
+.cos-me-btn {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--cos-radius-pill);
+  background: rgb(233 242 240 / 9%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  cursor: pointer;
+}
+.cos-me-btn.is-main { background: linear-gradient(160deg, var(--cos-warm-bright), var(--cos-warm)); color: #2a1606; font-weight: 500; }
+.cos-me-btn.is-quiet { background: transparent; color: var(--cos-fg-soft); border: 1px solid rgb(233 242 240 / 12%); }
+.cos-me-btn.is-small { min-height: 36px; padding: 0 14px; font-size: var(--cos-text-label); flex: none; }
+.cos-me-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* The plain rows under your orb. */
+.cos-me-rows {
+  position: relative;
+  z-index: 2;
+  margin: 28px 16px 0;
+  border-radius: 18px;
+  background: rgb(233 242 240 / 4%);
+  border: 1px solid rgb(233 242 240 / 10%);
+}
+.cos-me-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 14px;
+  border: 0;
+  border-top: 1px solid rgb(233 242 240 / 10%);
+  background: transparent;
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: 14px;
+  text-align: start;
+  cursor: pointer;
+}
+.cos-me-row:first-child { border-top: 0; }
+.cos-me-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cos-me-row-main small { font-size: var(--cos-text-caption); color: var(--cos-fg-faint); }
+.cos-me-chev { color: var(--cos-fg-faint); flex: none; }
+.cos-me-stack { display: flex; flex: none; }
+.cos-me-stack span {
+  width: 28px;
+  height: 28px;
+  margin-inline-start: -9px;
+  border-radius: 50%;
+  border: 2px solid var(--cos-deep);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  background: rgb(233 242 240 / 12%);
+}
+.cos-me-stack span:first-child { margin-inline-start: 0; }
+.cos-me-stack img { width: 100%; height: 100%; object-fit: cover; }
+.cos-me-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--cos-news);
+  color: #fff;
+  font-size: 11px;
+  flex: none;
+}
+
+/* The constellations. */
+.cos-me-sky { position: relative; z-index: 2; margin: 26px 16px 0; }
+.cos-me-sky h2,
+.cos-me-list h2 { margin: 0 4px 8px; font-size: 14px; font-weight: 500; }
+.cos-sky { display: block; width: 100%; height: auto; overflow: visible; }
+.cos-sky-line { stroke-width: 1.2; stroke-opacity: 0.75; }
+.cos-sky-line.is-mine { stroke: var(--cos-me-mine); }
+.cos-sky-line.is-theirs { stroke: var(--cos-me-theirs); }
+.cos-sky-line.is-both { stroke: rgb(233 242 240 / 50%); }
+.cos-sky-line.is-asking { stroke: var(--cos-warm-bright); stroke-dasharray: 3 5; }
+.cos-star-halo { fill: rgb(233 242 240 / 6%); }
+.cos-star-blank { fill: rgb(233 242 240 / 14%); }
+.cos-star-initial { fill: var(--cos-fg); font-family: var(--cos-font-fa); }
+.cos-star-name { fill: var(--cos-fg-soft); font-size: 9px; font-family: var(--cos-font-fa); }
+.cos-star-asking { animation: cos-star-arrive 2.4s ease-in-out infinite; }
+.cos-star-asking:focus-visible { outline: none; }
+.cos-star-asking:focus-visible .cos-star-halo { fill: rgb(246 190 130 / 40%); }
+@keyframes cos-star-arrive { 50% { opacity: 0.45; } }
+.cos-meet-glow-in { stop-color: #e9f2f0; stop-opacity: 0.2; }
+.cos-meet-glow-out { stop-color: #e9f2f0; stop-opacity: 0; }
+.cos-me-legend { display: flex; justify-content: space-between; margin: 4px 6px 0; font-size: 10px; }
+.cos-me-legend .is-theirs { color: var(--cos-me-theirs); }
+.cos-me-legend .is-mine { color: var(--cos-me-mine); }
+.cos-me-caption { margin: 6px 4px 0; font-size: var(--cos-text-label); color: var(--cos-fg-soft); line-height: 1.8; text-align: center; }
+.cos-me-closed {
+  position: relative;
+  z-index: 2;
+  margin: 6px 16px 0;
+  padding: 20px 16px;
+  border-radius: 18px;
+  border: 1px dashed rgb(233 242 240 / 14%);
+  text-align: center;
+  font-size: var(--cos-text-label);
+  color: var(--cos-fg-soft);
+  line-height: 1.8;
+}
+.cos-me-sky .cos-me-closed { margin-inline: 0; }
+
+/* People as a plain list. */
+.cos-me-list { position: relative; z-index: 2; margin: 22px 16px 0; }
+.cos-me-list h2:not(:first-child) { margin-top: 18px; }
+.cos-me-person {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border: 0;
+  border-top: 1px solid rgb(233 242 240 / 10%);
+  background: transparent;
+  color: var(--cos-fg);
+  font: inherit;
+  text-align: start;
+}
+button.cos-me-person { cursor: pointer; }
+.cos-me-person-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.cos-me-face {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgb(233 242 240 / 10%);
+  font-size: 18px;
+}
+.cos-me-face img { width: 100%; height: 100%; object-fit: cover; }
+.cos-me-person-main { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14px; }
+.cos-me-person-main small { font-size: var(--cos-text-caption); color: var(--cos-fg-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cos-me-person-main small.cos-me-both { display: inline-flex; align-items: center; gap: 6px; color: var(--cos-fg); }
+.cos-both-glyph { width: 26px; height: 12px; flex: none; }
+.cos-both-glyph path { stroke-width: 1.6; fill: none; }
+.cos-both-glyph .is-theirs { stroke: var(--cos-me-theirs); }
+.cos-both-glyph .is-mine { stroke: var(--cos-me-mine); }
+.cos-both-glyph circle { fill: var(--cos-fg); }
+
+.cos-friends-title { flex: 1; margin: 0; font-size: 16px; font-weight: 500; text-align: center; }
+.cos-friends-switch {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgb(233 242 240 / 14%);
+  border-radius: 20px;
+  background: transparent;
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-label);
+  cursor: pointer;
+}
+.cos-friends-switch[aria-pressed="true"] { color: var(--cos-fg); border-color: var(--cos-me-mine); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-me-note,
+  .cos-star-asking { animation: none; }
+}

@@ -15,7 +15,8 @@ export interface ConversationPerson {
   username: string | null
   avatar_url: string | null
   /** When they were last here, roughly — never an exact time. */
-  seen?: 'now' | 'minutes' | 'hours' | 'days' | 'long'
+  /** "recently" when either side hides being online (section 32). */
+  seen?: 'now' | 'minutes' | 'hours' | 'days' | 'long' | 'recently'
 }
 
 export interface Conversation {

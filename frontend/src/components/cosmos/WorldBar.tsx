@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useUnread } from '../../lib/useUnread'
 import { useEcho } from '../../lib/echoStore'
+import { useMe } from '../../lib/MeContext'
 import type { EchoStatus } from '../../lib/echoApi'
 
 /**
@@ -29,7 +30,10 @@ export function doorOf(pathname: string): Door | null {
   if (pathname === '/sky' || pathname.startsWith('/sky/')) return 'world'
   if (pathname === '/echo') return 'echo'
   if (pathname === '/events') return 'events'
-  if (pathname === '/profile') return 'me'
+  // Your page and your friends are "me"; somebody else's page is reached
+  // from the world, so the world's door stays lit there.
+  if (pathname === '/profile' || pathname === '/friends') return 'me'
+  if (pathname.startsWith('/profiles/')) return 'world'
   return null
 }
 
@@ -98,6 +102,8 @@ export function WorldBar() {
   const here = doorOf(pathname)
   const unread = useUnread()
   const echoDoor = echoDoorOf(useEcho())
+  // Friend requests waiting: the only news "me" carries (section 32).
+  const asking = useMe().me?.pending_friend_requests_count ?? 0
 
   function open(door: Door) {
     if (door === 'world' && here === 'world' && pathname === '/sky') {
@@ -142,7 +148,15 @@ export function WorldBar() {
         onClick={() => open('world')}
       />
       {plain('events', <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z" /></svg>)}
-      {plain('me', <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>)}
+      {plain(
+        'me',
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>,
+        asking > 0 ? (
+          <span className="cos-worldbar-count" aria-label={t('bar.friendRequests', { count: asking })}>
+            {asking.toLocaleString(i18n.language)}
+          </span>
+        ) : null,
+      )}
     </nav>
   )
 }

@@ -38,6 +38,7 @@ from app.random_chat import proposals
 from app.models.random_chat import DEFAULT_PROPOSAL_SECONDS, EchoProposal
 # The interest list lives with its groups (tags.py).
 from app.random_chat.tags import SEARCH_TAGS
+from app.profile.note import fresh_note
 from app.random_chat.readiness import age_from_birth_year, missing_for_random_chat
 from app.random_chat.service import (
     active_session_for,
@@ -132,6 +133,8 @@ class StatusOut(BaseModel):
     #: The admin switch and the nightly window together.
     open_now: bool
     minutes_until_open: int | None
+    #: When it shuts, for the same reason: the app changes the door itself.
+    minutes_until_close: int | None = None
     #: What the door still needs before this person can be matched.
     missing: list[str]
     suspended: bool
@@ -183,7 +186,7 @@ def _matched_out(
         gender_as_asked=True,
         age_as_asked=True,
         follow_status=follow_status,
-        tagline=(_profile_of(db, other_id).bio if _profile_of(db, other_id) else None),
+        tagline=fresh_note(_profile_of(db, other_id)),
         started_at=session.started_at.isoformat() if session.started_at else None,
     )
 
@@ -193,7 +196,9 @@ def _proposal_out(db: Session, proposal: EchoProposal, viewer_id: int) -> Propos
     held = (proposal.expires_at - proposal.created_at).total_seconds()
     return ProposalOut(
         id=proposal.id,
-        tagline=other.bio if other and other.bio else None,
+        # The note of the day, or nothing: with no note the card says
+        # what the two share instead (section 32).
+        tagline=fresh_note(other),
         shared_tags=proposal.shared_tags or [],
         shared_groups=proposal.shared_groups or [],
         expires_at=proposal.expires_at.isoformat(),
@@ -242,7 +247,8 @@ def get_status(
     return StatusOut(
         open_now=open_now,
         minutes_until_open=until_open,
-        missing=missing_for_random_chat(_profile_of(db, current_user.id)),
+        minutes_until_close=schedule.minutes_until_close(local_minute),
+        missing=missing_for_random_chat(current_user, schedule),
         suspended=is_suspended(db, current_user.id, SUSPEND_RANDOM_CHAT),
         waiting=ticket is not None,
         waiting_since=ticket.joined_at.isoformat() if ticket else None,
@@ -298,7 +304,7 @@ def join_pool(
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail={"reason": "suspended"})
 
     profile = _profile_of(db, current_user.id)
-    missing = missing_for_random_chat(profile)
+    missing = missing_for_random_chat(current_user, schedule_for(db))
     if missing:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
@@ -339,6 +345,11 @@ def join_pool(
             detail={"reason": "daily_new_people_limit", "limit": new_people_limit(db)},
         )
 
+    # Echo no longer asks for these (section 32); whatever a profile holds
+    # is still passed on, and somebody with no profile is unknown on both.
+    gender = profile.gender if profile else None
+    age = age_from_birth_year(profile.birthday_year) if profile else None
+
     ticket = ticket_for(db, current_user.id, active_only=False)
     if ticket is not None:
         # Their row from last time: reused rather than replaced, so the
@@ -348,8 +359,8 @@ def join_pool(
         ticket.wants_age_min = payload.wants_age_min
         ticket.wants_age_max = payload.wants_age_max
         ticket.tags = payload.tags
-        ticket.gender = profile.gender
-        ticket.age = age_from_birth_year(profile.birthday_year)
+        ticket.gender = gender
+        ticket.age = age
         ticket.local_minute = payload.local_minute
         ticket.joined_at = utcnow()
         ticket.active = True
@@ -363,8 +374,8 @@ def join_pool(
             tags=payload.tags,
             # Frozen here so the matcher never re-reads a profile mid-run
             # and nobody can change what they are while queued.
-            gender=profile.gender,
-            age=age_from_birth_year(profile.birthday_year),
+            gender=gender,
+            age=age,
             local_minute=payload.local_minute,
             joined_at=utcnow(),
             active=True,
@@ -569,6 +580,8 @@ class ScheduleIn(BaseModel):
     proposal_seconds: int = Field(default=DEFAULT_PROPOSAL_SECONDS, ge=5, le=120)
     #: Whether the waiting screen shows how many are here and searching.
     show_counts: bool = True
+    #: Whether "eighteen or over" is asked the first time Echo opens.
+    ask_adult: bool = True
 
 
 class ScheduleOut(BaseModel):
@@ -580,6 +593,7 @@ class ScheduleOut(BaseModel):
     daily_quota_unlimited: bool
     proposal_seconds: int
     show_counts: bool
+    ask_adult: bool
 
 
 @admin_router.get("/schedule", response_model=ScheduleOut)
@@ -597,6 +611,7 @@ def get_schedule(
         daily_quota_unlimited=schedule.daily_quota_unlimited,
         proposal_seconds=schedule.proposal_seconds or DEFAULT_PROPOSAL_SECONDS,
         show_counts=schedule.show_counts is not False,
+        ask_adult=schedule.ask_adult is not False,
     )
 
 
@@ -622,6 +637,7 @@ def set_schedule(
     schedule.daily_quota_unlimited = payload.daily_quota_unlimited
     schedule.proposal_seconds = payload.proposal_seconds
     schedule.show_counts = payload.show_counts
+    schedule.ask_adult = payload.ask_adult
     db.commit()
     announce_echo_to_everyone()
     return ScheduleOut(
@@ -633,6 +649,7 @@ def set_schedule(
         daily_quota_unlimited=schedule.daily_quota_unlimited,
         proposal_seconds=schedule.proposal_seconds or DEFAULT_PROPOSAL_SECONDS,
         show_counts=schedule.show_counts is not False,
+        ask_adult=schedule.ask_adult is not False,
     )
 
 

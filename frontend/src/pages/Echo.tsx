@@ -4,12 +4,7 @@ import { TagPicker } from '../components/cosmos/TagPicker'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
-import {
-  BirthdayCosSheet,
-  GenderSheet,
-  type BirthdayValue,
-} from '../components/cosmos/GateSheets'
-import { apiFetch } from '../lib/api'
+import { AdultGate } from '../components/cosmos/AccountDoors'
 import { apiReason, formatApiError } from '../lib/api'
 import {
   MAX_TAGS,
@@ -162,7 +157,10 @@ export default function Echo() {
       )}
 
       {face === 'gate' && (
-        <Gate missing={status?.missing ?? []} onDone={load} onGo={() => navigate('/profile/edit')} />
+        // "Eighteen or over", the first time Echo opens (section 32). Yes,
+        // and it is never asked again; no, and you are back in the world as
+        // if Sol had been tapped — and asked again next time.
+        <AdultGate onDone={load} onNo={() => navigate('/sky')} />
       )}
 
       {face === 'asking' && (
@@ -240,124 +238,6 @@ function Shut({ minutes }: { minutes: number | null }) {
         <p className="cos-message">{t('echo.shutWhy')}</p>
       </div>
     </div>
-  )
-}
-
-/* ---------------------------------------------------------------- gate */
-
-/** The two facts the matcher cannot work without. Signup asks for almost
- *  nothing on purpose, so they are asked here, where the reason is
- *  visible — which is also where people answer honestly. */
-function Gate({
-  missing,
-  onDone,
-  onGo,
-}: {
-  missing: string[]
-  onDone: () => void
-  onGo: () => void
-}) {
-  const { t } = useTranslation()
-  const [sheet, setSheet] = useState<'gender' | 'birthday' | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [failed, setFailed] = useState('')
-
-  /**
-   * Change one field without losing the rest.
-   *
-   * The profile endpoint replaces the whole thing, so sending only the
-   * answer given here would quietly erase somebody's bio and interests.
-   * Read first, then write the same object back with one field changed.
-   */
-  async function patchProfile(change: Record<string, unknown>) {
-    setSaving(true)
-    setFailed('')
-    try {
-      const current = await apiFetch<Record<string, unknown>>('/profile/me')
-      await apiFetch('/profile/me', {
-        method: 'PUT',
-        body: JSON.stringify({
-          bio: current.bio ?? null,
-          location: current.location ?? null,
-          interests: current.interests ?? [],
-          birthday_month: current.birthday_month ?? null,
-          birthday_day: current.birthday_day ?? null,
-          birthday_year: current.birthday_year ?? null,
-          gender: current.gender ?? null,
-          hide_birth_year: current.hide_birth_year ?? false,
-          ...change,
-        }),
-      })
-      setSheet(null)
-      onDone()
-    } catch (err) {
-      setFailed(formatApiError(err))
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const needsGender = missing.includes('gender')
-  const needsBirthday = missing.includes('birth_year')
-
-  return (
-    <>
-      <div className="cos-seek-stage">
-        <div className="cos-echo-shut">
-          <p className="cos-echo-shut-label">{t('echo.gateTitle')}</p>
-
-          {/* Each one is answered here. Walking somebody to their profile
-              for a single field is three screens for one answer, and most
-              people do not come back. */}
-          <div className="cos-gate-rows">
-            {needsGender && (
-              <button type="button" className="cos-gate-row" onClick={() => setSheet('gender')}>
-                {t('echo.missingGender')}
-              </button>
-            )}
-            {needsBirthday && (
-              <button type="button" className="cos-gate-row" onClick={() => setSheet('birthday')}>
-                {t('echo.missingBirthday')}
-              </button>
-            )}
-          </div>
-
-          {failed !== '' && <p className="cos-echo-error cos-gate-failed">{failed}</p>}
-        </div>
-      </div>
-
-      <div className="cos-actions">
-        {/* The way out is kept: the profile still owns these fields, and
-            somebody who would rather set everything at once can. */}
-        <button type="button" className="cos-action cos-action-quiet" onClick={onGo}>
-          {t('echo.gateGo')}
-        </button>
-      </div>
-
-      {sheet === 'gender' && (
-        <GenderSheet
-          value={null}
-          saving={saving}
-          onClose={() => setSheet(null)}
-          onSave={(gender) => void patchProfile({ gender })}
-        />
-      )}
-
-      {sheet === 'birthday' && (
-        <BirthdayCosSheet
-          value={{ month: null, day: null, year: null } satisfies BirthdayValue}
-          saving={saving}
-          onClose={() => setSheet(null)}
-          onSave={(birthday) =>
-            void patchProfile({
-              birthday_month: birthday.month,
-              birthday_day: birthday.day,
-              birthday_year: birthday.year,
-            })
-          }
-        />
-      )}
-    </>
   )
 }
 

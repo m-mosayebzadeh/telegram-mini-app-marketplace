@@ -283,3 +283,18 @@
 .as-heading {
   margin-top: var(--space-5);
 }
+
+/* A row whose control sits under its words rather than beside them —
+   two choices with real labels do not fit beside a sentence on a phone. */
+.ui-row.st-stack { flex-direction: column; align-items: stretch; gap: var(--space-3); }
+.ui-row.st-stack .st-segment { align-self: flex-start; }
+.st-face img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Words for something that cannot be undone (delete, block). */
+.ui-text-danger { color: var(--color-danger); }
+
+/* Four choices with real words wrap rather than run off a phone. */
+.st-segment.st-segment-wrap { display: flex; flex-wrap: wrap; align-self: stretch; border-radius: var(--radius-lg); }
+.st-choose { align-self: flex-start; }
+.st-choice { cursor: pointer; }
+.st-choice input { width: 20px; height: 20px; accent-color: var(--color-accent); flex: none; }

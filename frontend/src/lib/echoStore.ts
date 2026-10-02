@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import { fetchEchoStatus, type EchoStatus } from './echoApi'
 import { subscribe as subscribeLive } from './live'
+import { onReturn } from './onReturn'
 
 /**
  * Echo's status, shared by everything that shows it: the door in the bar
@@ -8,22 +9,23 @@ import { subscribe as subscribeLive } from './live'
  * on any screen when somebody is found (section 32).
  *
  * One copy, so three places never ask the server three times, and never
- * disagree. It asks again:
+ * disagree. Nothing here asks on a clock (section 32). It asks again only:
  *
  * - when the server nudges (the live "echo" event: somebody was put in
- *   front of you, somebody answered, or it was settled);
+ *   front of you, somebody answered, it was settled, or the panel changed
+ *   Echo for everybody);
  * - when a card's time runs out — asking is what settles it on the server,
  *   since nothing there keeps a clock;
- * - every few seconds while you are searching, in case the live
- *   connection dropped a nudge;
- * - once a minute otherwise, so the door notices Echo opening or closing.
+ * - at the minute Echo opens or shuts, which the server says in advance;
+ * - when the live connection comes back, or the person returns to the app.
+ *
+ * The numbers on the waiting screen are not asked at all: the server's
+ * heartbeat sends them when they change ("echo_counts").
  *
  * It only runs while something on screen is listening.
  */
 
-const SEARCHING_MS = 4000
-const IDLE_MS = 60_000
-/** A little past the deadline, so the server agrees it has passed. */
+/** A little past a deadline, so the server agrees it has passed. */
 const PAST_DEADLINE_MS = 400
 /** Over how long the apps spread out their asking after a change made for
  *  everybody at once. Short enough that the bar still changes "at once". */
@@ -33,19 +35,25 @@ let current: EchoStatus | null = null
 const listeners = new Set<() => void>()
 let timer = 0
 let unsubscribeLive: (() => void) | null = null
+let stopReturn: (() => void) | null = null
 
-function nextDelay(status: EchoStatus | null): number {
+/** When something is due that only a clock can tell: a card's deadline,
+ *  or the minute Echo opens or shuts. Null when nothing is due. */
+export function nextDelay(status: EchoStatus | null): number | null {
   const proposal = status?.proposal
   if (proposal) {
     return Math.max(500, new Date(proposal.expires_at).getTime() - Date.now() + PAST_DEADLINE_MS)
   }
-  return status?.waiting ? SEARCHING_MS : IDLE_MS
+  const minutes = status?.open_now ? status.minutes_until_close : status?.minutes_until_open
+  if (typeof minutes === 'number') return minutes * 60_000 + PAST_DEADLINE_MS
+  return null
 }
 
 function schedule() {
   window.clearTimeout(timer)
   if (listeners.size === 0) return
-  timer = window.setTimeout(() => void refreshEcho(), nextDelay(current))
+  const delay = nextDelay(current)
+  if (delay !== null) timer = window.setTimeout(() => void refreshEcho(), delay)
 }
 
 /** Put a fresh status in, from wherever it came (a search, an answer). */
@@ -77,7 +85,12 @@ function subscribe(listener: () => void): () => void {
         // moment of its own, so the whole crowd does not ask in one instant.
         window.setTimeout(() => void refreshEcho(), Math.random() * EVERYONE_SPREAD_MS)
       } else if (event.type === 'echo' || event.type === 'ready') void refreshEcho()
+      // The heartbeat's numbers: put straight in, nothing asked.
+      else if (event.type === 'echo_counts' && current) {
+        setEcho({ ...current, waiting_now: event.waiting_now, online_now: event.online_now })
+      }
     })
+    stopReturn = onReturn(() => void refreshEcho())
     void refreshEcho()
   }
   return () => {
@@ -86,6 +99,8 @@ function subscribe(listener: () => void): () => void {
       window.clearTimeout(timer)
       unsubscribeLive?.()
       unsubscribeLive = null
+      stopReturn?.()
+      stopReturn = null
     }
   }
 }

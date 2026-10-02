@@ -10,35 +10,18 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
  * differently-hued themes meant the app had no single visual identity at
  * all, which is exactly what the redesign set out to fix.
  */
-export const THEMES = ['dark', 'light'] as const
+export const THEMES = ['dark'] as const
 
-export type Theme = (typeof THEMES)[number]
+export type Theme = 'dark' | 'light'
 
-/** Dark is the product's own default surface — this is a night-oriented
- * product and the identity was designed on dark. It is only the fallback
- * though: a stored choice always wins, and with no stored choice we
- * follow whatever the device already prefers. */
+/** Dark only (section 32, step 4: the owner took the theme choice out).
+ * This is a night-oriented product, the world is a night sky, and the
+ * identity was designed on dark; a light version was a second app to
+ * keep in step for nobody's benefit. The type keeps 'light' so the
+ * tokens for it can stay until they are cleaned out. */
 const DEFAULT_THEME: Theme = 'dark'
-const STORAGE_KEY = 'app-theme'
-
-function isTheme(value: string | null): value is Theme {
-  return value != null && (THEMES as readonly string[]).includes(value)
-}
 
 function readInitialTheme(): Theme {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (isTheme(stored)) return stored
-  } catch {
-    // localStorage throws in private browsing / when storage is blocked.
-    // Falling through to the system preference is fine — the only thing
-    // lost is persistence.
-  }
-  try {
-    if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light'
-  } catch {
-    // matchMedia is missing in some embedded webviews.
-  }
   return DEFAULT_THEME
 }
 
@@ -60,11 +43,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    try {
-      localStorage.setItem(STORAGE_KEY, theme)
-    } catch {
-      // Best-effort persistence only — see readInitialTheme().
-    }
   }, [theme])
 
   function setTheme(next: Theme) {

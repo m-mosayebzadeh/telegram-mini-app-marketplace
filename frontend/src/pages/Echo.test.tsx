@@ -102,58 +102,19 @@ describe('Echo, when the door is shut', () => {
   })
 })
 
-describe('Echo, when the profile is missing something', () => {
-  it('names only what is actually missing', async () => {
-    mocks.api.mockResolvedValue(status({ missing: ['gender'] }))
+describe('Echo, the first time', () => {
+  it('asks "eighteen or over" and nothing else', async () => {
+    mocks.api.mockResolvedValue(status({ missing: ['adult'] }))
     await render()
-
-    expect(container.textContent).toContain('echo.missingGender')
-    expect(container.textContent).not.toContain('echo.missingBirthday')
+    expect(container.textContent).toContain('adult.title')
+    expect(container.textContent).not.toContain('echo.missingGender')
   })
 
-  it('answers the question where it is asked', async () => {
-    // Walking somebody to their profile for a single field is three
-    // screens for one answer, and most people do not come back.
-    mocks.api.mockResolvedValue(status({ missing: ['gender'] }))
+  it('goes back to the world on "no", to be asked again next time', async () => {
+    mocks.api.mockResolvedValue(status({ missing: ['adult'] }))
     await render()
-
-    await click(buttonsWith('echo.missingGender')[0])
-
-    expect(container.textContent).toContain('echo.genderTitle')
-    expect(buttonsWith('echo.gender.female')).toHaveLength(1)
-  })
-
-  it('keeps the rest of the profile when it saves one field', async () => {
-    // The endpoint replaces the whole profile, so sending only the answer
-    // given here would quietly erase somebody's bio and interests.
-    mocks.api.mockResolvedValue(status({ missing: ['gender'] }))
-    await render()
-    await click(buttonsWith('echo.missingGender')[0])
-
-    mocks.api.mockClear()
-    mocks.api.mockImplementation((path: string) =>
-      path === '/profile/me'
-        ? Promise.resolve({ bio: 'hello', interests: ['music'], birthday_year: 1995 })
-        : Promise.resolve(status()),
-    )
-    await click(buttonsWith('echo.gender.female')[0])
-
-    const put = mocks.api.mock.calls.find((call) => call[1]?.method === 'PUT')
-    expect(put).toBeDefined()
-    const body = JSON.parse(put![1].body)
-    expect(body.gender).toBe('female')
-    expect(body.bio).toBe('hello')
-    expect(body.interests).toEqual(['music'])
-    expect(body.birthday_year).toBe(1995)
-  })
-
-  it('still offers the profile for somebody who would rather go there', async () => {
-    mocks.api.mockResolvedValue(status({ missing: ['gender', 'birth_year'] }))
-    await render()
-
-    await click(buttonsWith('echo.gateGo')[0])
-
-    expect(mocks.navigate).toHaveBeenCalledWith('/profile/edit')
+    await click(buttonsWith('adult.no')[0])
+    expect(mocks.navigate).toHaveBeenCalledWith('/sky')
   })
 })
 
@@ -280,16 +241,17 @@ describe('Echo, while waiting', () => {
     expect(buttonsWith('seek.keepWaiting')).toHaveLength(0)
   })
 
-  it('asks the server again while it waits', async () => {
+  it('does not keep asking the server while it waits', async () => {
+    // Section 32: the server's heartbeat sends the numbers when they change,
+    // and a card arrives as a live event; nothing asks on a clock.
     vi.useFakeTimers()
     mocks.api.mockResolvedValue(status({ waiting: true, waiting_since: new Date().toISOString() }))
     await render()
     const afterFirstLoad = mocks.api.mock.calls.length
     await act(async () => {
-      // The shared status asks every four seconds while searching.
-      await vi.advanceTimersByTimeAsync(4100)
+      await vi.advanceTimersByTimeAsync(120_000)
     })
-    expect(mocks.api.mock.calls.length).toBeGreaterThan(afterFirstLoad)
+    expect(mocks.api.mock.calls.length).toBe(afterFirstLoad)
   })
 })
 

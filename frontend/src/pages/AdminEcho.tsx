@@ -123,7 +123,7 @@ export default function AdminEcho() {
     }
   }
 
-  const toggle = (key: 'enabled' | 'always_open' | 'show_counts') => setSchedule({ ...schedule, [key]: !schedule[key] })
+  const toggle = (key: 'enabled' | 'always_open' | 'show_counts' | 'ask_adult') => setSchedule({ ...schedule, [key]: !schedule[key] })
 
   return (
     <div className="ui-page">
@@ -195,6 +195,25 @@ export default function AdminEcho() {
               />
             </label>
             <span className="ui-field-help">{t('adminEcho.holdHint')}</span>
+          </div>
+        </section>
+
+        <section className="ui-section">
+          <h2 className="ui-section-title">{t('adminEcho.adultTitle')}</h2>
+          <div className="ui-list">
+            <button
+              type="button"
+              className="ui-row is-wrap"
+              role="switch"
+              aria-checked={schedule.ask_adult}
+              onClick={() => toggle('ask_adult')}
+            >
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('adminEcho.adultLabel')}</span>
+                <span className="ui-row-subtitle">{t('adminEcho.adultHint')}</span>
+              </span>
+              <span className="ui-row-trailing"><span className="ui-switch" aria-hidden="true" aria-checked={schedule.ask_adult} /></span>
+            </button>
           </div>
         </section>
 

@@ -161,7 +161,13 @@ export default function Conversation() {
         // The one refusal a person can meet just by saying hello: said in
         // words, not as the server's raw answer (the owner saw the raw one).
         const reason = apiReason(err)
-        setError(reason === 'daily_new_people_limit' || reason === 'daily_new_conversation_limit' ? t('talk.dailyLimit') : formatApiError(err))
+        setError(
+          reason === 'daily_new_people_limit' || reason === 'daily_new_conversation_limit'
+            ? t('talk.dailyLimit')
+            : reason === 'door_friends'
+              ? t('talk.doorFriends')
+              : formatApiError(err),
+        )
       })
   }, [userId, id])
 
@@ -509,7 +515,7 @@ export default function Conversation() {
       }
       // Request changes are the deal's business (useDeal listens for them).
       // Nor are Echo's (lib/echoStore.ts listens for them).
-      if (event.type === 'requests' || event.type === 'echo') return
+      if (event.type === 'requests' || event.type === 'echo' || event.type === 'echo_counts' || event.type === 'friends') return
       // The other person cleared or deleted this chat for both of you:
       // read it again, and find it as they left it.
       if (event.type === 'cleared') {

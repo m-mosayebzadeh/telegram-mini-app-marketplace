@@ -32,6 +32,11 @@ import Activity from './pages/Activity'
 import TopUp from './pages/TopUp'
 import AdminHub from './pages/AdminHub'
 import AdminEcho from './pages/AdminEcho'
+import AdminFeedback from './pages/AdminFeedback'
+import BlockedPeople from './pages/BlockedPeople'
+import Friends from './pages/Friends'
+import ReportProblem from './pages/ReportProblem'
+import { AccountGone } from './components/cosmos/AccountDoors'
 import AdminFinance from './pages/AdminFinance'
 import AdminTopUps from './pages/AdminTopUps'
 import AdminRates from './pages/AdminRates'
@@ -98,7 +103,7 @@ const TABS = [
 
 function AppShell() {
   const { t } = useTranslation()
-  const { me, adminAccess } = useMe()
+  const { me, adminAccess, deleted } = useMe()
   const location = useLocation()
   const navigate = useNavigate()
   // The nav bar's own small avatar thumbnail (see .hp-bottom-nav-avatar
@@ -133,6 +138,10 @@ function AppShell() {
     door !== null ||
     location.pathname.startsWith('/chat-sessions/') ||
     COSMOS.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))
+
+  // After the account was deleted, only the way to start again (section
+  // 32, step 4). "Eighteen or over" is asked in Echo, not here.
+  if (deleted) return <AccountGone />
 
   return (
     // Each page reserves its own room for the nav bar through
@@ -173,6 +182,7 @@ function AppShell() {
         <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
         <Route path="/admin" element={<AdminHub />} />
         <Route path="/admin/echo" element={<AdminEcho />} />
+        <Route path="/admin/feedback" element={<AdminFeedback />} />
         <Route path="/admin/finance" element={<AdminFinance />} />
         <Route path="/admin/topups" element={<AdminTopUps />} />
         <Route path="/admin/rates" element={<AdminRates />} />
@@ -188,6 +198,9 @@ function AppShell() {
         <Route path="/profile" element={<ProfileTab />} />
         <Route path="/profile/edit" element={<EditProfile />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/friends" element={<Friends />} />
+        <Route path="/settings/blocked" element={<BlockedPeople />} />
+        <Route path="/settings/report" element={<ReportProblem />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/content/:id" element={<ContentDetail />} />
         <Route path="/profiles/:id" element={<ProfileTab />} />

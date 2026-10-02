@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { apiFetch } from './api'
 import { fetchConversations, type Conversation } from './conversationApi'
 import { subscribe } from './live'
+import { onReturn } from './onReturn'
 import { buildNews, loadDismissed, saveDismissed, type NewsItem } from './news'
 import { buildRelations, orderRelations, type Relation } from './relations'
 import { dealWith, type Deal } from './deal'
@@ -13,12 +14,10 @@ import type { ChatSession, IncomingFollowRequest, RequestActivity } from './type
  *
  * Conversations refresh the moment a message arrives over the live
  * connection, and requests the moment one changes on either side (the
- * "requests" event). Sessions and follow requests have no live events yet,
- * so they refresh on a slow clock, when the app comes back into view, and
- * right after anything you do to them.
+ * "requests" event). Everything else refreshes when the app comes back
+ * into view and right after anything you do to it — never on a clock
+ * (section 32).
  */
-
-const REFRESH_MS = 30_000
 
 /** Conversations come fifteen at a time: describing a thread is not cheap
  *  on the server, and flying three hundred people onto the stair was heavy
@@ -149,10 +148,10 @@ export function useWorld(): World {
 
   useEffect(() => {
     alive.current = true
+    // No clock (section 32): what changes arrives as a live event below,
+    // and coming back to the app asks once.
     void reload()
-    const timer = setInterval(() => void reload(), REFRESH_MS)
-    const onVisible = () => { if (document.visibilityState === 'visible') void reload() }
-    document.addEventListener('visibilitychange', onVisible)
+    const stopReturn = onReturn(() => void reload())
     const unsubscribe = subscribe((event) => {
       if (event.type === 'message' || event.type === 'read' || event.type === 'ready') {
         readConversations().catch(() => {})
@@ -165,8 +164,7 @@ export function useWorld(): World {
     })
     return () => {
       alive.current = false
-      clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisible)
+      stopReturn()
       unsubscribe()
     }
   }, [reload])
@@ -216,14 +214,14 @@ export function useDeal(userId: number | null): { deal: Deal | null; sessions: C
     alive.current = true
     if (userId === null) return
     void reload()
-    const timer = setInterval(() => void reload(), 20_000)
     const unsubscribe = subscribe((event) => {
       if (event.type === 'message' || event.type === 'ready' || event.type === 'requests') void reload()
     })
+    const stopReturn = onReturn(() => void reload())
     return () => {
       alive.current = false
-      clearInterval(timer)
       unsubscribe()
+      stopReturn()
     }
   }, [userId, reload])
 

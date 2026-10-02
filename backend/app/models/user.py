@@ -22,6 +22,10 @@ class UserStatus(str, enum.Enum):
 
     ACTIVE = "active"
     BLOCKED = "blocked"
+    #: The person deleted their account (section 32, step 4). The row
+    #: stays, emptied, so the other side of their conversations still
+    #: makes sense and a complaint can still be looked into.
+    DELETED = "deleted"
 
 
 class User(Base):
@@ -93,9 +97,18 @@ class User(Base):
     #: Only the minute matters, so the write is skipped when the stored
     #: value is recent: a column updated on literally every request would
     #: turn every read in the app into a write.
-    last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    #: Indexed: the world orders by it to pick one page of people without
+    #: reading everybody (sky/router.py).
+    last_seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True, index=True)
 
     sent_requests_last_viewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    #: When this person said they are eighteen or over. Asked once, on the
+    #: first visit; nothing in the app opens before it (section 32).
+    adult_confirmed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    #: When the account was deleted; see UserStatus.DELETED.
+    deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     # uselist=False is what tells SQLAlchemy "this side of the
     # relationship is a single object, not a list" — i.e. `user.profile`

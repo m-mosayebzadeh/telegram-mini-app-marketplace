@@ -3,14 +3,18 @@ Application entry point. Run locally with:
     uvicorn app.main:app --reload
 """
 
+from app.live.pulse import run_pulse
+from app.account.router import admin_router as admin_feedback_router, router as account_router
+from app.friends.router import me_router as friends_me_router, public_router as friends_public_router, router as friends_router
 from app.withdrawal.router import router as withdrawal_router, admin_router as admin_withdrawal_router
 import re
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from sqlalchemy import or_
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -35,6 +39,7 @@ from app.content.router import router as content_router
 from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
 from app.models.follow import Follow, FollowStatus
+from app.models.friendship import FRIENDSHIP_PENDING, Friendship
 from app.models.offer import Offer
 from app.models.request import Request, RequestStatus
 from app.offer.router import router as offer_router
@@ -61,7 +66,13 @@ async def lifespan(app: FastAPI):
     # this module but never starts it, so it never touches the real
     # database file — it wires up its own isolated one instead.
     run_migrations()
+    # The server's heartbeat (app/live/pulse.py): who is here, and Echo's
+    # numbers, told to the phones instead of asked by them.
+    stop = asyncio.Event()
+    pulse = asyncio.create_task(run_pulse(stop))
     yield
+    stop.set()
+    await pulse
 
 
 app = FastAPI(title="Telegram Mini App Marketplace API", lifespan=lifespan)
@@ -77,6 +88,11 @@ settings.uploads_dir.mkdir(parents=True, exist_ok=True)
 (settings.uploads_dir / "avatars").mkdir(parents=True, exist_ok=True)
 app.mount("/avatars", StaticFiles(directory=str(settings.uploads_dir / "avatars")), name="avatars")
 
+app.include_router(account_router)
+app.include_router(friends_router)
+app.include_router(friends_me_router)
+app.include_router(friends_public_router)
+app.include_router(admin_feedback_router)
 app.include_router(profile_router)
 app.include_router(public_profile_router)
 app.include_router(follow_router)
@@ -223,6 +239,16 @@ def read_current_user(
         # in it, a name with no last name at all, ...).
         "first_name": current_user.first_name,
         "last_name": current_user.last_name,
+        # Nothing in the app opens before this is true (section 32).
+        "adult_confirmed": current_user.adult_confirmed_at is not None,
+        # The badge on the "me" door until somebody answers (section 32).
+        "pending_friend_requests_count": db.scalar(
+            select(func.count(Friendship.id)).where(
+                Friendship.status == FRIENDSHIP_PENDING,
+                Friendship.requested_by_id != current_user.id,
+                or_(Friendship.user_low_id == current_user.id, Friendship.user_high_id == current_user.id),
+            )
+        ) or 0,
     }
 
 

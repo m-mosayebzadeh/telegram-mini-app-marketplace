@@ -63,6 +63,8 @@ class ProfileOut(BaseModel):
     bio: str | None
     location: str | None
     interests: list[str]
+    #: The note of the day while it lasts (app/profile/note.py), else None.
+    note: str | None = None
     is_trusted: bool
     birthday_month: int | None
     birthday_day: int | None
@@ -92,6 +94,10 @@ class PublicProfileOut(BaseModel):
     bio: str | None
     location: str | None
     interests: list[str]
+    #: The note of the day while it lasts (app/profile/note.py), else None.
+    note: str | None = None
+    #: You and them: "none", "requested", "incoming" or "friends".
+    friend_status: str = "none"
     is_trusted: bool
     birthday_month: int | None
     birthday_day: int | None

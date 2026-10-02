@@ -7,15 +7,9 @@ import { ErrorState, PageHeader, SkeletonRows, useToast } from '../components/ui
 import { IconCheck, IconChevron } from '../components/icons'
 import { BirthdaySheet, type BirthdayValue } from '../components/profile/BirthdaySheet'
 import { GenderSheet } from '../components/profile/GenderSheet'
-import { InterestsSheet } from '../components/profile/InterestsSheet'
 import { UsernameSheet } from '../components/profile/UsernameSheet'
 import { useMe } from '../lib/MeContext'
 import type { MyProfile, PublicProfile } from '../lib/types'
-
-const MAX_INTERESTS = 10
-/** A bio is a line or two under a name, not an essay — the same limit
- *  the backend enforces (see app/models/profile.py's MAX_BIO_LENGTH). */
-const MAX_BIO = 100
 
 /** Which sheet is open, if any. */
 type OpenSheet = 'username' | 'birthday' | 'interests' | 'gender' | null
@@ -229,28 +223,6 @@ export default function EditProfile() {
           />
         </div>
 
-        <div className="co-form">
-          <label className="ui-field" htmlFor="profile-bio">
-            <span className="ui-field-label">
-              {t('profilePage.bioLabel')}
-              <span className="ui-field-counter">
-                {bio.length.toLocaleString(i18n.language)} / {MAX_BIO.toLocaleString(i18n.language)}
-              </span>
-            </span>
-            {/* Fixed height: a box someone can drag is a box that ends up
-                the wrong size, and at 100 characters there is nothing to
-                drag it for. */}
-            <textarea
-              id="profile-bio"
-              className="ui-textarea ep-bio"
-              value={bio}
-              maxLength={MAX_BIO}
-              onChange={(e) => setBio(e.target.value)}
-            />
-            <span className="ui-field-help">{t('profilePage.bioHint')}</span>
-          </label>
-        </div>
-
         <section className="ui-section">
           <h2 className="ui-section-title">{t('profilePage.yourInfoLabel')}</h2>
           {/* Each of these is its own thing with its own rules, and each
@@ -289,26 +261,6 @@ export default function EditProfile() {
               </span>
             </button>
 
-            <button className="ui-row" onClick={() => setSheet('interests')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('profilePage.interestsLabel')}</span>
-                {/* The chips themselves, so the row says what is set
-                    rather than only how many. */}
-                {interests.length > 0 && (
-                  <span className="ep-row-tags">
-                    {interests.map((tag) => (
-                      <span className="ui-tag" key={tag}>
-                        {tag}
-                      </span>
-                    ))}
-                  </span>
-                )}
-              </span>
-              <span className="ui-row-trailing">
-                {interests.length === 0 && t('profilePage.addInterests')}
-                <IconChevron size={20} className="ui-row-chevron" />
-              </span>
-            </button>
           </div>
         </section>
       </div>
@@ -356,20 +308,6 @@ export default function EditProfile() {
         />
       )}
 
-      {sheet === 'interests' && (
-        <InterestsSheet
-          value={interests}
-          max={MAX_INTERESTS}
-          saving={busy}
-          onClose={() => setSheet(null)}
-          onSave={async (next) => {
-            if (await saveProfile({ interests: next })) {
-              setInterests(next)
-              setSheet(null)
-            }
-          }}
-        />
-      )}
     </div>
   )
 }

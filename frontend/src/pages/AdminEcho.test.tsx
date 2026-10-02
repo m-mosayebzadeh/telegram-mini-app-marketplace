@@ -28,7 +28,7 @@ vi.mock('../components/ui', async (original) => ({
 describe('Echo in the admin panel', () => {
   let host: HTMLDivElement
   let root: Root
-  const schedule = { enabled: true, always_open: false, opens_at_minute: 22 * 60, closes_at_minute: 23 * 60, daily_quota: 10, daily_quota_unlimited: true, proposal_seconds: 15, show_counts: true }
+  const schedule = { enabled: true, always_open: false, opens_at_minute: 22 * 60, closes_at_minute: 23 * 60, daily_quota: 10, daily_quota_unlimited: true, proposal_seconds: 15, show_counts: true, ask_adult: true }
 
   beforeEach(() => {
     mocks.get.mockReset().mockResolvedValue(schedule)
@@ -89,11 +89,21 @@ describe('Echo in the admin panel', () => {
 
   it('turns the waiting screen numbers off, and saves it', async () => {
     await open()
-    const counts = switches()[2]
+    // Echo on, around the clock, eighteen or over, then the numbers.
+    const counts = switches()[3]
     expect(counts.getAttribute('aria-checked')).toBe('true')
     await act(async () => counts.click())
     await act(async () => (host.querySelector('.ui-action-bar button') as HTMLButtonElement).click())
     expect(mocks.put).toHaveBeenCalledWith(expect.objectContaining({ show_counts: false }))
+  })
+
+  it('can stop asking "eighteen or over"', async () => {
+    await open()
+    const adult = switches()[2]
+    expect(adult.getAttribute('aria-checked')).toBe('true')
+    await act(async () => adult.click())
+    await act(async () => (host.querySelector('.ui-action-bar button') as HTMLButtonElement).click())
+    expect(mocks.put).toHaveBeenCalledWith(expect.objectContaining({ ask_adult: false }))
   })
 
   it('is closed to somebody without the right', async () => {

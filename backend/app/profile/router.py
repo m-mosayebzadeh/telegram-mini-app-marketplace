@@ -7,13 +7,15 @@ Profile endpoints — two routers on purpose:
     public, unlike Content's audience rules.
 """
 
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
+from app.core.time import utcnow
 from app.core.storage import delete_avatar_file, save_avatar_file
 from app.models.follow import Follow, FollowStatus
 from app.models.offer import Offer
@@ -22,6 +24,8 @@ from app.models.profile_photo import ProfilePhoto
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User
+from app.friends.router import friend_status
+from app.profile.note import MAX_NOTE, fresh_note
 from app.profile.photos import get_current_avatar_url
 from app.profile.schemas import (
     BuyerSummaryOut,
@@ -78,6 +82,7 @@ def _to_profile_out(db: Session, profile: Profile) -> ProfileOut:
         birthday_year=profile.birthday_year,
         gender=profile.gender,
         hide_birth_year=profile.hide_birth_year,
+        note=fresh_note(profile),
     )
 
 
@@ -159,6 +164,35 @@ def upsert_my_profile(
     db.commit()
     db.refresh(profile)
     return _to_profile_out(db, profile)
+
+
+class NoteIn(BaseModel):
+    #: Empty takes the note down.
+    text: str = Field(default="", max_length=MAX_NOTE)
+
+
+class NoteOut(BaseModel):
+    note: str | None
+    note_at: datetime | None
+
+
+@router.put("/me/note", response_model=NoteOut)
+def write_note(
+    payload: NoteIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> NoteOut:
+    """The note of the day (app/profile/note.py): written, it lasts a day;
+    empty, it comes down now."""
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if profile is None:
+        profile = Profile(user_id=current_user.id)
+        db.add(profile)
+    text = payload.text.strip()
+    profile.note = text or None
+    profile.note_at = utcnow() if text else None
+    db.commit()
+    return NoteOut(note=fresh_note(profile), note_at=profile.note_at)
 
 
 @router.post("/me/avatar", response_model=ProfileOut, status_code=status.HTTP_201_CREATED)
@@ -287,6 +321,8 @@ def read_public_profile(
             profile.birthday_year if profile and not profile.hide_birth_year else None
         ),
         gender=profile.gender if profile else None,
+        note=fresh_note(profile),
+        friend_status=friend_status(db, current_user.id, user_id),
         followers_count=_followers_count(db, user_id),
         following_count=_following_count(db, user_id),
         follow_status=_follow_status(db, viewer_id=current_user.id, target_id=user_id),

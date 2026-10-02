@@ -18,7 +18,7 @@ work. New voice messages always carry audio.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Enum, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Enum, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -126,4 +126,7 @@ class ChatMessage(Base):
             name="ck_chat_message_fields_match_type",
         ),
         UniqueConstraint("sender_id", "client_id", name="uq_chat_message_sender_client_id"),
+        # How present somebody looks in the world: their days with a message
+        # lately, read for one page of people at a time (sky/router.py).
+        Index("ix_chat_messages_sender_created", "sender_id", "created_at"),
     )

@@ -19,6 +19,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, seen_roughly
+from app.core.presence import hiding_online, masked_seen
+from app.models.friendship import FRIENDSHIP_ACCEPTED, Friendship
+from app.models.profile import CHAT_DOOR_FRIENDS, Profile
 from app.chat_message.router import list_conversation_messages
 from app.chat_message.schemas import ChatMessageOut
 from app.chat_message.service import build_message, require_capability
@@ -89,6 +92,21 @@ def _participant_or_404(
     if participant is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found.")
     return conversation, participant
+
+
+def _door_open_to(db: Session, owner_id: int, visitor_id: int) -> bool:
+    """Whether `visitor_id` may start a conversation with `owner_id`."""
+    door = db.scalar(select(Profile.chat_door).where(Profile.user_id == owner_id))
+    if door != CHAT_DOOR_FRIENDS:
+        return True
+    low, high = sorted((owner_id, visitor_id))
+    return db.scalar(
+        select(Friendship.id).where(
+            Friendship.user_low_id == low,
+            Friendship.user_high_id == high,
+            Friendship.status == FRIENDSHIP_ACCEPTED,
+        )
+    ) is not None
 
 
 def _blocked_between(db: Session, one_user_id: int, other_user_id: int) -> bool:
@@ -208,6 +226,9 @@ def serialize(
         )
     }
 
+    # Whoever hides when they are online, either side (core/presence.py).
+    hiders = hiding_online(db, [participant.user_id, *users])
+
     session = active_paid_session(db, conversation.id)
 
     # A message deleted for everyone must not live on as the preview.
@@ -234,7 +255,10 @@ def serialize(
                 display_name=users[p.user_id].display_name,
                 username=users[p.user_id].username,
                 avatar_url=avatars.get(p.user_id),
-                seen=seen_roughly(users[p.user_id]),
+                seen=masked_seen(
+                    seen_roughly(users[p.user_id]),
+                    hidden=participant.user_id in hiders or p.user_id in hiders,
+                ),
             )
             for p in others
             if p.user_id in users
@@ -393,6 +417,14 @@ def open_conversation(
             == Conversation.direct_key_for(current_user.id, other.id)
         )
     )
+    # Their door (privacy settings): "only my friends" closes a new
+    # conversation to anybody who is not their friend. A conversation that
+    # already exists stays open — the setting is about who may start one.
+    if existing is None and not _door_open_to(db, other.id, current_user.id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, detail={"reason": "door_friends"}
+        )
+
     if existing is None and new_people_left(db, current_user.id) <= 0:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,

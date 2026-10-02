@@ -9,7 +9,12 @@
 .ui-scrim {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  /* Over everything a page draws, the world's own bar included (50) and
+     its region layers (300–500): a sheet or a confirmation is what the
+     person is answering right now. It sat under the bar once, and the
+     note's "post" button was hidden behind it. Only the screens in front
+     of the whole app (900) are higher. */
+  z-index: 600;
   display: flex;
   background: var(--color-backdrop);
   animation: ui-fade-in var(--motion-base) var(--ease);

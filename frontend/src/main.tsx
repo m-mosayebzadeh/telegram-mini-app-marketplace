@@ -18,6 +18,11 @@ import './i18n/config.ts'
 import App from './App.tsx'
 import { ThemeProvider, useTheme } from './lib/ThemeContext.tsx'
 import { ToastProvider } from './components/ui'
+import { applyLightGraphics } from './lib/lightGraphics'
+
+// Before the first paint, so a cheap phone never draws the heavy version
+// first (lib/lightGraphics.ts).
+applyLightGraphics()
 
 // AppRoot is the Telegram UI kit's theming wrapper. It still wraps the
 // tree because a handful of kit components (Spinner, Placeholder, Input)

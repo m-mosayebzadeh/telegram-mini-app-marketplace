@@ -192,6 +192,8 @@ export interface EchoSchedule {
   proposal_seconds: number
   /** Whether the waiting screen shows how many are here and searching. */
   show_counts: boolean
+  /** Whether "eighteen or over" is asked the first time Echo opens. */
+  ask_adult: boolean
 }
 
 export function getEchoSchedule(): Promise<EchoSchedule> {

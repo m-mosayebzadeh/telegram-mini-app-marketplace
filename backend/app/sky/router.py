@@ -36,10 +36,12 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, case, func, literal, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import ONLINE_WITHIN, get_current_user
+from app.core.presence import hiding_online
+from app.profile.note import fresh_note
 from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.block import Block
@@ -126,52 +128,58 @@ def get_sky(
     presence_since = now - PRESENCE_WINDOW
     new_since = now - NEW_FOR
 
-    # Days on which this person said something, counted per person in one
-    # pass rather than per candidate — the alternative is a query inside a
-    # loop, which is the shape that stops working at scale.
+    # Somebody who hides when they are online shows nobody as online, and
+    # is shown to nobody as online (core/presence.py). Masked inside the
+    # ordering as well, or "here now first" would give them away.
+    viewer_hides = current_user.id in hiding_online(db, [current_user.id])
+    hides = func.coalesce(Profile.hide_online, False)
+    shown_online = and_(User.last_seen_at >= online_since, hides.is_(False))
+
+    # The database chooses the page (section 32: nothing may scale with
+    # the number of people). Here now first, then whoever was here most
+    # recently, then the newest account, so a fresh face surfaces rather
+    # than whoever has the lowest id. The order uses an index on
+    # last_seen_at, and only `limit` rows ever leave the database.
+    #
+    # The second key used to be "days active in the last two weeks",
+    # counted over every message anybody sent — a scan of the whole
+    # message table on every visit. Recency of being here says nearly the
+    # same thing for nothing; the days are still counted, for this page
+    # only, because they set how present each body looks.
+    order_online = case((shown_online, 1), else_=0) if not viewer_hides else literal(0)
+    rows = db.execute(
+        select(User, hides)
+        .outerjoin(Profile, Profile.user_id == User.id)
+        .where(User.status == UserStatus.ACTIVE, User.id.notin_(hidden))
+        .order_by(order_online.desc(), User.last_seen_at.desc().nulls_last(), User.joined_at.desc())
+        .limit(limit)
+    ).all()
+    page_ids = [user.id for user, _ in rows]
+
     presence_days = dict(
         db.execute(
             select(
                 ChatMessage.sender_id,
                 func.count(func.distinct(func.date(ChatMessage.created_at))),
             )
-            .where(ChatMessage.created_at >= presence_since)
+            .where(ChatMessage.sender_id.in_(page_ids), ChatMessage.created_at >= presence_since)
             .group_by(ChatMessage.sender_id)
         ).all()
-    )
-
-    finished = dict(
-        db.execute(
-            select(ChatSession.conversation_id, func.count(ChatSession.id))
-            .where(ChatSession.status == ChatSessionStatus.CLOSED)
-            .group_by(ChatSession.conversation_id)
-        ).all()
-    )
-    trust_counts = _sessions_per_person(db, finished)
-
-    candidates = db.scalars(
-        select(User).where(
-            User.status == UserStatus.ACTIVE,
-            User.id.notin_(hidden) if hidden else True,
-        )
-    ).all()
+    ) if page_ids else {}
+    trust_counts = _finished_sessions_of(db, page_ids)
 
     people = []
-    for user in candidates:
-        online = user.last_seen_at is not None and user.last_seen_at >= online_since
+    for user, user_hides in rows:
+        online = (
+            not viewer_hides
+            and not user_hides
+            and user.last_seen_at is not None
+            and user.last_seen_at >= online_since
+        )
         presence = min(1.0, presence_days.get(user.id, 0) / PRESENCE_FULL_DAYS)
         trust = min(1.0, trust_counts.get(user.id, 0) / TRUST_FULL_SESSIONS)
         is_new = user.joined_at >= new_since and trust == 0
         people.append((user, online, presence, trust, is_new))
-
-    # Here now first, then whoever has been most alive lately. Ties broken
-    # by the newest account, so a fresh face is the one that surfaces
-    # rather than whoever happens to have the lowest id.
-    people.sort(
-        key=lambda row: (row[1], row[2], row[0].joined_at),
-        reverse=True,
-    )
-    people = people[:limit]
 
     profiles = {
         profile.user_id: profile
@@ -188,7 +196,8 @@ def get_sky(
             display_name=user.display_name,
             username=user.username,
             initial=user.display_name[:1],
-            tagline=(profiles.get(user.id).bio if profiles.get(user.id) else None),
+            # The note of the day, or nothing (section 32): no bio any more.
+            tagline=fresh_note(profiles.get(user.id), now=now),
             avatar_url=avatars.get(user.id),
             presence=round(presence, 3),
             trust=round(trust, 3),
@@ -256,20 +265,22 @@ def _blocked_either_way(db: Session, user_id: int) -> set[int]:
     return {blocker if blocked == user_id else blocked for blocker, blocked in rows}
 
 
-def _sessions_per_person(db: Session, per_conversation: dict[int, int]) -> dict[int, int]:
-    """Turns finished sessions per conversation into finished sessions per
-    person, by looking up who was in each conversation."""
-    if not per_conversation:
+def _finished_sessions_of(db: Session, user_ids: list[int]) -> dict[int, int]:
+    """Finished sessions per person, for these people only: their
+    conversations, then the closed sessions in those — never a count over
+    every session there is."""
+    if not user_ids:
         return {}
 
     from app.models.conversation import ConversationParticipant
 
-    counts: dict[int, int] = {}
     rows = db.execute(
-        select(ConversationParticipant.conversation_id, ConversationParticipant.user_id).where(
-            ConversationParticipant.conversation_id.in_(per_conversation.keys())
+        select(ConversationParticipant.user_id, func.count(ChatSession.id))
+        .join(ChatSession, ChatSession.conversation_id == ConversationParticipant.conversation_id)
+        .where(
+            ConversationParticipant.user_id.in_(user_ids),
+            ChatSession.status == ChatSessionStatus.CLOSED,
         )
+        .group_by(ConversationParticipant.user_id)
     ).all()
-    for conversation_id, user_id in rows:
-        counts[user_id] = counts.get(user_id, 0) + per_conversation[conversation_id]
-    return counts
+    return dict(rows)

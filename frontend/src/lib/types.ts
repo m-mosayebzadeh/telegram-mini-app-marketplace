@@ -11,7 +11,7 @@ export interface Me {
   telegram_id: number
   display_name: string
   username: string | null
-  status: 'active' | 'blocked'
+  status: 'active' | 'blocked' | 'deleted'
   joined_at: string
   // The bottom nav's own small avatar thumbnail (see App.tsx) reads this
   // directly, refreshed the same way every other /me value is — see
@@ -39,6 +39,11 @@ export interface Me {
   // has_unseen_requests, this IS an exact count, since it also drives
   // the numbered badge on the Requests segment button, not just a dot.
   unseen_sent_request_updates_count: number
+  /** Said "eighteen or over". Nothing in the app opens before it
+   *  (section 32). */
+  adult_confirmed?: boolean
+  /** Friend requests waiting for your answer: the badge on the "me" door. */
+  pending_friend_requests_count?: number
 }
 
 export interface Balance {
@@ -252,6 +257,8 @@ export interface PublicProfile {
   username: string | null
   avatar_url: string | null
   bio: string | null
+  /** The note of the day while it lasts (section 32), else null. */
+  note?: string | null
   location: string | null
   interests: string[]
   // "پروفایل معتبر" — see backend/app/models/profile.py's Profile.is_trusted
@@ -272,6 +279,9 @@ export interface PublicProfile {
   followers_count: number
   following_count: number
   follow_status: 'not_following' | 'pending' | 'accepted'
+  /** You and them (section 32): none, requested (you asked), incoming
+   *  (they asked) or friends. */
+  friend_status?: 'none' | 'requested' | 'incoming' | 'friends'
 }
 
 /** One row of GET /profiles/{user_id}/photos — see
