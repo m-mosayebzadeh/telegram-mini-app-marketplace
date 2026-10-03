@@ -32,7 +32,7 @@ Content and offers count alike, free and paid alike, so a moon never means
 "this one sells" — only "there is more to see here".
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -41,7 +41,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import ONLINE_WITHIN, get_current_user
 from app.core.presence import hiding_online
-from app.profile.note import fresh_note
+from app.profile.note import fresh_note, fresh_note_at
 from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.block import Block
@@ -92,6 +92,8 @@ class SkyPersonOut(BaseModel):
     #: One line of their own words, for the card that opens when you tap
     #: them. Null when they have not written one.
     tagline: str | None
+    #: When that note was written, for the small hour under it.
+    tagline_at: datetime | None = None
     #: Only loaded when somebody is actually looked at — the sky itself
     #: draws no photographs, which is what lets it open on a bad
     #: connection (section 26).
@@ -198,6 +200,7 @@ def get_sky(
             initial=user.display_name[:1],
             # The note of the day, or nothing (section 32): no bio any more.
             tagline=fresh_note(profiles.get(user.id), now=now),
+            tagline_at=fresh_note_at(profiles.get(user.id), now=now),
             avatar_url=avatars.get(user.id),
             presence=round(presence, 3),
             trust=round(trust, 3),

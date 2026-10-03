@@ -67,6 +67,7 @@ from app.models.message_actions import HiddenMessage
 from app.models.random_chat import RandomChatSession
 from app.models.user import User
 from app.profile.photos import get_current_avatar_urls
+from app.profile.note import fresh_note
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -471,10 +472,17 @@ def send_message(
     file: UploadFile | None = File(None),
     client_id: str | None = Form(None, max_length=64),
     reply_to_id: int | None = Form(None),
+    to_note: bool = Form(False),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ChatMessageOut:
     """Says something in a thread.
+
+    `to_note` answers the other person's note of the day: the server copies
+    their note as it stands right now onto the message, so the reply keeps
+    its sense after the note is gone. If the note has already faded, the
+    message is simply sent without a quote — the words still matter more
+    than what prompted them.
 
     `client_id` makes sending safe to repeat: the same one twice from the
     same person returns the first message instead of saving a second (see
@@ -525,6 +533,12 @@ def send_message(
     )
     message.client_id = client_id
     message.reply_to_id = reply_to_id
+    if to_note and conversation.kind == CONVERSATION_DIRECT:
+        other_id = conversation.other_user_id(current_user.id)
+        if other_id is not None:
+            message.note_quote = fresh_note(
+                db.scalar(select(Profile).where(Profile.user_id == other_id))
+            )
     try:
         # Inside a savepoint so that losing a race with an identical retry
         # (both passed the check above at once) undoes only this insert.

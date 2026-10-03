@@ -9,9 +9,11 @@ Each change is announced live to the one person it concerns, so the app
 never has to keep asking whether a request has arrived.
 """
 
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, distinct, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
@@ -19,6 +21,8 @@ from app.core.database import get_db
 from app.core.time import utcnow
 from app.live.hub import hub
 from app.models.block import Block
+from app.models.chat_message import ChatMessage
+from app.models.conversation import CONVERSATION_DIRECT, Conversation, ConversationParticipant
 from app.models.friendship import (
     FRIENDS_SEEN_BY,
     FRIENDS_SEEN_BY_CHOSEN,
@@ -216,6 +220,83 @@ def my_requests(
         .order_by(Friendship.created_at.desc())
     ).all()
     return _people(db, [row.requested_by_id for row in rows])
+
+
+#: How far back "this week" reaches.
+THIS_WEEK = timedelta(days=7)
+
+#: A handful of faces, never a list: it is a nudge, not a directory.
+THIS_WEEK_LIMIT = 8
+
+
+class WeekPersonOut(PersonOut):
+    #: "none", "requested" or "incoming" — what their button says. Friends
+    #: are never in this list.
+    status: str
+
+
+@router.get("/this-week", response_model=list[WeekPersonOut])
+def this_week(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[WeekPersonOut]:
+    """The people you really talked with this week and are not friends with
+    yet (section 32, "me": the owner chose this for the empty half of the
+    page). It is where an acquaintance becomes a friendship.
+
+    "Really talked" means both of you wrote in the last seven days, not
+    only one hello: somebody who never answered you is not offered back
+    to you as a friend. Chats you deleted or left, and anybody blocked
+    either way, are not here. Newest conversation first, a handful at most.
+
+    One grouped query over this week's messages in your own conversations
+    (messages are indexed by conversation), so its cost follows one
+    person's week, never the size of the server.
+    """
+    since = utcnow() - THIS_WEEK
+    mine = (
+        select(ConversationParticipant.conversation_id)
+        .join(Conversation, Conversation.id == ConversationParticipant.conversation_id)
+        .where(
+            ConversationParticipant.user_id == current_user.id,
+            ConversationParticipant.left_at.is_(None),
+            ConversationParticipant.hidden_at.is_(None),
+            Conversation.kind == CONVERSATION_DIRECT,
+        )
+    )
+    talked = (
+        select(ChatMessage.conversation_id, func.max(ChatMessage.created_at).label("last_at"))
+        .where(
+            ChatMessage.conversation_id.in_(mine),
+            ChatMessage.created_at >= since,
+            ChatMessage.deleted_at.is_(None),
+        )
+        .group_by(ChatMessage.conversation_id)
+        .having(func.count(distinct(ChatMessage.sender_id)) >= 2)
+        .subquery()
+    )
+    rows = db.execute(
+        select(ConversationParticipant.user_id, talked.c.last_at)
+        .join(talked, talked.c.conversation_id == ConversationParticipant.conversation_id)
+        .where(ConversationParticipant.user_id != current_user.id)
+        .order_by(talked.c.last_at.desc())
+    ).all()
+
+    friends = friend_ids(db, current_user.id)
+    blocked = set(
+        db.scalars(select(Block.blocked_id).where(Block.blocker_id == current_user.id))
+    ) | set(db.scalars(select(Block.blocker_id).where(Block.blocked_id == current_user.id)))
+    ids: list[int] = []
+    for user_id, _ in rows:
+        if user_id in friends or user_id in blocked or user_id in ids:
+            continue
+        ids.append(user_id)
+        if len(ids) == THIS_WEEK_LIMIT:
+            break
+    return [
+        WeekPersonOut(**person.model_dump(), status=friend_status(db, current_user.id, person.user_id))
+        for person in _people(db, ids)
+    ]
 
 
 def may_see_friends_of(db: Session, viewer_id: int, owner_id: int) -> bool:

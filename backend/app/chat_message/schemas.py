@@ -42,6 +42,8 @@ class ChatMessageOut(BaseModel):
     #: what it said before is for staff only.
     edited_at: datetime | None = None
     reply_to_id: int | None = None
+    #: The note of the day this message answers, copied when it was sent.
+    note_quote: str | None = None
     #: Filled by app/chat_message/actions.py's messages_out; empty where a
     #: route returns plain rows.
     reply_to: ReplyPreview | None = None

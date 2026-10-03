@@ -92,9 +92,13 @@ export function EchoOffer() {
   const start = useRef<number | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
 
-  // A new card arrives, or the one on screen is settled.
+  // A new card arrives, or the one on screen is settled. An effect on
+  // purpose rather than state adjusted during render: arriving also buzzes
+  // the phone and settling can open the conversation, and those must
+  // happen once, after the screen has shown the change.
   useEffect(() => {
     if (live && live.id !== card?.id) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCard(live)
       setPhase('in')
       setDrag(0)

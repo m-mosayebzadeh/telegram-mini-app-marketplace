@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchNewPeopleLeft } from '../lib/conversationApi'
+import { fetchNewPeopleLeft, type NoteReplyState } from '../lib/conversationApi'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Orb, orbSize } from '../components/cosmos/Orb'
-import { SpaceGround, DUST_LAYERS, seededRandom } from '../components/cosmos/SpaceGround'
+import { Orb } from '../components/cosmos/Orb'
+import { orbSize } from '../components/cosmos/orbSize'
+import { SpaceGround } from '../components/cosmos/SpaceGround'
+import { DUST_LAYERS, seededRandom } from '../components/cosmos/spaceDust'
 import { Orbits } from '../components/cosmos/Orbits'
 import { PersonSheet } from '../components/cosmos/PersonSheet'
 import { HOME_EVENT } from '../components/cosmos/WorldBar'
@@ -31,6 +33,7 @@ import { fetchSky, type SkyPerson } from '../lib/skyApi'
 import { formatApiError } from '../lib/api'
 import type { NewsItem } from '../lib/news'
 import { acceptFollow, confirmRequest, refuseFollow, refuseRequest, useWorld } from '../lib/worldApi'
+import { regionOf, type Region } from '../lib/regions'
 
 /**
  * The world.
@@ -87,19 +90,6 @@ const FLOOR = 190
  *  furthest a pinch or the mouse wheel can take it. */
 const WIDE_SCALE = 0.42
 
-/**
- * The regions of the world (TECHNICAL_REQUIREMENTS.md sections 30.5–30.8).
- *
- * Conversations and news are not other pages: they happen IN the world —
- * the people you talk to are pulled out of it towards you, news arrives
- * out of a wormhole above it. Each still has an address of its own, so
- * the phone's back button leaves a region the way people expect, and a
- * link can open one directly.
- */
-export type Region = 'world' | 'talk' | 'news'
-export function regionOf(param: string | undefined): Region {
-  return param === 'talk' || param === 'news' ? param : 'world'
-}
 /** A journey between places, as in the prototype: the place you are in
  *  rushes past and blurs for this long, then the new one settles in. */
 const JOURNEY_MS = 380
@@ -256,7 +246,7 @@ export default function Sky() {
    * eleventh person gets a sentence right here, under them, instead of a
    * screen that opens only to refuse.
    */
-  async function sayHello(userId: number) {
+  async function sayHello(userId: number, note?: string | null) {
     const known = world.relations.some((r) => r.userId === userId && r.conversationId !== null)
     if (!known) {
       try {
@@ -271,7 +261,8 @@ export default function Sky() {
         // server says.
       }
     }
-    navigate(`/conversations/with/${userId}`)
+    // Answering their note: the conversation opens with it quoted.
+    navigate(`/conversations/with/${userId}`, note ? { state: { noteReply: { note } } satisfies NoteReplyState } : undefined)
   }
 
   // Sol in the bar, tapped while already in the world: back home to the
@@ -790,6 +781,7 @@ export default function Sky() {
           }
           online={chosen.online}
           line={chosen.tagline}
+          lineAt={chosen.tagline_at}
           flags={[
             ...(news.some((n) => n.userId === chosen.user_id) ? [t('sky.hasNewsForYou')] : []),
             ...(liveWith === chosen.user_id ? [t('sky.sessionRunning')] : []),
@@ -797,6 +789,7 @@ export default function Sky() {
           sayLabel={t(liveWith === chosen.user_id ? 'world.backToSession' : 'sky.sayHello')}
           limit={sayNo === chosen.user_id ? t('sky.dailyLimit') : null}
           onSay={() => void sayHello(chosen.user_id)}
+          onReplyNote={() => void sayHello(chosen.user_id, chosen.tagline)}
           onProfile={() => navigate(`/profiles/${chosen.user_id}`)}
           onClose={release}
         />

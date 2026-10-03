@@ -20,9 +20,12 @@ export default function FollowList() {
 
   function load() {
     setItems(null)
-    setError(null)
     apiFetch<FollowListItem[]>(`/follow/${id}/${kind}`)
-      .then(setItems)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setItems(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }
 

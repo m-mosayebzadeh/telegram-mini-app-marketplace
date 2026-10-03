@@ -102,6 +102,14 @@ class ChatMessage(Base):
         ForeignKey("chat_messages.id"), nullable=True
     )
 
+    #: The note of the day this message answers (section 32: tapping
+    #: somebody's note opens a conversation that quotes it). A copy, not a
+    #: link: the note itself is erased a day later, and the quote must still
+    #: make sense of the reply. Copied by the server from the other
+    #: person's note at the moment of sending, never taken from the app, so
+    #: nobody can put words in someone else's note.
+    note_quote: Mapped[str | None] = mapped_column(String(60), nullable=True)
+
     #: When the text was last changed. What it said before is kept in
     #: message_edits; the people talking only see that it was edited.
     edited_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

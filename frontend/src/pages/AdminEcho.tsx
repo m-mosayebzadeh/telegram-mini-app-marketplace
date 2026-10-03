@@ -7,6 +7,7 @@ import { Button, EmptyState, ErrorState, PageHeader, SkeletonRows, useToast } fr
 import { IconShieldLock } from '../components/icons'
 import { useMe } from '../lib/MeContext'
 import { refreshEcho } from '../lib/echoStore'
+import { toClock, fromClock } from '../lib/clock'
 
 /**
  * "مدیریت → Echo": whether Echo is on, and when it is open
@@ -18,23 +19,6 @@ import { refreshEcho } from '../lib/echoStore'
  * open" greyed out under a switched-off Echo read as a broken switch). The server had all three; nothing in the panel could
  * set them until now.
  */
-
-/** "22:30" ⇄ minutes past midnight. 1440, the end of the day, is written
- *  "00:00": a time field has no "24:00" and showed it empty. Saved back it
- *  becomes 0, which the server reads as the same midnight (a window that
- *  closes at 0 wraps, so 22:00 to 00:00 is still "after 22:00"). */
-export function toClock(minutes: number): string {
-  if (minutes >= 1440) return '00:00'
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-}
-export function fromClock(value: string): number | null {
-  const match = /^(\d{1,2}):(\d{2})$/.exec(value)
-  if (!match) return null
-  const minutes = Number(match[1]) * 60 + Number(match[2])
-  return minutes >= 0 && minutes <= 1440 ? minutes : null
-}
 
 const DEFAULT_OPENS = 22 * 60
 const DEFAULT_CLOSES = 23 * 60
@@ -54,9 +38,10 @@ export default function AdminEcho() {
 
   const load = useCallback(() => {
     if (!hasAccess) return
-    setLoadError(null)
     getEchoSchedule()
       .then((s) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setLoadError(null)
         setSchedule(s)
         // Never set (the whole day, 00:00 to 00:00, which the server would
         // read as never open): start from the hours section 32 talks about,

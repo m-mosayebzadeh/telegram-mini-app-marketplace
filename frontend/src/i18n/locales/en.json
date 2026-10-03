@@ -881,7 +881,9 @@
       "alsoFor": "Also delete it for {{name}}",
       "confirm": "Delete"
     },
-    "doorFriends": "They only take messages from their friends."
+    "doorFriends": "They only take messages from their friends.",
+    "aboutNote": "Answering a note",
+    "answeringNote": "Answering {{name}}'s note"
   },
   "report": {
     "title": "Report {{name}}",
@@ -1241,14 +1243,16 @@
     "placeholder": "For example: looking for a good film tonight",
     "hint": "Shown under your name and on your card, and gone after a day.",
     "save": "Post",
-    "remove": "Take the note down"
+    "remove": "Take the note down",
+    "writtenAt": "written at {{time}}",
+    "writtenYesterday": "written yesterday at {{time}}",
+    "reply": "Answer",
+    "replyTo": "Answer the note: {{note}}"
   },
   "friends": {
     "title": "Friends",
     "rowHint": "People you are friends with",
     "newRequest": "You have a new request",
-    "settingsRow": "Privacy and settings",
-    "settingsHint": "Who can message you, who sees your friends, language",
     "hello": "Say hello",
     "ask": "Be friends",
     "requested": "Request sent",
@@ -1271,10 +1275,13 @@
     "requests": "New requests",
     "yours": "Your friends",
     "wants": "Wants to be friends",
-    "asSky": "Constellation",
-    "asList": "List",
-    "blinkHint": "A blinking star is a new request; tap it to accept.",
-    "acceptStar": "{{name}}'s request; tap to accept",
     "empty": "No friends yet. Tap somebody in the world and choose \"Be friends\"."
+  },
+  "week": {
+    "title": "People of your week",
+    "hint": "You talked this week and aren't friends yet.",
+    "sent": "Sent",
+    "emptyText": "You haven't talked with anyone this week yet. Echo can find you someone new right now.",
+    "emptyGo": "Go to Echo"
   }
 }

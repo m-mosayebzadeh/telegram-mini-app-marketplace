@@ -31,9 +31,12 @@ export default function FollowRequests() {
   const [busyId, setBusyId] = useState<number | null>(null)
 
   function load() {
-    setError(null)
     apiFetch<IncomingFollowRequest[]>('/follow/incoming-requests')
-      .then(setRequests)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setRequests(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }
 

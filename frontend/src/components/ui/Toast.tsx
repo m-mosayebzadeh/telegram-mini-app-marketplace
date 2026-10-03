@@ -55,17 +55,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [show],
   )
 
+  // Keyed on id, not on the object, so an identical repeated message
+  // still resets both timers.
+  const toastId = toast?.id
   useEffect(() => {
-    if (!toast) return
+    if (toastId === undefined) return
     const hide = setTimeout(() => setLeaving(true), VISIBLE_MS)
     const remove = setTimeout(() => setToast(null), VISIBLE_MS + LEAVE_MS)
     return () => {
       clearTimeout(hide)
       clearTimeout(remove)
     }
-    // Keyed on id, not on the object, so an identical repeated message
-    // still resets both timers.
-  }, [toast?.id])
+  }, [toastId])
 
   return (
     <ToastContext.Provider value={api}>
@@ -88,6 +89,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// The hook lives beside its provider on purpose: they share one private
+// context, and splitting them would make every caller and every test mock
+// reach into two modules for one thing.
+// oxlint-disable-next-line react/only-export-components
 export function useToast(): ToastApi {
   const api = useContext(ToastContext)
   if (!api) throw new Error('useToast must be used inside <ToastProvider>')

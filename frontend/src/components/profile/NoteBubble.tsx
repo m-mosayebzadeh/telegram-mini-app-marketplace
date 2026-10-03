@@ -1,18 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { apiFetch, formatApiError } from '../../lib/api'
+import { formatApiError } from '../../lib/api'
 import { Sheet } from '../ui/Sheet'
 import { Button } from '../ui/Button'
-
-/** The same limit as the server (app/profile/note.py). */
-export const MAX_NOTE = 60
-
-export function saveNote(text: string): Promise<{ note: string | null }> {
-  return apiFetch<{ note: string | null }>('/profile/me/note', {
-    method: 'PUT',
-    body: JSON.stringify({ text }),
-  })
-}
+import { MAX_NOTE, saveNote } from '../../lib/noteApi'
 
 /**
  * The note of the day under a name (section 32, step 4), in place of the

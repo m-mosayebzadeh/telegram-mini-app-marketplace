@@ -34,8 +34,19 @@ export default function EditProfile() {
   const [profile, setProfile] = useState<PublicProfile | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
+  const [firstName, setFirstName] = useState(me?.first_name ?? '')
+  const [lastName, setLastName] = useState(me?.last_name ?? '')
+  // Filled from "me" when it arrives (it can still be loading when this
+  // screen opens), adjusted while rendering rather than in an effect, so
+  // the form never draws once empty and then again filled.
+  const [filledFrom, setFilledFrom] = useState(me)
+  if (me !== filledFrom) {
+    setFilledFrom(me)
+    if (me) {
+      setFirstName(me.first_name)
+      setLastName(me.last_name ?? '')
+    }
+  }
   const [bio, setBio] = useState('')
 
   const [username, setUsername] = useState('')
@@ -52,17 +63,12 @@ export default function EditProfile() {
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    if (!me) return
-    setFirstName(me.first_name)
-    setLastName(me.last_name ?? '')
-  }, [me])
-
   function load() {
     if (!me) return
-    setLoadError(null)
     apiFetch<PublicProfile>(`/profiles/${me.id}`)
       .then((loaded) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setLoadError(null)
         setProfile(loaded)
         setUsername(loaded.username ?? '')
         setBio(loaded.bio ?? '')

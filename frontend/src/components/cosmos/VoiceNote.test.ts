@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { peaksOf } from './VoiceNote'
+import { peaksOf } from '../../lib/voicePeaks'
 
 /**
  * The shape of a voice note is the real loudness of the recording. What is

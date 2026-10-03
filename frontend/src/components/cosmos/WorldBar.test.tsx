@@ -1,8 +1,9 @@
-import { act } from 'react'
+import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
-import { HOME_EVENT, WorldBar, doorOf } from './WorldBar'
+import { HOME_EVENT, WorldBar } from './WorldBar'
+import { doorOf } from './worldBarDoors'
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }),
@@ -22,8 +23,13 @@ describe('the bar along the bottom', () => {
   let host: HTMLDivElement
   let root: Root
   let path = ''
+  // Reported from an effect, not while rendering: rendering must not
+  // change anything outside the component.
   function Where() {
-    path = useLocation().pathname
+    const { pathname } = useLocation()
+    useEffect(() => {
+      path = pathname
+    }, [pathname])
     return null
   }
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useUnread } from '../../lib/useUnread'
 import { useEcho } from '../../lib/echoStore'
 import { useMe } from '../../lib/MeContext'
-import type { EchoStatus } from '../../lib/echoApi'
+import { doorOf, echoDoorOf, type Door, type EchoDoor } from './worldBarDoors'
 
 /**
  * The five doors along the bottom (TECHNICAL_REQUIREMENTS.md section 32).
@@ -19,23 +19,8 @@ import type { EchoStatus } from '../../lib/echoApi'
  * anybody.
  */
 
-export type Door = 'talk' | 'echo' | 'world' | 'events' | 'me'
-
 /** Sent when Sol is tapped while you are already in the world. */
 export const HOME_EVENT = 'cos:home'
-
-/** Which door a path belongs to, or null where the bar is not shown. */
-export function doorOf(pathname: string): Door | null {
-  if (pathname === '/sky/talk') return 'talk'
-  if (pathname === '/sky' || pathname.startsWith('/sky/')) return 'world'
-  if (pathname === '/echo') return 'echo'
-  if (pathname === '/events') return 'events'
-  // Your page and your friends are "me"; somebody else's page is reached
-  // from the world, so the world's door stays lit there.
-  if (pathname === '/profile' || pathname === '/friends') return 'me'
-  if (pathname.startsWith('/profiles/')) return 'world'
-  return null
-}
 
 const PATH: Record<Door, string> = {
   talk: '/sky/talk',
@@ -43,27 +28,6 @@ const PATH: Record<Door, string> = {
   world: '/sky',
   events: '/events',
   me: '/profile',
-}
-
-/**
- * What Echo's door says without a word (section 32, the owner's design):
- *
- * - shut — the two lights still, faint, a little apart;
- * - open — the two turn slowly round each other: Echo's world is alive;
- * - busy — the same, a little quicker: somebody is waiting right now for
- *   a new person, an invitation rather than an alarm;
- * - seeking — you are searching: one light (you) stays in the middle and
- *   the other circles it, looking for you. A different motion from "open",
- *   not only a faster one, so the two states never read as each other.
- *
- * Told apart by motion and shape, never by colour alone.
- */
-export type EchoDoor = 'shut' | 'open' | 'busy' | 'seeking'
-
-export function echoDoorOf(status: EchoStatus | null): EchoDoor {
-  if (!status || !status.open_now) return status?.waiting ? 'seeking' : 'shut'
-  if (status.waiting) return 'seeking'
-  return (status.waiting_now ?? 0) > 0 ? 'busy' : 'open'
 }
 
 function EchoMark({ state }: { state: EchoDoor }) {

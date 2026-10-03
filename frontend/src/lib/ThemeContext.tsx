@@ -10,8 +10,6 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
  * differently-hued themes meant the app had no single visual identity at
  * all, which is exactly what the redesign set out to fix.
  */
-export const THEMES = ['dark'] as const
-
 export type Theme = 'dark' | 'light'
 
 /** Dark only (section 32, step 4: the owner took the theme choice out).
@@ -52,6 +50,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>
 }
 
+// The hook lives beside its provider on purpose: they share one private
+// context, and splitting them would make every caller and every test mock
+// reach into two modules for one thing.
+// oxlint-disable-next-line react/only-export-components
 export function useTheme(): ThemeState {
   return useContext(ThemeContext)
 }

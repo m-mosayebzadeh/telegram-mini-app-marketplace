@@ -20,9 +20,12 @@ export default function BlockedPeople() {
   const [busy, setBusy] = useState<number | null>(null)
 
   const load = useCallback(() => {
-    setError(null)
     fetchBlocked()
-      .then(setPeople)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setPeople(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }, [])
   useEffect(load, [load])

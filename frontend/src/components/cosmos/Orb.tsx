@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
+import { clamp01, orbSize } from './orbSize'
 
 /**
  * How the world draws a person.
@@ -20,13 +21,6 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
  * Money is deliberately absent: an orb never shows that its person sells
  * anything (section 26).
  */
-
-/** Presence is kept in a narrow band on purpose. If the range were wide,
- *  a few people would tower over the sky and everybody else would stop
- *  trying — and "who is biggest" is not a competition this product wants
- *  to run. */
-const MIN_SIZE = 44
-const MAX_SIZE = 76
 
 /** The colours an orb's body is made of. Not meaningful — two people with
  *  the same colours have nothing in common; it exists so a sky of fifty
@@ -231,17 +225,4 @@ function Moons({ count, size, seed }: { count: number; size: number; seed: numbe
   )
 }
 
-function clamp01(value: number): number {
-  if (Number.isNaN(value)) return 0
-  return Math.min(1, Math.max(0, value))
-}
-
-/** How big somebody's orb is drawn, from their presence — the one copy of
- *  that arithmetic, for anything placed relative to an orb. */
-export function orbSize(presence: number): number {
-  return Math.round(MIN_SIZE + clamp01(presence) * (MAX_SIZE - MIN_SIZE))
-}
-
-export const ORB_MIN_SIZE = MIN_SIZE
-export const ORB_MAX_SIZE = MAX_SIZE
 export const ORB_BODY_COUNT = BODIES.length

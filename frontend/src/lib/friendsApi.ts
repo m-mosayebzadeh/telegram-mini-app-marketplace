@@ -45,6 +45,17 @@ export function fetchFriendRequests(): Promise<FriendPerson[]> {
   return apiFetch<FriendPerson[]>('/friends/requests')
 }
 
+/** Somebody you really talked with this week and are not friends with yet. */
+export interface WeekPerson extends FriendPerson {
+  /** Where a request between you stands: never "friends" here. */
+  status: Exclude<FriendStatus, 'friends'>
+}
+
+/** The people of this week, for the empty half of "me" (section 32). */
+export function fetchThisWeek(): Promise<WeekPerson[]> {
+  return apiFetch<WeekPerson[]>('/friends/this-week')
+}
+
 export function fetchTheirFriends(userId: number): Promise<TheirFriends> {
   return apiFetch<TheirFriends>(`/profiles/${userId}/friends`)
 }

@@ -12,6 +12,8 @@ export interface SkyPerson {
   username: string | null
   initial: string
   tagline: string | null
+  /** When that note was written, for the small hour under it. */
+  tagline_at?: string | null
   avatar_url: string | null
   presence: number
   trust: number

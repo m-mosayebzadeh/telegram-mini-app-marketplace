@@ -1,6 +1,5 @@
-import { StrictMode, type ReactNode } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { AppRoot } from '@telegram-apps/telegram-ui'
 import '@telegram-apps/telegram-ui/dist/styles.css'
 // Order matters: tokens define the values, base consumes them for the
 // document defaults, theme.css (the legacy .hp-* layer, being migrated
@@ -16,32 +15,14 @@ import './styles/cosmos.css'
 // src/i18n/config.ts).
 import './i18n/config.ts'
 import App from './App.tsx'
-import { ThemeProvider, useTheme } from './lib/ThemeContext.tsx'
+import { ThemeProvider } from './lib/ThemeContext.tsx'
+import { KitRoot } from './components/KitRoot'
 import { ToastProvider } from './components/ui'
 import { applyLightGraphics } from './lib/lightGraphics'
 
 // Before the first paint, so a cheap phone never draws the heavy version
 // first (lib/lightGraphics.ts).
 applyLightGraphics()
-
-// AppRoot is the Telegram UI kit's theming wrapper. It still wraps the
-// tree because a handful of kit components (Spinner, Placeholder, Input)
-// are not migrated yet; once they are, both it and the kit's stylesheet
-// above come out — the redesign's "one design system, not two" rule.
-//
-// Left to itself AppRoot picks its own appearance from Telegram (or the
-// OS) and paints that colour over the whole tree, which is how the app
-// ended up with light text tokens on the kit's dark ground. It is not
-// allowed a say: it is told which appearance we are in, so the kit
-// components that are still here at least land on the right side.
-function KitRoot({ children }: { children: ReactNode }) {
-  const { theme } = useTheme()
-  return (
-    <AppRoot appearance={theme} className="app-kit-root">
-      {children}
-    </AppRoot>
-  )
-}
 
 // ThemeProvider stays OUTSIDE KitRoot: it stamps data-theme onto <html>,
 // and this app's light/dark identity is its own, not AppRoot's.

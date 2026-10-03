@@ -22,9 +22,12 @@ export default function BuyerSummary() {
   const [error, setError] = useState<string | null>(null)
 
   function load() {
-    setError(null)
     apiFetch<BuyerSummaryType>(`/profiles/${id}/buyer-summary`)
-      .then(setSummary)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setSummary(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }
 

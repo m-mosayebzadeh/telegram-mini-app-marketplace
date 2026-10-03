@@ -19,7 +19,13 @@ phone on its own clock:
    the bar can quicken. One count for the whole server instead of one
    request every four seconds from every phone that is waiting.
 
-Each server process runs its own heartbeat over its own connections.
+3. **Faded notes.** Once an hour, notes older than a day are erased from
+   the database, not only hidden (the owner's decision; app/profile/note.py).
+   One statement over a small index of the rows that have a note.
+
+Each server process runs its own heartbeat over its own connections. The
+note sweep is harmless if two processes both run it: the second finds
+nothing left to erase.
 """
 
 import asyncio
@@ -34,6 +40,7 @@ from app.core.time import utcnow
 from app.live.hub import hub
 from app.models.random_chat import RandomChatTicket
 from app.models.user import User
+from app.profile.note import erase_faded_notes
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +50,10 @@ SEEN_EVERY = timedelta(seconds=60)
 
 #: How often Echo's numbers are looked at. Only sent when they changed.
 ECHO_EVERY = timedelta(seconds=5)
+
+#: How often faded notes are erased. A note is already hidden the moment
+#: it turns a day old; this only decides how soon it leaves the database.
+NOTES_EVERY = timedelta(hours=1)
 
 #: Big lists are written in pieces, so one statement never carries tens
 #: of thousands of ids.
@@ -96,6 +107,9 @@ async def run_pulse(stop: asyncio.Event) -> None:
     """The heartbeat itself, started with the server and stopped with it."""
     echo = EchoPulse()
     since_seen = SEEN_EVERY
+    # The first sweep comes with the first beat, so a server that restarts
+    # often still erases faded notes.
+    since_notes = NOTES_EVERY
     while not stop.is_set():
         try:
             await asyncio.wait_for(stop.wait(), ECHO_EVERY.total_seconds())
@@ -103,16 +117,23 @@ async def run_pulse(stop: asyncio.Event) -> None:
         except asyncio.TimeoutError:
             pass
         since_seen += ECHO_EVERY
+        since_notes += ECHO_EVERY
+        write_seen = since_seen >= SEEN_EVERY
+        sweep_notes = since_notes >= NOTES_EVERY
         try:
-            await asyncio.to_thread(_beat, echo, since_seen >= SEEN_EVERY)
+            await asyncio.to_thread(_beat, echo, write_seen, sweep_notes)
         except Exception:  # a missed beat must never stop the next one
             log.exception("pulse beat failed")
-        if since_seen >= SEEN_EVERY:
+        if write_seen:
             since_seen = timedelta(0)
+        if sweep_notes:
+            since_notes = timedelta(0)
 
 
-def _beat(echo: EchoPulse, write_seen: bool) -> None:
+def _beat(echo: EchoPulse, write_seen: bool, sweep_notes: bool = False) -> None:
     with SessionLocal() as db:
         if write_seen:
             mark_connected_as_seen(db)
+        if sweep_notes:
+            erase_faded_notes(db)
         echo.tick(db)

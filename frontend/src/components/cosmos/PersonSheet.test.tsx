@@ -70,4 +70,12 @@ describe('the card of somebody tapped', () => {
     expect(host.textContent).toContain('sky.hasNewsForYou')
     expect(host.querySelector('.cos-person-limit')?.textContent).toBe('sky.dailyLimit')
   })
+
+  it('answers their note with one tap, and says when it was written', () => {
+    let answered = 0
+    render({ lineAt: new Date().toISOString(), onReplyNote: () => { answered += 1 } })
+    act(() => (host.querySelector('button.cos-person-line') as HTMLElement).click())
+    expect(answered).toBe(1)
+    expect(host.querySelector('.cos-person-when')?.textContent).toBe('note.writtenAt')
+  })
 })

@@ -38,7 +38,7 @@ describe('the full list', () => {
 
 describe('emoji as pictures', () => {
   it('names the picture by its code points, without FE0F', async () => {
-    const { emojiFile } = await import('./emojiImage')
+    const { emojiFile } = await import('./emojiFile')
     expect(emojiFile('😀')).toBe('/emoji/1f600.webp')
     expect(emojiFile('❤️')).toBe('/emoji/2764.webp')
     expect(emojiFile('👋🏽')).toBe('/emoji/1f44b-1f3fd.webp')

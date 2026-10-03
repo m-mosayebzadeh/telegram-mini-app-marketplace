@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => ({
   live: null as null | ((event: unknown) => void),
 }))
 mocks.live = (event) => mocks.listeners.forEach((listener) => listener(event))
+// The paid session inside a conversation is hidden in this version
+// (lib/paidLayer.ts), but its band is kept working for when it returns:
+// these tests run with the paid layer switched on.
+vi.mock('../lib/paidLayer', () => ({ PAID_LAYER: true }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: mocks.t, i18n: { language: 'fa' } }),
 }))
@@ -578,5 +582,87 @@ describe('a paid session inside the conversation', () => {
     const band = host.querySelector('.cos-talk-session')!
     expect(band.classList.contains('is-running')).toBe(true)
     expect(band.querySelector('.cos-talk-session-foot')).toBeNull()
+  })
+})
+
+/**
+ * Answering somebody's note of the day (section 32): the conversation opens
+ * with the note in the bar above the box, the first message carries it,
+ * and a message that answered a note shows it quoted.
+ */
+describe('answering a note of the day', () => {
+  let host: HTMLDivElement
+  let root: Root
+
+  beforeEach(() => {
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    mocks.api.mockReset()
+    Element.prototype.scrollIntoView = vi.fn()
+    window.matchMedia = ((query: string) => ({ matches: true, media: query })) as unknown as typeof window.matchMedia
+  })
+  afterEach(() => {
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  async function open(messages: ConversationMessage[], state?: unknown) {
+    mocks.api.mockImplementation((path: string, options?: { method?: string; body?: FormData }) => {
+      if (path === '/conversations/10' && !options) return Promise.resolve(thread())
+      if (path === '/conversations/10/messages' && !options) return Promise.resolve(messages)
+      if (path === '/conversations/10/messages' && options?.method === 'POST') {
+        const body = options.body as FormData
+        return Promise.resolve({
+          ...message(50, ME, String(body.get('text'))),
+          client_id: String(body.get('client_id')),
+          note_quote: body.get('to_note') ? 'anyone for a walk?' : null,
+        })
+      }
+      return Promise.resolve(undefined)
+    })
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={[{ pathname: '/conversations/10', state }]}>
+          <Routes>
+            <Route path="/conversations/:id" element={<Conversation />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    })
+    await act(async () => {})
+    await act(async () => {})
+  }
+
+  it('opens with the note above the box, and the first message answers it', async () => {
+    await open([], { noteReply: { note: 'anyone for a walk?' } })
+    expect(host.querySelector('.cos-talk-context')?.textContent).toContain('anyone for a walk?')
+    const field = host.querySelector('.cos-talk-field') as HTMLTextAreaElement
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!
+    await act(async () => {
+      setter.call(field, 'me!')
+      field.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+    await act(async () => {})
+    const sent = mocks.api.mock.calls.find(([path, options]) => path === '/conversations/10/messages' && options?.method === 'POST')
+    expect((sent![1]!.body as FormData).get('to_note')).toBe('true')
+    // Only the first message answers it.
+    expect(host.querySelector('.cos-talk-context')).toBeNull()
+  })
+
+  it('can let the note go, like a reply', async () => {
+    await open([], { noteReply: { note: 'anyone for a walk?' } })
+    await act(async () => (host.querySelector('.cos-talk-context .cos-talk-tool') as HTMLElement).click())
+    expect(host.querySelector('.cos-talk-context')).toBeNull()
+  })
+
+  it('shows the note a message answered, quoted above it', async () => {
+    await open([{ ...message(1, SARA, 'me!'), note_quote: 'anyone for a walk?' }])
+    const quote = host.querySelector('.cos-bubble-quote.is-note')
+    expect(quote?.textContent).toContain('talk.aboutNote')
+    expect(quote?.textContent).toContain('anyone for a walk?')
   })
 })

@@ -259,6 +259,8 @@ export interface PublicProfile {
   bio: string | null
   /** The note of the day while it lasts (section 32), else null. */
   note?: string | null
+  /** When the note was written, for the small hour under it. */
+  note_at?: string | null
   location: string | null
   interests: string[]
   // "پروفایل معتبر" — see backend/app/models/profile.py's Profile.is_trusted

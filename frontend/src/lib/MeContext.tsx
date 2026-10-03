@@ -87,6 +87,10 @@ export function MeProvider({ children }: { children: ReactNode }) {
 
 /** `me` is null while still loading OR if the fetch failed — check
  * `error` to tell those two cases apart. */
+// The hook lives beside its provider on purpose: they share one private
+// context, and splitting them would make every caller and every test mock
+// reach into two modules for one thing.
+// oxlint-disable-next-line react/only-export-components
 export function useMe(): MeState {
   return useContext(MeContext)
 }

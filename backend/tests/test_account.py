@@ -184,3 +184,67 @@ def test_an_empty_note_takes_it_down(client, db_session):
     client.put("/profile/me/note", json={"text": "hi"}, headers=_auth(8095))
     assert client.put("/profile/me/note", json={"text": ""}, headers=_auth(8095)).json()["note"] is None
     assert client.put("/profile/me/note", json={"text": "x" * 61}, headers=_auth(8095)).status_code == 422
+
+
+def test_the_note_says_when_it_was_written(client, db_session):
+    me = _user(client, db_session, 8096, "Me")
+    _user(client, db_session, 8097, "Other")
+    client.put("/profile/me/note", json={"text": "tea and a book"}, headers=_auth(8096))
+    seen = client.get(f"/profiles/{me.id}", headers=_auth(8097)).json()
+    assert seen["note_at"] is not None
+    person = next(p for p in client.get("/sky", headers=_auth(8097)).json() if p["user_id"] == me.id)
+    assert person["tagline_at"] == seen["note_at"]
+    # No note, no hour.
+    client.put("/profile/me/note", json={"text": ""}, headers=_auth(8096))
+    assert client.get(f"/profiles/{me.id}", headers=_auth(8097)).json()["note_at"] is None
+
+
+def test_a_faded_note_is_erased_not_only_hidden(client, db_session):
+    from datetime import timedelta
+
+    from app.models.profile import Profile
+    from app.profile.note import erase_faded_notes
+
+    old = _user(client, db_session, 8098, "Old")
+    new = _user(client, db_session, 8099, "New")
+    client.put("/profile/me/note", json={"text": "yesterday"}, headers=_auth(8098))
+    client.put("/profile/me/note", json={"text": "today"}, headers=_auth(8099))
+    stale = db_session.query(Profile).filter_by(user_id=old.id).one()
+    stale.note_at = utcnow() - timedelta(hours=25)
+    db_session.commit()
+
+    assert erase_faded_notes(db_session) == 1
+    db_session.expire_all()
+    stale = db_session.query(Profile).filter_by(user_id=old.id).one()
+    assert (stale.note, stale.note_at) == (None, None)
+    assert db_session.query(Profile).filter_by(user_id=new.id).one().note == "today"
+
+
+def test_answering_a_note_keeps_a_copy_of_it_on_the_message(client, db_session):
+    from datetime import timedelta
+
+    from app.models.profile import Profile
+
+    _user(client, db_session, 8100, "Me")
+    them = _user(client, db_session, 8101, "Them")
+    client.put("/profile/me/note", json={"text": "anyone for a walk?"}, headers=_auth(8101))
+    thread = client.post("/conversations", json={"user_id": them.id}, headers=_auth(8100)).json()["id"]
+
+    sent = client.post(
+        f"/conversations/{thread}/messages", data={"text": "me!", "to_note": "true"}, headers=_auth(8100)
+    ).json()
+    assert sent["note_quote"] == "anyone for a walk?"
+    # They see the same quote on their side.
+    seen = client.get(f"/conversations/{thread}/messages", headers=_auth(8101)).json()
+    assert seen[-1]["note_quote"] == "anyone for a walk?"
+
+    # An ordinary message carries no quote, and a faded note quotes nothing.
+    plain = client.post(f"/conversations/{thread}/messages", data={"text": "hi"}, headers=_auth(8100)).json()
+    assert plain["note_quote"] is None
+    profile = db_session.query(Profile).filter_by(user_id=them.id).one()
+    profile.note_at = utcnow() - timedelta(hours=25)
+    db_session.commit()
+    late = client.post(
+        f"/conversations/{thread}/messages", data={"text": "still?", "to_note": "true"}, headers=_auth(8100)
+    ).json()
+    assert late["note_quote"] is None

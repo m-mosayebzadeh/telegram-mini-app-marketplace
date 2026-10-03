@@ -22,9 +22,12 @@ export default function AdminFeedback() {
 
   const load = useCallback(() => {
     if (!hasAccess) return
-    setError(null)
     fetchFeedback()
-      .then(setRows)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setRows(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }, [hasAccess])
   useEffect(load, [load])

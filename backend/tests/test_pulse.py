@@ -70,3 +70,26 @@ def test_the_door_knows_when_echo_shuts():
     assert schedule.minutes_until_close(10 * 60) is None
     schedule.always_open = True
     assert schedule.minutes_until_close(22 * 60 + 30) is None
+
+
+def test_the_heartbeat_sweeps_faded_notes_only_when_asked(monkeypatch):
+    calls = []
+
+    class FakeSession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(pulse, "SessionLocal", FakeSession)
+    monkeypatch.setattr(pulse, "erase_faded_notes", lambda db: calls.append("notes"))
+    monkeypatch.setattr(pulse, "mark_connected_as_seen", lambda db: calls.append("seen"))
+    echo = pulse.EchoPulse()
+    monkeypatch.setattr(echo, "tick", lambda db: calls.append("echo"))
+
+    pulse._beat(echo, write_seen=False, sweep_notes=False)
+    assert calls == ["echo"]
+    calls.clear()
+    pulse._beat(echo, write_seen=True, sweep_notes=True)
+    assert calls == ["seen", "notes", "echo"]

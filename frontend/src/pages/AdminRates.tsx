@@ -44,9 +44,10 @@ export default function AdminRates() {
 
   const load = useCallback(() => {
     if (!hasAccess) return
-    setLoadError(null)
     getPlatformRates()
       .then((r) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setLoadError(null)
         setStarRate(String(r.photon_to_toman_rate))
         setChatPercent(String(r.chat_commission_percent))
         setContentPercent(String(r.content_commission_percent))

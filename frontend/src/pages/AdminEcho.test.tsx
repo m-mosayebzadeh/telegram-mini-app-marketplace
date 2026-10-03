@@ -2,7 +2,8 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
-import AdminEcho, { fromClock, toClock } from './AdminEcho'
+import AdminEcho from './AdminEcho'
+import { fromClock, toClock } from '../lib/clock'
 
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),

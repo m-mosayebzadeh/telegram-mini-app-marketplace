@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   requests: vi.fn(),
   theirs: vi.fn(),
   ask: vi.fn(),
+  week: vi.fn(),
 }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }),
@@ -21,6 +22,7 @@ vi.mock('../lib/friendsApi', () => ({
   fetchFriends: mocks.friends,
   fetchFriendRequests: mocks.requests,
   fetchTheirFriends: mocks.theirs,
+  fetchThisWeek: mocks.week,
   askFriend: mocks.ask,
   acceptFriend: vi.fn(),
   endFriend: vi.fn(),
@@ -54,6 +56,7 @@ describe('the me page', () => {
     mocks.requests.mockReset().mockResolvedValue([])
     mocks.theirs.mockReset().mockResolvedValue({ visible: true, people: [] })
     mocks.ask.mockReset().mockResolvedValue({ status: 'requested' })
+    mocks.week.mockReset().mockResolvedValue([])
     mocks.navigate.mockReset()
     host = document.createElement('div')
     document.body.appendChild(host)
@@ -87,7 +90,7 @@ describe('the me page', () => {
     mocks.params = { id: '2' }
     mocks.apiFetch.mockResolvedValue(profile({ user_id: 2, display_name: 'Niloofar', note: 'A good book?' }))
     await open()
-    expect(host.querySelector('.cos-me-note')?.textContent).toBe('A good book?')
+    expect(host.querySelector('.cos-me-note')?.textContent).toContain('A good book?')
     await act(async () => button('friends.ask')!.click())
     expect(mocks.ask).toHaveBeenCalledWith(2)
     await act(async () => button('friends.hello')!.click())
@@ -113,5 +116,63 @@ describe('the me page', () => {
     await open()
     expect(host.textContent).toContain('friends.closed')
     expect(host.querySelector('svg.cos-sky')).toBeNull()
+  })
+
+  it('reaches settings through one gear at the top, with no row repeating it', async () => {
+    await open()
+    await act(async () => button('settings.title')!.click())
+    expect(mocks.navigate).toHaveBeenCalledWith('/settings')
+    expect(host.textContent).not.toContain('friends.settingsRow')
+    expect(host.querySelectorAll('.cos-me-row')).toHaveLength(1)
+  })
+
+  it('shows the hour a note was written, small under it', async () => {
+    mocks.apiFetch.mockResolvedValue(profile({ note: 'tea and a book', note_at: new Date().toISOString() }))
+    await open()
+    expect(host.querySelector('.cos-me-note-when')?.textContent).toBe('note.writtenAt')
+  })
+
+  it('offers the people of your week a friendship, one tap each', async () => {
+    mocks.week.mockResolvedValue([
+      { ...person(7, 'Nima'), status: 'none' },
+      { ...person(8, 'Sahar'), status: 'requested' },
+      { ...person(9, 'Kian'), status: 'incoming' },
+    ])
+    await open()
+    const faces = host.querySelectorAll('.cos-me-week-faces > li')
+    expect(faces).toHaveLength(3)
+    expect([...host.querySelectorAll('.cos-me-week-act')].map((b) => b.textContent)).toEqual(['friends.ask', 'week.sent', 'friends.accept'])
+    await act(async () => (host.querySelector('.cos-me-week-act') as HTMLButtonElement).click())
+    expect(mocks.ask).toHaveBeenCalledWith(7)
+    await act(async () => (host.querySelector('.cos-me-week-open') as HTMLButtonElement).click())
+    expect(mocks.navigate).toHaveBeenCalledWith('/profiles/7')
+  })
+
+  it('invites a newcomer with nobody yet to Echo', async () => {
+    mocks.friends.mockResolvedValue([])
+    await open()
+    expect(host.querySelector('.cos-me-week.is-empty')).not.toBeNull()
+    await act(async () => button('week.emptyGo')!.click())
+    expect(mocks.navigate).toHaveBeenCalledWith('/echo')
+  })
+
+  it('says nothing about a quiet week to somebody who has friends', async () => {
+    await open()
+    expect(host.querySelector('.cos-me-week')).toBeNull()
+  })
+
+  it("does not ask for the week on somebody else's page", async () => {
+    mocks.params = { id: '2' }
+    mocks.apiFetch.mockResolvedValue(profile({ user_id: 2, display_name: 'Lena' }))
+    await open()
+    expect(mocks.week).not.toHaveBeenCalled()
+  })
+
+  it("answers somebody's note with one tap, the note going along", async () => {
+    mocks.params = { id: '2' }
+    mocks.apiFetch.mockResolvedValue(profile({ user_id: 2, display_name: 'Lena', note: 'anyone for a walk?' }))
+    await open()
+    await act(async () => (host.querySelector('button.cos-me-note') as HTMLButtonElement).click())
+    expect(mocks.navigate).toHaveBeenCalledWith('/conversations/with/2', { state: { noteReply: { note: 'anyone for a walk?' } } })
   })
 })

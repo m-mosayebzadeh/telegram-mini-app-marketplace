@@ -29,9 +29,12 @@ export default function WalletPage() {
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    setError(null)
     apiFetch<Balance>('/wallet/balance')
-      .then(setBalance)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setBalance(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }, [])
 

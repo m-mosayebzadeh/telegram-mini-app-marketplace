@@ -1,4 +1,5 @@
 import { Fragment, useState, type ReactNode } from 'react'
+import { emojiFile } from './emojiFile'
 
 /**
  * Emoji drawn as pictures rather than with the phone's own font.
@@ -11,17 +12,6 @@ import { Fragment, useState, type ReactNode } from 'react'
  * lazy loading does that — so a conversation with three emoji costs three
  * small files, not the whole set.
  */
-
-/** The picture's file for an emoji: its code points in hex, joined with
- *  dashes, without FE0F. Must match key_of() in scripts/build_emoji.py. */
-export function emojiFile(glyph: string): string {
-  const points: string[] = []
-  for (const char of glyph) {
-    const code = char.codePointAt(0) ?? 0
-    if (code !== 0xfe0f) points.push(code.toString(16))
-  }
-  return `/emoji/${points.join('-')}.webp`
-}
 
 /**
  * One emoji as a picture.

@@ -15,6 +15,7 @@ import {
   type Conversation,
 } from '../../lib/conversationApi'
 import { DeleteDialog } from './DeleteDialog'
+import { talkOrder } from './talkOrder'
 
 /**
  * Your conversations, as an ordinary list (TECHNICAL_REQUIREMENTS.md
@@ -64,20 +65,6 @@ interface Row {
 
 /** A face colour that is always the same for the same person. */
 const BODIES = [['#3e8f86', '#1c3f52'], ['#8a4f7d', '#2d1a3c'], ['#a8753a', '#3d2410'], ['#4f6fa8', '#1a2540'], ['#6f8f3e', '#243312'], ['#a84f4f', '#3c1a1a']]
-
-/** Pinned first, the first pinned highest; then the newest. */
-export function talkOrder<T extends { pinnedRank?: number | null; lastAt: string }>(rows: T[]): T[] {
-  return [...rows].sort((x, y) => {
-    const px = x.pinnedRank ?? null
-    const py = y.pinnedRank ?? null
-    if (px !== null || py !== null) {
-      if (px === null) return 1
-      if (py === null) return -1
-      return px - py
-    }
-    return y.lastAt > x.lastAt ? 1 : y.lastAt < x.lastAt ? -1 : 0
-  })
-}
 
 function fromRelation(r: Relation): Row {
   return {

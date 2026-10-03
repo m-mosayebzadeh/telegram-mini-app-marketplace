@@ -24,7 +24,7 @@ import Friends from './Friends'
 
 const person = (user_id: number, display_name: string) => ({ user_id, display_name, avatar_url: null, note: null, mutual: false })
 
-/** Your friends: plain first, a constellation on request (section 32). */
+/** Your friends: the requests, then your friends, as a plain list (section 32). */
 describe('the friends page', () => {
   let host: HTMLDivElement
   let root: Root
@@ -53,14 +53,16 @@ describe('the friends page', () => {
     expect(mocks.accept).toHaveBeenCalledWith(9)
   })
 
-  it('shows your constellation on request, and remembers it', async () => {
+  it('has no constellation view any more (the owner removed it)', async () => {
     await open()
-    await act(async () => button('friends.asSky').click())
-    expect(host.querySelector('svg.cos-sky')).not.toBeNull()
-    // The request is a star that says yes when tapped.
-    const star = host.querySelector('.cos-star-asking') as SVGGElement
-    await act(async () => star.dispatchEvent(new MouseEvent('click', { bubbles: true })))
-    expect(mocks.accept).toHaveBeenCalledWith(9)
-    expect(localStorage.getItem('cos-friends-view')).toBe('sky')
+    expect(host.querySelector('.cos-friends-switch')).toBeNull()
+    expect(host.querySelector('svg.cos-sky')).toBeNull()
+  })
+
+  it('says how to find friends when there are none yet', async () => {
+    mocks.friends.mockResolvedValue([])
+    mocks.requests.mockResolvedValue([])
+    await open()
+    expect(host.textContent).toContain('friends.empty')
   })
 })

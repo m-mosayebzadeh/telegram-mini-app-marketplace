@@ -84,6 +84,9 @@ export interface ConversationMessage {
   edited_at?: string | null
   reply_to_id?: number | null
   reply_to?: ReplyPreview | null
+  /** The note of the day this message answers, copied by the server when
+   *  it was sent (section 32). */
+  note_quote?: string | null
   reactions?: Reaction[]
 }
 
@@ -162,6 +165,12 @@ export function fetchMessages(id: number): Promise<ConversationMessage[]> {
   return apiFetch<ConversationMessage[]>(`/conversations/${id}/messages`)
 }
 
+/** What the conversation screen is opened with when somebody tapped a
+ *  note of the day to answer it (section 32). Passed as router state. */
+export interface NoteReplyState {
+  noteReply?: { note: string }
+}
+
 /**
  * Says something.
  *
@@ -174,12 +183,16 @@ export function sendText(
   text: string,
   clientId: string,
   replyToId?: number | null,
+  /** Answering the other person's note of the day: the server copies the
+   *  note itself, so only "yes, it answers the note" is sent. */
+  toNote = false,
 ): Promise<ConversationMessage> {
   const body = new FormData()
   body.append('type', 'text')
   body.append('text', text)
   body.append('client_id', clientId)
   if (replyToId) body.append('reply_to_id', String(replyToId))
+  if (toNote) body.append('to_note', 'true')
   return apiFetch<ConversationMessage>(`/conversations/${id}/messages`, {
     method: 'POST',
     body,

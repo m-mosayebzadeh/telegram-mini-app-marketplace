@@ -21,9 +21,12 @@ export default function ProviderSummary() {
   const [error, setError] = useState<string | null>(null)
 
   function load() {
-    setError(null)
     apiFetch<ProviderSummaryType>(`/profiles/${id}/provider-summary`)
-      .then(setSummary)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setSummary(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }
 

@@ -39,9 +39,12 @@ export default function AdminRoles() {
   const [busy, setBusy] = useState(false)
 
   function load() {
-    setError(null)
     listRoles()
-      .then(setRoles)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setRoles(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }
 

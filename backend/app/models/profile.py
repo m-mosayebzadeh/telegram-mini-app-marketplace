@@ -10,7 +10,7 @@ be a regular one-to-many relationship (one user could have many profiles).
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Integer, String
+from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -142,8 +142,10 @@ class Profile(Base):
         Boolean, default=False, server_default="false", nullable=False
     )
 
-    #: The note of the day, in place of a bio (app/profile/note.py). Kept
-    #: after it fades, so writing tomorrow's starts from today's words.
+    #: The note of the day, in place of a bio (app/profile/note.py). Gone
+    #: a day after it was written — erased, not only hidden (the owner's
+    #: decision): a note says how somebody was today, and keeping it
+    #: afterwards would be keeping something nobody agreed to leave behind.
     note: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
     #: Who may see this person's list of friends (models/friendship.py):
@@ -170,6 +172,14 @@ class Profile(Base):
             "(birthday_month BETWEEN 1 AND 12 AND birthday_day BETWEEN 1 AND 31 "
             " AND (birthday_year IS NULL OR birthday_year BETWEEN 1900 AND 2100))",
             name="ck_birthday_both_or_neither",
+        ),
+        # The hourly sweep that erases faded notes finds them through this,
+        # so it never reads every profile. Only rows with a note are in it,
+        # which keeps it small: most people have no note most of the time.
+        Index(
+            "ix_profiles_note_at",
+            "note_at",
+            postgresql_where=text("note_at IS NOT NULL"),
         ),
     )
 

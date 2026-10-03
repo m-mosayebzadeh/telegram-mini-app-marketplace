@@ -32,6 +32,16 @@ afterEach(() => {
 })
 
 describe('VoicePlayer', () => {
+  it('stops the voice when the conversation is left', async () => {
+    await render('blob:recording')
+    const audio = container.querySelector('audio') as HTMLAudioElement
+    const pause = vi.spyOn(audio, 'pause').mockImplementation(() => {})
+    act(() => root.unmount())
+    expect(pause).toHaveBeenCalled()
+    // afterEach unmounts again; a fresh root keeps that harmless.
+    root = createRoot(container)
+  })
+
   it('offers playback when there is audio to play', async () => {
     await render('blob:recording')
 

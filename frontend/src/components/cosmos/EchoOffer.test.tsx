@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EchoProposal, EchoStatus } from '../../lib/echoApi'
 import { resetEchoStore, setEcho } from '../../lib/echoStore'
 import { EchoOffer } from './EchoOffer'
-import { echoDoorOf } from './WorldBar'
+import { echoDoorOf } from './worldBarDoors'
 
 const mocks = vi.hoisted(() => ({
   accept: vi.fn(),

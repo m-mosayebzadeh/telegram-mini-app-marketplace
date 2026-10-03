@@ -6,6 +6,7 @@ import { onReturn } from './onReturn'
 import { buildNews, loadDismissed, saveDismissed, type NewsItem } from './news'
 import { buildRelations, orderRelations, type Relation } from './relations'
 import { dealWith, type Deal } from './deal'
+import { PAID_LAYER } from './paidLayer'
 import type { ChatSession, IncomingFollowRequest, RequestActivity } from './types'
 
 /**
@@ -82,11 +83,15 @@ export interface World {
   dismiss: (key: string) => void
 }
 
+/** Stable empty answers, so nothing downstream re-renders for a new []. */
+const NONE_ACTIVITY: RequestActivity[] = []
+const NONE_SESSIONS: ChatSession[] = []
+const NONE_FOLLOWS: IncomingFollowRequest[] = []
+
 export function useWorld(): World {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activity, setActivity] = useState<RequestActivity[]>([])
   const [sessions, setSessions] = useState<ChatSession[]>([])
-  const [follows, setFollows] = useState<IncomingFollowRequest[]>([])
   const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed())
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -131,15 +136,19 @@ export function useWorld(): World {
   const reload = useCallback(async () => {
     try {
       // Each source stands on its own: one failing must not blank the
-      // others, so a missing follow list still leaves the stair working.
-      const [c, a, s, f] = await Promise.allSettled([
-        readConversations(), fetchActivity(), fetchMySessions(), fetchIncomingFollows(),
+      // others. Requests and sessions belong to the paid layer, which is
+      // off in this version (lib/paidLayer.ts), so they are not asked for
+      // at all — two requests on every visit that nobody could see.
+      // Follow requests are gone for good: friendship replaced following.
+      const [c, a, s] = await Promise.allSettled([
+        readConversations(),
+        PAID_LAYER ? fetchActivity() : Promise.resolve(NONE_ACTIVITY),
+        PAID_LAYER ? fetchMySessions() : Promise.resolve(NONE_SESSIONS),
       ])
       if (!alive.current) return
       if (a.status === 'fulfilled') setActivity(a.value)
       if (s.status === 'fulfilled') setSessions(s.value)
-      if (f.status === 'fulfilled') setFollows(f.value)
-      const failed = [c, a, s, f].find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined
+      const failed = [c, a, s].find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined
       setError(failed ? String(failed.reason?.message ?? failed.reason) : null)
     } finally {
       if (alive.current) setLoaded(true)
@@ -167,10 +176,12 @@ export function useWorld(): World {
       stopReturn()
       unsubscribe()
     }
-  }, [reload])
+    // readConversations never changes (it has no dependencies of its own);
+    // listing it keeps the effect honest without ever re-running it.
+  }, [reload, readConversations])
 
   const relations = useMemo(() => orderRelations(buildRelations(conversations, activity, sessions)), [conversations, activity, sessions])
-  const news = useMemo(() => buildNews(relations, follows, sessions, dismissed), [relations, follows, sessions, dismissed])
+  const news = useMemo(() => buildNews(relations, NONE_FOLLOWS, sessions, dismissed), [relations, sessions, dismissed])
   const liveSession = useMemo(() => sessions.find((s) => s.status === 'open') ?? null, [sessions])
 
   const dismiss = useCallback((key: string) => {
@@ -202,6 +213,9 @@ export function useDeal(userId: number | null): { deal: Deal | null; sessions: C
   const alive = useRef(true)
 
   const reload = useCallback(async () => {
+    // The paid layer is off (lib/paidLayer.ts): there is no deal to keep
+    // fresh, and this used to cost two requests on every message.
+    if (!PAID_LAYER) return
     const [a, s] = await Promise.allSettled([fetchActivity(), fetchMySessions()])
     if (!alive.current) return
     // Only a list is taken as an answer: this runs inside the conversation
@@ -213,6 +227,9 @@ export function useDeal(userId: number | null): { deal: Deal | null; sessions: C
   useEffect(() => {
     alive.current = true
     if (userId === null) return
+    // Set only once the two requests answer (or never, with the paid layer
+    // off); the rule cannot see past the await inside reload.
+    // oxlint-disable-next-line react/set-state-in-effect
     void reload()
     const unsubscribe = subscribe((event) => {
       if (event.type === 'message' || event.type === 'ready' || event.type === 'requests') void reload()

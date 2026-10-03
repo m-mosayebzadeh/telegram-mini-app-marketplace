@@ -52,7 +52,7 @@ describe('apiFetch', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
     const [url, options] = vi.mocked(fetch).mock.calls[0]
     expect(url).toBe('/api/me')
-    expect((options?.headers as Record<string, string>)['X-Telegram-Init-Data']).toBe(
+    expect((options!.headers as Record<string, string>)['X-Telegram-Init-Data']).toBe(
       'real-init-data-from-telegram',
     )
   })
@@ -76,7 +76,7 @@ describe('apiFetch', () => {
     // fresh dev initData, since a choice was already stored.
     expect(fetch).toHaveBeenCalledTimes(1)
     const options = vi.mocked(fetch).mock.calls[0][1]
-    expect((options?.headers as Record<string, string>)['X-Telegram-Init-Data']).toBe(
+    expect((options!.headers as Record<string, string>)['X-Telegram-Init-Data']).toBe(
       'chosen-test-user-init-data',
     )
   })
@@ -111,7 +111,7 @@ describe('apiFetch', () => {
     await apiFetch('/content', { method: 'POST', body })
 
     const options = vi.mocked(fetch).mock.calls[0][1]
-    expect((options?.headers as Record<string, string>)['Content-Type']).toBeUndefined()
+    expect((options!.headers as Record<string, string>)['Content-Type']).toBeUndefined()
   })
 
   it('sets Content-Type: application/json on a plain object body', async () => {
@@ -122,7 +122,7 @@ describe('apiFetch', () => {
     await apiFetch('/profile/me', { method: 'PUT', body: JSON.stringify({ bio: 'hi' }) })
 
     const options = vi.mocked(fetch).mock.calls[0][1]
-    expect((options?.headers as Record<string, string>)['Content-Type']).toBe('application/json')
+    expect((options!.headers as Record<string, string>)['Content-Type']).toBe('application/json')
   })
 
   it('resolves init data only once and reuses it across multiple calls', async () => {

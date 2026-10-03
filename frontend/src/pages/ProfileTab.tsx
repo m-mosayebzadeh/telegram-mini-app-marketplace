@@ -6,7 +6,8 @@ import { ConfirmDialog, ErrorState, useToast } from '../components/ui'
 import { Sheet } from '../components/ui/Sheet'
 import { ReportSheet } from '../components/cosmos/ReportSheet'
 import { MeetingSky } from '../components/cosmos/Constellation'
-import { MAX_NOTE, saveNote } from '../components/profile/NoteBubble'
+import { MAX_NOTE, saveNote } from '../lib/noteApi'
+import { noteTime } from '../lib/noteTime'
 import { blockPerson } from '../lib/accountApi'
 import {
   acceptFriend,
@@ -15,9 +16,11 @@ import {
   fetchFriendRequests,
   fetchFriends,
   fetchTheirFriends,
+  fetchThisWeek,
   type FriendPerson,
   type FriendStatus,
   type TheirFriends,
+  type WeekPerson,
 } from '../lib/friendsApi'
 import { subscribe } from '../lib/live'
 import { useMe } from '../lib/MeContext'
@@ -54,6 +57,7 @@ export default function ProfileTab() {
   const [friends, setFriends] = useState<FriendPerson[]>([])
   const [requests, setRequests] = useState<FriendPerson[]>([])
   const [theirs, setTheirs] = useState<TheirFriends | null>(null)
+  const [week, setWeek] = useState<WeekPerson[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -69,12 +73,18 @@ export default function ProfileTab() {
 
   const load = useCallback(() => {
     if (targetId == null) return
-    setError(null)
     apiFetch<PublicProfile>(`/profiles/${targetId}`)
-      .then(setProfile)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setProfile(value)
+      })
       .catch((err) => setError(formatApiError(err)))
     fetchFriends().then(setFriends).catch(() => {})
-    if (isOwn) fetchFriendRequests().then(setRequests).catch(() => {})
+    if (isOwn) {
+      fetchFriendRequests().then(setRequests).catch(() => {})
+      fetchThisWeek().then(setWeek).catch(() => setWeek([]))
+    }
     else fetchTheirFriends(targetId).then(setTheirs).catch(() => setTheirs(null))
   }, [targetId, isOwn])
 
@@ -135,13 +145,16 @@ export default function ProfileTab() {
   const theirOnly = (theirs?.people ?? []).filter((p) => !p.mutual)
   const mineOnly = friends.filter((f) => f.user_id !== targetId && !shared.some((s) => s.user_id === f.user_id))
   const n = (value: number) => value.toLocaleString(i18n.language)
+  // The hour the note was written, small under it (section 32).
+  const written = profile?.note ? noteTime(profile.note_at, i18n.language) : null
+  const noteWhen = written ? t(written.key, { time: written.time }) : null
 
   return (
     <div className={`cos-me${isOwn ? '' : ' is-theirs'}`}>
       <div className="cos-me-head">
         {isOwn ? (
           <button type="button" className="cos-me-icon" onClick={() => navigate('/settings')} aria-label={t('settings.title')}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M12 2.5v3M12 18.5v3M4.2 6.2l2.1 2.1M17.7 15.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 17.8l2.1-2.1M17.7 8.3l2.1-2.1" /></svg>
+            <GearIcon />
           </button>
         ) : (
           <>
@@ -160,9 +173,24 @@ export default function ProfileTab() {
         {isOwn ? (
           <button type="button" className={`cos-me-note${profile?.note ? '' : ' is-empty'}`} dir={profile?.note ? 'auto' : undefined} onClick={() => setNoteOpen(true)}>
             {profile?.note ?? t('note.add')}
+            {noteWhen && <small className="cos-me-note-when">{noteWhen}</small>}
           </button>
         ) : (
-          profile?.note && <p className="cos-me-note" dir="auto">{profile.note}</p>
+          profile?.note && (
+            // Somebody else's note answers with one tap (section 32): the
+            // conversation opens with the note quoted.
+            <button
+              type="button"
+              className="cos-me-note"
+              dir="auto"
+              aria-label={t('note.replyTo', { note: profile.note })}
+              onClick={() => navigate(`/conversations/with/${profile.user_id}`, { state: { noteReply: { note: profile.note! } } })}
+            >
+              {profile.note}
+              {noteWhen && <small className="cos-me-note-when">{noteWhen}</small>}
+              <small className="cos-me-note-when is-reply">{t('note.reply')}</small>
+            </button>
+          )
         )}
 
         {isOwn ? (
@@ -233,15 +261,23 @@ export default function ProfileTab() {
             {requests.length > 0 && <span className="cos-me-badge">{n(requests.length)}</span>}
             <Chevron />
           </button>
-          <button type="button" className="cos-me-row" onClick={() => navigate('/settings')}>
-            <span className="cos-me-row-main">
-              <span>{t('friends.settingsRow')}</span>
-              <small>{t('friends.settingsHint')}</small>
-            </span>
-            <Chevron />
-          </button>
         </div>
-      ) : theirs && !theirs.visible ? (
+      ) : null}
+
+      {isOwn && week !== null && (
+        <WeekPeople
+          people={week}
+          hasFriends={friends.length > 0}
+          busy={busy}
+          onOpen={(person) => navigate(`/profiles/${person.user_id}`)}
+          onAsk={(person) => void friendAction(() => askFriend(person.user_id), t('friends.sent'))}
+          onTakeBack={(person) => void friendAction(() => endFriend(person.user_id))}
+          onAccept={(person) => void friendAction(() => acceptFriend(person.user_id), t('friends.nowFriends', { name: person.display_name }))}
+          onEcho={() => navigate('/echo')}
+        />
+      )}
+
+      {isOwn ? null : theirs && !theirs.visible ? (
         <section className="cos-me-sky">
           <h2>{t('friends.title')}</h2>
           <p className="cos-me-closed">{t('friends.closed', { name })}</p>
@@ -346,6 +382,75 @@ function BackButton({ onClick, label, hidden }: { onClick: () => void; label: st
     <button type="button" className="cos-me-icon cos-me-back" onClick={onClick} aria-label={label}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M15 5 8 12l7 7" /></svg>
     </button>
+  )
+}
+
+/** Settings, drawn as the gear everybody already knows (the owner's
+ *  report: the old sun-like mark read as Sol or as brightness). It is the
+ *  only way to settings from here; the row that repeated it is gone. */
+const GearIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">
+    <path d="M10.3 2.8h3.4l.5 2.4 1.7.9 2.3-.9 1.7 2.9-1.8 1.6v2l1.8 1.6-1.7 2.9-2.3-.9-1.7.9-.5 2.4h-3.4l-.5-2.4-1.7-.9-2.3.9-1.7-2.9 1.8-1.6v-2L4.1 8.1l1.7-2.9 2.3.9 1.7-.9z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+
+/**
+ * "The people of your week" (section 32, "me" — the owner's choice for the
+ * empty half of the page): faces of the people you really talked with in
+ * the last seven days and are not friends with yet, each with one button.
+ * It is where an acquaintance turns into a friendship, which is what this
+ * product is for, so it lives on your own page rather than in a menu.
+ *
+ * A handful at most (the server sends eight), four to a row. With nobody
+ * this week and no friends yet — a newcomer — it becomes an invitation to
+ * Echo, the quickest way to a first real conversation. With friends but
+ * nobody new this week it says nothing: a quiet week is not a fault.
+ */
+function WeekPeople({ people, hasFriends, busy, onOpen, onAsk, onTakeBack, onAccept, onEcho }: {
+  people: WeekPerson[]
+  hasFriends: boolean
+  busy: boolean
+  onOpen: (person: WeekPerson) => void
+  onAsk: (person: WeekPerson) => void
+  onTakeBack: (person: WeekPerson) => void
+  onAccept: (person: WeekPerson) => void
+  onEcho: () => void
+}) {
+  const { t } = useTranslation()
+  if (people.length === 0) {
+    if (hasFriends) return null
+    return (
+      <section className="cos-me-week is-empty">
+        <p>{t('week.emptyText')}</p>
+        <button type="button" className="cos-me-btn is-main" onClick={onEcho}>{t('week.emptyGo')}</button>
+      </section>
+    )
+  }
+  return (
+    <section className="cos-me-week">
+      <h2>{t('week.title')}</h2>
+      <p className="cos-me-week-hint">{t('week.hint')}</p>
+      <ul className="cos-me-week-faces">
+        {people.map((person) => (
+          <li key={person.user_id}>
+            <button type="button" className="cos-me-week-open" onClick={() => onOpen(person)}>
+              <span className="cos-me-face">{person.avatar_url ? <img src={person.avatar_url} alt="" /> : person.display_name.slice(0, 1)}</span>
+              <span className="cos-me-week-name" dir="auto">{person.display_name}</span>
+            </button>
+            {person.status === 'none' && (
+              <button type="button" className="cos-me-week-act" disabled={busy} onClick={() => onAsk(person)}>{t('friends.ask')}</button>
+            )}
+            {person.status === 'requested' && (
+              <button type="button" className="cos-me-week-act is-quiet" disabled={busy} onClick={() => onTakeBack(person)}>{t('week.sent')}</button>
+            )}
+            {person.status === 'incoming' && (
+              <button type="button" className="cos-me-week-act" disabled={busy} onClick={() => onAccept(person)}>{t('friends.accept')}</button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

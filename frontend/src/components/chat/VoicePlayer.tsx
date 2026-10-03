@@ -32,10 +32,15 @@ export function VoicePlayer({ src, durationSeconds }: VoicePlayerProps) {
 
   useEffect(() => {
     // Leaving the conversation must not leave audio playing behind it.
+    // The element is held here, at the start: by the time this cleanup
+    // runs on leaving, React has already emptied the ref, so reading
+    // audioRef.current then found nothing and the voice played on.
+    // Keyed on src, so a new recording also stops the old one.
+    const audio = audioRef.current
     return () => {
-      audioRef.current?.pause()
+      audio?.pause()
     }
-  }, [])
+  }, [src])
 
   function toggle() {
     const audio = audioRef.current

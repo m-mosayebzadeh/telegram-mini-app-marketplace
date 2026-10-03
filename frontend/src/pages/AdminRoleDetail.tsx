@@ -54,9 +54,10 @@ export default function AdminRoleDetail() {
 
   function load() {
     if (roleId == null) return
-    setLoadError(null)
     getRole(roleId)
       .then((role) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setLoadError(null)
         setName(role.name)
         setScopes(role.scopes)
         setLoaded(true)

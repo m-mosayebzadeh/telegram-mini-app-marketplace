@@ -1,8 +1,9 @@
-import { act } from 'react'
+import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
-import Sky, { regionOf } from './Sky'
+import Sky from './Sky'
+import { regionOf } from '../lib/regions'
 import type { World } from '../lib/worldApi'
 
 vi.mock('react-i18next', () => ({
@@ -27,8 +28,13 @@ describe('regions of the world', () => {
   let root: Root
   let path = ''
 
+  // Reported from an effect, not while rendering: rendering must not
+  // change anything outside the component.
   function Where() {
-    path = useLocation().pathname
+    const { pathname } = useLocation()
+    useEffect(() => {
+      path = pathname
+    }, [pathname])
     return null
   }
 
@@ -65,7 +71,9 @@ describe('regions of the world', () => {
   let go: (to: string) => void = () => {}
   function Nav() {
     const navigate = useNavigate()
-    go = (to) => navigate(to)
+    useEffect(() => {
+      go = (to) => navigate(to)
+    }, [navigate])
     return null
   }
 

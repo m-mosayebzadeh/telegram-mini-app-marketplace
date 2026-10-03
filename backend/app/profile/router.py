@@ -25,7 +25,7 @@ from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User
 from app.friends.router import friend_status
-from app.profile.note import MAX_NOTE, fresh_note
+from app.profile.note import MAX_NOTE, fresh_note, fresh_note_at
 from app.profile.photos import get_current_avatar_url
 from app.profile.schemas import (
     BuyerSummaryOut,
@@ -83,6 +83,7 @@ def _to_profile_out(db: Session, profile: Profile) -> ProfileOut:
         gender=profile.gender,
         hide_birth_year=profile.hide_birth_year,
         note=fresh_note(profile),
+        note_at=fresh_note_at(profile),
     )
 
 
@@ -322,6 +323,7 @@ def read_public_profile(
         ),
         gender=profile.gender if profile else None,
         note=fresh_note(profile),
+        note_at=fresh_note_at(profile),
         friend_status=friend_status(db, current_user.id, user_id),
         followers_count=_followers_count(db, user_id),
         following_count=_following_count(db, user_id),

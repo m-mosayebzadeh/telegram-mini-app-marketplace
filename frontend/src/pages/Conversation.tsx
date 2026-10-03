@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
 import { ReportSheet } from '../components/cosmos/ReportSheet'
@@ -54,6 +54,7 @@ import {
   setConversationMuted,
   type Conversation as Thread,
   type ConversationMessage,
+  type NoteReplyState,
 } from '../lib/conversationApi'
 
 /**
@@ -87,6 +88,7 @@ export default function Conversation() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { userId, id } = useParams()
+  const opening = useLocation().state as NoteReplyState | null
   const { me } = useMe()
 
   const [thread, setThread] = useState<Thread | null>(null)
@@ -117,6 +119,12 @@ export default function Conversation() {
   /** Messages picked by holding one. Empty means not selecting. */
   const [selected, setSelected] = useState<Set<number>>(() => new Set())
   const [replyingTo, setReplyingTo] = useState<ShownMessage | null>(null)
+  /** Somebody's note of the day this conversation was opened to answer
+   *  (tapped in the world or on their page). The first message sent
+   *  carries it as a quote; it can be let go like a reply. */
+  const [answeringNote, setAnsweringNote] = useState<string | null>(
+    () => opening?.noteReply?.note ?? null,
+  )
   const [editing, setEditing] = useState<ShownMessage | null>(null)
   /** Messages waiting on the delete dialog's answer. */
   const [deleting, setDeleting] = useState<number[] | null>(null)
@@ -169,6 +177,9 @@ export default function Conversation() {
               : formatApiError(err),
         )
       })
+    // `t` only words an error; listing it would open the whole thread and
+    // fetch every message again whenever the language changes.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, id])
 
   useEffect(() => {
@@ -314,7 +325,9 @@ export default function Conversation() {
     }
 
     const answering = replyingTo
+    const note = answeringNote
     setReplyingTo(null)
+    setAnsweringNote(null)
     enqueue(
       {
         type: 'text',
@@ -323,8 +336,11 @@ export default function Conversation() {
         reply_to: answering
           ? { id: answering.id, sender_id: answering.sender_id, type: answering.type, text: answering.text }
           : null,
+        // Shown at once as sent; the server's copy (the note as it stands
+        // now) replaces it with the confirmed message.
+        note_quote: note,
       },
-      (threadId, clientId) => sendText(threadId, text, clientId, answering?.id),
+      (threadId, clientId) => sendText(threadId, text, clientId, answering?.id, note !== null),
     )
   }
 
@@ -699,6 +715,15 @@ export default function Conversation() {
           </button>
         )}
 
+        {message.note_quote && (
+          // The note it answers: a quote, not a button — the note itself
+          // is gone a day later, so there is nothing to jump to.
+          <span className="cos-bubble-quote is-note">
+            <span className="cos-bubble-quote-who">{t('talk.aboutNote')}</span>
+            <span className="cos-bubble-quote-text" dir="auto">{message.note_quote}</span>
+          </span>
+        )}
+
         {message.type === 'text' && message.text && <EmojiText text={message.text} />}
 
         {message.type === 'photo' && thread && (
@@ -962,6 +987,28 @@ export default function Conversation() {
         <p className="cos-talk-notice" role="status">
           {notice}
         </p>
+      )}
+
+      {answeringNote && !replyingTo && !editing && (
+        // Opened from somebody's note: the next message answers it, and the
+        // note rides along as a quote. The same bar as a reply, with the
+        // same way out.
+        <div className="cos-talk-context">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 6 4 12l6 6M4 12h10a6 6 0 0 1 6 6" />
+          </svg>
+          <span className="cos-talk-context-body">
+            <span className="cos-talk-context-title">
+              {t('talk.answeringNote', { name: thread?.others[0]?.display_name ?? '' })}
+            </span>
+            <span className="cos-talk-context-text" dir="auto">{answeringNote}</span>
+          </span>
+          <button className="cos-talk-tool" aria-label={t('common.cancel')} onClick={() => setAnsweringNote(null)}>
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
       )}
 
       {(replyingTo || editing) && (

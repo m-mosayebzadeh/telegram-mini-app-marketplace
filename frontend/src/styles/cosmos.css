@@ -2285,6 +2285,10 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
 .cos-bubble.is-mine .cos-bubble-quote {
   border-inline-start-color: var(--cos-warm);
 }
+/* A quoted note of the day: told apart from a quoted message by its
+   dashed edge (the note's own dashed outline on "me") and its words,
+   not by colour alone. It is not a button: there is nothing to jump to. */
+.cos-bubble-quote.is-note { border-inline-start-style: dashed; cursor: default; }
 
 .cos-bubble-quote-who {
   font-size: var(--cos-text-label);
@@ -4222,6 +4226,14 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
 .cos-person-flag { font-size: var(--cos-text-caption); color: var(--cos-news); }
 .cos-person-flag.is-live { color: var(--cos-live); }
 .cos-person-line { margin: 0; max-width: 30ch; text-align: center; font-size: var(--cos-text-body); line-height: var(--cos-leading-read); color: var(--cos-fg-soft); }
+/* When the note was written: small and close under it (pulled into the
+   note's own group, against the sheet's gap), never a sentence of its own. */
+button.cos-person-line { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 44px; padding: 6px 12px; border: 0; border-radius: 14px; background: transparent; font: inherit; cursor: pointer; }
+button.cos-person-line:active { background: rgb(233 242 240 / 6%); }
+button.cos-person-line:focus-visible { outline: 2px solid var(--cos-cool); outline-offset: 2px; }
+/* "Answer": small, under the note, so the note reads as a door. */
+.cos-person-reply { font-size: var(--cos-text-caption); color: var(--cos-cool); }
+.cos-person-when { margin: -8px 0 0; font-size: var(--cos-text-caption); color: var(--cos-fg-faint); }
 .cos-person-limit { margin: 0; font-size: var(--cos-text-label); color: var(--cos-warm-bright); text-align: center; }
 .cos-person-say,
 .cos-person-see { width: 100%; min-height: 52px; border-radius: var(--cos-radius-pill); font: inherit; cursor: pointer; }
@@ -4256,8 +4268,22 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
   overflow-y: auto;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  padding: calc(84px + env(safe-area-inset-top, 0px)) 16px calc(100px + env(safe-area-inset-bottom, 0px));
+  padding: calc(96px + env(safe-area-inset-top, 0px)) 16px calc(124px + env(safe-area-inset-bottom, 0px));
   animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+  /* Rows fade out before they reach the bar along the bottom and the
+     title along the top. Without it, a row passing under either showed
+     its words through them — under the doors' names at the foot, under
+     "conversations" at the head. The mask belongs to the box, not the
+     rows, so it stays put while the list scrolls. */
+  --cos-talklist-fade: linear-gradient(
+    to bottom,
+    transparent calc(70px + env(safe-area-inset-top, 0px)),
+    #000 calc(96px + env(safe-area-inset-top, 0px)),
+    #000 calc(100% - 116px - env(safe-area-inset-bottom, 0px)),
+    transparent calc(100% - 64px - env(safe-area-inset-bottom, 0px))
+  );
+  -webkit-mask-image: var(--cos-talklist-fade);
+  mask-image: var(--cos-talklist-fade);
 }
 .cos-talklist-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .cos-talklist-row {
@@ -4880,6 +4906,9 @@ html.cos-lite [class*='cos-']::after {
   backdrop-filter: none !important;
 }
 html.cos-lite .cos-dust { display: none; }
+/* The fade at the foot of the conversation list costs a layer while
+   scrolling; the bar's own dark ground is enough on a cheap phone. */
+html.cos-lite .cos-talklist { -webkit-mask-image: none; mask-image: none; }
 
 /* --------------------------------------------- in front of the whole app
    "Eighteen or over" on the first visit, and the screen after deleting
@@ -5022,6 +5051,9 @@ button.cos-me-note { cursor: pointer; }
   border: inherit;
 }
 .cos-me-note.is-empty { border-style: dashed; background: transparent; color: var(--cos-fg-soft); }
+/* The hour it was written, a second small line inside the bubble. */
+.cos-me-note-when.is-reply { color: var(--cos-cool); }
+.cos-me-note-when { display: block; font-size: var(--cos-text-caption); line-height: 1.4; color: var(--cos-fg-faint); }
 @keyframes cos-me-float { 50% { transform: translateY(-4px); } }
 .cos-me-orb {
   position: relative;
@@ -5153,6 +5185,39 @@ button.cos-me-orb { cursor: pointer; }
   flex: none;
 }
 
+/* The people of your week (pages/ProfileTab.tsx, WeekPeople): faces four
+   to a row, each with one small button under it. No card around them —
+   it is a few people, not an object — and the faces are the same round
+   faces as everywhere else, with no ring (a ring means online). */
+.cos-me-week { position: relative; z-index: 2; margin: 26px 16px 0; }
+.cos-me-week h2 { margin: 0 4px 4px; font-size: 14px; font-weight: 500; }
+.cos-me-week-hint { margin: 0 4px 14px; font-size: var(--cos-text-caption); line-height: 1.7; color: var(--cos-fg-faint); }
+.cos-me-week-faces { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 8px; }
+.cos-me-week-faces li { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cos-me-week-open { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: none; color: var(--cos-fg); font: inherit; cursor: pointer; }
+.cos-me-week-open .cos-me-face { width: 56px; height: 56px; font-size: 20px; }
+.cos-me-week-name { max-width: 100%; font-size: var(--cos-text-label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cos-me-week-act {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 6px;
+  border: 1px solid color-mix(in srgb, var(--cos-me-mine) 55%, transparent);
+  border-radius: var(--cos-radius-pill);
+  background: color-mix(in srgb, var(--cos-me-mine) 14%, transparent);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-caption);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cos-me-week-act.is-quiet { border-color: rgb(233 242 240 / 12%); background: transparent; color: var(--cos-fg-faint); }
+.cos-me-week-act:disabled { opacity: 0.6; cursor: default; }
+.cos-me-week-open:focus-visible,
+.cos-me-week-act:focus-visible { outline: 2px solid var(--cos-me-mine); outline-offset: 2px; }
+/* A newcomer: one sentence and the way to a first conversation. */
+.cos-me-week.is-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 24px 20px; text-align: center; }
+.cos-me-week.is-empty p { margin: 0; max-width: 30ch; font-size: var(--cos-text-body); line-height: var(--cos-leading-read); color: var(--cos-fg-soft); }
+
 /* The constellations. */
 .cos-me-sky { position: relative; z-index: 2; margin: 26px 16px 0; }
 .cos-me-sky h2,
@@ -5162,15 +5227,10 @@ button.cos-me-orb { cursor: pointer; }
 .cos-sky-line.is-mine { stroke: var(--cos-me-mine); }
 .cos-sky-line.is-theirs { stroke: var(--cos-me-theirs); }
 .cos-sky-line.is-both { stroke: rgb(233 242 240 / 50%); }
-.cos-sky-line.is-asking { stroke: var(--cos-warm-bright); stroke-dasharray: 3 5; }
 .cos-star-halo { fill: rgb(233 242 240 / 6%); }
 .cos-star-blank { fill: rgb(233 242 240 / 14%); }
 .cos-star-initial { fill: var(--cos-fg); font-family: var(--cos-font-fa); }
 .cos-star-name { fill: var(--cos-fg-soft); font-size: 9px; font-family: var(--cos-font-fa); }
-.cos-star-asking { animation: cos-star-arrive 2.4s ease-in-out infinite; }
-.cos-star-asking:focus-visible { outline: none; }
-.cos-star-asking:focus-visible .cos-star-halo { fill: rgb(246 190 130 / 40%); }
-@keyframes cos-star-arrive { 50% { opacity: 0.45; } }
 .cos-meet-glow-in { stop-color: #e9f2f0; stop-opacity: 0.2; }
 .cos-meet-glow-out { stop-color: #e9f2f0; stop-opacity: 0; }
 .cos-me-legend { display: flex; justify-content: space-between; margin: 4px 6px 0; font-size: 10px; }
@@ -5231,20 +5291,10 @@ button.cos-me-person { cursor: pointer; }
 .cos-both-glyph circle { fill: var(--cos-fg); }
 
 .cos-friends-title { flex: 1; margin: 0; font-size: 16px; font-weight: 500; text-align: center; }
-.cos-friends-switch {
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid rgb(233 242 240 / 14%);
-  border-radius: 20px;
-  background: transparent;
-  color: var(--cos-fg-soft);
-  font: inherit;
-  font-size: var(--cos-text-label);
-  cursor: pointer;
-}
-.cos-friends-switch[aria-pressed="true"] { color: var(--cos-fg); border-color: var(--cos-me-mine); }
+/* The title stays in the middle: an empty box the size of the back
+   button sits on the other side. */
+.cos-friends-balance { width: 44px; flex: none; }
 
 @media (prefers-reduced-motion: reduce) {
-  .cos-me-note,
-  .cos-star-asking { animation: none; }
+  .cos-me-note { animation: none; }
 }

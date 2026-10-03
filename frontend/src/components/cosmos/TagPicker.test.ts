@@ -6,7 +6,7 @@ vi.mock('../../lib/echoApi', async (original) => ({
 }))
 
 import { SEARCH_TAGS, TAG_GROUPS } from '../../lib/echoApi'
-import { findTags, groupTags, NOW_COUNT, nowTags } from './TagPicker'
+import { findTags, groupTags, NOW_COUNT, nowTags } from './tagChoice'
 
 const order = (hot: string[] = []) => [
   ...hot.map((tag) => ({ tag, tonight: true })),

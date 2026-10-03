@@ -34,8 +34,10 @@ export default function AdminAssistantSearch() {
 
   const [query, setQuery] = useState('')
   const [assistants, setAssistants] = useState<AdminUserSummary[] | null>(null)
-  const [results, setResults] = useState<AdminUserSummary[] | null>(null)
-  const [searching, setSearching] = useState(false)
+  // Results remember the words they answer. Whether a search is still
+  // running, and whether the results on hand belong to the box as it reads
+  // now, both follow from that — nothing has to be reset when typing.
+  const [found, setFound] = useState<{ query: string; rows: AdminUserSummary[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const isSearching = shouldRunAdminSearch(query)
@@ -45,29 +47,26 @@ export default function AdminAssistantSearch() {
   // assistant since it was last fetched.
   useEffect(() => {
     if (isSearching) return
-    setError(null)
     listAssistants()
-      .then(setAssistants)
+      .then((value) => {
+        // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
+        setError(null)
+        setAssistants(value)
+      })
       .catch((err) => setError(formatApiError(err)))
   }, [isSearching])
 
   useEffect(() => {
-    if (!shouldRunAdminSearch(query)) {
-      setResults(null)
-      return
-    }
+    if (!shouldRunAdminSearch(query)) return
+    const words = query.trim()
     let cancelled = false
-    setSearching(true)
     const handle = setTimeout(() => {
-      searchUsers(query.trim(), SEARCH_RESULT_LIMIT)
+      searchUsers(words, SEARCH_RESULT_LIMIT)
         .then((rows) => {
-          if (!cancelled) setResults(rows)
+          if (!cancelled) setFound({ query: words, rows })
         })
         .catch((err) => {
           if (!cancelled) setError(formatApiError(err))
-        })
-        .finally(() => {
-          if (!cancelled) setSearching(false)
         })
     }, DEBOUNCE_MS)
     return () => {
@@ -76,8 +75,9 @@ export default function AdminAssistantSearch() {
     }
   }, [query])
 
+  const results = found !== null && found.query === query.trim() ? found.rows : null
   const rows = isSearching ? results : assistants
-  const loading = rows === null || (isSearching && searching)
+  const loading = rows === null
 
   return (
     <div className="ui-page">

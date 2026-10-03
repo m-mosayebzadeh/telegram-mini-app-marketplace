@@ -97,6 +97,9 @@ export default function Echo() {
   }, [])
 
   useEffect(() => {
+    // The state is set when the server answers, after an await, never
+    // synchronously here; the rule cannot see past the await.
+    // oxlint-disable-next-line react/set-state-in-effect
     void load()
   }, [load])
 
