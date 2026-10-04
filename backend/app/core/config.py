@@ -41,6 +41,14 @@ class Settings(BaseSettings):
     # in. docs/LOCAL_DEV.md has the one command that starts it.
     database_url: str = "postgresql+psycopg://marketplace:devpass@localhost:5433/marketplace"
 
+    # Database connections per server process (app/core/database.py). 40 kept
+    # open — one per worker thread — and 5 more in a rush: 45 each, so two
+    # processes stay under Postgres's 100. Kept open on purpose: the first
+    # load test opened a fresh connection for most requests (only 10 were
+    # kept), and opening one costs far more than the request itself.
+    db_pool_size: int = 40
+    db_max_overflow: int = 5
+
     # Redis, only when more than one server process runs (app/live/broker.py):
     # it carries live events from the process that saw them to the process
     # holding the person they are for. Unset, the app runs as one process,

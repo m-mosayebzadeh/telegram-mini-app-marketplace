@@ -39,6 +39,7 @@ from app.models.random_chat import (
     EchoProposal,
     RandomChatTicket,
 )
+from app.random_chat import batch
 from app.random_chat.matching import find_match
 from app.random_chat.service import schedule_for, start_session, ticket_for
 
@@ -85,8 +86,24 @@ def _seconds(db: Session) -> int:
 
 def try_match(db: Session, ticket: RandomChatTicket) -> EchoProposal | None:
     """Put this waiting person in front of the best person waiting, if
-    there is one. Returns the new proposal, or None."""
-    if not ticket.active or open_proposal_for(db, ticket.user_id) is not None:
+    there is one. Returns the new proposal, or None.
+
+    Only while the pool is small (batch.SMALL_POOL): then matching at once
+    costs nothing and nobody waits even a second. Above it, joining only
+    puts you in the pool and the once-a-second pass (batch.run_batch)
+    pairs everybody together. Either way the matching lock is held, so the
+    two can never put one person in two places. If the pass holds the lock
+    right now, this simply returns: the pass, or the next one a second
+    later, pairs this person too. Never waiting for the lock is what keeps
+    the two from ever deadlocking on each other's rows.
+    """
+    if not ticket.active:
+        return None
+    if batch.waiting_count(db) >= batch.SMALL_POOL:
+        return None
+    if not batch.take_lock(db, wait=False):
+        return None
+    if open_proposal_for(db, ticket.user_id) is not None:
         return None
     pairing = find_match(
         db,
@@ -95,21 +112,32 @@ def try_match(db: Session, ticket: RandomChatTicket) -> EchoProposal | None:
     )
     if pairing is None:
         return None
+    return make_proposal(db, pairing)
+
+
+def make_proposal(db: Session, pairing, *, seconds: int | None = None, announce: bool = True) -> EchoProposal:
+    """Holds the two of a pairing for each other while both decide.
+
+    The once-a-second pass makes hundreds at a time: it reads the hold time
+    once and passes it in, and tells the two people only after its commit,
+    so their phones never ask before the card exists."""
     low, high = sorted((pairing.ticket.user_id, pairing.other.user_id))
     now = utcnow()
+    seconds = seconds if seconds is not None else _seconds(db)
     proposal = EchoProposal(
         user_a_id=low,
         user_b_id=high,
         shared_tags=pairing.shared_tags,
         shared_groups=pairing.shared_groups,
         created_at=now,
-        expires_at=now + timedelta(seconds=_seconds(db)),
+        expires_at=now + timedelta(seconds=seconds),
         accepted_by_a=False,
         accepted_by_b=False,
     )
     db.add(proposal)
-    db.flush()
-    announce_echo([low, high])
+    if announce:
+        db.flush()
+        announce_echo([low, high])
     return proposal
 
 

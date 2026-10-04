@@ -25,7 +25,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import find_user_by_credentials
-from app.core.database import get_db
+from app.core.database import open_db
 from app.live.hub import hub
 from app.live.typing import TypingGate, typing_targets
 from starlette.concurrency import run_in_threadpool
@@ -43,7 +43,7 @@ SILENCE_LIMIT_SECONDS = 75
 
 
 @router.websocket("/live")
-async def live(websocket: WebSocket, db: Session = Depends(get_db)) -> None:
+async def live(websocket: WebSocket, db: Session = Depends(open_db)) -> None:
     await websocket.accept()
 
     try:

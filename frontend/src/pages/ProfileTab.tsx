@@ -65,6 +65,9 @@ export default function ProfileTab() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [reporting, setReporting] = useState(false)
   const [confirm, setConfirm] = useState<'block' | 'unfriend' | null>(null)
+  /** A friend request about to be taken back, waiting for a yes (the
+   *  owner's question: tapped again, "sent" must say what it will do). */
+  const [takingBack, setTakingBack] = useState<{ user_id: number; display_name: string } | null>(null)
   const photoInput = useRef<HTMLInputElement>(null)
 
   const backState = location.state as BackNavState | null
@@ -228,7 +231,7 @@ export default function ProfileTab() {
               </button>
             )}
             {status === 'requested' && (
-              <button type="button" className="cos-me-btn is-quiet" disabled={busy} onClick={() => void friendAction(() => endFriend(profile.user_id))}>
+              <button type="button" className="cos-me-btn is-quiet" disabled={busy} onClick={() => setTakingBack(profile)}>
                 {t('friends.requested')}
               </button>
             )}
@@ -273,7 +276,7 @@ export default function ProfileTab() {
           busy={busy}
           onOpen={(person) => navigate(`/profiles/${person.user_id}`)}
           onAsk={(person) => void friendAction(() => askFriend(person.user_id), t('friends.sent'))}
-          onTakeBack={(person) => void friendAction(() => endFriend(person.user_id))}
+          onTakeBack={setTakingBack}
           onAccept={(person) => void friendAction(() => acceptFriend(person.user_id), t('friends.nowFriends', { name: person.display_name }))}
           onEcho={() => navigate('/echo')}
         />
@@ -360,6 +363,19 @@ export default function ProfileTab() {
               .catch((err) => toast.error(formatApiError(err)))
               .finally(() => { setBusy(false); setConfirm(null) })
           }}
+        />
+      )}
+
+      {takingBack && (
+        // Not marked as dangerous: a request taken back can simply be sent
+        // again, and the other person is never told either way.
+        <ConfirmDialog
+          title={t('friends.takeBackTitle')}
+          text={t('friends.takeBackText', { name: takingBack.display_name })}
+          confirmLabel={t('friends.takeBack')}
+          loading={busy}
+          onCancel={() => setTakingBack(null)}
+          onConfirm={() => void friendAction(() => endFriend(takingBack.user_id)).then(() => setTakingBack(null))}
         />
       )}
 

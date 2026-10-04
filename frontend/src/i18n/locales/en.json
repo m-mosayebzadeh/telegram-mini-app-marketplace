@@ -1275,7 +1275,10 @@
     "requests": "New requests",
     "yours": "Your friends",
     "wants": "Wants to be friends",
-    "empty": "No friends yet. Tap somebody in the world and choose \"Be friends\"."
+    "empty": "No friends yet. Tap somebody in the world and choose \"Be friends\".",
+    "takeBackTitle": "Take the request back?",
+    "takeBackText": "Your friend request to {{name}} is withdrawn. They aren't told, and you can send it again any time.",
+    "takeBack": "Take back"
   },
   "week": {
     "title": "People of your week",

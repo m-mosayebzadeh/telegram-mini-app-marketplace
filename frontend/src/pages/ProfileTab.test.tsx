@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   requests: vi.fn(),
   theirs: vi.fn(),
   ask: vi.fn(),
+  end: vi.fn(),
   week: vi.fn(),
   echo: null as null | Record<string, unknown>,
 }))
@@ -27,7 +28,7 @@ vi.mock('../lib/friendsApi', () => ({
   fetchThisWeek: mocks.week,
   askFriend: mocks.ask,
   acceptFriend: vi.fn(),
-  endFriend: vi.fn(),
+  endFriend: mocks.end,
 }))
 vi.mock('react-router-dom', async (original) => ({
   ...(await original<typeof import('react-router-dom')>()),
@@ -59,6 +60,7 @@ describe('the me page', () => {
     mocks.theirs.mockReset().mockResolvedValue({ visible: true, people: [] })
     mocks.ask.mockReset().mockResolvedValue({ status: 'requested' })
     mocks.week.mockReset().mockResolvedValue([])
+    mocks.end.mockReset().mockResolvedValue(undefined)
     mocks.echo = null
     mocks.navigate.mockReset()
     host = document.createElement('div')
@@ -178,5 +180,27 @@ describe('the me page', () => {
     await open()
     await act(async () => (host.querySelector('button.cos-me-note') as HTMLButtonElement).click())
     expect(mocks.navigate).toHaveBeenCalledWith('/conversations/with/2', { state: { noteReply: { note: 'anyone for a walk?' } } })
+  })
+
+  it('asks before taking a friend request back, from the week and from their page', async () => {
+    mocks.week.mockResolvedValue([{ ...person(8, 'Sahar'), status: 'requested' }])
+    await open()
+    await act(async () => (host.querySelector('.cos-me-week-act') as HTMLButtonElement).click())
+    // Nothing is taken back yet: a dialog says what will happen.
+    expect(mocks.end).not.toHaveBeenCalled()
+    expect(host.textContent).toContain('friends.takeBackTitle')
+    await act(async () => button('friends.takeBack')!.click())
+    expect(mocks.end).toHaveBeenCalledWith(8)
+  })
+
+  it('lets the dialog be closed without taking anything back', async () => {
+    mocks.params = { id: '2' }
+    mocks.apiFetch.mockResolvedValue(profile({ user_id: 2, display_name: 'Lena', friend_status: 'requested' }))
+    await open()
+    await act(async () => button('friends.requested')!.click())
+    expect(host.textContent).toContain('friends.takeBackTitle')
+    await act(async () => button('common.cancel')!.click())
+    expect(mocks.end).not.toHaveBeenCalled()
+    expect(host.textContent).not.toContain('friends.takeBackTitle')
   })
 })

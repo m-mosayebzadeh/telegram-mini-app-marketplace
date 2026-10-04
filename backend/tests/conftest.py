@@ -25,7 +25,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
-from app.core.database import Base, get_db
+from app.core.database import Base, get_db, open_db
 from app.main import app
 
 # Tests run on Postgres, the same engine production does.
@@ -125,6 +125,7 @@ def client(db_engine):
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[open_db] = override_get_db
     yield TestClient(app)
     app.dependency_overrides.clear()
 

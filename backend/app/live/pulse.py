@@ -19,7 +19,11 @@ phone on its own clock:
    the bar can quicken. One count for the whole server instead of one
    request every four seconds from every phone that is waiting.
 
-3. **Faded notes.** Once an hour, notes older than a day are erased from
+3. **Pairing Echo.** Every second, everybody waiting in Echo is paired at
+   once (app/random_chat/batch.py). Every process tries; whichever takes
+   the database lock for that second does it, so there is no leader.
+
+4. **Faded notes.** Once an hour, notes older than a day are erased from
    the database, not only hidden (the owner's decision; app/profile/note.py).
    One statement over a small index of the rows that have a note.
 
@@ -44,6 +48,7 @@ from app.live.hub import hub
 from app.models.random_chat import RandomChatTicket
 from app.models.user import User
 from app.profile.note import erase_faded_notes
+from app.random_chat.batch import run_batch
 
 log = logging.getLogger(__name__)
 
@@ -53,6 +58,10 @@ SEEN_EVERY = timedelta(seconds=60)
 
 #: How often Echo's numbers are looked at. Only sent when they changed.
 ECHO_EVERY = timedelta(seconds=5)
+
+#: How often everybody waiting in Echo is paired, and the heartbeat's own
+#: smallest step: every other job runs on a multiple of it.
+MATCH_EVERY = timedelta(seconds=1)
 
 #: How often faded notes are erased. A note is already hidden the moment
 #: it turns a day old; this only decides how soon it leaves the database.
@@ -107,18 +116,28 @@ def mark_connected_as_seen(db) -> int:
 
 
 async def run_pulse(stop: asyncio.Event) -> None:
-    """The heartbeat itself, started with the server and stopped with it."""
+    """The heartbeat itself, started with the server and stopped with it.
+    Ticks every MATCH_EVERY; the slower jobs run when their time is due."""
     echo = EchoPulse()
+    since_echo = timedelta(0)
     since_seen = SEEN_EVERY
     # The first sweep comes with the first beat, so a server that restarts
     # often still erases faded notes.
     since_notes = NOTES_EVERY
     while not stop.is_set():
         try:
-            await asyncio.wait_for(stop.wait(), ECHO_EVERY.total_seconds())
+            await asyncio.wait_for(stop.wait(), MATCH_EVERY.total_seconds())
             return
         except asyncio.TimeoutError:
             pass
+        try:
+            await asyncio.to_thread(_match)
+        except Exception:  # a missed pass must never stop the next one
+            log.exception("echo pairing pass failed")
+        since_echo += MATCH_EVERY
+        if since_echo < ECHO_EVERY:
+            continue
+        since_echo = timedelta(0)
         since_seen += ECHO_EVERY
         since_notes += ECHO_EVERY
         write_seen = since_seen >= SEEN_EVERY
@@ -131,6 +150,11 @@ async def run_pulse(stop: asyncio.Event) -> None:
             since_seen = timedelta(0)
         if sweep_notes:
             since_notes = timedelta(0)
+
+
+def _match() -> None:
+    with SessionLocal() as db:
+        run_batch(db)
 
 
 def _beat(echo: EchoPulse, write_seen: bool, sweep_notes: bool = False) -> None:
