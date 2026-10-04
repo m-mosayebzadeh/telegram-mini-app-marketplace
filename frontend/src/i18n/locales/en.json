@@ -1282,6 +1282,9 @@
     "hint": "You talked this week and aren't friends yet.",
     "sent": "Sent",
     "emptyText": "You haven't talked with anyone this week yet. Echo can find you someone new right now.",
-    "emptyGo": "Go to Echo"
+    "emptyGo": "Go to Echo",
+    "emptyWaiting_one": "You haven't talked with anyone this week yet. Right now {{n}} person is waiting in Echo for someone new.",
+    "emptyWaiting_other": "You haven't talked with anyone this week yet. Right now {{n}} people are waiting in Echo for someone new.",
+    "emptyShut": "You haven't talked with anyone this week yet. When Echo opens, it will find you someone new."
   }
 }

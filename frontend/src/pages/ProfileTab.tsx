@@ -24,8 +24,10 @@ import {
 } from '../lib/friendsApi'
 import { subscribe } from '../lib/live'
 import { useMe } from '../lib/MeContext'
+import { useEcho } from '../lib/echoStore'
 import type { BackNavState } from '../lib/navState'
 import type { PublicProfile } from '../lib/types'
+import { inviteLine } from '../lib/echoInvite'
 
 /**
  * "Me", and anybody else's page (section 32, step 4: the approved
@@ -407,6 +409,7 @@ const GearIcon = () => (
  * Echo, the quickest way to a first real conversation. With friends but
  * nobody new this week it says nothing: a quiet week is not a fault.
  */
+
 function WeekPeople({ people, hasFriends, busy, onOpen, onAsk, onTakeBack, onAccept, onEcho }: {
   people: WeekPerson[]
   hasFriends: boolean
@@ -417,12 +420,13 @@ function WeekPeople({ people, hasFriends, busy, onOpen, onAsk, onTakeBack, onAcc
   onAccept: (person: WeekPerson) => void
   onEcho: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const invite = inviteLine(useEcho())
   if (people.length === 0) {
     if (hasFriends) return null
     return (
       <section className="cos-me-week is-empty">
-        <p>{t('week.emptyText')}</p>
+        <p>{t(invite.key, { count: invite.count, n: invite.count?.toLocaleString(i18n.language) })}</p>
         <button type="button" className="cos-me-btn is-main" onClick={onEcho}>{t('week.emptyGo')}</button>
       </section>
     )

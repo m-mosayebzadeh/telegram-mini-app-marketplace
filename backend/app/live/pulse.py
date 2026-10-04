@@ -23,9 +23,12 @@ phone on its own clock:
    the database, not only hidden (the owner's decision; app/profile/note.py).
    One statement over a small index of the rows that have a note.
 
-Each server process runs its own heartbeat over its own connections. The
-note sweep is harmless if two processes both run it: the second finds
-nothing left to erase.
+Each server process runs its own heartbeat over its own connections, and
+tells only its own connections (hub.publish_local): no process is in
+charge of the others, so none of them going down silences the rest. The
+counts come from the database, which every process shares, so every
+process tells the same numbers. The note sweep is harmless when several
+processes run it: the second finds nothing left to erase.
 """
 
 import asyncio
@@ -83,11 +86,11 @@ class EchoPulse:
         anyone = numbers[0] > 0
         if self.anyone_waiting is not None and anyone != self.anyone_waiting:
             # The door's state changed for everybody: everybody hears it.
-            hub.publish(connected, event)
+            hub.publish_local(connected, event)
         elif numbers != self.last:
             listening = set(connected) & set(searching)
             if listening:
-                hub.publish(listening, event)
+                hub.publish_local(listening, event)
         self.last = numbers
         self.anyone_waiting = anyone
 

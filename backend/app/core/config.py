@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     # in. docs/LOCAL_DEV.md has the one command that starts it.
     database_url: str = "postgresql+psycopg://marketplace:devpass@localhost:5433/marketplace"
 
+    # Redis, only when more than one server process runs (app/live/broker.py):
+    # it carries live events from the process that saw them to the process
+    # holding the person they are for. Unset, the app runs as one process,
+    # exactly as before. compose.yml starts one for development.
+    redis_url: str | None = None
+
     # Enables developer-only routes (e.g. /dev/test-init-data) that must
     # never be reachable in production. Defaults to OFF on purpose: an
     # unset or missing value should always be the safe choice. Turn this

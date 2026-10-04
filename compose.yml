@@ -24,6 +24,22 @@ services:
       timeout: 3s
       retries: 10
 
+  # Carries live events between server processes when there is more than
+  # one (backend/app/live/broker.py). Keeps nothing on disk: an event is a
+  # nudge, and the database already holds everything it points at.
+  redis:
+    image: redis:7-alpine
+    container_name: telegram-mini-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      # Exposed so a backend running on the host can reach it in development.
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     image: telegram-mini-backend:local
     container_name: telegram-mini-backend
@@ -31,10 +47,13 @@ services:
       - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://marketplace:${POSTGRES_PASSWORD:-devpass}@db:5432/marketplace
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       db:
         # Migrations run on startup, so the app must not begin before the
         # database can answer.
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - backend_data:/app/data

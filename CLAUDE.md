@@ -85,7 +85,9 @@ and this user stops reading rather than skimming. Keep it short.
 so the owner can answer each by its number instead of pasting the text back.
 The writing under each number is still ordinary connected prose — numbering is
 for reference, not permission to write in fragments. A reply with one point
-needs no number.
+needs no number. A list inside a point is numbered too, or lettered under its
+number (۴-الف، ۴-ب …): every item the owner might say yes or no to needs a
+reference, never a bare bullet.
 
 Never use a name I invented as if it were shared vocabulary. A name becomes
 shared once the user has used it back.

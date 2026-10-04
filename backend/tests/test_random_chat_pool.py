@@ -750,7 +750,7 @@ def test_saving_the_panel_tells_everyone_with_the_app_open(client, db_session, m
 
     sent = []
     monkeypatch.setattr(events.hub, "connected_user_ids", lambda: [1, 2, 3])
-    monkeypatch.setattr(events.hub, "publish", lambda ids, event: sent.append((list(ids), event)))
+    monkeypatch.setattr(events.hub, "publish_local", lambda ids, event: sent.append((list(ids), event)))
     original = settings.owner_telegram_id
     settings.owner_telegram_id = 9096
     try:

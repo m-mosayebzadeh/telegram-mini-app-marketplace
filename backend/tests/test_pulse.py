@@ -39,7 +39,7 @@ def test_echo_numbers_go_to_searchers_only_when_they_change(db_session, monkeypa
     db_session.commit()
     sent = []
     monkeypatch.setattr(pulse.hub, "connected_user_ids", lambda: [searcher.id, idle.id])
-    monkeypatch.setattr(pulse.hub, "publish", lambda ids, event: sent.append((sorted(ids), event["type"])))
+    monkeypatch.setattr(pulse.hub, "publish_local", lambda ids, event: sent.append((sorted(ids), event["type"])))
 
     echo = pulse.EchoPulse()
     echo.tick(db_session)
@@ -53,7 +53,7 @@ def test_everybody_hears_when_echo_goes_from_nobody_to_somebody_waiting(db_sessi
     searcher, idle = _users(db_session, "Searcher", "Idle")
     sent = []
     monkeypatch.setattr(pulse.hub, "connected_user_ids", lambda: [searcher.id, idle.id])
-    monkeypatch.setattr(pulse.hub, "publish", lambda ids, event: sent.append(sorted(ids)))
+    monkeypatch.setattr(pulse.hub, "publish_local", lambda ids, event: sent.append(sorted(ids)))
     echo = pulse.EchoPulse()
     echo.tick(db_session)  # nobody waiting yet
     db_session.add(RandomChatTicket(user_id=searcher.id, active=True, local_minute=600, joined_at=utcnow()))

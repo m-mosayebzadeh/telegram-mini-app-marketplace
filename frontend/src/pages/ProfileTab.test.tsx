@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   theirs: vi.fn(),
   ask: vi.fn(),
   week: vi.fn(),
+  echo: null as null | Record<string, unknown>,
 }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }),
@@ -18,6 +19,7 @@ vi.mock('react-i18next', () => ({
 vi.mock('../lib/api', () => ({ apiFetch: mocks.apiFetch, formatApiError: String }))
 vi.mock('../lib/MeContext', () => ({ useMe: () => ({ me: { id: 1 }, refreshMe: vi.fn() }) }))
 vi.mock('../lib/live', () => ({ subscribe: () => () => {} }))
+vi.mock('../lib/echoStore', () => ({ useEcho: () => mocks.echo }))
 vi.mock('../lib/friendsApi', () => ({
   fetchFriends: mocks.friends,
   fetchFriendRequests: mocks.requests,
@@ -57,6 +59,7 @@ describe('the me page', () => {
     mocks.theirs.mockReset().mockResolvedValue({ visible: true, people: [] })
     mocks.ask.mockReset().mockResolvedValue({ status: 'requested' })
     mocks.week.mockReset().mockResolvedValue([])
+    mocks.echo = null
     mocks.navigate.mockReset()
     host = document.createElement('div')
     document.body.appendChild(host)
@@ -148,10 +151,11 @@ describe('the me page', () => {
     expect(mocks.navigate).toHaveBeenCalledWith('/profiles/7')
   })
 
-  it('invites a newcomer with nobody yet to Echo', async () => {
+  it('invites a newcomer with nobody yet to Echo, with how many are waiting there now', async () => {
     mocks.friends.mockResolvedValue([])
+    mocks.echo = { open_now: true, waiting_now: 3, show_counts: true }
     await open()
-    expect(host.querySelector('.cos-me-week.is-empty')).not.toBeNull()
+    expect(host.querySelector('.cos-me-week.is-empty')?.textContent).toContain('week.emptyWaiting')
     await act(async () => button('week.emptyGo')!.click())
     expect(mocks.navigate).toHaveBeenCalledWith('/echo')
   })

@@ -4,6 +4,8 @@ Application entry point. Run locally with:
 """
 
 from app.live.pulse import run_pulse
+from app.live.broker import RedisBroker
+from app.live.hub import hub
 from app.account.router import admin_router as admin_feedback_router, router as account_router
 from app.friends.router import me_router as friends_me_router, public_router as friends_public_router, router as friends_router
 from app.withdrawal.router import router as withdrawal_router, admin_router as admin_withdrawal_router
@@ -70,9 +72,19 @@ async def lifespan(app: FastAPI):
     # numbers, told to the phones instead of asked by them.
     stop = asyncio.Event()
     pulse = asyncio.create_task(run_pulse(stop))
+    # More than one server process: live events cross between them through
+    # Redis (app/live/broker.py). Without REDIS_URL there is one process
+    # and nothing to listen to.
+    listening = None
+    if settings.redis_url:
+        broker = RedisBroker(settings.redis_url)
+        hub.attach(broker)
+        listening = asyncio.create_task(broker.listen(hub.receive, stop))
     yield
     stop.set()
     await pulse
+    if listening is not None:
+        await listening
 
 
 app = FastAPI(title="Telegram Mini App Marketplace API", lifespan=lifespan)

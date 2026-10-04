@@ -14,19 +14,30 @@ safe to drop an event — a full queue, a dead socket, a restart — and it
 is what makes this cheap enough to run for millions of people: nothing is
 stored per connection except a small queue.
 
-One process only, for now. Every connection lives in THIS process's
-memory, so with more than one server process an event published in one
-would never reach a person connected to another. The day there is more
-than one, `publish` becomes a write to a shared channel (Postgres
-LISTEN/NOTIFY or Redis) that every process listens to; nothing that calls
-`publish` has to change. See TECHNICAL_REQUIREMENTS.md, the live
-connection section.
+Every connection lives in THIS process's memory. With more than one
+server process, an event is also sent through Redis (app/live/broker.py)
+so the process that holds the person can deliver it; without REDIS_URL
+there is one process and nothing else is needed. Nothing that calls
+`publish` knows which. See TECHNICAL_REQUIREMENTS.md section 32, "more
+than one node".
+
+Two kinds of sending:
+
+- `publish` and `publish_everyone` — something happened to people, and
+  they must hear it wherever they are connected: here directly, and
+  through Redis on every other process.
+- `publish_local` — only the people on this process. The heartbeat uses
+  it (app/live/pulse.py): every process runs its own and tells its own
+  connections, so no single process is in charge of the others and none
+  of them going down silences the rest.
 """
 
 from __future__ import annotations
 
 import asyncio
+import json
 import threading
+import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
@@ -69,6 +80,15 @@ class LiveHub:
         # Routes run on worker threads while sockets live on the event loop,
         # so the registry is touched from both sides.
         self._lock = threading.Lock()
+        #: Carries events to the other processes, when there are any.
+        self._broker = None
+        #: This process's name on the channel, so it can skip its own
+        #: messages: the people here were already told directly.
+        self.node_id = uuid.uuid4().hex
+
+    def attach(self, broker) -> None:
+        """Called once at startup when REDIS_URL is set."""
+        self._broker = broker
 
     def register(self, user_id: int) -> Connection:
         connection = Connection(user_id=user_id, loop=asyncio.get_running_loop())
@@ -95,15 +115,31 @@ class LiveHub:
             return list(self._by_user)
 
     def publish(self, user_ids: Iterable[int], event: dict[str, Any]) -> None:
-        """Hands `event` to every open connection of every person listed.
+        """Hands `event` to every open connection of every person listed,
+        on this process and — through Redis — on every other.
 
-        Safe to call from anywhere — an ordinary route runs on a worker
-        thread, not on the loop that owns the sockets, so the hand-over goes
-        through that loop rather than touching its queues directly.
+        Safe to call from anywhere, and never raises or waits: a route that
+        just saved a message has done its job; whether anyone happens to be
+        listening is not its problem, and must never turn a saved message
+        into an error.
+        """
+        users = sorted(set(user_ids))
+        if not users:
+            return
+        self.publish_local(users, event)
+        self._send({"users": users, "event": event})
 
-        Never raises and never waits. A route that just saved a message has
-        done its job; whether anyone happens to be listening is not its
-        problem, and must never turn a saved message into an error.
+    def publish_everyone(self, event: dict[str, Any]) -> None:
+        """Hands `event` to everybody with the app open, on every process."""
+        self.publish_local(self.connected_user_ids(), event)
+        self._send({"users": None, "event": event})
+
+    def publish_local(self, user_ids: Iterable[int], event: dict[str, Any]) -> None:
+        """Only the people connected to THIS process.
+
+        Goes through each socket's own loop rather than touching its queue
+        directly: an ordinary route runs on a worker thread, not on the loop
+        that owns the sockets.
         """
         with self._lock:
             targets = [c for uid in set(user_ids) for c in self._by_user.get(uid, ())]
@@ -113,6 +149,25 @@ class LiveHub:
             except RuntimeError:
                 # The loop has shut down under us: the socket is already gone.
                 pass
+
+    def _send(self, message: dict[str, Any]) -> None:
+        if self._broker is None:
+            return
+        self._broker.send(json.dumps({"from": self.node_id, **message}, separators=(",", ":")))
+
+    def receive(self, raw: str) -> None:
+        """A message from the channel: delivered to whoever it names that is
+        connected here. Our own messages are skipped (already delivered),
+        and anything unreadable is dropped — an event is only a nudge."""
+        try:
+            message = json.loads(raw)
+            if message.get("from") == self.node_id:
+                return
+            event = message["event"]
+            users = message["users"]
+        except (ValueError, KeyError, TypeError):
+            return
+        self.publish_local(self.connected_user_ids() if users is None else users, event)
 
 
 #: The one hub for this process.

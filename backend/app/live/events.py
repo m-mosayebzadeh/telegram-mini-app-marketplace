@@ -113,7 +113,7 @@ def announce_echo_to_everyone() -> None:
     a whole crowd asking for its status in the same instant is a spike the
     server does not need.
     """
-    hub.publish(hub.connected_user_ids(), {"type": "echo", "everyone": True})
+    hub.publish_everyone({"type": "echo", "everyone": True})
 
 
 def announce_echo(user_ids: list[int]) -> None:
