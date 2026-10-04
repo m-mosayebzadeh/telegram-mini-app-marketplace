@@ -1,0 +1,502 @@
+<title>ورود به Cosmos</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;300;400;500;600&family=Sora:wght@200;300;400&display=swap">
+<style>
+/* Cosmos — signing in, a prototype, second version (TECHNICAL_REQUIREMENTS.md
+   section 32, "signing in without Telegram").
+
+   The idea: the sign-in page is a window onto the world itself. Behind it the
+   galaxy is alive — people's orbs turning around Sol in three depths, the far
+   ones soft, dust drifting as the camera breathes. The top of the panel is a
+   curved horizon, and your own orb sits half behind it, unlit: you have not
+   arrived yet. Signing in, by any of the four ways, lifts it over the horizon
+   and lights it, and the camera flies into the galaxy to set you down among
+   the others.
+
+   Every orb is a person; none carries a name or a face here, because somebody
+   who has not signed in does not get to know who is inside. Size is presence
+   and blur is distance, as in the world. No ring is drawn: a ring means
+   "online", and that is not what this page is saying.
+
+   One deliberate look, the night sky; no light variant, by choice. Prototype
+   only: the code is 123456, and Telegram and the other phone confirm by
+   themselves after a few seconds. */
+:root {
+  color-scheme: dark;
+  --ink: #03070a;
+  --fg: #e9f2f0;
+  --fg-soft: rgba(233, 242, 240, .7);
+  --fg-faint: rgba(233, 242, 240, .44);
+  --warm: #f2b06a;
+  --warm-bright: #f6be82;
+  --cool: #7ad7c8;
+  --danger: #ff8a80;
+  --line: rgba(233, 242, 240, .12);
+  --fa: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --en: 'Sora', 'Vazirmatn', system-ui, sans-serif;
+  --settle: cubic-bezier(.2, .9, .25, 1.04);
+  --hz: 62%;
+}
+html, body { height: 100%; }
+body { margin: 0; background: #010304; color: var(--fg); font-family: var(--fa); font-weight: 300; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.phone { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--ink); -webkit-tap-highlight-color: transparent; }
+@media (min-width: 560px) { .phone { width: 410px; height: min(100%, 880px); border-radius: 34px; box-shadow: 0 0 0 1px rgba(122, 215, 200, .12), 0 40px 120px rgba(0, 0, 0, .7); } }
+button, input, select { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--warm-bright); outline-offset: 2px; }
+
+#galaxy { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ---------- top: name of the place, and the language ---------- */
+.top { position: absolute; z-index: 6; top: calc(18px + env(safe-area-inset-top, 0px)); inset-inline: 20px; display: flex; justify-content: space-between; align-items: center; }
+.brand { font-family: var(--en); font-weight: 300; font-size: 16px; letter-spacing: .08em; color: var(--fg-soft); }
+.lang { min-height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(3, 9, 11, .45); color: var(--fg-soft); font-size: 13px; cursor: pointer; backdrop-filter: blur(6px); }
+
+/* ---------- the words, over the galaxy ---------- */
+.words { position: absolute; z-index: 5; top: calc(80px + env(safe-area-inset-top, 0px)); inset-inline: 24px; text-align: center; transition: opacity .5s ease, transform .8s var(--settle); }
+.words h1 { margin: 0; font-weight: 200; font-size: clamp(30px, 9vw, 38px); line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; text-shadow: 0 2px 30px rgba(0, 0, 0, .8); }
+.words h1 em { font-style: normal; font-weight: 400; background: linear-gradient(120deg, #ffe2b3, #f6be82 50%, #ffd29a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.words p { margin: 10px auto 0; max-width: 30ch; font-size: 13.5px; line-height: 1.85; color: var(--fg-soft); text-shadow: 0 1px 16px rgba(0, 0, 0, .9); }
+.words b { font-weight: 400; color: var(--fg); font-variant-numeric: tabular-nums; }
+.flying .words { opacity: 0; transform: translateY(-20px); }
+
+/* ---------- your orb, half behind the horizon ---------- */
+.you { position: absolute; z-index: 3; left: 50%; top: var(--hz); width: 84px; height: 84px; margin: -58px 0 0 -42px; border-radius: 50%; display: grid; place-items: center; font-size: 32px; font-weight: 200; color: #fff8ee; background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .14), transparent 56%), linear-gradient(145deg, #1d3238, #0a1518); box-shadow: inset -8px -10px 18px rgba(0, 0, 0, .55), 0 0 0 1px rgba(233, 242, 240, .1), 0 0 30px rgba(122, 215, 200, .08); transition: top 1.5s var(--settle), margin 1.5s var(--settle), background 1s ease, box-shadow 1s ease, width 1.5s var(--settle), height 1.5s var(--settle); animation: breathe 5s ease-in-out infinite; }
+@keyframes breathe { 50% { box-shadow: inset -8px -10px 18px rgba(0, 0, 0, .55), 0 0 0 1px rgba(233, 242, 240, .16), 0 0 44px rgba(122, 215, 200, .18); } }
+/* The light around a lit orb is its own soft circle behind it: a wide box
+   shadow got cut off in a rectangle while the orb moved. */
+.you::before { content: ''; position: absolute; inset: -80%; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgba(255, 196, 128, .55) 0%, rgba(255, 170, 90, .22) 32%, rgba(255, 160, 80, 0) 68%); opacity: 0; transition: opacity 1s ease; }
+.lit .you::before { opacity: 1; }
+.lit .you { animation: none; background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .6), transparent 56%), linear-gradient(145deg, #ffd79a, #e98a3a); box-shadow: inset -8px -10px 18px rgba(120, 50, 0, .35), 0 0 24px rgba(255, 190, 120, .6); }
+.arrived .you { top: 30%; width: 96px; height: 96px; margin: -48px 0 0 -48px; z-index: 6; }
+
+/* the horizon: the curved edge of the world you are standing at */
+.horizon { position: absolute; z-index: 4; left: -45%; width: 190%; top: var(--hz); height: 120%; border-radius: 50% 50% 0 0 / 70px 70px 0 0; background: linear-gradient(to bottom, #0c2026 0, #071216 90px, #050d10 100%); box-shadow: 0 -1px 0 rgba(140, 230, 214, .38), 0 -10px 40px rgba(122, 215, 200, .14), 0 -60px 120px rgba(122, 215, 200, .07); transition: transform 1.1s var(--settle); }
+.flying .horizon { transform: translateY(110%); }
+
+/* ---------- the panel: the ways in, under the horizon ---------- */
+.panel { position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; padding: 0 20px calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; transition: transform 1s var(--settle), opacity .5s ease; }
+.flying .panel { transform: translateY(60%); opacity: 0; pointer-events: none; }
+.step { display: flex; flex-direction: column; gap: 10px; animation: step-in .35s var(--settle); }
+@keyframes step-in { from { opacity: 0; transform: translateY(10px); } }
+.step[hidden] { display: none; }
+.title { margin: 0; font-size: 16px; font-weight: 400; text-align: center; }
+.hint { margin: 0; font-size: 12.5px; color: var(--fg-soft); line-height: 1.8; text-align: center; }
+.way { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 26px; border: 1px solid rgba(158, 226, 214, .2); background: rgba(16, 36, 42, .7); font-size: 14.5px; cursor: pointer; text-decoration: none; transition: background .2s ease, scale .15s ease; }
+.way:active { scale: .98; }
+.way:hover { background: rgba(24, 50, 57, .8); }
+.way svg { width: 20px; height: 20px; flex: none; }
+.way.first { border: 0; font-weight: 500; color: #2b1704; background: linear-gradient(160deg, #ffdda6, #f9b45f 46%, #eb9433); box-shadow: 0 0 34px rgba(255, 178, 100, .28); }
+.quiet { align-self: center; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--fg-soft); font-size: 13px; cursor: pointer; text-decoration: underline; text-decoration-color: rgba(233, 242, 240, .25); text-underline-offset: 5px; }
+.back { align-self: flex-start; min-height: 44px; padding: 0 6px; border: 0; background: none; color: var(--fg-soft); font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.small { margin: 0; font-size: 11.5px; color: var(--fg-faint); text-align: center; line-height: 1.8; }
+.field { display: flex; gap: 8px; direction: ltr; }
+.cc, .num, .name { min-height: 52px; border-radius: 16px; border: 1px solid var(--line); background: rgba(2, 8, 10, .7); padding: 0 14px; font-size: 16px; }
+.cc { flex: none; width: 100px; font-family: var(--en); cursor: pointer; }
+.num { flex: 1; min-width: 0; font-family: var(--en); letter-spacing: .03em; }
+.cc:focus, .num:focus, .name:focus { border-color: rgba(246, 190, 130, .6); outline: none; }
+.err { margin: 0; min-height: 18px; font-size: 12px; color: var(--danger); text-align: center; }
+.code { display: flex; justify-content: center; gap: 8px; direction: ltr; }
+.code input { width: 44px; height: 54px; border-radius: 14px; border: 1px solid var(--line); background: rgba(2, 8, 10, .7); text-align: center; font-family: var(--en); font-size: 22px; font-weight: 300; caret-color: var(--warm-bright); }
+.code input:focus { border-color: rgba(246, 190, 130, .7); outline: none; }
+.code.wrong { animation: shake .35s ease; }
+.code.wrong input { border-color: rgba(255, 138, 128, .6); }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.again { align-self: center; min-height: 44px; border: 0; background: none; font-size: 13px; color: var(--cool); cursor: pointer; }
+.again:disabled { color: var(--fg-faint); cursor: default; }
+.wait-ring { align-self: center; position: relative; width: 60px; height: 60px; }
+.wait-ring i { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid rgba(122, 215, 200, .5); animation: ping 2s ease-out infinite; }
+.wait-ring i:nth-child(2) { animation-delay: 1s; }
+.wait-ring svg { position: absolute; inset: 17px; color: var(--cool); }
+@keyframes ping { from { transform: scale(.5); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+.qr { align-self: center; width: 156px; height: 156px; padding: 11px; border-radius: 20px; background: #eef6f4; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--fg-soft); }
+.steps li { display: flex; gap: 8px; align-items: baseline; }
+.steps b { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 400; background: rgba(122, 215, 200, .14); color: var(--cool); }
+
+/* after: welcome, and the one question */
+.welcome { position: absolute; z-index: 7; inset-inline: 20px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 12px; }
+.welcome[hidden] { display: none; }
+.welcome .hello { margin: 0 0 6px; text-align: center; }
+.welcome .hello b { display: block; font-weight: 200; font-size: 30px; }
+.welcome .hello span { font-size: 13px; color: var(--fg-soft); }
+.welcome > * { animation: step-in .6s var(--settle) both; }
+.welcome > *:nth-child(2) { animation-delay: .1s; } .welcome > *:nth-child(3) { animation-delay: .2s; } .welcome > *:nth-child(4) { animation-delay: .3s; }
+.name { text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .you, .wait-ring i, .step, .welcome > * { animation: none; }
+  .you, .horizon, .panel, .words { transition: none; }
+}
+</style>
+
+<div class="phone" id="phone" dir="rtl" lang="fa">
+  <canvas id="galaxy" aria-hidden="true"></canvas>
+
+  <header class="top">
+    <span class="brand" dir="ltr">COSMOS</span>
+    <button class="lang" id="lang" type="button">English</button>
+  </header>
+
+  <section class="words" aria-live="polite">
+    <h1 id="h1"></h1>
+    <p id="sub"></p>
+  </section>
+
+  <div class="you" id="me" aria-hidden="true"></div>
+  <div class="horizon" aria-hidden="true"></div>
+
+  <div class="panel" id="panel">
+    <div class="step" id="s-ways">
+      <button class="way first" type="button" data-go="google">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#2b1704" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path fill="#2b1704" opacity=".75" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#2b1704" opacity=".55" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 0 0 0 9.2L6.4 14z"/><path fill="#2b1704" opacity=".9" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.4L6.4 10C7.2 7.7 9.4 5.9 12 5.9z"/></svg>
+        <span data-t="google"></span>
+      </button>
+      <button class="way" type="button" data-go="phone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+        <span data-t="phone"></span>
+      </button>
+      <button class="way" type="button" data-go="telegram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M21 4 3 11l6 2.2L18 7l-6.8 7.5.3 5.5 3.2-3.8L19 19z"/></svg>
+        <span data-t="telegram"></span>
+      </button>
+      <button class="quiet" type="button" data-go="device" data-t="device"></button>
+    </div>
+
+    <div class="step" id="s-phone" hidden>
+      <button class="back" type="button" data-go="ways"><span aria-hidden="true" class="arrow"></span><span data-t="back"></span></button>
+      <p class="title" id="num-label" data-t="phoneTitle"></p>
+      <div class="field">
+        <select class="cc" id="cc" aria-label="Country code">
+          <option value="+98">IR +98</option><option value="+1">US +1</option><option value="+44">UK +44</option><option value="+49">DE +49</option><option value="+90">TR +90</option><option value="+971">AE +971</option>
+        </select>
+        <input class="num" id="num" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="912 345 6789" aria-labelledby="num-label">
+      </div>
+      <p class="err" id="num-err" role="alert"></p>
+      <button class="way first" type="button" id="send" data-t="send"></button>
+    </div>
+
+    <div class="step" id="s-code" hidden>
+      <button class="back" type="button" data-go="phone"><span aria-hidden="true" class="arrow"></span><span data-t="changeNumber"></span></button>
+      <p class="title" data-t="codeTitle"></p>
+      <p class="hint" id="code-hint"></p>
+      <div class="code" id="code" role="group" aria-label="code">
+        <input inputmode="numeric" maxlength="1" autocomplete="one-time-code"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1"><input inputmode="numeric" maxlength="1">
+      </div>
+      <p class="err" id="code-err" role="alert"></p>
+      <button class="again" type="button" id="again" disabled></button>
+    </div>
+
+    <div class="step" id="s-telegram" hidden>
+      <button class="back" type="button" data-go="ways"><span aria-hidden="true" class="arrow"></span><span data-t="back"></span></button>
+      <div class="wait-ring" aria-hidden="true"><i></i><i></i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M21 4 3 11l6 2.2L18 7l-6.8 7.5.3 5.5 3.2-3.8L19 19z"/></svg></div>
+      <p class="title" data-t="tgTitle"></p>
+      <p class="hint" data-t="tgHint"></p>
+      <a class="way first" href="#" id="tg-open" data-t="tgOpen"></a>
+      <p class="small" data-t="tgWaiting"></p>
+    </div>
+
+    <div class="step" id="s-device" hidden>
+      <button class="back" type="button" data-go="ways"><span aria-hidden="true" class="arrow"></span><span data-t="back"></span></button>
+      <p class="title" data-t="devTitle"></p>
+      <div class="qr" id="qr" role="img" aria-label="QR"></div>
+      <ol class="steps">
+        <li><b>1</b><span data-t="dev1"></span></li>
+        <li><b>2</b><span data-t="dev2"></span></li>
+        <li><b>3</b><span data-t="dev3"></span></li>
+      </ol>
+      <p class="small" id="qr-left"></p>
+    </div>
+  </div>
+
+  <div class="welcome" id="welcome" hidden>
+    <p class="hello"><b data-t="welcome"></b><span data-t="welcomeSub"></span></p>
+    <input class="name" id="name" dir="auto" maxlength="40" autocomplete="given-name" data-ph="namePh" aria-labelledby="name-q">
+    <button class="way first" type="button" id="enter" data-t="enter"></button>
+    <p class="small" id="via"></p>
+    <span id="name-q" hidden data-t="nameTitle"></span>
+  </div>
+</div>
+
+<script>
+/* ---------- words, in both languages (the audience is global) ---------- */
+const WORDS = {
+  fa: {
+    h1: 'آدم‌ها اینجا <em>نور</em>ند',
+    subCount: (n) => `همین حالا <b>${n}</b> نفر در این آسمان‌اند. یکی‌شان شاید همان کسی باشد که دنبالش می‌گردی.`,
+    subQuiet: 'آسمانی پر از آدم‌هایی که هنوز نمی‌شناسی. یکی‌شان شاید همان کسی باشد که دنبالش می‌گردی.',
+    google: 'ادامه با گوگل', phone: 'با شماره موبایل', telegram: 'با تلگرام', device: 'ورود با گوشیِ دیگر',
+    back: 'برگشت', phoneTitle: 'شماره‌ی موبایلت', send: 'فرستادنِ کد', badNumber: 'این شماره کامل نیست.',
+    changeNumber: 'شماره را عوض کن', codeTitle: 'کدِ پیامک را بنویس', codeHint: (n) => `کدِ شش‌رقمی به ${n} فرستاده شد.`,
+    wrongCode: 'این کد درست نیست. دوباره نگاه کن.', againIn: (s) => `فرستادنِ دوباره تا ${s} ثانیه‌ی دیگر`, again: 'دوباره بفرست',
+    tgTitle: 'در تلگرام «شروع» را بزن', tgHint: 'رباتِ Cosmos باز می‌شود. با زدنِ «شروع»، همین‌جا وارد می‌شوی.',
+    tgOpen: 'باز کردنِ تلگرام', tgWaiting: 'همین‌جا منتظرت هستیم…',
+    devTitle: 'با گوشی‌ات اسکن کن', dev1: 'در گوشی‌ای که در Cosmos هستی، «من» را باز کن', dev2: 'چرخ‌دنده ← «ورود با دستگاهِ دیگر»', dev3: 'این کد را اسکن کن',
+    qrLeft: (s) => `این کد تا ${s} ثانیه‌ی دیگر عوض می‌شود.`,
+    welcome: 'رسیدی', welcomeSub: 'نورت روشن شد. دوست داری چه صدایت کنند؟', nameTitle: 'اسمت', namePh: 'اسمت',
+    enter: 'ورود به جهان', via: (m) => `وارد شدی با ${m}`, viaNames: { google: 'گوگل', phone: 'شماره موبایل', telegram: 'تلگرام', device: 'گوشیِ دیگر' },
+    lang: 'English',
+  },
+  en: {
+    h1: 'Here, people are <em>light</em>',
+    subCount: (n) => `<b>${n}</b> people are in this sky right now. One of them might be the one you’re looking for.`,
+    subQuiet: 'A sky full of people you don’t know yet. One of them might be the one you’re looking for.',
+    google: 'Continue with Google', phone: 'With a phone number', telegram: 'With Telegram', device: 'Sign in with another phone',
+    back: 'Back', phoneTitle: 'Your mobile number', send: 'Send the code', badNumber: 'That number isn’t complete.',
+    changeNumber: 'Change the number', codeTitle: 'Type the code we texted', codeHint: (n) => `A six-digit code went to ${n}.`,
+    wrongCode: 'That code isn’t right. Have another look.', againIn: (s) => `Send again in ${s}s`, again: 'Send it again',
+    tgTitle: 'Tap “Start” in Telegram', tgHint: 'The Cosmos bot opens. Tap “Start” and you’re in, right here.',
+    tgOpen: 'Open Telegram', tgWaiting: 'Waiting for you here…',
+    devTitle: 'Scan with your phone', dev1: 'On a phone where you’re in Cosmos, open “Me”', dev2: 'Gear → “Sign in another device”', dev3: 'Scan this code',
+    qrLeft: (s) => `This code changes in ${s}s.`,
+    welcome: 'You’re here', welcomeSub: 'Your light is on. What should people call you?', nameTitle: 'Your name', namePh: 'Your name',
+    enter: 'Into the world', via: (m) => `Signed in with ${m}`, viaNames: { google: 'Google', phone: 'a phone number', telegram: 'Telegram', device: 'another phone' },
+    lang: 'فارسی',
+  },
+}
+let lang = 'fa'
+const $ = (id) => document.getElementById(id)
+const W = () => WORDS[lang]
+/** In the app: the real number, from the server. Shown only once there are
+ *  enough people for it to impress (the owner's point); below that, a line
+ *  without a number. The threshold is a panel setting. */
+const HERE_NOW = 234
+const SHOW_COUNT_FROM = 200
+
+function paint() {
+  const phone = $('phone')
+  phone.dir = lang === 'fa' ? 'rtl' : 'ltr'
+  phone.lang = lang
+  document.querySelectorAll('[data-t]').forEach((el) => { const v = W()[el.dataset.t]; if (typeof v === 'string') el.textContent = v })
+  document.querySelectorAll('[data-ph]').forEach((el) => { el.placeholder = W()[el.dataset.ph] })
+  document.querySelectorAll('.arrow').forEach((el) => { el.textContent = lang === 'fa' ? '›' : '‹' })
+  $('lang').textContent = W().lang
+  $('h1').innerHTML = W().h1
+  $('sub').innerHTML = HERE_NOW >= SHOW_COUNT_FROM ? W().subCount(HERE_NOW.toLocaleString(lang)) : W().subQuiet
+  if (method) $('via').textContent = W().via(W().viaNames[method])
+}
+$('lang').onclick = () => { lang = lang === 'fa' ? 'en' : 'fa'; paint() }
+
+/* ---------- the galaxy ----------
+   One canvas, redrawn each frame: people's orbs on tilted orbits around Sol,
+   sorted by depth so the near side passes in front. Size is presence, blur
+   is distance. Each orb is drawn from a sprite made once, so a frame is only
+   a few dozen image copies — cheap enough for any phone. */
+const canvas = $('galaxy')
+const ctx = canvas.getContext('2d')
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+const BODIES = [['#4fb3a6', '#1d5a54'], ['#6d9cc4', '#25415a'], ['#d39a6a', '#5a3322'], ['#9b86c2', '#3b2d52'], ['#5fae8c', '#1f4c3c'], ['#c47d8c', '#55262f']]
+let Wd = 0, Ht = 0, dpr = 1
+let seed = 11
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
+
+function sprite(colors, size, blur) {
+  const pad = Math.ceil(blur * 3) + 2
+  const s = document.createElement('canvas')
+  const px = Math.ceil((size + pad * 2) * dpr)
+  s.width = s.height = px
+  const c = s.getContext('2d')
+  c.scale(dpr, dpr)
+  if (blur > 0) c.filter = `blur(${blur}px)`
+  const r = size / 2, cx = r + pad, cy = r + pad
+  const body = c.createLinearGradient(cx - r, cy - r, cx + r, cy + r)
+  body.addColorStop(0, colors[0]); body.addColorStop(1, colors[1])
+  c.fillStyle = body; c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill()
+  const shine = c.createRadialGradient(cx - r * .32, cy - r * .42, 0, cx - r * .32, cy - r * .42, r * 1.1)
+  shine.addColorStop(0, 'rgba(255,255,255,.55)'); shine.addColorStop(.55, 'rgba(255,255,255,0)')
+  c.fillStyle = shine; c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill()
+  const shade = c.createRadialGradient(cx + r * .4, cy + r * .5, 0, cx + r * .4, cy + r * .5, r * 1.2)
+  shade.addColorStop(0, 'rgba(0,0,0,.45)'); shade.addColorStop(.7, 'rgba(0,0,0,0)')
+  c.fillStyle = shade; c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill()
+  return { img: s, half: size / 2 + pad }
+}
+
+let orbs = [], dust = []
+function build() {
+  const r = canvas.getBoundingClientRect()
+  dpr = Math.min(2, devicePixelRatio || 1)
+  Wd = r.width; Ht = r.height
+  canvas.width = Wd * dpr; canvas.height = Ht * dpr
+  seed = 11
+  orbs = []
+  const reach = Math.max(Wd, Ht) * 0.62
+  for (let i = 0; i < 54; i++) {
+    const ring = 0.16 + Math.pow(rnd(), 0.8) * 0.84 // more people further out, as in a real crowd
+    const presence = rnd()
+    const size = 9 + presence * 17
+    const colors = BODIES[Math.floor(rnd() * BODIES.length)]
+    orbs.push({
+      radius: ring * reach,
+      angle: rnd() * Math.PI * 2,
+      speed: (0.018 + rnd() * 0.01) / Math.sqrt(ring), // inner orbits turn faster
+      size,
+      wobble: rnd() * Math.PI * 2,
+      // Three depths of blur, chosen per frame by where the orb is on its orbit.
+      sprites: [sprite(colors, size, 0), sprite(colors, size, 1.6), sprite(colors, size, 3.4)],
+    })
+  }
+  dust = [0.25, 0.5, 0.85].map((depth) => Array.from({ length: 46 }, () => ({ x: rnd() * 1.4 - 0.2, y: rnd() * 1.4 - 0.2, a: 0.1 + rnd() * 0.35, depth })))
+}
+
+const TILT = 0.34
+let t0 = performance.now(), zoom = 1, flight = null
+function frame(now) {
+  const t = (now - t0) / 1000
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  // While flying the old frame is not cleared fully: the world streaks past.
+  ctx.fillStyle = flight ? 'rgba(3,7,10,.32)' : '#03070a'
+  ctx.fillRect(0, 0, Wd, Ht)
+  if (flight) {
+    const k = Math.min(1, (now - flight) / 1600)
+    zoom = 1 + Math.pow(k, 2.2) * 5
+    if (k >= 1) { flight = null; zoom = 1; t0 -= 40000; arrive() }
+  }
+  const cx = Wd / 2 + Math.sin(t * 0.07) * 14
+  const cy = Ht * 0.4 + Math.cos(t * 0.05) * 8
+  const spin = t * 0.6
+
+  // dust: three depths, moving with the camera at their own pace
+  for (const layer of dust) for (const d of layer) {
+    const x = ((d.x + Math.sin(t * 0.02) * 0.02 * d.depth) * Wd - cx) * (1 + (zoom - 1) * d.depth) + cx
+    const y = ((d.y + t * 0.004 * d.depth) % 1.4 * Ht - cy) * (1 + (zoom - 1) * d.depth) + cy
+    ctx.fillStyle = `rgba(214,236,231,${d.a * d.depth})`
+    ctx.fillRect(x, y, d.depth * 1.6, d.depth * 1.6)
+  }
+
+  // faint orbits, so the turning reads as a world and not as floating dots
+  ctx.strokeStyle = 'rgba(122,215,200,.07)'
+  ctx.lineWidth = 1
+  for (const k of [0.3, 0.55, 0.82]) {
+    const rr = k * Math.max(Wd, Ht) * 0.62 * zoom
+    ctx.beginPath(); ctx.ellipse(cx, cy, rr, rr * TILT, 0, 0, Math.PI * 2); ctx.stroke()
+  }
+
+  const placed = orbs.map((o) => {
+    const a = o.angle + spin * o.speed
+    const depth = (Math.sin(a) + 1) / 2 // 0 far side, 1 near side
+    const scale = (0.55 + depth * 0.65) * zoom
+    return { o, x: cx + Math.cos(a) * o.radius * zoom, y: cy + Math.sin(a) * o.radius * TILT * zoom + Math.sin(t * 0.8 + o.wobble) * 2, depth, scale }
+  }).sort((p, q) => p.depth - q.depth)
+
+  // Sol, at the centre of the world, between its far side and its near side
+  let solDrawn = false
+  const drawSol = () => {
+    const r = 15 * zoom
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 5)
+    g.addColorStop(0, 'rgba(255,236,190,.95)'); g.addColorStop(.12, 'rgba(255,196,110,.75)'); g.addColorStop(.35, 'rgba(255,160,70,.18)'); g.addColorStop(1, 'rgba(255,140,50,0)')
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r * 5, 0, Math.PI * 2); ctx.fill()
+    solDrawn = true
+  }
+  for (const p of placed) {
+    if (!solDrawn && p.depth > 0.5) drawSol()
+    const s = p.o.sprites[p.depth > 0.66 ? 0 : p.depth > 0.33 ? 1 : 2]
+    const half = s.half * p.scale
+    ctx.globalAlpha = 0.45 + p.depth * 0.55
+    ctx.drawImage(s.img, p.x - half, p.y - half, half * 2, half * 2)
+  }
+  ctx.globalAlpha = 1
+  if (!solDrawn) drawSol()
+  if (!reduced || flight) requestAnimationFrame(frame)
+}
+
+/* ---------- the panel's steps ---------- */
+let method = null, timer = 0, auto = 0
+function show(step) {
+  clearInterval(timer); clearTimeout(auto)
+  if (step === 'google') return signIn('google') // in the app: Google's own account chooser opens first
+  document.querySelectorAll('#panel .step').forEach((el) => { el.hidden = el.id !== `s-${step}` })
+  placeHorizon()
+  if (step === 'phone') setTimeout(() => $('num').focus(), 50)
+  if (step === 'code') startCode()
+  // Prototype: the bot, or the other phone, confirms by itself after a moment.
+  if (step === 'telegram') auto = setTimeout(() => signIn('telegram'), 4500)
+  if (step === 'device') { startQr(); auto = setTimeout(() => signIn('device'), 6000) }
+}
+document.querySelectorAll('[data-go]').forEach((b) => { b.onclick = () => show(b.dataset.go) })
+
+/** The horizon sits just above whatever the panel holds, so a taller step
+ *  raises it — your orb rides on it. */
+function placeHorizon() {
+  const phone = $('phone').getBoundingClientRect()
+  const top = $('panel').getBoundingClientRect().top - phone.top - 46
+  $('phone').style.setProperty('--hz', `${top}px`)
+}
+
+$('send').onclick = () => {
+  const digits = $('num').value.replace(/\D/g, '')
+  if (digits.length < 8) { $('num-err').textContent = W().badNumber; $('num').focus(); return }
+  $('num-err').textContent = ''
+  $('code-hint').textContent = W().codeHint(`${$('cc').value} ${$('num').value}`)
+  show('code')
+}
+$('num').onkeydown = (e) => { if (e.key === 'Enter') $('send').click() }
+function startCode() {
+  const boxes = [...document.querySelectorAll('#code input')]
+  boxes.forEach((b) => { b.value = '' })
+  $('code-err').textContent = ''
+  setTimeout(() => boxes[0].focus(), 50)
+  let left = 60
+  const tick = () => { $('again').disabled = left > 0; $('again').textContent = left > 0 ? W().againIn(left.toLocaleString(lang)) : W().again; left-- }
+  tick(); timer = setInterval(tick, 1000)
+}
+$('again').onclick = () => startCode()
+document.querySelectorAll('#code input').forEach((box, i, all) => {
+  box.oninput = () => {
+    box.value = box.value.replace(/\D/g, '').slice(-1)
+    if (box.value && i < 5) all[i + 1].focus()
+    const code = all.map((b) => b.value).join('')
+    if (code.length < 6) return
+    if (code === '123456') return signIn('phone')
+    const g = $('code'); g.classList.remove('wrong'); void g.offsetWidth; g.classList.add('wrong')
+    $('code-err').textContent = W().wrongCode
+    all.forEach((b) => { b.value = '' }); all[0].focus()
+  }
+  box.onkeydown = (e) => { if (e.key === 'Backspace' && !box.value && i > 0) all[i - 1].focus() }
+  box.onpaste = (e) => { const d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6); if (d.length === 6) { e.preventDefault(); d.split('').forEach((ch, k) => { all[k].value = ch }); all[5].dispatchEvent(new Event('input')) } }
+})
+$('tg-open').onclick = (e) => e.preventDefault()
+
+function startQr() {
+  let left = 60
+  const draw = () => {
+    let svg = '<svg viewBox="0 0 25 25" shape-rendering="crispEdges">'
+    const corner = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7" fill="#06181c"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#eef6f4"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3" fill="#06181c"/>`
+    for (let y = 0; y < 25; y++) for (let x = 0; x < 25; x++) {
+      const inCorner = (x < 8 && y < 8) || (x > 16 && y < 8) || (x < 8 && y > 16)
+      if (!inCorner && Math.random() > 0.52) svg += `<rect x="${x}" y="${y}" width="1" height="1" fill="#06181c"/>`
+    }
+    $('qr').innerHTML = svg + corner(0, 0) + corner(18, 0) + corner(0, 18) + '</svg>'
+  }
+  const tick = () => { if (left === 60) draw(); $('qr-left').textContent = W().qrLeft(left.toLocaleString(lang)); left = left === 0 ? 60 : left - 1 }
+  tick(); timer = setInterval(tick, 1000)
+}
+
+/* ---------- the moment: your orb rises, lights, and the camera flies in ---------- */
+function signIn(how) {
+  clearInterval(timer); clearTimeout(auto)
+  method = how
+  const phone = $('phone')
+  phone.classList.add('lit')
+  navigator.vibrate?.([12, 60, 12])
+  setTimeout(() => {
+    phone.classList.add('flying')
+    if (reduced) arrive()
+    else flight = performance.now() // the running frame loop picks it up
+  }, 500)
+}
+function arrive() {
+  const phone = $('phone')
+  phone.classList.add('arrived')
+  paint()
+  $('welcome').hidden = false
+  setTimeout(() => $('name').focus(), 600)
+  if (reduced) requestAnimationFrame(frame)
+}
+$('name').oninput = () => { $('me').textContent = $('name').value.trim().slice(0, 1) }
+$('enter').onclick = () => { if (!$('name').value.trim()) $('name').focus() }
+
+build(); paint(); show('ways'); requestAnimationFrame(frame)
+addEventListener('resize', () => { build(); placeHorizon(); if (reduced) requestAnimationFrame(frame) })
+</script>
