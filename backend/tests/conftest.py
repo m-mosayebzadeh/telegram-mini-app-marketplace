@@ -154,3 +154,15 @@ def db_session(db_engine):
         yield session
     finally:
         session.close()
+
+
+@pytest.fixture(autouse=True)
+def _forget_sign_in_tries():
+    """Every test client asks from the same address; one test's tries must
+    not count against the next."""
+    from app.auth.router import device_starts
+    from app.auth.telegram_router import bot_starts
+
+    device_starts.clear()
+    bot_starts.clear()
+    yield

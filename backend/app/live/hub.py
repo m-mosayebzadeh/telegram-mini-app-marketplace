@@ -30,6 +30,12 @@ Two kinds of sending:
   it (app/live/pulse.py): every process runs its own and tells its own
   connections, so no single process is in charge of the others and none
   of them going down silences the rest.
+
+One more thing travels the same way: a device that is not signed in yet,
+waiting for a phone to approve it (app/auth/router.py). It has no live
+connection — it is not anybody yet — so it waits inside an ordinary
+request, and `device_request_changed` wakes that request the moment the
+phone opens, approves or refuses it, on whichever process it waits.
 """
 
 from __future__ import annotations
@@ -96,6 +102,9 @@ class LiveHub:
         #: This process's name on the channel, so it can skip its own
         #: messages: the people here were already told directly.
         self.node_id = uuid.uuid4().hex
+        #: Waiting sign-in requests on this process, by their code: each
+        #: waiter is the loop it waits on and the event that wakes it.
+        self._device_waiters: dict[str, set[tuple[asyncio.AbstractEventLoop, asyncio.Event]]] = {}
 
     def attach(self, broker) -> None:
         """Called once at startup when REDIS_URL is set."""
@@ -179,6 +188,41 @@ class LiveHub:
             except RuntimeError:
                 pass
 
+    def watch_device_request(self, code: str) -> asyncio.Event:
+        """Called by the waiting request, on the event loop: the event is set
+        when something happens to this sign-in request. The caller must
+        `unwatch_device_request` when it stops waiting."""
+        waiter = (asyncio.get_running_loop(), asyncio.Event())
+        with self._lock:
+            self._device_waiters.setdefault(code, set()).add(waiter)
+        return waiter[1]
+
+    def unwatch_device_request(self, code: str, event: asyncio.Event) -> None:
+        with self._lock:
+            mine = self._device_waiters.get(code)
+            if mine is None:
+                return
+            mine.difference_update({w for w in mine if w[1] is event})
+            if not mine:
+                del self._device_waiters[code]
+
+    def device_request_changed(self, code: str) -> None:
+        """A phone opened, approved or refused a sign-in request: wakes the
+        device waiting on it, here or — through Redis — elsewhere. It only
+        wakes it; the device reads the answer from the database."""
+        self._wake_device_local(code)
+        if self._broker is not None:
+            self._broker.send(json.dumps({"from": self.node_id, "device_request": code}, separators=(",", ":")))
+
+    def _wake_device_local(self, code: str) -> None:
+        with self._lock:
+            waiters = list(self._device_waiters.get(code, ()))
+        for loop, event in waiters:
+            try:
+                loop.call_soon_threadsafe(event.set)
+            except RuntimeError:
+                pass
+
     def _send(self, message: dict[str, Any]) -> None:
         if self._broker is None:
             return
@@ -194,6 +238,9 @@ class LiveHub:
                 return
             if "close_session" in message:
                 self._close_local(int(message["close_session"]))
+                return
+            if "device_request" in message:
+                self._wake_device_local(str(message["device_request"]))
                 return
             event = message["event"]
             users = message["users"]

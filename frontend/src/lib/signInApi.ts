@@ -7,17 +7,24 @@ import { apiFetch } from './api'
  */
 
 export interface WaysIn {
-  /** Google's Client ID, or null when Google sign-in is not set up. */
-  google_client_id: string | null
+  /** Google sign-in is set up on the server. */
+  google: boolean
+  /** Signing in through our Telegram bot is set up. */
+  telegram: boolean
   /** Development sign-in is open (local development only). */
   dev: boolean
 }
 
 export const fetchWays = () => apiFetch<WaysIn>('/auth/ways')
 
-/** Hands the server the token Google's button gave the page. */
-export const signInWithGoogle = (credential: string) =>
-  apiFetch<{ new: boolean }>('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) })
+/**
+ * Where the Google button leads. Not a request the page makes: the browser
+ * goes there, the server sends it on to Google's account chooser, and
+ * Google sends it back, signed in (backend/app/auth/google.py). Going there
+ * and back is what lets the button be our own, within Google's brand rules.
+ */
+export const googleStartAddress = (language: string) =>
+  `/api/auth/google/start?lang=${encodeURIComponent(language)}`
 
 // --- another phone --------------------------------------------------------
 
@@ -33,15 +40,41 @@ export type DeviceStatus = 'pending' | 'approved' | 'refused' | 'expired' | 'use
 
 export const startDeviceRequest = () => apiFetch<DeviceRequest>('/auth/device/start', { method: 'POST' })
 
-/** Held open by the server up to half a minute, until there is an answer. */
-export const waitForApproval = (request: DeviceRequest) =>
-  apiFetch<{ status: DeviceStatus }>('/auth/device/wait', {
+/**
+ * Held open by the server up to half a minute, until there is news: an
+ * answer, or — told once — that a phone has opened the code (`seen`). The
+ * phone's answer wakes the server at once; nothing here asks on a clock.
+ */
+export const waitForApproval = (request: DeviceRequest, seen: boolean) =>
+  apiFetch<{ status: DeviceStatus; seen: boolean }>('/auth/device/wait', {
     method: 'POST',
-    body: JSON.stringify({ code: request.code, secret: request.secret }),
+    body: JSON.stringify({ code: request.code, secret: request.secret, seen }),
   })
 
 export const claimDeviceSession = (request: DeviceRequest) =>
   apiFetch<void>('/auth/device/claim', {
+    method: 'POST',
+    body: JSON.stringify({ code: request.code, secret: request.secret }),
+  })
+
+// --- Telegram, through our bot ----------------------------------------------
+
+export interface BotRequest extends DeviceRequest {
+  /** Opens our bot with this request's code: in the Telegram app, or on the web. */
+  link: string
+}
+
+export const startBotSignIn = () => apiFetch<BotRequest>('/auth/telegram/start', { method: 'POST' })
+
+/** The same held-open wait as another phone's, woken by the bot. */
+export const waitForTelegram = (request: BotRequest, seen: boolean) =>
+  apiFetch<{ status: DeviceStatus; seen: boolean }>('/auth/telegram/wait', {
+    method: 'POST',
+    body: JSON.stringify({ code: request.code, secret: request.secret, seen }),
+  })
+
+export const claimBotSession = (request: BotRequest) =>
+  apiFetch<void>('/auth/telegram/claim', {
     method: 'POST',
     body: JSON.stringify({ code: request.code, secret: request.secret }),
   })

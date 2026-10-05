@@ -63,6 +63,19 @@ class Settings(BaseSettings):
     # Google sign-in: the Client ID from Google Cloud. Not a secret — the
     # browser sees it anyway — and the only thing this way in needs.
     google_client_id: str | None = None
+    # Where Google sends the person back: the browser's address of
+    # /auth/google/callback, exactly as registered in Google Cloud under
+    # "Authorized redirect URIs" (locally
+    # http://localhost:5174/api/auth/google/callback).
+    google_redirect_uri: str | None = None
+
+    # Signing in through our Telegram bot (app/auth/telegram_router.py): the
+    # bot's @username, for the "t.me/<bot>?start=…" link, and the secret
+    # Telegram sends back with every update (set with
+    # scripts/set_telegram_webhook.py), so nobody else can pretend to be
+    # Telegram. Without the username the Telegram button does not appear.
+    telegram_bot_username: str | None = None
+    telegram_webhook_secret: str | None = None
 
     # Enables developer-only routes (e.g. /dev/test-init-data) that must
     # never be reachable in production. Defaults to OFF on purpose: an

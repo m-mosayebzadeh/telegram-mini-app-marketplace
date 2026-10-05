@@ -1312,15 +1312,27 @@
     "title": "Welcome",
     "line": "Choose a way to sign in.",
     "google": "Continue with Google",
+    "telegram": "Continue with Telegram",
     "withPhone": "Sign in with another phone",
     "test": "Test sign-in",
     "back": "Back",
     "failed": "Couldn’t sign in. Try again.",
     "googleFailed": "Google sign-in didn’t work. Try again.",
-    "googleUnreachable": "Google’s button didn’t load. Check your connection.",
+    "tooMany": "Too many tries. Try again in a few minutes.",
     "lang": {
       "fa": "فارسی",
       "en": "English"
+    },
+    "tg": {
+      "title": "Sign in with Telegram",
+      "lead": "Open Telegram, tap Start, then approve. This page signs in by itself.",
+      "open": "Open Telegram",
+      "waiting": "Waiting for Telegram…",
+      "seen": "Now tap “Yes, it’s me” in Telegram.",
+      "refused": "Not approved. Try again",
+      "qr": "On a computer? Scan this with your phone’s camera.",
+      "qrLabel": "Code to open Telegram on your phone",
+      "expired": "The Telegram link ran out. If you still want to, tap “Continue with Telegram” again."
     },
     "device": {
       "title": "Sign in with another phone",
@@ -1329,6 +1341,8 @@
       "codeLabel": "Sign-in code",
       "two": "Or on that phone, go to Settings → “Sign in another device” and type this code.",
       "waiting": "Waiting for your phone…",
+      "seen": "Scanned. Now approve it on your phone.",
+      "expired": "The code ran out. If you still want to, tap “Sign in with another phone” again.",
       "preparing": "Getting ready…",
       "refused": "Not approved. Get a new code",
       "again": "Try again"

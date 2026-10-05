@@ -21,7 +21,7 @@ the identity of the product: it is only one door.
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -93,7 +93,47 @@ class DeviceSignInRequest(Base):
     device: Mapped[str] = mapped_column(String(80), default="")
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    #: When a signed-in phone opened the request (scanned or typed), so the
+    #: asking device can say "now confirm it on your phone".
+    seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     approved_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    refused_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+
+class BotSignInRequest(Base):
+    """Signing in through our Telegram bot (section 32).
+
+    The sign-in page asks for one of these and opens the bot with its code
+    ("t.me/<bot>?start=<code>"). Tapping Start hands the code to the bot,
+    which notes who tapped it (`seen_at` and the Telegram account) and asks
+    them, naming the device, whether it is really them signing in. Only on
+    "yes" from that same account (`approved_at`) can the asking page collect
+    a session, with the secret only it holds. Without that question,
+    somebody could send you their link, and your tap on Start would sign
+    THEM in to your account.
+
+    The same states, under the same names, as DeviceSignInRequest, so both
+    are read the same way.
+    """
+
+    __tablename__ = "auth_bot_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    #: Goes in the bot link; Telegram allows letters, digits, _ and - only.
+    code: Mapped[str] = mapped_column(String(32), unique=True)
+    secret_hash: Mapped[str] = mapped_column(String(64))
+    #: The asking device's name, shown in the bot's question.
+    device: Mapped[str] = mapped_column(String(80), default="")
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(UTCDateTime)
+    #: When somebody tapped Start with this code, and who they are on Telegram.
+    seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    telegram_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    first_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     refused_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

@@ -2,14 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import QRCode from 'qrcode'
 import { apiReason } from '../lib/api'
-import { renderGoogleButton } from '../lib/googleButton'
 import {
+  claimBotSession,
   claimDeviceSession,
   fetchWays,
-  signInWithGoogle,
+  googleStartAddress,
   spacedCode,
+  startBotSignIn,
   startDeviceRequest,
   waitForApproval,
+  waitForTelegram,
+  type BotRequest,
   type DeviceRequest,
   type WaysIn,
 } from '../lib/signInApi'
@@ -23,9 +26,9 @@ import {
  * where the thumb is. No motion beyond things settling into place.
  *
  * Ways in, each ending in the same session cookie the server sets:
- * Google (Google's own button), another phone already signed in (a code to
- * scan or type), and — in local development only — the test people. A
- * phone number and Telegram through our bot come later.
+ * Google (off to Google's account chooser and back), Telegram through our
+ * bot, another phone already signed in (a code to scan or type), and — in
+ * local development only — the test people. A phone number comes later.
  *
  * Signing in reloads the page, so everything starts clean as that person.
  */
@@ -37,53 +40,51 @@ const TEST_PEOPLE = [
   { telegramId: 444444, firstName: 'Fatemeh', username: 'fatemeh_dev' },
 ]
 
-type Step = 'ways' | 'device' | 'test'
+type Step = 'ways' | 'device' | 'telegram' | 'test'
+
+/**
+ * What the server said, coming back from Google, read once from the
+ * address and then wiped from it, so a reload does not say it again.
+ * Closing Google's chooser is not a failure, and says nothing.
+ */
+function cameBackFromGoogle(): string | null {
+  const params = new URLSearchParams(window.location.search)
+  const outcome = params.get('signin')
+  if (!outcome) return null
+  params.delete('signin')
+  const rest = params.toString()
+  window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
+  return outcome === 'google_cancelled' ? null : 'signIn.googleFailed'
+}
 
 export default function SignIn() {
   const { t, i18n } = useTranslation()
   const [ways, setWays] = useState<WaysIn | null>(null)
   const [step, setStep] = useState<Step>('ways')
-  const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [googleReady, setGoogleReady] = useState(false)
-  const googleBox = useRef<HTMLDivElement>(null)
+  // A message key rather than text, so it follows a change of language.
+  const [error, setError] = useState<string | null>(cameBackFromGoogle)
+  const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
     fetchWays()
       .then(setWays)
-      .catch(() => setWays({ google_client_id: null, dev: false }))
+      .catch(() => setWays({ google: false, telegram: false, dev: false }))
   }, [])
 
-  // Google's button, drawn again when the language changes (it carries its
-  // own words) or when coming back to this step.
-  useEffect(() => {
-    const box = googleBox.current
-    if (step !== 'ways' || !box || !ways?.google_client_id) return
-    box.replaceChildren()
-    renderGoogleButton(box, ways.google_client_id, i18n.language, async (credential) => {
-      setBusy(true)
-      setError('')
-      try {
-        await signInWithGoogle(credential)
-        window.location.reload()
-      } catch {
-        setBusy(false)
-        setError(t('signIn.googleFailed'))
-      }
-    })
-      .then(() => setGoogleReady(true))
-      .catch(() => setError(t('signIn.googleUnreachable')))
-  }, [step, ways, i18n.language, t])
+  function back(note: string | null = null) {
+    setError(note)
+    setStep('ways')
+  }
 
   async function asTestPerson(person: (typeof TEST_PEOPLE)[number]) {
-    setError('')
+    setError(null)
     const answer = await fetch('/api/dev/sign-in', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ telegram_id: person.telegramId, first_name: person.firstName, username: person.username }),
     }).catch(() => null)
     if (answer?.ok) window.location.reload()
-    else setError(t('signIn.failed'))
+    else setError('signIn.failed')
   }
 
   const other = i18n.language === 'fa' ? 'en' : 'fa'
@@ -96,7 +97,7 @@ export default function SignIn() {
         {step === 'ways' ? (
           <span className="cos-signin-brand" dir="ltr">Cosmos</span>
         ) : (
-          <BackButton onClick={() => setStep('ways')} />
+          <BackButton onClick={() => back()} />
         )}
         <button type="button" className="cos-signin-lang" onClick={() => void i18n.changeLanguage(other)}>
           {t(`signIn.lang.${other}`)}
@@ -111,17 +112,31 @@ export default function SignIn() {
           </section>
 
           {/* The ways in sit at the bottom, where the thumb is. */}
-          <section className="cos-signin-ways" aria-busy={busy || !ready}>
-            {ways?.google_client_id && (
-              // Our own button for the eye; Google's real one lies over it,
-              // invisible, and takes the tap (see googleButton.ts).
-              <div className="cos-signin-google" data-ready={googleReady || undefined}>
-                <span className="cos-signin-way cos-signin-way-google" aria-hidden="true">
-                  <GoogleMark />
-                  {t('signIn.google')}
-                </span>
-                <div ref={googleBox} className="cos-signin-google-frame" />
-              </div>
+          <section className="cos-signin-ways" aria-busy={leaving || !ready}>
+            {ways?.google && (
+              // A plain link: the browser goes to Google and comes back
+              // signed in. Google's dark style — its own colours, its mark
+              // untouched, its words — which its brand rules allow for a
+              // button of our own, and which sits in our night sky.
+              <a
+                className="cos-signin-way cos-signin-way-google"
+                href={googleStartAddress(i18n.language)}
+                aria-disabled={leaving || undefined}
+                onClick={(e) => {
+                  // One tap is enough; a second would start a second sign-in.
+                  if (leaving) e.preventDefault()
+                  else setLeaving(true)
+                }}
+              >
+                <GoogleMark />
+                <span>{t('signIn.google')}</span>
+              </a>
+            )}
+            {ways?.telegram && (
+              <button type="button" className="cos-signin-way cos-signin-way-telegram" onClick={() => setStep('telegram')}>
+                <TelegramMark />
+                {t('signIn.telegram')}
+              </button>
             )}
             <button type="button" className="cos-signin-way" onClick={() => setStep('device')}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
@@ -135,12 +150,13 @@ export default function SignIn() {
                 {t('signIn.test')}
               </button>
             )}
-            {error !== '' && <p className="cos-signin-error" role="alert">{error}</p>}
+            {error && <p className="cos-signin-error" role="alert">{t(error)}</p>}
           </section>
         </>
       )}
 
-      {step === 'device' && <AnotherPhone />}
+      {step === 'device' && <AnotherPhone onLeave={back} />}
+      {step === 'telegram' && <TelegramStep onLeave={back} />}
 
       {step === 'test' && (
         <section className="cos-signin-panel">
@@ -152,7 +168,7 @@ export default function SignIn() {
               </button>
             ))}
           </div>
-          {error !== '' && <p className="cos-signin-error" role="alert">{error}</p>}
+          {error && <p className="cos-signin-error" role="alert">{t(error)}</p>}
         </section>
       )}
     </main>
@@ -172,7 +188,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-/** Google's "G", in its own colours, as its brand rules ask. */
+/** Google's "G", in its own colours and never altered, as its brand rules ask. */
 function GoogleMark() {
   return (
     <svg viewBox="0 0 48 48" aria-hidden="true">
@@ -184,57 +200,157 @@ function GoogleMark() {
   )
 }
 
+/** What a waiting step needs from its way in: making a request, waiting for news on it, collecting the session. */
+interface WaitingWay<R extends { code: string; secret: string }> {
+  start: () => Promise<R>
+  wait: (request: R, seen: boolean) => Promise<{ status: string; seen: boolean }>
+  claim: (request: R) => Promise<void>
+  /** How many times a request that ran out is replaced by itself. */
+  renewals: number
+  /** The note shown on the first page when the last one runs out. */
+  expiredNote: string
+}
+
 /**
- * Signing in with a phone that is already signed in: this device shows a
- * code — a picture for the phone's camera, and letters to type — and
- * waits. Approved on the phone, it collects its session and comes in. The
- * code renews itself when it runs out.
+ * The waiting both "another phone" and "Telegram" do, in one place so the
+ * two cannot drift apart: make a request, wait for news on it (the server
+ * holds each wait open and is woken by the answer — nothing here asks on
+ * a clock), say when it was opened, come in when approved, and go back to
+ * the first page when it runs out or this place has tried too often.
+ *
+ * A wait that fails — a phone that put this tab to sleep while Telegram was
+ * open, a moment without network — is simply waited again once the page is
+ * in front of the person, a few times before giving up.
  */
-function AnotherPhone() {
-  const { t } = useTranslation()
-  const [request, setRequest] = useState<DeviceRequest | null>(null)
-  const [picture, setPicture] = useState('')
+function useWaitingRequest<R extends { code: string; secret: string }>(way: WaitingWay<R>, onLeave: (note: string) => void) {
+  const [request, setRequest] = useState<R | null>(null)
+  const [seen, setSeen] = useState(false)
   const [refused, setRefused] = useState(false)
   const [failed, setFailed] = useState(false)
   const [round, setRound] = useState(0)
+  const renewed = useRef(0)
 
   useEffect(() => {
     let alive = true
-    startDeviceRequest()
+    way
+      .start()
       .then(async (asked) => {
         if (!alive) return
         setRefused(false)
         setFailed(false)
+        setSeen(false)
         setRequest(asked)
-        const address = `${window.location.origin}/link?c=${asked.code}`
-        setPicture(await QRCode.toString(address, { type: 'svg', margin: 1, color: { dark: '#06181c', light: '#eef6f4' } }))
-        // Wait for the answer; the server holds each wait open a while.
+        let known = false
+        let misses = 0
         for (;;) {
-          const { status } = await waitForApproval(asked)
+          let answer: { status: string; seen: boolean }
+          try {
+            answer = await way.wait(asked, known)
+            misses = 0
+          } catch (err) {
+            if (!alive) return
+            if (++misses > 3) throw err
+            await inFrontAgain()
+            continue
+          }
           if (!alive) return
-          if (status === 'approved') {
-            await claimDeviceSession(asked)
+          if (answer.seen && !known) {
+            known = true
+            setSeen(true)
+          }
+          if (answer.status === 'approved') {
+            await way.claim(asked)
             window.location.reload()
             return
           }
-          if (status === 'refused') {
+          if (answer.status === 'refused') {
             setRefused(true)
             return
           }
-          if (status !== 'pending') {
-            // Ran out: a fresh code, without asking anybody to press anything.
-            setRound((r) => r + 1)
+          if (answer.status !== 'pending') {
+            if (renewed.current < way.renewals) {
+              renewed.current += 1
+              setRound((r) => r + 1)
+            } else {
+              onLeave(way.expiredNote)
+            }
             return
           }
         }
       })
       .catch((err) => {
-        if (alive && apiReason(err) !== 'used') setFailed(true)
+        if (!alive) return
+        // Too many tries from here: back, saying so, rather than a retry button that would only be refused again.
+        if (apiReason(err) === 'too_many_tries') onLeave('signIn.tooMany')
+        else if (apiReason(err) !== 'used') setFailed(true)
       })
     return () => {
       alive = false
     }
+    // way and onLeave are the parent's and new on every render; a new request comes only with a new round.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round])
+
+  return { request, seen, refused, failed, again: () => setRound((r) => r + 1) }
+}
+
+/** Resolves once the page is in front of the person again (or shortly, if it already is). */
+function inFrontAgain(): Promise<void> {
+  return new Promise((resolve) => {
+    if (document.visibilityState === 'visible') {
+      setTimeout(resolve, 1500)
+      return
+    }
+    const back = () => {
+      if (document.visibilityState !== 'visible') return
+      document.removeEventListener('visibilitychange', back)
+      resolve()
+    }
+    document.addEventListener('visibilitychange', back)
+  })
+}
+
+/** A picture of an address, for a phone's camera: built by the QR library from our own data only. */
+function useQrPicture(address: string | null): string {
+  const [picture, setPicture] = useState('')
+  useEffect(() => {
+    if (!address) return
+    let alive = true
+    void QRCode.toString(address, { type: 'svg', margin: 1, color: { dark: '#06181c', light: '#eef6f4' } }).then((svg) => {
+      if (alive) setPicture(svg)
+    })
+    return () => {
+      alive = false
+    }
+  }, [address])
+  return picture
+}
+
+const PHONE_WAY: WaitingWay<DeviceRequest> = {
+  start: startDeviceRequest,
+  wait: waitForApproval,
+  claim: claimDeviceSession,
+  // One fresh code by itself, then back: four minutes in all (the owner's decision).
+  renewals: 1,
+  expiredNote: 'signIn.device.expired',
+}
+
+/**
+ * Signing in with a phone that is already signed in: this device shows a
+ * code — a picture for the phone's camera, and letters to type — and
+ * waits. When the phone opens the code it says so ("now approve it on your
+ * phone"); approved, it collects its session and comes in.
+ *
+ * Every visit to this step makes a new code, and a code lives two minutes.
+ * When the first runs out, one fresh code takes its place by itself; when
+ * that one runs out too — four minutes in all — the page goes back to the
+ * ways in (the owner's decision), rather than renewing itself for ever on
+ * a screen nobody may be looking at.
+ */
+function AnotherPhone({ onLeave }: { onLeave: (note: string) => void }) {
+  const { t } = useTranslation()
+  const { request, seen, refused, failed, again } = useWaitingRequest(PHONE_WAY, onLeave)
+  const picture = useQrPicture(request ? `${window.location.origin}/link?c=${request.code}` : null)
 
   return (
     <section className="cos-signin-panel">
@@ -243,26 +359,101 @@ function AnotherPhone() {
       {request ? (
         <>
           <div className="cos-signin-code-card">
-            {/* The picture is built by the QR library from our own address only. */}
             <div className="cos-signin-qr" role="img" aria-label={t('signIn.device.qr')} dangerouslySetInnerHTML={{ __html: picture }} />
             <p className="cos-signin-code" dir="ltr" aria-label={t('signIn.device.codeLabel')}>{spacedCode(request.code)}</p>
           </div>
           <p className="cos-signin-or">{t('signIn.device.two')}</p>
           {refused ? (
-            <button type="button" className="cos-signin-way" onClick={() => setRound((r) => r + 1)}>
+            <button type="button" className="cos-signin-way" onClick={again}>
               {t('signIn.device.refused')}
             </button>
           ) : (
-            <p className="cos-signin-wait"><span className="cos-signin-wait-dot" aria-hidden="true" />{t('signIn.device.waiting')}</p>
+            <Waiting seen={seen} waiting={t('signIn.device.waiting')} seenText={t('signIn.device.seen')} />
           )}
         </>
       ) : failed ? (
-        <button type="button" className="cos-signin-way" onClick={() => setRound((r) => r + 1)}>
+        <button type="button" className="cos-signin-way" onClick={again}>
           {t('signIn.device.again')}
         </button>
       ) : (
         <p className="cos-signin-wait">{t('signIn.device.preparing')}</p>
       )}
     </section>
+  )
+}
+
+const TELEGRAM_WAY: WaitingWay<BotRequest> = {
+  start: startBotSignIn,
+  wait: waitForTelegram,
+  claim: claimBotSession,
+  // Five minutes, then back: switching to Telegram and back takes a moment.
+  renewals: 0,
+  expiredNote: 'signIn.tg.expired',
+}
+
+/**
+ * Signing in through our Telegram bot: open Telegram (on this device, or —
+ * from a computer — by scanning the picture with a phone), tap Start, and
+ * say "yes, it's me" to the bot's question. The page waits meanwhile and
+ * comes in by itself; on a phone, coming back to the browser is enough.
+ */
+function TelegramStep({ onLeave }: { onLeave: (note: string) => void }) {
+  const { t } = useTranslation()
+  const { request, seen, refused, failed, again } = useWaitingRequest(TELEGRAM_WAY, onLeave)
+  const picture = useQrPicture(request?.link ?? null)
+
+  return (
+    <section className="cos-signin-panel">
+      <h1>{t('signIn.tg.title')}</h1>
+      <p>{t('signIn.tg.lead')}</p>
+      {request ? (
+        <>
+          <a className="cos-signin-way cos-signin-way-telegram cos-signin-open" href={request.link} target="_blank" rel="noopener noreferrer">
+            <TelegramMark />
+            {t('signIn.tg.open')}
+          </a>
+          {refused ? (
+            <button type="button" className="cos-signin-way" onClick={again}>
+              {t('signIn.tg.refused')}
+            </button>
+          ) : (
+            <Waiting seen={seen} waiting={t('signIn.tg.waiting')} seenText={t('signIn.tg.seen')} />
+          )}
+          {/* For somebody on a computer: the phone's camera opens the same link in Telegram there. */}
+          <div className="cos-signin-code-card cos-signin-code-card-small">
+            <div className="cos-signin-qr" role="img" aria-label={t('signIn.tg.qrLabel')} dangerouslySetInnerHTML={{ __html: picture }} />
+            <p className="cos-signin-or">{t('signIn.tg.qr')}</p>
+          </div>
+        </>
+      ) : failed ? (
+        <button type="button" className="cos-signin-way" onClick={again}>
+          {t('signIn.device.again')}
+        </button>
+      ) : (
+        <p className="cos-signin-wait">{t('signIn.device.preparing')}</p>
+      )}
+    </section>
+  )
+}
+
+function Waiting({ seen, waiting, seenText }: { seen: boolean; waiting: string; seenText: string }) {
+  return (
+    <p className="cos-signin-wait" data-seen={seen || undefined} role="status">
+      <span className="cos-signin-wait-dot" aria-hidden="true" />
+      {seen ? seenText : waiting}
+    </p>
+  )
+}
+
+/** Telegram's mark, in its own blue. */
+function TelegramMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="12" fill="#26A5E4" />
+      <path
+        fill="#fff"
+        d="M5.43 11.87c3.5-1.52 5.83-2.53 7-3.02 3.33-1.38 4.02-1.62 4.47-1.63.1 0 .32.02.47.14.12.1.15.23.17.33.02.09.04.3.02.47-.18 1.9-.96 6.5-1.36 8.63-.17.9-.5 1.2-.82 1.23-.7.06-1.22-.46-1.9-.9-1.06-.7-1.65-1.13-2.68-1.8-1.18-.78-.42-1.21.26-1.91.18-.18 3.25-2.98 3.3-3.23.01-.03.02-.15-.05-.21-.07-.06-.17-.04-.25-.02-.1.02-1.8 1.14-5.06 3.35-.48.33-.91.49-1.3.48-.43-.01-1.25-.24-1.87-.44-.75-.25-1.35-.37-1.3-.79.03-.22.33-.44.9-.66z"
+      />
+    </svg>
   )
 }

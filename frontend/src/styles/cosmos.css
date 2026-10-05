@@ -5346,17 +5346,24 @@ button.cos-me-person { cursor: pointer; }
 .cos-signin-way svg { width: 20px; height: 20px; flex: none; }
 .cos-signin-way:active { background: rgb(233 242 240 / 10%); }
 
-/* Google: our button for the eye, Google's real one invisible on top of it
-   (lib/googleButton.ts). White with the four-colour mark is Google's own
-   light style, and the one way in that stands out, being the quickest. */
-.cos-signin-google { position: relative; display: grid; }
-.cos-signin-way-google { border-color: transparent; background: #fff; color: #1f1f1f; transition: opacity 200ms, background-color 120ms; }
-.cos-signin-google:not([data-ready]) .cos-signin-way-google { opacity: .55; }
-.cos-signin-google:hover .cos-signin-way-google { background: #eef1f0; }
-.cos-signin-google-frame { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 14px; opacity: .001; }
-/* Google's button is about 44px tall; stretched to cover all 52px of ours. */
-.cos-signin-google-frame > div { transform: scaleY(1.3); }
-.cos-signin-google-frame iframe { color-scheme: light; }
+/* Google: a button of our own, in Google's dark style exactly — fill
+   #131314, a 1px #8E918F edge, #E3E3E3 words, the four-colour mark untouched
+   at 20px with 10px to the words — which its brand rules allow for a custom
+   button, and which belongs in the night sky where the white one shouted.
+   Our shape and height, like the ways beside it. It is a link (the browser
+   goes to Google and back), so it is styled as one of the buttons. */
+.cos-signin-way-google { background: #131314; border-color: #8e918f; color: #e3e3e3; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.cos-signin-way-google:hover { background: #1d1e20; }
+.cos-signin-way-google:active { background: #26272a; }
+/* Tapped: on its way to Google; a second tap would start a second sign-in. */
+.cos-signin-way-google[aria-disabled] { opacity: .6; pointer-events: none; }
+
+/* Telegram: our button, its own mark in its own blue; nothing else borrowed. */
+.cos-signin-way-telegram { text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.cos-signin-open { margin-top: 22px; }
+.cos-signin-code-card-small { margin-top: 28px; gap: 8px; }
+.cos-signin-code-card-small .cos-signin-qr { width: 148px; height: 148px; padding: 8px; border-radius: 14px; }
+.cos-signin-code-card-small .cos-signin-or { margin: 0; font-size: 13px; color: var(--cos-fg-faint); }
 
 .cos-signin-quiet { align-self: center; min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--cos-fg-faint); font: inherit; font-size: 13px; cursor: pointer; }
 .cos-signin-error { margin: 0; font-size: 13px; color: #ff8a80; text-align: center; line-height: 1.8; }
@@ -5370,11 +5377,12 @@ button.cos-me-person { cursor: pointer; }
 .cos-signin-code { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: .16em; font-variant-numeric: tabular-nums; }
 .cos-signin-or { margin: 12px 0 0; font-size: 14px; line-height: 1.9; color: var(--cos-fg-soft); text-align: center; text-wrap: balance; }
 .cos-signin-wait { margin: 18px 0 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; color: var(--cos-fg-faint); }
+/* Scanned: the words brighten, nothing else moves — the next step is on the phone. */
+.cos-signin-wait[data-seen] { color: var(--cos-fg); }
 /* Waiting, said with a slow breath rather than a spinner. */
 .cos-signin-wait-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cos-warm-bright); animation: cos-signin-breathe 1.8s ease-in-out infinite; }
 @keyframes cos-signin-breathe { 50% { opacity: .25; } }
 .cos-signin-way:focus-visible, .cos-signin-quiet:focus-visible, .cos-signin-back:focus-visible, .cos-signin-lang:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
-.cos-signin-google:focus-within .cos-signin-way-google { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .cos-signin-intro, .cos-signin-panel, .cos-signin-wait-dot { animation: none; } }
 
 /* ------------------------------------- signing in another device (LinkDevice) */
