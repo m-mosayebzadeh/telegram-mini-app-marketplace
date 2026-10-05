@@ -14,6 +14,7 @@ from app.core.rates import get_rates
 from app.core.time import utcnow
 from app.models.request import UNPAID_REASON, Request, RequestStatus
 from tests.helpers import give_wallet_balance, sign_init_data
+from tests.helpers import session_cookie_for
 
 
 def _auth(telegram_id: int, name: str = "Test") -> dict:
@@ -142,10 +143,11 @@ def test_both_people_are_told_when_it_runs_out(client, db_session):
     at once, over the live connection."""
     _, first, _ = _setup(client)
     _age(db_session, first["id"], 16)
+    session_cookie_for(client, 9101)
     socket = client.websocket_connect("/live")
     live = socket.__enter__()
     try:
-        live.send_json({"type": "hello", "credentials": _auth(9101)["X-Telegram-Init-Data"]})
+        live.send_json({"type": "hello"})
         assert live.receive_json() == {"type": "ready"}
         _activity(client, 9102)
         assert live.receive_json() == {"type": "requests"}

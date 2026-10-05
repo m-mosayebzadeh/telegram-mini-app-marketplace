@@ -55,11 +55,6 @@ export function deleteAccount(): Promise<void> {
   return apiFetch<void>('/me?sure=true', { method: 'DELETE' })
 }
 
-/** After deleting: start again with a new, empty account. */
-export function startOver(): Promise<void> {
-  return apiFetch<void>('/me/start-over', { method: 'POST' })
-}
-
 export function sendFeedback(text: string, where: string | null): Promise<void> {
   return apiFetch<void>('/feedback', { method: 'POST', body: JSON.stringify({ text, where }) })
 }

@@ -8,7 +8,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.live.hub import MAX_PENDING, LiveHub
 from app.models.user import User
-from tests.helpers import sign_init_data
+from tests.helpers import session_cookie_for, sign_init_data
 
 
 def _credentials(telegram_id: int, first_name: str = "Test") -> str:
@@ -28,9 +28,11 @@ def _pair(client, db_session, a, b):
 
 
 def _connect(client, telegram_id):
+    # Known by the session cookie, as in the app; the hello only says hello.
+    session_cookie_for(client, telegram_id)
     socket = client.websocket_connect("/live")
     live = socket.__enter__()
-    live.send_json({"type": "hello", "credentials": _credentials(telegram_id)})
+    live.send_json({"type": "hello"})
     assert live.receive_json() == {"type": "ready"}
     return socket, live
 
@@ -96,9 +98,9 @@ def test_the_thread_says_how_far_the_other_side_has_read(client, db_session):
     assert after["others_read_at"] is not None
 
 
-def test_a_socket_without_valid_credentials_is_turned_away(client):
+def test_a_socket_without_a_session_is_turned_away(client):
     with client.websocket_connect("/live") as live:
-        live.send_json({"type": "hello", "credentials": "forged"})
+        live.send_json({"type": "hello"})
         with pytest.raises(WebSocketDisconnect):
             live.receive_json()
 

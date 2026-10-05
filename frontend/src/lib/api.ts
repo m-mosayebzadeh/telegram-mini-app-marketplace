@@ -1,13 +1,14 @@
 /**
- * The one place this app talks to the backend. Every request needs the
- * same two things — the "/api" prefix (see vite.config.ts's proxy) and
- * the X-Telegram-Init-Data header the backend uses to authenticate
- * (see backend/app/auth/telegram.py) — so every screen calls apiFetch()
- * instead of using fetch() directly.
+ * The one place this app talks to the backend: the "/api" prefix (see
+ * vite.config.ts's proxy), and one shared answer to "signed out".
+ *
+ * Nothing here says who is asking. The browser sends the sign-in
+ * session's cookie with every request by itself (lib/auth.ts says why the
+ * app never touches it), and a request refused as "signed out" tells the
+ * app to go to the sign-in page.
  */
 
-import { retrieveRawInitData } from '@telegram-apps/sdk-react'
-import { getDevUserChoice } from './session'
+import { announceSignedOut, isSignedOutResponse } from './auth'
 
 /** Thrown by apiFetch() for any non-2xx response. Carries the parsed
  * JSON body (usually FastAPI's {"detail": ...}) so a screen can show a
@@ -56,70 +57,15 @@ export function formatApiError(err: unknown): string {
   return String(err)
 }
 
-// Resolved once per page load, then reused — neither path (a real
-// Telegram launch, or the dev fallback below) changes mid-session.
-let cachedInitData: string | null = null
-
 /**
- * The raw, signed initData string to send as X-Telegram-Init-Data.
- *
- * Two paths:
- *   1. Running inside real Telegram: retrieveRawInitData() reads it
- *      straight from the WebView launch parameters — this is the real
- *      thing, and it's what the backend actually validates in
- *      production.
- *   2. Running in a plain browser during local development (no
- *      Telegram WebView around it at all): there's no real initData to
- *      retrieve, so we use whichever test user was chosen on the Login
- *      screen (see lib/session.ts and pages/Login.tsx) — signed by the
- *      backend's dev-only endpoint, the exact same trick the Bruno
- *      collection uses (see backend/app/dev/router.py). This only
- *      works when the backend is running with ENABLE_DEV_TOOLS=true;
- *      inside real Telegram this branch is never reached at all.
- *
- * retrieveRawInitData() THROWS (not returns undefined/null) when there
- * are no launch params to find anywhere — window.location, navigation
- * entries, or localStorage — which is exactly what "plain browser, no
- * Telegram" looks like, so that throw is what triggers the fallback.
- */
-export async function getInitData(): Promise<string> {
-  if (cachedInitData) return cachedInitData
-
-  try {
-    const real = retrieveRawInitData()
-    if (real) {
-      cachedInitData = real
-      return real
-    }
-  } catch {
-    // No Telegram launch params available — fall through to the dev
-    // fallback below, exactly as if retrieveRawInitData() had
-    // returned nothing.
-  }
-
-  const stored = getDevUserChoice()
-  if (!stored) {
-    // Should be unreachable in practice: App.tsx checks needsDevLogin()
-    // and shows the Login screen before rendering anything that could
-    // call apiFetch(). Kept as a clear failure instead of silently
-    // picking some default user, in case that invariant is ever broken.
-    throw new Error('No Telegram launch data and no test user chosen — log in first.')
-  }
-  cachedInitData = stored
-  return stored
-}
-
-/**
- * Calls the backend at `path` (e.g. "/me", "/wallet/balance") with the
- * init-data header attached, and returns the parsed JSON body.
+ * Calls the backend at `path` (e.g. "/me", "/wallet/balance") and returns
+ * the parsed JSON body.
  *
  * Throws ApiError on any non-2xx response — callers only ever get
  * either a successful, typed result or a thrown ApiError, never a
  * response object they have to check `.ok` on themselves.
  */
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const initData = await getInitData()
-
   // A FormData body (content upload — see lib/contentApi.ts) must NOT
   // get an explicit Content-Type: the browser sets one itself, with the
   // multipart boundary the body was actually encoded with. Setting it
@@ -130,7 +76,6 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const response = await fetch(`/api${path}`, {
     ...options,
     headers: {
-      'X-Telegram-Init-Data': initData,
       // Harmless outside a tunnel (the real backend just ignores an
       // unknown header) — see the matching header on apiFetchBlob()
       // below for why it's needed at all when testing through ngrok.
@@ -144,6 +89,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const body = response.status === 204 ? null : await response.json().catch(() => null)
 
   if (!response.ok) {
+    if (isSignedOutResponse(response.status, body)) announceSignedOut()
     throw new ApiError(response.status, body)
   }
   return body as T
@@ -152,22 +98,17 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 /**
  * Like apiFetch(), but for an endpoint whose response is raw bytes, not
  * JSON — right now just GET /content/{id}/file (see lib/contentApi.ts).
- * A plain <img src="..."> can't be used for that route directly: this
- * backend authenticates via the X-Telegram-Init-Data header, and a
- * browser's own image-loading request has no way to attach one — so the
- * bytes have to be fetched here (where the header can be set) and handed
- * to the <img> as an in-memory object URL instead.
+ Fetched here rather than by a plain <img src> so a refused request is
+ * handled like every other (a JSON error body, "signed out"), and handed
+ * to the <img> as an in-memory object URL.
  *
  * On a non-2xx response, still throws ApiError with the parsed JSON
  * error body (e.g. the 402 payment-required shape), exactly like
  * apiFetch() — only the success path returns a Blob instead of JSON.
  */
 export async function apiFetchBlob(path: string): Promise<Blob> {
-  const initData = await getInitData()
-
   const response = await fetch(`/api${path}`, {
     headers: {
-      'X-Telegram-Init-Data': initData,
       // ngrok's free tier serves an HTML "you are about to visit..."
       // interstitial (see the first screenshot in the chat that led
       // here) to any request that doesn't look like a normal browser
@@ -181,6 +122,7 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => null)
+    if (isSignedOutResponse(response.status, body)) announceSignedOut()
     throw new ApiError(response.status, body)
   }
   return response.blob()

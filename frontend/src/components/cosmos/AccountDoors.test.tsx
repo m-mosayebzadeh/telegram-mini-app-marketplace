@@ -3,11 +3,11 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AdultGate } from './AccountDoors'
 
-const mocks = vi.hoisted(() => ({ confirmAdult: vi.fn(), startOver: vi.fn() }))
+const mocks = vi.hoisted(() => ({ confirmAdult: vi.fn() }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en' } }),
 }))
-vi.mock('../../lib/accountApi', () => ({ confirmAdult: mocks.confirmAdult, startOver: mocks.startOver }))
+vi.mock('../../lib/accountApi', () => ({ confirmAdult: mocks.confirmAdult }))
 
 /** "Eighteen or over", the first time Echo opens (section 32). */
 describe('the eighteen-or-over gate', () => {

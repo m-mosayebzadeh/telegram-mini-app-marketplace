@@ -60,3 +60,37 @@ def give_wallet_balance(db_session: Session, user_id: int, amount_toman: int) ->
         )
     )
     db_session.commit()
+
+
+def sign_in(client, db_session: Session, telegram_id: int, first_name: str = "Test") -> None:
+    """Gives this test client a real sign-in session cookie for a test
+    person, created first if needed — for the tests about sessions and the
+    live connection, which must go through the real cookie path rather than
+    the test header (tests/signed_in.py)."""
+    from app.auth import sessions
+    from app.models.user import User
+
+    client.get("/me", headers={"X-Telegram-Init-Data": sign_init_data({"id": telegram_id, "first_name": first_name})})
+    user = db_session.query(User).filter_by(telegram_id=telegram_id).one()
+    token = sessions.start_session(db_session, user, provider="telegram", user_agent="test")
+    client.cookies.set(sessions.COOKIE, token)
+
+
+def session_cookie_for(client, telegram_id: int, first_name: str = "Test") -> None:
+    """Like sign_in, for tests without a db_session at hand: sets this
+    client's session cookie for a test person, through the test database
+    the client is wired to."""
+    from app.auth import sessions
+    from app.core.database import get_db
+    from app.main import app
+    from app.models.user import User
+
+    client.get("/me", headers={"X-Telegram-Init-Data": sign_init_data({"id": telegram_id, "first_name": first_name})})
+    gen = app.dependency_overrides[get_db]()
+    db = next(gen)
+    try:
+        user = db.query(User).filter_by(telegram_id=telegram_id).one()
+        token = sessions.start_session(db, user, provider="telegram", user_agent="test")
+    finally:
+        gen.close()
+    client.cookies.set(sessions.COOKIE, token)

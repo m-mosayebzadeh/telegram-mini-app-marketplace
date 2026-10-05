@@ -30,9 +30,6 @@ class Settings(BaseSettings):
     # variable TELEGRAM_BOT_TOKEN (case-insensitive).
     telegram_bot_token: str
 
-    # Maximum allowed age of Telegram init data, in seconds.
-    # If a user sends data older than this, validation is rejected.
-    telegram_auth_max_age_seconds: int = 24 * 60 * 60  # 24 hours
 
     # The database, in development as well as production.
     # Postgres, in development as well as production. The money code depends
@@ -54,6 +51,18 @@ class Settings(BaseSettings):
     # holding the person they are for. Unset, the app runs as one process,
     # exactly as before. compose.yml starts one for development.
     redis_url: str | None = None
+
+    # Sessions (app/auth/sessions.py). Ninety days from the last use, the
+    # owner's decision: somebody who keeps coming is never signed out; a
+    # device left untouched for three months is.
+    session_days: int = 90
+    # The session cookie is sent only over HTTPS. Turned off for local
+    # development over plain http (backend/.env), never in production.
+    session_cookie_secure: bool = True
+
+    # Google sign-in: the Client ID from Google Cloud. Not a secret — the
+    # browser sees it anyway — and the only thing this way in needs.
+    google_client_id: str | None = None
 
     # Enables developer-only routes (e.g. /dev/test-init-data) that must
     # never be reachable in production. Defaults to OFF on purpose: an

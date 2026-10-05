@@ -21,7 +21,7 @@ vi.mock('../lib/accountApi', () => ({
 vi.mock('../lib/MeContext', () => ({
   useMe: () => ({ me: { pending_follow_requests_count: 0 }, markDeleted: mocks.markDeleted }),
 }))
-vi.mock('../lib/session', () => ({ clearDevUserChoice: vi.fn(), isRealTelegramLaunch: () => true }))
+vi.mock('../lib/auth', () => ({ signOut: vi.fn() }))
 vi.mock('../components/ui', async (original) => ({
   ...(await original<typeof import('../components/ui')>()),
   useToast: () => ({ success: vi.fn(), error: vi.fn() }),

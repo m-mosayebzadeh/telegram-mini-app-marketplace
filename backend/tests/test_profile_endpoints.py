@@ -10,7 +10,9 @@ AUTH_HEADER = {"X-Telegram-Init-Data": sign_init_data({"id": 900, "first_name": 
 def test_get_profile_requires_auth(client):
     response = client.get("/profile/me")
 
-    assert response.status_code == 422
+    # Nobody signed in: refused as signed out, so the app goes to the sign-in page.
+    assert response.status_code == 401
+    assert response.json()['detail']['reason'] == 'signed_out'
 
 
 def test_get_profile_before_creating_returns_404(client):

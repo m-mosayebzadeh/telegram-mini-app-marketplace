@@ -58,8 +58,19 @@ class Connection:
 
     user_id: int
     loop: asyncio.AbstractEventLoop
+    #: The sign-in session this socket was opened with, so closing that
+    #: session from another device cuts this socket too.
+    session_id: int | None = None
     queue: asyncio.Queue = field(default_factory=lambda: asyncio.Queue(MAX_PENDING + 1))
     overflowed: bool = False
+
+    def end(self, event: dict[str, Any]) -> None:
+        """A last event, then the socket closes (the sentinel). Runs on the
+        event loop's own thread."""
+        if not self.overflowed:
+            self.queue.put_nowait(event)
+            self.overflowed = True
+            self.queue.put_nowait(None)
 
     def push(self, event: dict[str, Any]) -> None:
         """Runs on the event loop's own thread (see `publish`)."""
@@ -90,8 +101,8 @@ class LiveHub:
         """Called once at startup when REDIS_URL is set."""
         self._broker = broker
 
-    def register(self, user_id: int) -> Connection:
-        connection = Connection(user_id=user_id, loop=asyncio.get_running_loop())
+    def register(self, user_id: int, session_id: int | None = None) -> Connection:
+        connection = Connection(user_id=user_id, loop=asyncio.get_running_loop(), session_id=session_id)
         with self._lock:
             self._by_user.setdefault(user_id, set()).add(connection)
         return connection
@@ -150,6 +161,24 @@ class LiveHub:
                 # The loop has shut down under us: the socket is already gone.
                 pass
 
+    def close_session(self, session_id: int) -> None:
+        """A sign-in session was closed: its sockets hear "signed_out" and
+        are cut, here and — through Redis — on every other process, so the
+        device is sent to the sign-in page at once rather than at its next
+        request."""
+        self._close_local(session_id)
+        if self._broker is not None:
+            self._broker.send(json.dumps({"from": self.node_id, "close_session": session_id}, separators=(",", ":")))
+
+    def _close_local(self, session_id: int) -> None:
+        with self._lock:
+            targets = [c for conns in self._by_user.values() for c in conns if c.session_id == session_id]
+        for connection in targets:
+            try:
+                connection.loop.call_soon_threadsafe(connection.end, {"type": "signed_out"})
+            except RuntimeError:
+                pass
+
     def _send(self, message: dict[str, Any]) -> None:
         if self._broker is None:
             return
@@ -162,6 +191,9 @@ class LiveHub:
         try:
             message = json.loads(raw)
             if message.get("from") == self.node_id:
+                return
+            if "close_session" in message:
+                self._close_local(int(message["close_session"]))
                 return
             event = message["event"]
             users = message["users"]

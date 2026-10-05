@@ -1,19 +1,20 @@
 """
 The live connection itself: one socket per open app.
 
-The conversation is short. The phone opens the socket and, as its first
-message, sends who it is:
+The conversation is short. The phone opens the socket — the browser sends
+the sign-in session's cookie with that opening request, as with any other
+request to this site — and says hello:
 
-    {"type": "hello", "credentials": "<the same sign-in string every request carries>"}
+    {"type": "hello"}
 
 The server answers {"type": "ready"} and from then on pushes events (see
-hub.py). The phone sends {"type": "ping"} every so often and gets
-{"type": "pong"} back; that keeps proxies and mobile networks, which cut
-connections that look idle, from cutting this one, and tells the phone
-quickly when the line has gone dead.
+hub.py), or {"type": "signed_out"} if the session is gone. The phone sends
+{"type": "ping"} every so often and gets {"type": "pong"} back; that keeps
+proxies and mobile networks, which cut connections that look idle, from
+cutting this one, and tells the phone quickly when the line has gone dead.
 
-Credentials go in the first message rather than in the address, because
-addresses end up in server and proxy logs and a sign-in string should not.
+Nothing that says who somebody is ever goes in the address: addresses end
+up in server and proxy logs.
 """
 
 from __future__ import annotations
@@ -24,8 +25,9 @@ import json
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import find_user_by_credentials
+from app.auth import sessions
 from app.core.database import open_db
+from app.models.user import User, UserStatus
 from app.live.hub import hub
 from app.live.typing import TypingGate, typing_targets
 from starlette.concurrency import run_in_threadpool
@@ -54,12 +56,14 @@ async def live(websocket: WebSocket, db: Session = Depends(open_db)) -> None:
         await _close(websocket, status.WS_1008_POLICY_VIOLATION)
         return
 
-    user = None
-    if isinstance(hello, dict) and hello.get("type") == "hello":
-        credentials = hello.get("credentials")
-        if isinstance(credentials, str):
-            user = find_user_by_credentials(db, credentials)
-    user_id = user.id if user is not None else None
+    # Known by the sign-in session's cookie, which the browser sends with
+    # the socket's opening request like with any other (same site). The
+    # first message only has to be a hello.
+    token = websocket.cookies.get(sessions.COOKIE)
+    session = sessions.session_for(db, token) if isinstance(hello, dict) and hello.get("type") == "hello" else None
+    user = db.get(User, session.user_id) if session is not None else None
+    user_id = user.id if user is not None and user.status == UserStatus.ACTIVE else None
+    session_id = session.id if session is not None else None
     # The database is needed for exactly one lookup. Holding a connection
     # from the pool for as long as a socket stays open — hours, for
     # somebody who leaves the app open — would run the pool dry with a few
@@ -67,10 +71,17 @@ async def live(websocket: WebSocket, db: Session = Depends(open_db)) -> None:
     db.close()
 
     if user_id is None:
+        if token:
+            # A session closed elsewhere, or run out: the app goes to the
+            # sign-in page instead of trying again and again.
+            try:
+                await websocket.send_json({"type": "signed_out"})
+            except RuntimeError:
+                pass
         await _close(websocket, status.WS_1008_POLICY_VIOLATION)
         return
 
-    connection = hub.register(user_id)
+    connection = hub.register(user_id, session_id)
     try:
         await websocket.send_json({"type": "ready"})
         await _pump(websocket, connection, db)

@@ -11,12 +11,6 @@
     "retry": "Try again",
     "or": "or"
   },
-  "login": {
-    "title": "Choose a test user",
-    "noPassword": "No password needed",
-    "failed": "Login failed — is the backend running with ENABLE_DEV_TOOLS=true?",
-    "switchUser": "Switch test user"
-  },
   "tabs": {
     "discover": "Discover",
     "activity": "Activity",
@@ -145,7 +139,6 @@
     "title": "Settings",
     "accountGroup": "Account",
     "appGroup": "The app",
-    "devGroup": "Development",
     "youGroup": "You",
     "privacyGroup": "Privacy",
     "helpGroup": "Help",
@@ -1289,5 +1282,72 @@
     "emptyWaiting_one": "You haven't talked with anyone this week yet. Right now {{n}} person is waiting in Echo for someone new.",
     "emptyWaiting_other": "You haven't talked with anyone this week yet. Right now {{n}} people are waiting in Echo for someone new.",
     "emptyShut": "You haven't talked with anyone this week yet. When Echo opens, it will find you someone new."
+  },
+  "sessions": {
+    "title": "Signed-in devices",
+    "rowHint": "Where this account is signed in",
+    "hint": "Every device signed in to your account. Close one you don’t recognise; it is signed out at once.",
+    "thisDevice": "This device",
+    "now": "now",
+    "line": "With {{door}} · {{when}}",
+    "unknownDevice": "Unknown device",
+    "close": "Close",
+    "closeOthers": "Close all other devices",
+    "closeTitle": "Close {{device}}?",
+    "closeOthersTitle": "Close all other devices?",
+    "closeText": "They are signed out and have to sign in again to come back.",
+    "closed": "Closed",
+    "signOut": "Sign out",
+    "signOutTitle": "Sign out?",
+    "signOutText": "Nothing is lost; sign in again whenever you like.",
+    "via": {
+      "telegram": "Telegram",
+      "google": "Google",
+      "phone": "a phone number",
+      "device": "another phone",
+      "dev": "test sign-in"
+    }
+  },
+  "signIn": {
+    "title": "Welcome",
+    "line": "Choose a way to sign in.",
+    "google": "Continue with Google",
+    "withPhone": "Sign in with another phone",
+    "test": "Test sign-in",
+    "back": "Back",
+    "failed": "Couldn’t sign in. Try again.",
+    "googleFailed": "Google sign-in didn’t work. Try again.",
+    "googleUnreachable": "Google’s button didn’t load. Check your connection.",
+    "lang": {
+      "fa": "فارسی",
+      "en": "English"
+    },
+    "device": {
+      "title": "Sign in with another phone",
+      "lead": "Scan this with the camera of a phone you’re already signed in on.",
+      "qr": "Code to scan",
+      "codeLabel": "Sign-in code",
+      "two": "Or on that phone, go to Settings → “Sign in another device” and type this code.",
+      "waiting": "Waiting for your phone…",
+      "preparing": "Getting ready…",
+      "refused": "Not approved. Get a new code",
+      "again": "Try again"
+    }
+  },
+  "link": {
+    "title": "Sign in another device",
+    "rowHint": "Sign another device in to this account",
+    "typeHint": "Type the code shown on the other device.",
+    "codeLabel": "Code",
+    "find": "Find it",
+    "question": "This device wants to sign in to your account. Is it you?",
+    "asked": "Asked {{when}}",
+    "warning": "Only approve if you just tapped “Sign in with another phone” on that device yourself. If someone put a code in front of you, don’t: they would be in your account.",
+    "yes": "Yes, it’s me",
+    "no": "No, it isn’t me",
+    "approved": "That device is signed in.",
+    "refused": "Refused. That device won’t be signed in.",
+    "expired": "This code is no longer valid. Get a new one on that device.",
+    "toWorld": "Back to the world"
   }
 }

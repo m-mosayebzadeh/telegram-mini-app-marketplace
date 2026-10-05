@@ -5,7 +5,9 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+from app.auth.dependencies import get_current_user
 from app.main import app
+from tests.signed_in import current_user_for_tests
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.rates import get_rates
@@ -183,6 +185,9 @@ def concurrent_client(db_engine):
         with Session(db_engine, autoflush=False) as db:
             yield db
     app.dependency_overrides[get_db] = sessions
+    # Who is asking comes from the test header, as everywhere in the tests
+    # (tests/signed_in.py).
+    app.dependency_overrides[get_current_user] = current_user_for_tests
     client = TestClient(app)
     with Session(db_engine, autoflush=False) as db:
         yield client, db

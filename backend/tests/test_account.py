@@ -113,22 +113,19 @@ def test_a_deleted_account_leaves_the_world_and_stays_shut(client, db_session):
     messages = client.get(f"/conversations/{thread}/messages", headers=_auth(8071)).json()
     assert [m["text"] for m in messages] == ["hi"]
 
-    # The app asking in the background does not quietly make a new account.
-    refused = client.get("/me", headers=_auth(8070))
-    assert refused.status_code == 410
-    assert refused.json()["detail"]["reason"] == "account_deleted"
-    assert db_session.query(User).filter(User.first_name == "Back").count() == 0
+    # Every door let go of: the old row no longer answers to the Telegram id.
+    db_session.expire_all()
+    assert db_session.get(User, gone.id).telegram_id == -gone.id
 
 
-def test_starting_over_after_deleting_makes_a_new_empty_account(client, db_session):
+def test_coming_back_after_deleting_starts_a_new_empty_account(client, db_session):
     gone = _user(client, db_session, 8075, "Gone")
+    client.post("/me/adult", headers=_auth(8075))
     client.delete("/me?sure=true", headers=_auth(8075))
-    assert client.post("/me/start-over", headers=_auth(8075, "Back")).status_code == 201
+    # Signing in again through the same door: a new account, nothing carried over.
     again = client.get("/me", headers=_auth(8075, "Back")).json()
     assert again["id"] != gone.id
     assert again["adult_confirmed"] is False
-    # Only a deleted account can be started over.
-    assert client.post("/me/start-over", headers=_auth(8075)).status_code == 409
 
 
 # --- report a problem ----------------------------------------------------

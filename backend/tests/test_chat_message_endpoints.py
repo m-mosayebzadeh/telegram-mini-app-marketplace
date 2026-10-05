@@ -64,7 +64,9 @@ def test_list_messages_requires_auth(client, db_session):
 
     response = client.get(f"/chat-sessions/{session['id']}/messages")
 
-    assert response.status_code == 422
+    # Nobody signed in: refused as signed out, so the app goes to the sign-in page.
+    assert response.status_code == 401
+    assert response.json()['detail']['reason'] == 'signed_out'
 
 
 def test_a_stranger_cannot_list_or_send_messages(client, db_session):

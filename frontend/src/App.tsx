@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import BankAccounts from './pages/BankAccounts'
 import Withdraw from './pages/Withdraw'
 import AdminWithdrawals from './pages/AdminWithdrawals'
@@ -7,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { IconActivity, IconChat, IconDashboard, IconDiscover, IconPersonFallback } from './components/icons'
 import { LiveSessionBar } from './components/LiveSessionBar'
 import { MeProvider, useMe } from './lib/MeContext'
-import { needsDevLogin } from './lib/session'
+import { SIGNED_OUT_EVENT, checkSignedIn } from './lib/auth'
 import Discover from './pages/Discover'
 import Sky from './pages/Sky'
 import Conversation from './pages/Conversation'
@@ -16,7 +17,9 @@ import Events from './pages/Events'
 import { WorldBar } from './components/cosmos/WorldBar'
 import { doorOf } from './components/cosmos/worldBarDoors'
 import { EchoOffer } from './components/cosmos/EchoOffer'
-import Login from './pages/Login'
+import SignIn from './pages/SignIn'
+import LinkDevice from './pages/LinkDevice'
+import Sessions from './pages/Sessions'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
 import ChatSessionDetail from './pages/ChatSessionDetail'
@@ -201,6 +204,8 @@ function AppShell() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/friends" element={<Friends />} />
         <Route path="/settings/blocked" element={<BlockedPeople />} />
+        <Route path="/settings/sessions" element={<Sessions />} />
+        <Route path="/link" element={<LinkDevice />} />
         <Route path="/settings/report" element={<ReportProblem />} />
         <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/content/:id" element={<ContentDetail />} />
@@ -268,15 +273,33 @@ function AppShell() {
   )
 }
 
+/**
+ * Who is here, before anything else (TECHNICAL_REQUIREMENTS.md section 32).
+ *
+ * The app asks the server once whether this device is signed in; signed
+ * out, it shows the sign-in screen instead of the app. It also listens for
+ * "signed out" from anywhere — a refused request, or the live connection
+ * when another device closed this session — and goes to the sign-in screen
+ * at once (the owner's instruction).
+ */
 function App() {
-  // Real Telegram launches never hit this — retrieveRawInitData()
-  // succeeds there, so needsDevLogin() is always false. This only ever
-  // shows up in a plain browser during local development, before a
-  // test user has been chosen for this tab (see lib/session.ts and
-  // pages/Login.tsx).
-  if (needsDevLogin()) {
-    return <Login />
-  }
+  const [signedIn, setSignedIn] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    checkSignedIn()
+      .then((yes) => { if (alive) setSignedIn(yes) })
+      .catch(() => { if (alive) setSignedIn(false) })
+    const out = () => setSignedIn(false)
+    window.addEventListener(SIGNED_OUT_EVENT, out)
+    return () => {
+      alive = false
+      window.removeEventListener(SIGNED_OUT_EVENT, out)
+    }
+  }, [])
+
+  if (signedIn === null) return null
+  if (!signedIn) return <SignIn />
 
   return (
     <MeProvider>

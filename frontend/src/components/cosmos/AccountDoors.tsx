@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { confirmAdult, startOver } from '../../lib/accountApi'
+import { confirmAdult } from '../../lib/accountApi'
+import { announceSignedOut } from '../../lib/auth'
 import { formatApiError } from '../../lib/api'
 
 /**
@@ -53,29 +54,18 @@ export function AdultGate({ onDone, onNo }: { onDone: () => void; onNo: () => vo
   )
 }
 
+/**
+ * After the account was deleted. Every device was signed out and every
+ * door let go of, so "start again" is simply the sign-in page: signing in
+ * there, by any door, makes a new, empty account (section 32).
+ */
 export function AccountGone() {
   const { t } = useTranslation()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-
-  async function again() {
-    setBusy(true)
-    setError('')
-    try {
-      await startOver()
-      window.location.assign('/')
-    } catch (err) {
-      setError(formatApiError(err))
-      setBusy(false)
-    }
-  }
-
   return (
     <div className="cos-door-screen" role="dialog" aria-modal="true" aria-labelledby="gone-title">
       <h1 id="gone-title" className="cos-door-title">{t('gone.title')}</h1>
       <p className="cos-door-text">{t('gone.text')}</p>
-      {error !== '' && <p className="cos-echo-error">{error}</p>}
-      <button type="button" className="cos-seek-go" disabled={busy} onClick={() => void again()}>
+      <button type="button" className="cos-seek-go" onClick={announceSignedOut}>
         {t('gone.again')}
       </button>
     </div>

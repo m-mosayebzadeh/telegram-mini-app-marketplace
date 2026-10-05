@@ -15,8 +15,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import delete, or_, select, update
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user, get_telegram_user, require_admin
-from app.auth.telegram import TelegramUser
+from app.auth import sessions
+from app.models.auth_session import AuthIdentity
+from app.auth.dependencies import get_current_user, require_admin
 from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.block import Block
@@ -128,8 +129,9 @@ def delete_account(
     messages themselves, so a complaint about them can still be looked
     into — the same rule as clearing a chat.
 
-    Coming back with the same Telegram account finds it deleted, and
-    "start again" (POST /me/start-over) makes a new, empty one.
+    Every device is signed out at once, and every door let go of: coming
+    back through Google, a phone number or Telegram starts a new, empty
+    account, with nothing of this one in it.
 
     `sure=true` is required, so nothing deletes an account by accident;
     the app asks twice before sending it.
@@ -152,31 +154,22 @@ def delete_account(
     db.execute(delete(ProfilePhoto).where(ProfilePhoto.user_id == user_id))
     db.execute(delete(Profile).where(Profile.user_id == user_id))
 
+    # Every door let go of, so the same Google account or phone number
+    # starts a new, empty account next time rather than finding this one.
+    db.execute(delete(AuthIdentity).where(AuthIdentity.user_id == user_id))
+
     current_user.status = UserStatus.DELETED
     current_user.deleted_at = utcnow()
+    # The Telegram id is let go of too (ids are positive, so a negative one
+    # never collides with a real person).
+    if current_user.telegram_id is not None:
+        current_user.telegram_id = -current_user.id
     current_user.first_name = DELETED_NAME
     current_user.last_name = None
     current_user.username = None
     db.commit()
-
-
-@router.post("/me/start-over", status_code=status.HTTP_201_CREATED)
-def start_over(
-    telegram_user: TelegramUser = Depends(get_telegram_user),
-    db: Session = Depends(get_db),
-) -> dict:
-    """A deleted account's owner comes back and starts again, empty.
-
-    The old row lets go of the Telegram id — Telegram ids are positive, so
-    a negative one never collides with a real person — and the next
-    request creates a new account the ordinary way.
-    """
-    old = db.scalar(select(User).where(User.telegram_id == telegram_user.id))
-    if old is None or old.status != UserStatus.DELETED:
-        raise HTTPException(status.HTTP_409_CONFLICT, detail={"reason": "not_deleted"})
-    old.telegram_id = -old.id
-    db.commit()
-    return {"ok": True}
+    # Signed out everywhere at once, every device sent to the sign-in page.
+    sessions.close_all_sessions(db, user_id)
 
 
 # --- report a problem -----------------------------------------------------

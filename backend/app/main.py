@@ -4,6 +4,7 @@ Application entry point. Run locally with:
 """
 
 from app.live.pulse import run_pulse
+from app.auth.router import router as auth_router
 from app.live.broker import RedisBroker
 from app.live.hub import hub
 from app.account.router import admin_router as admin_feedback_router, router as account_router
@@ -102,6 +103,7 @@ app.mount("/avatars", StaticFiles(directory=str(settings.uploads_dir / "avatars"
 
 app.include_router(account_router)
 app.include_router(friends_router)
+app.include_router(auth_router)
 app.include_router(friends_me_router)
 app.include_router(friends_public_router)
 app.include_router(admin_feedback_router)
@@ -174,9 +176,9 @@ def read_current_user(
     """
     Returns the authenticated user's own record.
 
-    This is the first real proof that the whole chain works end to end:
-    request → X-Telegram-Init-Data header → validate_init_data →
-    TelegramUser → get_current_user → our own User row.
+    What the app asks first to learn whether this device is signed in
+    (frontend lib/auth.ts): the session's cookie → get_current_user →
+    our own User row, or "signed_out".
     """
     pending_follow_requests_count = (
         db.query(Follow)

@@ -11,14 +11,16 @@ never reaches it.
 
 from datetime import timedelta
 
-from fastapi import Header, HTTPException, status
+from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.auth.telegram import TelegramAuthError, TelegramUser, validate_init_data
+from app.auth import sessions
+from app.auth.telegram import TelegramUser
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.admin_grant import AdminGrant
+from app.models.auth_session import PROVIDER_TELEGRAM
 from app.models.role import Role
 from app.models.user import User, UserStatus
 
@@ -28,50 +30,69 @@ from app.models.user import User, UserStatus
 from fastapi import Depends
 
 
-def _get_telegram_user(x_telegram_init_data: str = Header(...)) -> TelegramUser:
-    """
-    Reads the raw initData from the "X-Telegram-Init-Data" request header
-    and validates it. Any failure becomes a 401 Unauthorized response —
-    a route never needs to know *why* auth failed, just that it did.
-    """
-    try:
-        return validate_init_data(
-            init_data=x_telegram_init_data,
-            bot_token=settings.telegram_bot_token,
-            max_age_seconds=settings.telegram_auth_max_age_seconds,
-        )
-    except TelegramAuthError as error:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(error),
-        ) from error
+def _signed_out() -> HTTPException:
+    """Refused because nobody is signed in on this device (any more). The
+    app sends the person to the sign-in page on this reason."""
+    return HTTPException(status.HTTP_401_UNAUTHORIZED, detail={"reason": "signed_out"})
 
 
-#: The verified Telegram identity alone, for the one route that must work
-#: without an account behind it (starting again after deleting one).
-get_telegram_user = _get_telegram_user
+def _shut_if_deleted(user: User) -> None:
+    # A deleted account stays shut rather than quietly becoming a new
+    # one: the app keeps asking things in the background, and each of
+    # those would otherwise create an empty account that shows up in
+    # the world. Starting again is a deliberate step of its own
+    # (POST /me/start-over, app/account/router.py).
+    if user.status == UserStatus.DELETED:
+        raise HTTPException(status.HTTP_410_GONE, detail={"reason": "account_deleted"})
 
 
 def get_current_user(
-    telegram_user: TelegramUser = Depends(_get_telegram_user),
+    request: Request,
     db: Session = Depends(get_db),
 ) -> User:
     """
-    Resolves the verified TelegramUser to our own `User` row, creating one
-    on first login. This is the dependency routes should actually use.
+    Who is making this request. The dependency routes should use.
+
+    Known by the sign-in session's cookie (app/auth/sessions.py): every way
+    in — Google, a phone number, Telegram through our bot, another phone —
+    ends in a session, and from then on the session alone says who this
+    is. A cookie that no longer opens anything (signed out, closed from
+    another device, unused for ninety days) is refused with "signed_out",
+    and the app goes to the sign-in page.
+
+    Nothing else is accepted: the app is not opened inside Telegram any more
+    (the owner's decision), so Telegram's launch data means nothing here.
+    """
+    token = request.cookies.get(sessions.COOKIE)
+    if token:
+        session = sessions.session_for(db, token)
+        user = db.get(User, session.user_id) if session is not None else None
+        if user is None:
+            raise _signed_out()
+        _shut_if_deleted(user)
+        request.state.session_id = session.id
+        _touch_last_seen(db, user)
+        return user
+    raise _signed_out()
+
+
+def current_session_id(request: Request) -> int | None:
+    """The session the current request came with (set by get_current_user)."""
+    return getattr(request.state, "session_id", None)
+
+
+def user_from_telegram(db: Session, telegram_user: TelegramUser) -> User:
+    """
+    The person behind a Telegram identity, creating them the first time.
+    For signing in through our bot, and for development sign-in.
     """
     existing_user = (
         db.query(User).filter(User.telegram_id == telegram_user.id).first()
     )
     if existing_user is not None:
-        # A deleted account stays shut rather than quietly becoming a new
-        # one: the app keeps asking things in the background, and each of
-        # those would otherwise create an empty account that shows up in
-        # the world. Starting again is a deliberate step of its own
-        # (POST /me/start-over, app/account/router.py).
-        if existing_user.status == UserStatus.DELETED:
-            raise HTTPException(status.HTTP_410_GONE, detail={"reason": "account_deleted"})
+        _shut_if_deleted(existing_user)
         _touch_last_seen(db, existing_user)
+        sessions.remember_door(db, existing_user, PROVIDER_TELEGRAM, str(telegram_user.id))
         return existing_user
 
     # First time we've seen this telegram_id — create our own user record.
@@ -79,16 +100,10 @@ def get_current_user(
     # can change them later inside the app (see TECHNICAL_REQUIREMENTS.md,
     # section 2).
     #
-    # username is now UNIQUE on this table (see User.username's
-    # docstring) — a genuine collision between two different real
-    # Telegram accounts' usernames should be essentially impossible
-    # (Telegram itself enforces @usernames are globally unique), but
-    # this pre-check still exists as a real safety net: local dev/test
-    # tooling can easily produce one on purpose, and it's a one-line
-    # guard against a first login ever crashing with a raw 500 over
-    # something this minor — falling back to no username (the user can
-    # always set one themselves via PUT /me/username) beats failing the
-    # whole login.
+    # username is UNIQUE on this table (see User.username's docstring): a
+    # collision between two real Telegram accounts should be impossible,
+    # but local tooling can produce one, and falling back to no username
+    # beats failing the whole sign-in over something this minor.
     prefilled_username = telegram_user.username
     if prefilled_username and db.query(User).filter(User.username == prefilled_username).first():
         prefilled_username = None
@@ -105,6 +120,7 @@ def get_current_user(
     db.add(new_user)
     db.commit()
     db.refresh(new_user)  # loads DB-generated fields, e.g. `id` and `joined_at`
+    sessions.remember_door(db, new_user, PROVIDER_TELEGRAM, str(telegram_user.id))
     return new_user
 
 
@@ -231,27 +247,3 @@ def require_admin(scope: str):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized.")
 
     return _dependency
-
-
-def find_user_by_credentials(db: Session, credentials: str) -> User | None:
-    """The existing person these sign-in credentials belong to, or None.
-
-    For the live connection (app/live/router.py), which cannot carry the
-    header every other request uses — a browser opens a socket with no
-    way to add one — and so receives the same credentials as its first
-    message instead. Kept here, beside get_current_user, so that the only
-    code that knows credentials are Telegram's is still this module: the
-    day sign-in changes, the socket changes with it for free.
-
-    Never creates anybody. Somebody who has never made an ordinary request
-    has nothing to be told about.
-    """
-    try:
-        telegram_user = validate_init_data(
-            init_data=credentials,
-            bot_token=settings.telegram_bot_token,
-            max_age_seconds=settings.telegram_auth_max_age_seconds,
-        )
-    except TelegramAuthError:
-        return None
-    return db.query(User).filter(User.telegram_id == telegram_user.id).first()

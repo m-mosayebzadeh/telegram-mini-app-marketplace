@@ -25,8 +25,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
+from app.auth.dependencies import get_current_user
 from app.core.database import Base, get_db, open_db
 from app.main import app
+from tests.signed_in import current_user_for_tests
 
 # Tests run on Postgres, the same engine production does.
 #
@@ -126,7 +128,15 @@ def client(db_engine):
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[open_db] = override_get_db
+    # Tests say who is asking with a header (tests/signed_in.py says why);
+    # the real app knows people only by their session cookie.
+    app.dependency_overrides[get_current_user] = current_user_for_tests
+    # The test client speaks plain http, so the session cookie must be
+    # allowed without HTTPS, as in local development.
+    secure = settings.session_cookie_secure
+    settings.session_cookie_secure = False
     yield TestClient(app)
+    settings.session_cookie_secure = secure
     app.dependency_overrides.clear()
 
 

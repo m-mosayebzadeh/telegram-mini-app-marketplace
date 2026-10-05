@@ -7,7 +7,7 @@ import { formatApiError } from '../lib/api'
 import { deleteAccount, fetchPrivacy, savePrivacy, type ChatDoor, type FriendsSeenBy, type Privacy } from '../lib/accountApi'
 import { ChosenViewersSheet } from '../components/profile/ChosenViewersSheet'
 import { readLightGraphics, setLightGraphics } from '../lib/lightGraphics'
-import { clearDevUserChoice, isRealTelegramLaunch } from '../lib/session'
+import { signOut } from '../lib/auth'
 import { IconChevron, IconUsers } from '../components/icons'
 
 /**
@@ -34,6 +34,7 @@ export default function Settings() {
   const [lite, setLite] = useState(readLightGraphics)
   const [choosing, setChoosing] = useState(false)
   const [deleting, setDeleting] = useState<0 | 1 | 2>(0)
+  const [signingOut, setSigningOut] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
 
   useEffect(() => {
@@ -238,6 +239,29 @@ export default function Settings() {
         <section className="ui-section">
           <h2 className="ui-section-title">{t('settings.accountGroup')}</h2>
           <div className="ui-list">
+            <button className="ui-row" onClick={() => navigate('/settings/sessions')}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('sessions.title')}</span>
+                <span className="ui-row-subtitle">{t('sessions.rowHint')}</span>
+              </span>
+              <span className="ui-row-trailing">
+                <IconChevron size={20} />
+              </span>
+            </button>
+            <button className="ui-row" onClick={() => navigate('/link')}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('link.title')}</span>
+                <span className="ui-row-subtitle">{t('link.rowHint')}</span>
+              </span>
+              <span className="ui-row-trailing">
+                <IconChevron size={20} />
+              </span>
+            </button>
+            <button className="ui-row" onClick={() => setSigningOut(true)}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('sessions.signOut')}</span>
+              </span>
+            </button>
             <button className="ui-row" onClick={() => setDeleting(1)}>
               <span className="ui-row-main">
                 <span className="ui-row-title ui-text-danger">{t('settings.delete')}</span>
@@ -246,32 +270,21 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* Only outside a real Telegram launch: in the app itself there
-            is no user to switch to. */}
-        {!isRealTelegramLaunch() && (
-          <section className="ui-section">
-            <h2 className="ui-section-title">{t('settings.devGroup')}</h2>
-            <div className="ui-list">
-              <button
-                className="ui-row"
-                onClick={() => {
-                  clearDevUserChoice()
-                  window.location.reload()
-                }}
-              >
-                <span className="ui-row-main">
-                  <span className="ui-row-title">{t('login.switchUser')}</span>
-                </span>
-                <span className="ui-row-trailing">
-                  <IconChevron size={20} />
-                </span>
-              </button>
-            </div>
-          </section>
-        )}
       </div>
 
       {choosing && <ChosenViewersSheet onClose={() => setChoosing(false)} />}
+
+      {signingOut && (
+        // Asked once: signing out loses nothing, but it is easy to tap by
+        // accident and annoying to come back from.
+        <ConfirmDialog
+          title={t('sessions.signOutTitle')}
+          text={t('sessions.signOutText')}
+          confirmLabel={t('sessions.signOut')}
+          onCancel={() => setSigningOut(false)}
+          onConfirm={() => void signOut()}
+        />
+      )}
 
       {/* Asked twice: first what goes and what stays, then once more, with
           the button that does it. */}

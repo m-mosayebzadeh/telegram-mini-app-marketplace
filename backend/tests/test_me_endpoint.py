@@ -14,21 +14,12 @@ from app.core.config import settings
 from tests.helpers import sign_init_data
 
 
-def test_me_requires_init_data_header(client):
+def test_me_requires_a_session(client):
     response = client.get("/me")
 
-    # FastAPI's own validation for a missing required header.
-    assert response.status_code == 422
-
-
-def test_me_rejects_tampered_signature(client):
-    init_data = sign_init_data({"id": 1, "first_name": "X"})
-
-    response = client.get(
-        "/me", headers={"X-Telegram-Init-Data": init_data + "tampered"}
-    )
-
+    # Nobody signed in: refused as signed out, so the app goes to the sign-in page.
     assert response.status_code == 401
+    assert response.json()['detail']['reason'] == 'signed_out'
 
 
 def test_me_creates_user_on_first_login(client):

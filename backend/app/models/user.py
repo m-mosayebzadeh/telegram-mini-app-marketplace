@@ -43,7 +43,13 @@ class User(Base):
     #
     # BigInteger (not a plain Integer) because Telegram user ids can be
     # larger than a 32-bit integer can hold.
-    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
+    #
+    # Empty for somebody who came in through Google or a phone number
+    # (app/models/auth_session.py): since signing in stopped being
+    # Telegram's alone, every door is an AuthIdentity, and this column only
+    # remains for the people who came through Telegram and for the code
+    # that still reads it (the owner check, development data).
+    telegram_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, index=True, nullable=True)
 
     # Display-only info, per TECHNICAL_REQUIREMENTS.md: NOT identity, just
     # what's shown in the UI. Pre-filled from Telegram on first login (see

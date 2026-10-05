@@ -15,7 +15,9 @@ def _login(client, telegram_id: int, first_name: str = "Test") -> dict:
 def test_requires_auth(client):
     response = client.get("/profiles/1")
 
-    assert response.status_code == 422
+    # Nobody signed in: refused as signed out, so the app goes to the sign-in page.
+    assert response.status_code == 401
+    assert response.json()['detail']['reason'] == 'signed_out'
 
 
 def test_viewing_a_user_with_no_profile_still_works(client):

@@ -1,4 +1,4 @@
-import { getInitData } from './api'
+import { announceSignedOut } from './auth'
 import type { ConversationMessage, Reaction } from './conversationApi'
 
 /**
@@ -93,24 +93,18 @@ function clearTimers() {
   pongTimer = undefined
 }
 
-async function connect() {
+function connect() {
   if (socket || listeners.size === 0) return
   window.clearTimeout(retryTimer)
-
-  let credentials: string
-  try {
-    credentials = await getInitData()
-  } catch {
-    return
-  }
-  // Somebody may have subscribed and left, or connected, while waiting.
-  if (socket || listeners.size === 0) return
 
   const opened = new WebSocket(address())
   socket = opened
 
+  // Known by the sign-in session's cookie, which the browser sends with
+  // the socket's opening request itself (lib/auth.ts): the hello only says
+  // "ready to listen".
   opened.onopen = () => {
-    opened.send(JSON.stringify({ type: 'hello', credentials }))
+    opened.send(JSON.stringify({ type: 'hello' }))
   }
 
   opened.onmessage = (raw) => {
@@ -122,6 +116,12 @@ async function connect() {
     }
     if (event.type === 'pong') {
       window.clearTimeout(pongTimer)
+      return
+    }
+    if (event.type === 'signed_out') {
+      // This session was closed from another device, or ran out: to the
+      // sign-in page, rather than reconnecting again and again.
+      announceSignedOut()
       return
     }
     if (event.type === 'ready') {
