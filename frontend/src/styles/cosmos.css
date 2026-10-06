@@ -5408,3 +5408,59 @@ button.cos-me-person { cursor: pointer; }
 .cos-link-hint { margin: 0; font-size: var(--cos-text-label); line-height: 1.8; color: var(--cos-fg-soft); }
 .cos-link-input { letter-spacing: .14em; text-align: center; font-size: 18px; }
 .cos-link-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* ------------------------------------------------- Cosmos Team (section 37) */
+/* Its face: the app's warm light on the night ink, its initial in it. Never
+   a ring (a ring means online) and never a person's colours or photograph. */
+.cos-team-mark {
+  background: radial-gradient(circle at 50% 38%, var(--cos-warm-bright) 0%, var(--cos-warm) 26%, #3a2412 62%, var(--cos-ink) 100%);
+  color: var(--cos-ink);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.cos-team-mark > span { transform: translateY(-1px); }
+/* Under a team message: what it offers to do. Quiet, inside the bubble. */
+.cos-team-action {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border: 1px solid rgb(246 190 130 / 42%);
+  border-radius: 12px;
+  background: rgb(246 190 130 / 10%);
+  color: var(--cos-warm-bright);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.cos-team-action:active { background: rgb(246 190 130 / 18%); }
+.cos-team-action:disabled { opacity: .55; }
+.cos-team-action:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
+.cos-team-done { margin: 10px 0 0; font-size: 13px; color: var(--cos-fg-soft); }
+
+/* ------------------------------------------- the notifications offer (section 38) */
+/* A small card above the bottom bar: a question, two answers. It asks once, at
+   a moment that explains itself, and gets out of the way. */
+.cos-push-offer {
+  position: fixed;
+  inset-inline: 12px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 60;
+  max-width: 420px;
+  margin-inline: auto;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgb(246 190 130 / 28%);
+  background: rgb(12 20 24 / 96%);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 50%);
+  color: var(--cos-fg);
+  animation: cos-rise var(--cos-t-calm) var(--cos-ease-settle);
+}
+.cos-push-offer p { margin: 0 0 12px; font-size: 14px; line-height: 1.8; }
+.cos-push-offer-buttons { display: flex; gap: 8px; }
+.cos-push-offer-buttons button { flex: 1; min-height: 44px; border-radius: 12px; font: inherit; font-size: 14px; cursor: pointer; }
+.cos-push-offer-yes { border: 0; background: var(--cos-warm); color: var(--cos-ink); font-weight: 600; }
+.cos-push-offer-later { border: 1px solid rgb(233 242 240 / 18%); background: none; color: var(--cos-fg-soft); }
+.cos-push-offer-buttons button:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .cos-push-offer { animation: none; } }

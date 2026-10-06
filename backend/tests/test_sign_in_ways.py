@@ -281,9 +281,12 @@ def test_the_phone_wakes_the_waiting_device_instead_of_it_asking_every_second(mo
     assert len(looks) == 2  # once at the start, once when woken — not twenty times
 
 
-def test_ten_codes_in_ten_minutes_from_one_place_and_no_more(client):
+def test_a_place_that_makes_too_many_codes_is_stopped(client, monkeypatch):
+    # The real limit is two hundred; three makes the same point quickly.
+    assert auth_router.device_starts.limit == 200
+    monkeypatch.setattr(auth_router.device_starts, "limit", 3)
     laptop = TestClient(app)
-    for _ in range(10):
+    for _ in range(3):
         _start(laptop)
     refused = laptop.post("/auth/device/start")
     assert refused.status_code == 429

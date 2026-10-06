@@ -61,9 +61,11 @@ router = APIRouter(tags=["auth"])
 #: phone's two minutes: switching apps takes a moment).
 BOT_REQUEST_LIFETIME = timedelta(minutes=5)
 
-#: Lighter than text messages, which cost money (the owner's decision):
-#: twenty sign-ins through the bot in ten minutes from one place.
-bot_starts = Attempts(limit=20, window_seconds=600)
+#: Two hundred in ten minutes from one address (the owner's decision, after
+#: the first ten): on Iran's mobile networks thousands of people share one
+#: address, so a low limit would shut out ordinary people signing in at
+#: the same hour. Two hundred still stops somebody making thousands.
+bot_starts = Attempts(limit=200, window_seconds=600)
 
 
 def ready() -> bool:

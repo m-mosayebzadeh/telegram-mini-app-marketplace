@@ -1105,6 +1105,27 @@
     "soonTitle": "Coming soon",
     "soonBody": "Echo nights — meeting new people at a set hour around a theme — and events where groups compete together."
   },
+  "push": {
+    "title": "Notifications",
+    "offerMessage": "Want to know when they answer, even with the app closed?",
+    "offerFriend": "Want to know when they see your request, even with the app closed?",
+    "yes": "Yes, tell me",
+    "later": "Not now",
+    "state": {
+      "on": "Messages and friend requests reach you when the app is closed.",
+      "off": "Hear about messages and friend requests when the app is closed.",
+      "blocked": "Notifications are blocked in the browser. Allow them for this site in the browser’s settings.",
+      "install_first": "On iPhone, first add the app to your home screen, then turn notifications on from there.",
+      "unsupported": "This browser doesn’t do notifications. Open the app in Chrome, Firefox or Safari."
+    }
+  },
+  "team": {
+    "line": "Messages from the Cosmos team",
+    "placeholder": "A message to the Cosmos team…",
+    "closeSession": "Close this session",
+    "closed": "This session was closed.",
+    "tryAgain": "Didn’t close. Tap again"
+  },
   "talkList": {
     "empty": "You haven't talked to anyone yet. Tap someone in the world and say hello.",
     "noPreview": "A message",

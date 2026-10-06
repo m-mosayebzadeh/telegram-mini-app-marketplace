@@ -18,6 +18,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import team
 from app.auth.dependencies import get_current_user, seen_roughly
 from app.core.presence import hiding_online, masked_seen
 from app.models.friendship import FRIENDSHIP_ACCEPTED, Friendship
@@ -258,8 +259,10 @@ def serialize(
                 avatar_url=avatars.get(p.user_id),
                 seen=masked_seen(
                     seen_roughly(users[p.user_id]),
-                    hidden=participant.user_id in hiders or p.user_id in hiders,
+                    # The team has no presence to show.
+                    hidden=participant.user_id in hiders or p.user_id in hiders or team.is_team(users[p.user_id]),
                 ),
+                team=team.is_team(users[p.user_id]),
             )
             for p in others
             if p.user_id in users
@@ -550,6 +553,10 @@ def send_message(
         if already is None:
             raise
         return messages_out(db, [already])[0]
+
+    if conversation.kind == CONVERSATION_DIRECT and team.is_team(db.get(User, conversation.other_user_id(current_user.id) or 0)):
+        # An answer to Cosmos Team is also a word to the people behind it.
+        team.heard(db, current_user, message.text)
 
     touch(conversation, message.created_at)
     # Writing brings the thread back for the sender; their own message is

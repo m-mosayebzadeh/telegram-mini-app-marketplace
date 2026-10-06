@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from sqlalchemy import and_, delete, distinct, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.push import sender as push
 from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.core.time import utcnow
@@ -151,6 +152,7 @@ def ask(
         db.add(Friendship(user_low_id=low, user_high_id=high, requested_by_id=current_user.id))
         db.commit()
         hub.publish([user_id], {"type": "friends"})
+        push.friend_asked(db, current_user, user_id)
         return FriendStatusOut(status="requested")
     if row.status == FRIENDSHIP_PENDING and row.requested_by_id != current_user.id:
         return _accept(db, row, current_user.id)
@@ -162,6 +164,9 @@ def _accept(db: Session, row: Friendship, by_user_id: int) -> FriendStatusOut:
     row.accepted_at = utcnow()
     db.commit()
     hub.publish([row.requested_by_id], {"type": "friends"})
+    accepter = db.get(User, by_user_id)
+    if accepter is not None:
+        push.friend_accepted(db, accepter, row.requested_by_id)
     return FriendStatusOut(status="friends")
 
 

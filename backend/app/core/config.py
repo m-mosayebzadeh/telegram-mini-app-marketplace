@@ -77,6 +77,14 @@ class Settings(BaseSettings):
     telegram_bot_username: str | None = None
     telegram_webhook_secret: str | None = None
 
+    # Notifications when the app is closed (app/push). A key pair made once
+    # per server (VAPID): the public half goes to the browser, the private
+    # half signs every message so push services know it is really us.
+    # Without them the app simply never offers notifications.
+    vapid_public_key: str | None = None
+    vapid_private_key: str | None = None
+    vapid_subject: str = "mailto:team@cosmos.invalid"
+
     # Enables developer-only routes (e.g. /dev/test-init-data) that must
     # never be reachable in production. Defaults to OFF on purpose: an
     # unset or missing value should always be the safe choice. Turn this

@@ -8,6 +8,7 @@ import { deleteAccount, fetchPrivacy, savePrivacy, type ChatDoor, type FriendsSe
 import { ChosenViewersSheet } from '../components/profile/ChosenViewersSheet'
 import { readLightGraphics, setLightGraphics } from '../lib/lightGraphics'
 import { signOut } from '../lib/auth'
+import { pushState, turnPushOff, turnPushOn, type PushState } from '../lib/push'
 import { IconChevron, IconUsers } from '../components/icons'
 
 /**
@@ -219,6 +220,7 @@ export default function Settings() {
                 <span className="ui-switch" aria-hidden="true" aria-checked={lite} />
               </span>
             </button>
+            <NotificationsRow />
           </div>
         </section>
 
@@ -321,3 +323,49 @@ export default function Settings() {
     </div>
   )
 }
+
+/**
+ * Notifications when the app is closed (section 38), for this browser. A
+ * switch where they can be turned on; where they cannot, the row says why
+ * and what would make it possible, instead of a switch that does nothing.
+ */
+function NotificationsRow() {
+  const { t } = useTranslation()
+  const [state, setState] = useState<PushState | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    pushState()
+      .then(setState)
+      .catch(() => setState('unsupported'))
+  }, [])
+
+  if (state === null) return null
+  const on = state === 'on'
+  const can = state === 'on' || state === 'off'
+  return (
+    <button
+      type="button"
+      className="ui-row is-wrap"
+      role="switch"
+      aria-checked={on}
+      disabled={!can || busy}
+      onClick={async () => {
+        setBusy(true)
+        setState(await (on ? turnPushOff() : turnPushOn()).catch(() => state))
+        setBusy(false)
+      }}
+    >
+      <span className="ui-row-main">
+        <span className="ui-row-title">{t('push.title')}</span>
+        <span className="ui-row-subtitle">{t(`push.state.${state}`)}</span>
+      </span>
+      {can && (
+        <span className="ui-row-trailing">
+          <span className="ui-switch" aria-hidden="true" aria-checked={on} />
+        </span>
+      )}
+    </button>
+  )
+}
+

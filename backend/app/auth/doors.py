@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import google, sessions, telegram_bot
 from app.auth.dependencies import current_session_id, get_current_user
+from app.core import team
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.auth_session import PROVIDER_GOOGLE, PROVIDER_TELEGRAM, AuthSession
@@ -54,7 +55,14 @@ def tell_owner(
     """Rule 3: tells the owner, through our bot, that a way in changed — at
     the Telegram account connected now, and at `also_telegram_id` (the one
     just taken away or replaced, which may be the real owner's). Sent after
-    the answer (`later`), so a slow Telegram slows nothing."""
+    the answer (`later`), so a slow Telegram slows nothing.
+
+    Also in the app, from Cosmos Team (section 37): somebody with no
+    Telegram connected — only Google — is told too."""
+    try:
+        team.door_changed(db, user, event, label)
+    except Exception:  # noqa: BLE001 — the change is made; a lost note must not undo it
+        db.rollback()
     if not settings.telegram_bot_token:
         return
     to = {int(d.subject) for d in sessions.doors_of(db, user.id) if d.provider == PROVIDER_TELEGRAM and d.subject.lstrip("-").isdigit()}

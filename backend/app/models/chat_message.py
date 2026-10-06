@@ -110,6 +110,12 @@ class ChatMessage(Base):
     #: nobody can put words in someone else's note.
     note_quote: Mapped[str | None] = mapped_column(String(60), nullable=True)
 
+    #: Something the message offers to do, for Cosmos Team's messages only
+    #: (section 37): "close_session:<id>" puts a "close this session"
+    #: button under "a new sign-in to your account". Never set from what a
+    #: person sends.
+    action: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     #: When the text was last changed. What it said before is kept in
     #: message_edits; the people talking only see that it was edited.
     edited_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

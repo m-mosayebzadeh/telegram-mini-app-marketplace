@@ -15,6 +15,9 @@ class ConversationParticipantOut(BaseModel):
     #: When they were last here, roughly: "now", "minutes", "hours", "days"
     #: or "long" — for the line under their name in the conversation.
     seen: str = "long"
+    #: Cosmos Team (section 37): the app itself, not a person — no profile
+    #: to open, no presence, its own mark.
+    team: bool = False
 
 
 class ConversationOut(BaseModel):

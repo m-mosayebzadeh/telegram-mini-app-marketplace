@@ -26,6 +26,11 @@ class UserStatus(str, enum.Enum):
     #: stays, emptied, so the other side of their conversations still
     #: makes sense and a complaint can still be looked into.
     DELETED = "deleted"
+    #: Cosmos Team: the one account the app itself writes from (section 37)
+    #: — a new sign-in, a change to the ways in, later events. Not a person,
+    #: so never active: nothing that lists people (the world, friends,
+    #: search) shows it, because all of them list active people only.
+    TEAM = "team"
 
 
 class User(Base):
@@ -112,6 +117,11 @@ class User(Base):
     #: When this person said they are eighteen or over. Asked once, on the
     #: first visit; nothing in the app opens before it (section 32).
     adult_confirmed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    #: The language the app is shown in on this person's devices ("fa" or
+    #: "en"), so what the server writes to them — Cosmos Team's messages,
+    #: later notifications — is in their language. Set by the app.
+    language: Mapped[str | None] = mapped_column(String(8), nullable=True)
 
     #: When the account was deleted; see UserStatus.DELETED.
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

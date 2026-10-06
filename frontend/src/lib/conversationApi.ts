@@ -17,6 +17,9 @@ export interface ConversationPerson {
   /** When they were last here, roughly — never an exact time. */
   /** "recently" when either side hides being online (section 32). */
   seen?: 'now' | 'minutes' | 'hours' | 'days' | 'long' | 'recently'
+  /** Cosmos Team (section 37): the app itself writing to you — no profile,
+   *  no presence, no place in the world, its own mark. */
+  team?: boolean
 }
 
 export interface Conversation {
@@ -88,6 +91,8 @@ export interface ConversationMessage {
    *  it was sent (section 32). */
   note_quote?: string | null
   reactions?: Reaction[]
+  /** What a Cosmos Team message offers to do: "close_session:<id>". */
+  action?: string | null
 }
 
 /** Every thread you are in, most recent first. */

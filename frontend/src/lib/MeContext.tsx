@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { getMyAdminAccess } from './adminApi'
 import { apiFetch, ApiError } from './api'
+import { keepServerLanguage } from './languageSync'
 import { subscribe } from './live'
 import type { Me, MyAdminAccess } from './types'
 
@@ -80,6 +81,14 @@ export function MeProvider({ children }: { children: ReactNode }) {
   // A friend request arrived or was answered: the badge on the "me" door
   // reads from here, so it is asked again — told live, never on a clock.
   useEffect(() => subscribe((event) => { if (event.type === 'friends') fetchMe() }), [])
+
+  // The server writes to this person in the app's language (section 37).
+  const meId = state.me?.id
+  const meLanguage = state.me?.language
+  useEffect(() => (meId ? keepServerLanguage(meLanguage) : undefined),
+    // Once per signed-in person; later changes are heard by the listener itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [meId])
 
   const markDeleted = () => setState((s) => ({ ...s, me: null, deleted: true }))
   return <MeContext.Provider value={{ ...state, refreshMe: fetchMe, markDeleted }}>{children}</MeContext.Provider>

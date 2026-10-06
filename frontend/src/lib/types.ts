@@ -12,6 +12,8 @@ export interface Me {
   display_name: string
   username: string | null
   status: 'active' | 'blocked' | 'deleted'
+  /** The language the app last told the server it is shown in. */
+  language?: string | null
   joined_at: string
   // The bottom nav's own small avatar thumbnail (see App.tsx) reads this
   // directly, refreshed the same way every other /me value is — see

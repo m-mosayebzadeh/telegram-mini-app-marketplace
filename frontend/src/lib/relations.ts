@@ -60,6 +60,8 @@ export interface Relation {
   /** Pinned: its place among the pinned (0 is the first pinned, highest),
    *  or null when not pinned. */
   pinnedRank?: number | null
+  /** Cosmos Team (section 37), not a person. */
+  team?: boolean
   /** The request behind a pending stage. */
   request: RequestActivity | null
   /** The session behind the 'session' stage. */
@@ -106,6 +108,7 @@ export function buildRelations(
     const other = c.others[0]
     const r = ensure(other.user_id, other.display_name, other.avatar_url)
     r.conversationId = c.id
+    r.team = other.team ?? false
     r.lastText = c.last_text
     r.origin = c.origin === 'echo' ? 'echo' : 'world'
     r.muted = c.muted ?? false

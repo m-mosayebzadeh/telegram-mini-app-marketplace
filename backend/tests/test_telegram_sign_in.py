@@ -142,9 +142,14 @@ def test_the_button_appears_only_when_the_bot_is_set_up(client, monkeypatch, bot
     assert client.post("/auth/telegram/start").status_code == 404
 
 
-def test_twenty_sign_ins_in_ten_minutes_from_one_place(client, bot):
+def test_a_place_that_starts_too_many_bot_sign_ins_is_stopped(client, bot, monkeypatch):
+    from app.auth import telegram_router
+
+    # The real limit is two hundred; three makes the same point quickly.
+    assert telegram_router.bot_starts.limit == 200
+    monkeypatch.setattr(telegram_router.bot_starts, "limit", 3)
     page = TestClient(app)
-    for _ in range(20):
+    for _ in range(3):
         _start(page)
     assert page.post("/auth/telegram/start").json()["detail"]["reason"] == "too_many_tries"
 

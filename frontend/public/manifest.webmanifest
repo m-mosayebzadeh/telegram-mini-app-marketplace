@@ -1,0 +1,9 @@
+{
+  "name": "Cosmos",
+  "short_name": "Cosmos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#04080a",
+  "theme_color": "#04080a",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

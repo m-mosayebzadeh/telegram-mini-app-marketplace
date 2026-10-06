@@ -40,3 +40,7 @@ pytest==8.3.3
 # Not used by the app itself — only by tests/helpers.py, to generate a
 # throwaway JPEG in memory to upload in photo endpoint tests.
 pillow==12.3.0
+# Notifications when the app is closed (app/push). If its http-ece part
+# fails to build: pip install setuptools wheel, then
+# pip install --no-build-isolation pywebpush==2.5.0
+pywebpush==2.5.0

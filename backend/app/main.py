@@ -6,6 +6,7 @@ Application entry point. Run locally with:
 from app.live.pulse import run_pulse
 from app.auth.router import router as auth_router
 from app.auth.telegram_router import router as telegram_sign_in_router
+from app.push.router import router as push_router
 from app.auth.doors import router as doors_router
 from app.live.broker import RedisBroker
 from app.live.hub import hub
@@ -107,6 +108,7 @@ app.include_router(account_router)
 app.include_router(friends_router)
 app.include_router(auth_router)
 app.include_router(telegram_sign_in_router)
+app.include_router(push_router)
 app.include_router(doors_router)
 app.include_router(friends_me_router)
 app.include_router(friends_public_router)
@@ -233,6 +235,8 @@ def read_current_user(
         "display_name": current_user.display_name,
         "username": current_user.username,
         "status": current_user.status.value,
+        # The language the app last said it is shown in (PUT /me/language).
+        "language": current_user.language,
         "joined_at": current_user.joined_at.isoformat(),
         # The bottom nav's own small avatar thumbnail (see App.tsx) reads
         # this directly instead of running its own separate fetch — that

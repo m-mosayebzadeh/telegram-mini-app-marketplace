@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import doors, google, sessions
 from app.auth.dependencies import current_session_id, get_current_user
+from app.core import team
 from app.core.attempts import Attempts
 from app.core.database import get_db, open_db
 from app.core.time import utcnow
@@ -38,9 +39,20 @@ log = logging.getLogger(__name__)
 
 
 def _sign_in(db: Session, response: Response, user: User, provider: str, user_agent: str | None) -> None:
-    """The one ending every way in shares: a new session, in the cookie."""
+    """The one ending every way in shares: a new session, in the cookie —
+    and, when the account was already somebody's, "a new sign-in to your
+    account" from Cosmos Team, with the button to close it (section 37)."""
     token = sessions.start_session(db, user, provider=provider, user_agent=user_agent)
     sessions.set_cookie(response, token)
+    row = db.scalar(select(AuthSession).where(AuthSession.token_hash == sessions.hash_token(token)))
+    earlier = db.scalar(select(AuthSession.id).where(AuthSession.user_id == user.id, AuthSession.id != row.id).limit(1))
+    if earlier is None:
+        return  # a brand-new account: the person arriving, not somebody arriving in it
+    try:
+        team.new_sign_in(db, user, row.id, provider, row.device)
+    except Exception:  # noqa: BLE001 — a note that failed must never fail the sign-in
+        db.rollback()
+        log.exception("Cosmos Team could not tell about a new sign-in")
 
 
 class SessionOut(BaseModel):
@@ -308,9 +320,11 @@ class DeviceStartOut(BaseModel):
     expires_at: datetime
 
 
-#: Ten codes in ten minutes from one place (the owner's decision): far more
-#: than anybody signing in needs, and it stops somebody making thousands.
-device_starts = Attempts(limit=10, window_seconds=600)
+#: Two hundred in ten minutes from one address (the owner's decision, after
+#: the first ten): on Iran's mobile networks thousands of people share one
+#: address, so a low limit would shut out ordinary people signing in at
+#: the same hour. Two hundred still stops somebody making thousands.
+device_starts = Attempts(limit=200, window_seconds=600)
 
 
 def too_many_tries() -> HTTPException:

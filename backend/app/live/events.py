@@ -33,6 +33,13 @@ def announce_message(db: Session, conversation: Conversation, message: ChatMessa
         _everyone_in(conversation),
         {"type": "message", "conversation_id": conversation.id, "message": _shaped(db, message)},
     )
+    # And to whoever is away, a notification (section 38).
+    from app.models.user import User
+    from app.push import sender
+
+    author = db.get(User, message.sender_id)
+    if author is not None:
+        sender.message_sent(db, conversation, message, author)
 
 
 def announce_edited(db: Session, conversation: Conversation, message: ChatMessage) -> None:

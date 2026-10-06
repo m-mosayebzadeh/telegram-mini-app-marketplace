@@ -1,4 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { offerPush } from '../lib/pushOffer'
+import { TeamMark } from '../components/cosmos/TeamMark'
+import { TeamAction } from '../components/cosmos/TeamAction'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
@@ -295,6 +298,9 @@ export default function Conversation() {
       ...shape,
     }
     setMessages((current) => placeMessage(current, waiting))
+    // My first words here: the moment "want to know when they answer?"
+    // explains itself (section 38). Not to Cosmos Team.
+    if (!thread.others[0]?.team && !messages.some((m) => m.sender_id === me.id)) offerPush('message')
     const threadId = thread.id
     outboxRef.current.push({ clientId, send: () => send(threadId, clientId) })
     void flush()
@@ -726,6 +732,8 @@ export default function Conversation() {
 
         {message.type === 'text' && message.text && <EmojiText text={message.text} />}
 
+        {message.action && message.sender_id !== me?.id && <TeamAction action={message.action} />}
+
         {message.type === 'photo' && thread && (
           <MessagePhoto
             conversationId={thread.id}
@@ -874,7 +882,8 @@ export default function Conversation() {
             />
           </svg>
         </button>
-        {other && (
+        {other?.team && <TeamMark className="cos-talk-face" />}
+        {other && !other.team && (
           // The face, and on it the clock of a paid session you are in
           // with them — on the face, never around it (section 30.14).
           <span className="cos-talk-face" aria-hidden="true">
@@ -890,10 +899,14 @@ export default function Conversation() {
           {theyType ? (
             <span className="cos-talk-typing">{t('talk.typing')}</span>
           ) : (
-            other && <span className="cos-talk-seen">{t(`talk.lastHere.${other.seen ?? 'long'}`)}</span>
+            other && (
+              <span className="cos-talk-seen">
+                {other.team ? t('team.line') : t(`talk.lastHere.${other.seen ?? 'long'}`)}
+              </span>
+            )
           )}
         </span>
-        {other && thread?.origin !== 'echo' && (
+        {other && !other.team && thread?.origin !== 'echo' && (
           // Back to the world with this person held, so a conversation is
           // never a dead end away from the place they live in. Not for a
           // chat Echo made: that was a meeting at random, and it stays one
@@ -1150,8 +1163,8 @@ export default function Conversation() {
                 sendDraft()
               }
             }}
-            placeholder={t('talk.placeholder')}
-            aria-label={t('talk.placeholder')}
+            placeholder={t(other?.team ? 'team.placeholder' : 'talk.placeholder')}
+            aria-label={t(other?.team ? 'team.placeholder' : 'talk.placeholder')}
           />
         )}
 

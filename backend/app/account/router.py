@@ -54,6 +54,30 @@ def confirm_adult(
         db.commit()
 
 
+#: The languages the app is shown in.
+LANGUAGES = {"fa", "en"}
+
+
+class LanguageIn(BaseModel):
+    language: str
+
+
+@router.put("/me/language", status_code=status.HTTP_204_NO_CONTENT)
+def set_language(
+    payload: LanguageIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> None:
+    """The language the app is shown in, so what the server writes to this
+    person (Cosmos Team, notifications) is in it too. The app says it once
+    when it differs, not on every start."""
+    if payload.language not in LANGUAGES:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail={"reason": "unknown_language"})
+    if current_user.language != payload.language:
+        current_user.language = payload.language
+        db.commit()
+
+
 # --- privacy ---------------------------------------------------------------
 
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PushOffer } from './components/cosmos/PushOffer'
 import BankAccounts from './pages/BankAccounts'
 import Withdraw from './pages/Withdraw'
 import AdminWithdrawals from './pages/AdminWithdrawals'
@@ -156,6 +157,9 @@ function AppShell() {
       {/* Above the page's own header on purpose: a conversation in progress
           outranks whatever screen you happen to be looking at. */}
       <LiveSessionBar />
+      {/* "Want to know when they answer?" — shows itself only when a
+          moment calls for it (section 38). */}
+      <PushOffer />
       <Routes>
         {/* The app opens on the world: it is the product (section 31).
             The showcase stays at /offers until finding a service has a

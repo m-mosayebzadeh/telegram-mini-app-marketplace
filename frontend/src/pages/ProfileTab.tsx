@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { offerPush } from '../lib/pushOffer'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { apiFetch, formatApiError } from '../lib/api'
@@ -226,7 +227,17 @@ export default function ProfileTab() {
               {t('friends.hello')}
             </button>
             {status === 'none' && (
-              <button type="button" className="cos-me-btn" disabled={busy} onClick={() => void friendAction(() => askFriend(profile.user_id), t('friends.sent'))}>
+              <button
+                type="button"
+                className="cos-me-btn"
+                disabled={busy}
+                onClick={() =>
+                  void friendAction(async () => {
+                    await askFriend(profile.user_id)
+                    offerPush('friend')
+                  }, t('friends.sent'))
+                }
+              >
                 {t('friends.ask')}
               </button>
             )}
@@ -275,7 +286,12 @@ export default function ProfileTab() {
           hasFriends={friends.length > 0}
           busy={busy}
           onOpen={(person) => navigate(`/profiles/${person.user_id}`)}
-          onAsk={(person) => void friendAction(() => askFriend(person.user_id), t('friends.sent'))}
+          onAsk={(person) =>
+            void friendAction(async () => {
+              await askFriend(person.user_id)
+              offerPush('friend')
+            }, t('friends.sent'))
+          }
           onTakeBack={setTakingBack}
           onAccept={(person) => void friendAction(() => acceptFriend(person.user_id), t('friends.nowFriends', { name: person.display_name }))}
           onEcho={() => navigate('/echo')}

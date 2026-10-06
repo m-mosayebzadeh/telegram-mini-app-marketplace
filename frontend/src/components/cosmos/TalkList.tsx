@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { TeamMark } from './TeamMark'
 import { useTranslation } from 'react-i18next'
 import type { Relation } from '../../lib/relations'
 import { timeAgo } from '../../lib/timeAgo'
@@ -61,6 +62,7 @@ interface Row {
   origin: 'world' | 'echo'
   muted: boolean
   pinnedRank: number | null
+  team: boolean
 }
 
 /** A face colour that is always the same for the same person. */
@@ -79,6 +81,7 @@ function fromRelation(r: Relation): Row {
     origin: r.origin,
     muted: r.muted ?? false,
     pinnedRank: r.pinnedRank ?? null,
+    team: r.team ?? false,
   }
 }
 
@@ -97,6 +100,7 @@ function fromConversation(c: Conversation): Row | null {
     origin: c.origin === 'echo' ? 'echo' : 'world',
     muted: c.muted ?? false,
     pinnedRank: null,
+    team: other.team ?? false,
   }
 }
 
@@ -331,9 +335,13 @@ function TalkRow({ row, selecting, selected, onOpen, onToggle }: {
         {/* The tick sits beside the face, not inside it: the face clips to
             its circle, and a tick inside it was cut in half. */}
         <span className="cos-talklist-facewrap">
-          <span className="cos-talklist-face" style={{ '--a': a, '--b': b } as React.CSSProperties}>
-            {row.avatarUrl ? <img src={row.avatarUrl} alt="" draggable={false} /> : row.name.slice(0, 1)}
-          </span>
+          {row.team ? (
+            <TeamMark className="cos-talklist-face" />
+          ) : (
+            <span className="cos-talklist-face" style={{ '--a': a, '--b': b } as React.CSSProperties}>
+              {row.avatarUrl ? <img src={row.avatarUrl} alt="" draggable={false} /> : row.name.slice(0, 1)}
+            </span>
+          )}
           {selected && <span className="cos-talklist-check" aria-hidden="true" />}
         </span>
         <span className="cos-talklist-text">
@@ -347,7 +355,7 @@ function TalkRow({ row, selecting, selected, onOpen, onToggle }: {
             )}
           </b>
           <span className="cos-talklist-last">{row.lastText ?? t('talkList.noPreview')}</span>
-          <span className="cos-talklist-origin">{t(`talkList.from.${row.origin}`)}</span>
+          <span className="cos-talklist-origin">{row.team ? t('team.line') : t(`talkList.from.${row.origin}`)}</span>
         </span>
         <span className="cos-talklist-meta">
           <i>{row.lastAt ? timeAgo(row.lastAt, i18n.language) : ''}</i>
