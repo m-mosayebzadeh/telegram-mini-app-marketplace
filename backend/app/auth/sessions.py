@@ -42,6 +42,14 @@ COOKIE = "cosmos_session"
 
 #: "Last used" is written at most this often.
 TOUCH_EVERY = timedelta(minutes=5)
+#: How long a confirmation through one of the account's ways in lets the
+#: ways in be changed (section 36): long enough to make the change, short
+#: enough that a phone picked up later cannot.
+CONFIRM_FOR = timedelta(minutes=10)
+#: Sessions that do not count as confirmed when they open: one approved by
+#: another signed-in phone proves only that somebody holds that phone,
+#: which is exactly what the confirmation exists to look past.
+NOT_CONFIRMING = {"device"}
 
 
 def hash_token(token: str) -> str:
@@ -83,10 +91,17 @@ def start_session(db: Session, user: User, *, provider: str, user_agent: str | N
             device=device_name(user_agent)[:80],
             created_at=now,
             last_used_at=now,
+            # Signing in through Google or Telegram just proved who this is.
+            confirmed_at=None if provider in NOT_CONFIRMING else now,
         )
     )
     db.commit()
     return token
+
+
+def is_confirmed(row: AuthSession | None) -> bool:
+    """This session proved it is the owner within CONFIRM_FOR (section 36)."""
+    return row is not None and row.confirmed_at is not None and utcnow() - row.confirmed_at < CONFIRM_FOR
 
 
 def session_for(db: Session, token: str | None) -> AuthSession | None:
@@ -166,8 +181,52 @@ def user_for_door(db: Session, provider: str, subject: str) -> User | None:
     return db.get(User, identity.user_id) if identity is not None else None
 
 
-def remember_door(db: Session, user: User, provider: str, subject: str) -> None:
-    """Records that this person can come in through this door. Commits."""
-    if user_for_door(db, provider, subject) is None:
-        db.add(AuthIdentity(user_id=user.id, provider=provider, subject=subject))
+def remember_door(db: Session, user: User, provider: str, subject: str, label: str | None = None) -> None:
+    """Records that this person can come in through this door, and keeps
+    its label up to date (a new @username, say). Commits."""
+    identity = db.scalar(
+        select(AuthIdentity).where(AuthIdentity.provider == provider, AuthIdentity.subject == subject)
+    )
+    if identity is None:
+        db.add(AuthIdentity(user_id=user.id, provider=provider, subject=subject, label=label))
         db.commit()
+    elif label and identity.label != label and identity.user_id == user.id:
+        identity.label = label
+        db.commit()
+
+
+def doors_of(db: Session, user_id: int) -> list[AuthIdentity]:
+    """Every way in this person has, oldest first."""
+    return list(
+        db.scalars(select(AuthIdentity).where(AuthIdentity.user_id == user_id).order_by(AuthIdentity.created_at, AuthIdentity.id))
+    )
+
+
+def replace_door(db: Session, user: User, provider: str, subject: str, label: str | None) -> None:
+    """This person's way in through `provider` becomes `subject`: one Google
+    account and one Telegram account per person, so connecting another
+    replaces the one there was. The caller has made sure nobody else has
+    that door. Commits."""
+    for identity in doors_of(db, user.id):
+        if identity.provider == provider:
+            db.delete(identity)
+    db.flush()
+    db.add(AuthIdentity(user_id=user.id, provider=provider, subject=subject, label=label))
+    db.commit()
+
+
+def mask_email(address: str | None) -> str | None:
+    """"m.mosaiebzadeh@gmail.com" -> "m.m***h@gmail.com": the start and the
+    end of the name, so its owner recognises it, and the rest hidden, so a
+    leak of the label is not a leak of the address (the owner's decision,
+    section 36)."""
+    if not address or "@" not in address:
+        return None
+    name, _, domain = address.rpartition("@")
+    if len(name) <= 2:
+        shown = name[:1] + "***"
+    elif len(name) <= 5:
+        shown = name[:1] + "***" + name[-1:]
+    else:
+        shown = name[:3] + "***" + name[-1:]
+    return f"{shown}@{domain}"[:128]

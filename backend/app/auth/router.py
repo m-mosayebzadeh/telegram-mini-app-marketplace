@@ -10,20 +10,27 @@ import logging
 import secrets
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Cookie, Depends, Form, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Header, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.auth import google, sessions
+from app.auth import doors, google, sessions
 from app.auth.dependencies import current_session_id, get_current_user
 from app.core.attempts import Attempts
 from app.core.database import get_db, open_db
 from app.core.time import utcnow
 from app.live.hub import hub
-from app.models.auth_session import PROVIDER_DEVICE, PROVIDER_GOOGLE, AuthSession, DeviceSignInRequest
+from app.models.auth_session import (
+    PROVIDER_DEVICE,
+    PROVIDER_GOOGLE,
+    PURPOSE_CONFIRM,
+    PURPOSE_LINK,
+    AuthSession,
+    DeviceSignInRequest,
+)
 from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -150,13 +157,41 @@ def _back_to_sign_in(reason: str) -> RedirectResponse:
     return response
 
 
+#: Trips to Google started from inside the account (section 36).
+GOOGLE_PURPOSES = {PURPOSE_CONFIRM, PURPOSE_LINK}
+#: Where those trips come back to: "Settings -> ways in".
+WAYS_PAGE = "/settings/ways"
+
+
+def _back_to_ways(outcome: str) -> RedirectResponse:
+    """Back to "Settings -> ways in", which reads `outcome` and says it."""
+    response = RedirectResponse(f"{WAYS_PAGE}?google={outcome}", status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(GOOGLE_COOKIE, path="/", secure=True, httponly=True, samesite="none")
+    return response
+
+
 @router.get("/google/start")
-def start_google(lang: str | None = None) -> RedirectResponse:
-    """Where the sign-in page's Google button leads: off to Google's
-    account chooser, in the page's language."""
+def start_google(
+    request: Request,
+    lang: str | None = None,
+    purpose: str | None = None,
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    """Where a Google button leads: off to Google's account chooser, in the
+    page's language. From the sign-in page, to sign in; from "Settings ->
+    ways in" (`purpose`), to confirm it is the owner or to connect a Google
+    account — then the trip is noted on this session, because Google's
+    answer comes back without this session's cookie."""
     if not google.ready():
-        return _back_to_sign_in("google_off")
+        return _back_to_ways("off") if purpose in GOOGLE_PURPOSES else _back_to_sign_in("google_off")
     state, nonce = secrets.token_urlsafe(24), secrets.token_urlsafe(24)
+    if purpose in GOOGLE_PURPOSES:
+        session = sessions.session_for(db, request.cookies.get(sessions.COOKIE))
+        if session is None:
+            return _back_to_sign_in("signed_out")
+        session.google_state_hash = sessions.hash_token(state)
+        session.google_purpose = purpose
+        db.commit()
     language = lang if lang in {"fa", "en"} else None
     response = RedirectResponse(google.authorization_url(state, nonce, language), status_code=status.HTTP_302_FOUND)
     # Google posts the answer back from its own site, and a browser sends
@@ -176,6 +211,7 @@ def start_google(lang: str | None = None) -> RedirectResponse:
 
 @router.post("/google/callback")
 def google_callback(
+    later: BackgroundTasks,
     id_token: str | None = Form(None),
     state: str | None = Form(None),
     error: str | None = Form(None),
@@ -188,27 +224,66 @@ def google_callback(
     with the name Google gives — and lands in the app."""
     if error:
         # Closed the chooser, or said no: nothing to apologise for.
+        if state and db.scalar(select(AuthSession.id).where(AuthSession.google_state_hash == sessions.hash_token(state))):
+            return _back_to_ways("cancelled")
         return _back_to_sign_in("google_cancelled")
     started_state, _, nonce = (kept or "").partition(".")
     if not (id_token and state and started_state and nonce and secrets.compare_digest(started_state, state)):
         # Most often the browser did not send the cookie back.
         log.warning("Google sign-in refused: state missing or not this browser's (cookie sent: %s)", bool(kept))
         return _back_to_sign_in("google_failed")
+    # A trip started from inside an account finds its session by the state.
+    trip = db.scalar(select(AuthSession).where(AuthSession.google_state_hash == sessions.hash_token(state)))
     try:
         account = google.verify(id_token, nonce)
     except google.GoogleSignInError as error:
         log.warning("Google sign-in refused: %s", error)
-        return _back_to_sign_in("google_failed")
+        return _back_to_ways("failed") if trip is not None else _back_to_sign_in("google_failed")
+    if trip is not None:
+        return _google_from_inside(db, later, trip, account)
     user = sessions.user_for_door(db, PROVIDER_GOOGLE, account.subject)
     if user is None:
         user = User(first_name=account.first_name, last_name=account.last_name, last_seen_at=utcnow())
         db.add(user)
         db.commit()
-        sessions.remember_door(db, user, PROVIDER_GOOGLE, account.subject)
+    sessions.remember_door(db, user, PROVIDER_GOOGLE, account.subject, account.label)
     response = RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
     _sign_in(db, response, user, PROVIDER_GOOGLE, user_agent)
     response.delete_cookie(GOOGLE_COOKIE, path="/", secure=True, httponly=True, samesite="none")
     return response
+
+
+def _google_from_inside(db: Session, later: BackgroundTasks, trip: AuthSession, account) -> RedirectResponse:
+    """The answer to a trip to Google started from "Settings -> ways in"
+    (section 36): confirming it is the owner, or connecting this Google
+    account to the account."""
+    purpose = trip.google_purpose
+    trip.google_state_hash = None
+    trip.google_purpose = None
+    db.commit()
+    if trip.revoked_at is not None:
+        return _back_to_sign_in("signed_out")
+    user = db.get(User, trip.user_id)
+    owner = sessions.user_for_door(db, PROVIDER_GOOGLE, account.subject)
+    if purpose == PURPOSE_CONFIRM:
+        # Only the Google account already connected here proves anything.
+        if owner is None or owner.id != user.id:
+            return _back_to_ways("not_yours")
+        trip.confirmed_at = utcnow()
+        db.commit()
+        sessions.remember_door(db, user, PROVIDER_GOOGLE, account.subject, account.label)
+        return _back_to_ways("confirmed")
+    # Connecting: only right after proving it is the owner.
+    if not sessions.is_confirmed(trip):
+        return _back_to_ways("confirm_first")
+    if owner is not None and owner.id != user.id:
+        return _back_to_ways("taken")
+    if owner is None:
+        sessions.replace_door(db, user, PROVIDER_GOOGLE, account.subject, account.label)
+        doors.tell_owner(db, later, user, "google_linked", account.label)
+    else:
+        sessions.remember_door(db, user, PROVIDER_GOOGLE, account.subject, account.label)
+    return _back_to_ways("linked")
 
 
 # --- signing in with another phone ------------------------------------------
@@ -313,6 +388,11 @@ class DeviceWaitIn(DeviceSecretIn):
     seen: bool = False
 
 
+def _news(state: str, seen: bool, problem: str | None) -> dict:
+    """What a wait answers; `problem` only when the bot refused on its own."""
+    return {"status": state, "seen": seen, **({"problem": problem} if problem else {})}
+
+
 async def wait_for_news(db: Session, payload: DeviceWaitIn, model=DeviceSignInRequest) -> dict:
     """Holds a waiting sign-in page open up to WAIT_HOLD_SECONDS (never past
     the request's end), so it asks only a handful of times in two minutes.
@@ -329,10 +409,16 @@ async def wait_for_news(db: Session, payload: DeviceWaitIn, model=DeviceSignInRe
     Telegram — so the page can say "now confirm it there".
     """
 
-    def look() -> tuple[str, bool, datetime | None]:
+    def look() -> tuple[str, bool, datetime | None, str | None]:
         db.expire_all()
         row = _own_request(db, payload, model)
-        answer = (_status(row), bool(row is not None and row.seen_at is not None), row.expires_at if row else None)
+        answer = (
+            _status(row),
+            bool(row is not None and row.seen_at is not None),
+            row.expires_at if row else None,
+            # Why the bot refused on its own, for requests from inside an account.
+            getattr(row, "problem", None),
+        )
         db.close()
         return answer
 
@@ -345,15 +431,15 @@ async def wait_for_news(db: Session, payload: DeviceWaitIn, model=DeviceSignInRe
     try:
         while True:
             woken.clear()
-            state, seen, expires_at = await run_in_threadpool(look)
+            state, seen, expires_at, problem = await run_in_threadpool(look)
             if state != "pending" or seen != payload.seen:
-                return {"status": state, "seen": seen}
+                return _news(state, seen, problem)
             left = deadline - loop.time()
             if expires_at is not None:
                 # Wake at the request's end too, to say it ran out.
                 left = min(left, (expires_at - utcnow()).total_seconds() + 0.5)
             if left <= 0:
-                return {"status": state, "seen": seen}
+                return _news(state, seen, problem)
             try:
                 await asyncio.wait_for(woken.wait(), left)
             except asyncio.TimeoutError:

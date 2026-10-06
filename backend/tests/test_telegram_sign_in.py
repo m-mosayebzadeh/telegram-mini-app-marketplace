@@ -147,3 +147,22 @@ def test_twenty_sign_ins_in_ten_minutes_from_one_place(client, bot):
     for _ in range(20):
         _start(page)
     assert page.post("/auth/telegram/start").json()["detail"]["reason"] == "too_many_tries"
+
+
+def test_the_bot_answers_after_the_database_place_is_given_back(client, bot, monkeypatch):
+    """A slow Telegram must not hold one of the few database places: what the
+    bot says goes out only after the webhook's database session has closed."""
+    from sqlalchemy.orm import Session
+
+    order = []
+    real_close = Session.close
+
+    def close(self):
+        order.append("db closed")
+        return real_close(self)
+
+    monkeypatch.setattr(Session, "close", close)
+    monkeypatch.setattr(telegram_bot, "call", lambda method, payload: order.append(method))
+    _telegram(client, {"message": {"from": {"id": 7001}, "chat": {"id": 7001}, "text": "hello"}})
+    assert "sendMessage" in order
+    assert order.index("db closed") < order.index("sendMessage")

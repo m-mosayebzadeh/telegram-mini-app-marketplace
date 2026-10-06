@@ -6,6 +6,7 @@ Application entry point. Run locally with:
 from app.live.pulse import run_pulse
 from app.auth.router import router as auth_router
 from app.auth.telegram_router import router as telegram_sign_in_router
+from app.auth.doors import router as doors_router
 from app.live.broker import RedisBroker
 from app.live.hub import hub
 from app.account.router import admin_router as admin_feedback_router, router as account_router
@@ -106,6 +107,7 @@ app.include_router(account_router)
 app.include_router(friends_router)
 app.include_router(auth_router)
 app.include_router(telegram_sign_in_router)
+app.include_router(doors_router)
 app.include_router(friends_me_router)
 app.include_router(friends_public_router)
 app.include_router(admin_feedback_router)

@@ -5385,6 +5385,20 @@ button.cos-me-person { cursor: pointer; }
 .cos-signin-way:focus-visible, .cos-signin-quiet:focus-visible, .cos-signin-back:focus-visible, .cos-signin-lang:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .cos-signin-intro, .cos-signin-panel, .cos-signin-wait-dot { animation: none; } }
 
+/* ------------------------------------------ ways in (SignInWays, section 36)
+   A utility list like the signed-in devices. The confirmed mark is a quiet
+   tick and a word, never green: green means "online now" and nothing else. */
+.cos-ways-mark { flex: none; width: 28px; height: 28px; display: grid; place-items: center; }
+.cos-ways-mark svg { width: 24px; height: 24px; }
+.cos-ways-line { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.cos-ways-verified { display: inline-flex; align-items: center; gap: 3px; color: var(--cos-fg); font-size: var(--cos-text-caption); }
+.cos-ways-actions { display: flex; gap: 4px; }
+.cos-ways-note { margin-top: 10px; }
+.cos-ways-sheet-text { margin: 0 0 16px; font-size: 14px; line-height: 1.9; color: var(--cos-fg-soft); }
+.cos-ways-sheet-actions { display: flex; flex-direction: column; gap: 12px; }
+.cos-ways-problem { margin: 0; font-size: 14px; line-height: 1.8; color: #ff8a80; }
+.cos-ways-qr { align-self: center; width: 160px; height: 160px; }
+
 /* ------------------------------------- signing in another device (LinkDevice) */
 .cos-link-ask, .cos-link-done { display: flex; flex-direction: column; gap: 16px; padding: 8px 4px; }
 .cos-link-big { margin: 0; font-size: 17px; line-height: 1.8; }

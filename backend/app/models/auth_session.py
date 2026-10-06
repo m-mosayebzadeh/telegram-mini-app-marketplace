@@ -46,6 +46,11 @@ class AuthIdentity(Base):
     #: Who they are at that door: Google's account id, a phone number in
     #: international form, a Telegram user id.
     subject: Mapped[str] = mapped_column(String(128))
+    #: What the person sees in "Settings -> ways in" to recognise this door:
+    #: the Google address half hidden ("m.mo***h@gmail.com"), the Telegram
+    #: @username or name. Never the whole address (section 36): enough to
+    #: tell which account it is, and nothing worth stealing.
+    label: Mapped[str | None] = mapped_column(String(128), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     __table_args__ = (UniqueConstraint("provider", "subject", name="uq_auth_identity_door"),)
@@ -67,6 +72,17 @@ class AuthSession(Base):
     last_used_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     #: Set when the person signs out or closes it from another device.
     revoked_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    #: When this session last proved, through one of the account's own
+    #: ways in, that it is the owner (section 36). Changing the ways in
+    #: needs that to be recent: somebody who only has the session — a phone
+    #: left open — must not be able to swap them and keep the account.
+    confirmed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    #: A trip to Google started from inside the account (to confirm, or to
+    #: connect a Google account): the hash of its `state`, and what it is
+    #: for. Google posts the answer back from its own site, where this
+    #: session's cookie is not sent, so the answer finds its session by this.
+    google_state_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    google_purpose: Mapped[str | None] = mapped_column(String(8), nullable=True)
 
     __table_args__ = (Index("ix_auth_sessions_user_open", "user_id", "revoked_at"),)
 
@@ -102,6 +118,14 @@ class DeviceSignInRequest(Base):
     claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
 
+#: What a request through the bot is for: signing in, or — from inside the
+#: account (section 36) — confirming it is the owner, or connecting a
+#: Telegram account to this account.
+PURPOSE_SIGN_IN = "sign_in"
+PURPOSE_CONFIRM = "confirm"
+PURPOSE_LINK = "link"
+
+
 class BotSignInRequest(Base):
     """Signing in through our Telegram bot (section 32).
 
@@ -134,6 +158,14 @@ class BotSignInRequest(Base):
     first_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: PURPOSE_SIGN_IN, or for a signed-in person PURPOSE_CONFIRM / PURPOSE_LINK.
+    purpose: Mapped[str] = mapped_column(String(8), default=PURPOSE_SIGN_IN)
+    #: Who asked, for confirming or connecting: only they may collect it.
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    #: Why it was refused when the bot refused it on its own, for the page
+    #: to say: "not_yours" (not this account's Telegram), "taken" (that
+    #: Telegram belongs to another account).
+    problem: Mapped[str | None] = mapped_column(String(16), nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     refused_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

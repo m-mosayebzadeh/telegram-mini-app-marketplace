@@ -20,6 +20,7 @@ import { EchoOffer } from './components/cosmos/EchoOffer'
 import SignIn from './pages/SignIn'
 import LinkDevice from './pages/LinkDevice'
 import Sessions from './pages/Sessions'
+import SignInWays from './pages/SignInWays'
 import OfferDetail from './pages/OfferDetail'
 import CreateOffer from './pages/CreateOffer'
 import ChatSessionDetail from './pages/ChatSessionDetail'
@@ -205,6 +206,7 @@ function AppShell() {
         <Route path="/friends" element={<Friends />} />
         <Route path="/settings/blocked" element={<BlockedPeople />} />
         <Route path="/settings/sessions" element={<Sessions />} />
+        <Route path="/settings/ways" element={<SignInWays />} />
         <Route path="/link" element={<LinkDevice />} />
         <Route path="/settings/report" element={<ReportProblem />} />
         <Route path="/follow-requests" element={<FollowRequests />} />

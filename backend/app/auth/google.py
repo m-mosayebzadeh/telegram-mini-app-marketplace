@@ -11,15 +11,16 @@ are blocked (the owner's decision, section 32).
 
 The token is checked here with Google's published keys: that Google signed
 it, that it was made for our Client ID, that it has not expired, and that it
-answers the very request this browser started (the nonce). The address
-is never asked for (the scope is only "openid profile"), so there is none
-to check. Only then is the person signed in — through the same door every
-time, Google's account id ("sub"), which never changes even if they
-change their address.
+answers the very request this browser started (the nonce). Only then is
+the person signed in — through the same door every time, Google's account
+id ("sub"), which never changes even if they change their address. The
+address is never how anybody is recognised.
 
-What is kept: the account id, to recognise them next time, and their name,
-only to pre-fill a new account. Not the email address: nothing in the
-product needs it, and what is not kept cannot leak.
+What is kept: the account id, to recognise them next time; their name,
+only to pre-fill a new account; and the address HALF HIDDEN
+("m.m***h@gmail.com"), so that "Settings -> ways in" can show which Google
+account this is, marked as confirmed (the owner's decision, section 36).
+Never the whole address: enough to recognise, nothing worth stealing.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
+from app.auth import sessions
 from app.core.config import settings
 
 #: Who may have issued a real token.
@@ -43,8 +45,8 @@ def ready() -> bool:
 def authorization_url(state: str, nonce: str, language: str | None = None) -> str:
     """Google's account chooser, for this one sign-in.
 
-    Asks only for who the person is (openid, profile), never for mail or
-    anything else. The token comes back in a form posted to the way back,
+    Asks only for who the person is (openid, profile) and their address, to
+    show it half hidden (section 36) — nothing else, and never their mail. The token comes back in a form posted to the way back,
     so it never sits in an address bar or a history. `state` ties the
     answer to this browser; `nonce` is sealed inside the token by Google.
     """
@@ -53,7 +55,7 @@ def authorization_url(state: str, nonce: str, language: str | None = None) -> st
         "redirect_uri": settings.google_redirect_uri,
         "response_type": "id_token",
         "response_mode": "form_post",
-        "scope": "openid profile",
+        "scope": "openid profile email",
         "state": state,
         "nonce": nonce,
         # Somebody with two accounts chooses, rather than being signed in
@@ -75,6 +77,8 @@ class GoogleAccount:
     subject: str
     first_name: str
     last_name: str | None
+    #: The address half hidden, when Google vouches for it; never the whole.
+    label: str | None = None
 
 
 def verify(credential: str, nonce: str) -> GoogleAccount:
@@ -99,4 +103,6 @@ def verify(credential: str, nonce: str) -> GoogleAccount:
         subject=str(claims["sub"]),
         first_name=(claims.get("given_name") or claims.get("name") or "").strip()[:64] or "New User",
         last_name=(claims.get("family_name") or "").strip()[:64] or None,
+        # Only an address Google has confirmed is shown as confirmed.
+        label=sessions.mask_email(claims.get("email")) if claims.get("email_verified") else None,
     )

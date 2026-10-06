@@ -239,6 +239,15 @@ export default function Settings() {
         <section className="ui-section">
           <h2 className="ui-section-title">{t('settings.accountGroup')}</h2>
           <div className="ui-list">
+            <button className="ui-row" onClick={() => navigate('/settings/ways')}>
+              <span className="ui-row-main">
+                <span className="ui-row-title">{t('ways.title')}</span>
+                <span className="ui-row-subtitle">{t('ways.rowHint')}</span>
+              </span>
+              <span className="ui-row-trailing">
+                <IconChevron size={20} />
+              </span>
+            </button>
             <button className="ui-row" onClick={() => navigate('/settings/sessions')}>
               <span className="ui-row-main">
                 <span className="ui-row-title">{t('sessions.title')}</span>

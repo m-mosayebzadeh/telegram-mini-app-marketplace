@@ -60,7 +60,7 @@ def test_the_button_leads_to_googles_chooser_asking_only_who_you_are(client, mon
     query = _go_to_google(client)
     assert query["client_id"] == "abc.apps.googleusercontent.com"
     assert query["redirect_uri"] == "http://localhost:5174/api/auth/google/callback"
-    assert query["scope"] == "openid profile"  # never mail
+    assert query["scope"] == "openid profile email"  # the address, to show it half hidden; never mail
     assert query["response_mode"] == "form_post"  # the token never sits in an address
     assert query["hl"] == "fa"
 

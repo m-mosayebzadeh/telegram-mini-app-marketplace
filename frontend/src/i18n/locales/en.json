@@ -1363,5 +1363,51 @@
     "refused": "Refused. That device won’t be signed in.",
     "expired": "This code is no longer valid. Get a new one on that device.",
     "toWorld": "Back to the world"
+  },
+  "ways": {
+    "title": "Ways in",
+    "rowHint": "The Google and Telegram you sign in with",
+    "hint": "You can sign in to this account with any of these. One account of each can be connected.",
+    "google": "Google",
+    "telegram": "Telegram",
+    "connected": "Connected",
+    "verified": "Confirmed",
+    "notConnected": "Not connected",
+    "connect": "Connect",
+    "swap": "Change",
+    "remove": "Remove",
+    "lastWay": "The last way in can’t be removed. Connect another one first.",
+    "confirmTitle": "First, confirm it’s you",
+    "confirmText": "So that nobody with your unlocked phone can change your ways in, confirm with one of them first. Then you have ten minutes.",
+    "confirmWith": {
+      "google": "Confirm with Google",
+      "telegram": "Confirm with Telegram"
+    },
+    "removeTitle": "Remove {{way}}?",
+    "removeText": "You won’t be able to sign in to this account with it any more. We’ll tell your Telegram through our bot.",
+    "done": {
+      "confirmed": "Confirmed. You can make your change now.",
+      "linked": "Connected.",
+      "removed": "Removed."
+    },
+    "problem": {
+      "not_yours": "That account isn’t connected to this Cosmos account, so it can’t confirm it.",
+      "taken": "That account is the way into another Cosmos account. Remove it there first.",
+      "confirm_first": "Your confirmation has run out. Confirm again.",
+      "last_way": "The last way in can’t be removed.",
+      "refused": "Not approved in Telegram.",
+      "expired": "The link ran out.",
+      "too_many_tries": "Too many tries. Try again in a few minutes.",
+      "off": "This way isn’t set up on the server.",
+      "telegram_off": "This way isn’t set up on the server.",
+      "failed": "That didn’t work. Try again."
+    },
+    "tg": {
+      "confirmTitle": "Confirm with Telegram",
+      "confirmLead": "Open the Telegram connected to this account, tap Start, and answer the bot with “Yes, it’s me”.",
+      "linkTitle": "Connect Telegram",
+      "linkLead": "Open the Telegram you want to connect, tap Start, and answer the bot with “Yes, it’s me”.",
+      "again": "Again"
+    }
   }
 }

@@ -34,6 +34,13 @@ WORDS = {
         "expired": "این لینکِ ورود تمام شده. در Cosmos دوباره «ادامه با تلگرام» را بزن.",
         "hello": "برای ورود به Cosmos، در صفحه‌ی ورود «ادامه با تلگرام» را بزن.",
         "unknown": "نامشخص",
+        # From inside an account (section 36).
+        "ask_confirm": "برای تغییرِ راه‌های ورودِ حسابِ Cosmos، باید تأیید کنی که خودت هستی.\n\nخودت همین الان در Cosmos «تأیید با تلگرام» را زدی؟ اگر نه، تأیید نکن.",
+        "ask_link": "حسابِ Cosmosِ «{name}» می‌خواهد این حسابِ تلگرام را به‌عنوانِ راهِ ورود به خودش وصل کند.\n\nخودت همین الان این را خواستی؟ اگر کسی این لینک را برایت فرستاده، تأیید نکن؛ او با تلگرامِ تو واردِ حسابش می‌شود.",
+        "confirmed": "تأیید شد. حالا به Cosmos برگرد.",
+        "linked": "وصل شد. حالا به Cosmos برگرد.",
+        "not_yours": "این حسابِ تلگرام به آن حسابِ Cosmos وصل نیست، پس نمی‌تواند تأییدش کند.",
+        "taken": "این حسابِ تلگرام راهِ ورودِ یک حسابِ Cosmosِ دیگر است. اول از آن حساب برش دار.",
     },
     "en": {
         "ask": "The device “{device}” wants to sign in to Cosmos with your Telegram account.\n\nDid you just tap “Continue with Telegram” yourself? If someone sent you this link, don’t approve: they would be in your account.",
@@ -44,8 +51,33 @@ WORDS = {
         "expired": "This sign-in link has run out. In Cosmos, tap “Continue with Telegram” again.",
         "hello": "To sign in to Cosmos, tap “Continue with Telegram” on the sign-in page.",
         "unknown": "unknown",
+        "ask_confirm": "To change the ways into your Cosmos account, confirm that it’s you.\n\nDid you just tap “Confirm with Telegram” in Cosmos? If not, don’t approve.",
+        "ask_link": "The Cosmos account “{name}” wants to connect this Telegram account as a way in.\n\nDid you just ask for this? If someone sent you this link, don’t approve: they would sign in to their account with your Telegram.",
+        "confirmed": "Confirmed. Go back to Cosmos.",
+        "linked": "Connected. Go back to Cosmos.",
+        "not_yours": "This Telegram account isn’t connected to that Cosmos account, so it can’t confirm it.",
+        "taken": "This Telegram account is the way into another Cosmos account. Take it off that account first.",
     },
 }
+
+
+#: Telling the owner a way in changed (section 36, rule 3). The bot does
+#: not know the reader's language here, so it says it in both.
+DOOR_EVENTS = {
+    "google_linked": ("یک حسابِ گوگل به‌عنوانِ راهِ ورود به حسابِ Cosmosِ تو وصل شد", "A Google account was connected as a way into your Cosmos account"),
+    "google_removed": ("ورود با گوگل از حسابِ Cosmosِ تو برداشته شد", "Google was taken off the ways into your Cosmos account"),
+    "telegram_linked": ("یک حسابِ تلگرام به‌عنوانِ راهِ ورود به حسابِ Cosmosِ تو وصل شد", "A Telegram account was connected as a way into your Cosmos account"),
+    "telegram_removed": ("ورود با تلگرام از حسابِ Cosmosِ تو برداشته شد", "Telegram was taken off the ways into your Cosmos account"),
+}
+
+
+def door_changed(event: str, label: str | None = None) -> str:
+    fa, en = DOOR_EVENTS[event]
+    shown = f" ({label})" if label else ""
+    return (
+        f"{fa}{shown}.\nاگر کارِ خودت نبود، همین حالا وارد شو و از تنظیمات، دستگاه‌های دیگر را ببند.\n\n"
+        f"{en}{shown}.\nIf it wasn’t you, sign in now and close your other devices in Settings."
+    )
 
 
 def words(language_code: str | None) -> dict[str, str]:
