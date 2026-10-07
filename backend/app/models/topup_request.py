@@ -20,7 +20,7 @@ fat-fingered extra zero doesn't silently become a huge credit.
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, CheckConstraint, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -37,7 +37,7 @@ class TopUpRequest(Base):
     __tablename__ = "topup_requests"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
 
     # Never served publicly — only the requester themselves or an admin
     # with the "finance.topups" scope can fetch the bytes (see
@@ -59,7 +59,7 @@ class TopUpRequest(Base):
     final_toman_amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
     transaction_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
     rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    reviewed_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_by_user_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

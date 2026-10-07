@@ -10,7 +10,7 @@ private accounts, just applied to everyone).
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, UniqueConstraint
+from sqlalchemy import BigInteger, CheckConstraint, Enum, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -35,8 +35,8 @@ class Follow(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    follower_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    followee_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    follower_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
+    followee_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
 
     status: Mapped[FollowStatus] = mapped_column(
         Enum(FollowStatus, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),

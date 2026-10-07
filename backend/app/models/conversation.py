@@ -24,6 +24,7 @@ row. Neither needs a new table or a new kind of thread.
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     JSON,
     CheckConstraint,
     ForeignKey,
@@ -115,7 +116,7 @@ class Conversation(Base):
     # daily cap on approaching strangers, which must count the threads a
     # person STARTED, never the ones other people started with them.
     opened_by_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True, index=True
+        BigInteger, ForeignKey("users.id"), nullable=True, index=True
     )
 
     # The last message's time, copied here so the chat list can be ordered
@@ -190,7 +191,7 @@ class ConversationParticipant(Base):
     conversation_id: Mapped[int] = mapped_column(
         ForeignKey("conversations.id"), index=True
     )
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
 
     joined_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     # Set when someone leaves a group or an event ends for them. A direct

@@ -16,7 +16,7 @@ invitation to come back through another account.
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -29,9 +29,9 @@ class Block(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     #: The person who does not want to be contacted.
-    blocker_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    blocker_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     #: The person they do not want to hear from.
-    blocked_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    blocked_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 

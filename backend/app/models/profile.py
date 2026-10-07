@@ -10,7 +10,7 @@ be a regular one-to-many relationship (one user could have many profiles).
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Index, Integer, String, text
+from sqlalchemy import BigInteger, JSON, Boolean, CheckConstraint, ForeignKey, Index, Integer, String, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -71,7 +71,7 @@ class Profile(Base):
     # ForeignKey("users.id") points at the *table* name ("users"), not the
     # Python class — that's just how SQLAlchemy's FK syntax works.
     # unique=True is what makes this one-to-one instead of one-to-many.
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), unique=True)
 
     # No avatar_url column anymore — see app/models/profile_photo.py.
     # A user can have any number of photos now; wherever a single

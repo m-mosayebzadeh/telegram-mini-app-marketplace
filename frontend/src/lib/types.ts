@@ -14,6 +14,10 @@ export interface Me {
   status: 'active' | 'blocked' | 'deleted'
   /** The language the app last told the server it is shown in. */
   language?: string | null
+  /** Notifications show what a message says, not only who wrote it. */
+  push_preview?: boolean
+  /** This device's own sign-in session. */
+  session_id?: number | null
   joined_at: string
   // The bottom nav's own small avatar thumbnail (see App.tsx) reads this
   // directly, refreshed the same way every other /me value is — see

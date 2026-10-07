@@ -9,17 +9,23 @@ import { closeSession } from '../../lib/sessionsApi'
  *
  * Today one thing: "a new sign-in to your account — if it wasn't you, close
  * this session", with the button that closes it right there, so somebody
- * worried does not have to go looking through Settings. A session already
- * closed (by this button earlier, or from the devices list) says so instead
- * of failing. Closing this very device's session signs it out, as it would
- * from the devices list.
+ * worried does not have to go looking through Settings.
+ *
+ * No button where it would do nothing or harm (section 40): a session
+ * already closed — by this button, from the devices list, or by ninety
+ * days unused — says "no longer open" from the start, however old the
+ * message; a note about this very device says so, rather than offering to
+ * sign it out. Closing only ever works on the person's own sessions; the
+ * server checks that.
  */
-export function TeamAction({ action }: { action: string }) {
+export function TeamAction({ action, open, hereSession }: { action: string; open?: boolean | null; hereSession?: number | null }) {
   const { t } = useTranslation()
-  const [state, setState] = useState<'idle' | 'busy' | 'closed' | 'failed'>('idle')
+  const [state, setState] = useState<'idle' | 'busy' | 'closed' | 'gone' | 'failed'>('idle')
   const [kind, id] = action.split(':')
   const sessionId = Number(id)
   if (kind !== 'close_session' || !Number.isInteger(sessionId)) return null
+  if (sessionId === hereSession) return <p className="cos-team-done">{t('team.thisDevice')}</p>
+  if (open === false && state === 'idle') return <p className="cos-team-done">{t('team.notOpen')}</p>
 
   async function close() {
     setState('busy')
@@ -27,12 +33,13 @@ export function TeamAction({ action }: { action: string }) {
       await closeSession(sessionId)
       setState('closed')
     } catch (err) {
-      // Not there any more: closed already, which is what was wanted.
-      setState(err instanceof ApiError && err.status === 404 ? 'closed' : 'failed')
+      // Not there any more: closed meanwhile, which is what was wanted.
+      setState(err instanceof ApiError && err.status === 404 ? 'gone' : 'failed')
     }
   }
 
   if (state === 'closed') return <p className="cos-team-done" role="status">{t('team.closed')}</p>
+  if (state === 'gone') return <p className="cos-team-done" role="status">{t('team.notOpen')}</p>
   return (
     <button type="button" className="cos-team-action" disabled={state === 'busy'} onClick={() => void close()} data-control>
       {state === 'failed' ? t('team.tryAgain') : t('team.closeSession')}

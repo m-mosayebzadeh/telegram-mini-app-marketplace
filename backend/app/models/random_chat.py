@@ -16,7 +16,7 @@ what was asked for, the app says so rather than pretending.
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, CheckConstraint, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, JSON, Boolean, CheckConstraint, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -43,7 +43,7 @@ class RandomChatTicket(Base):
     __tablename__ = "random_chat_tickets"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), unique=True)
 
     #: Weighed against the other person's gender, never used to exclude.
     wants_gender: Mapped[str] = mapped_column(String(16), default=WANT_ANYONE)
@@ -99,8 +99,8 @@ class RandomChatSession(Base):
     )
     #: Written smallest id first, the same convention the conversation's
     #: own key uses, so "did these two already meet" is one comparison.
-    user_a_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    user_b_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_a_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
+    user_b_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
 
     #: Whether the matcher created the thread or found one these two
     #: already had. It decides what happens when the session ends without
@@ -116,7 +116,7 @@ class RandomChatSession(Base):
     #: Who walked away. Recorded but never shown and never punished yet —
     #: we do not know what a healthy number looks like.
     ended_by_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+        BigInteger, ForeignKey("users.id"), nullable=True
     )
 
     #: Each side saying "I would like to keep this person". Only when BOTH
@@ -172,8 +172,8 @@ class EchoProposal(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     #: Smallest id first, the convention every pair in this app uses.
-    user_a_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    user_b_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_a_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
+    user_b_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     shared_tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     #: Groups both picked in without the same interest there: "both into
     #: science" on the card when there is no interest in common.
@@ -193,7 +193,7 @@ class EchoProposal(Base):
     #: Who said no. Kept so the same two are not put in front of each other
     #: again that day; never shown to anybody.
     declined_by_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+        BigInteger, ForeignKey("users.id"), nullable=True
     )
     session_id: Mapped[int | None] = mapped_column(
         ForeignKey("random_chat_sessions.id"), nullable=True

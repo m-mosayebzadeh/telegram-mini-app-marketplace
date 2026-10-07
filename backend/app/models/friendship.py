@@ -14,7 +14,7 @@ shown back to anybody.
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, UniqueConstraint
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -42,10 +42,10 @@ class Friendship(Base):
     __tablename__ = "friendships"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_low_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    user_high_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_low_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
+    user_high_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     #: Who asked. While pending, the other one is the one who answers.
-    requested_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    requested_by_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     status: Mapped[str] = mapped_column(String(16), default=FRIENDSHIP_PENDING)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     accepted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
@@ -67,7 +67,7 @@ class FriendsListViewer(Base):
     __tablename__ = "friends_list_viewers"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    viewer_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    owner_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
+    viewer_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
 
     __table_args__ = (UniqueConstraint("owner_id", "viewer_id", name="uq_friends_viewer"),)

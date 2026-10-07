@@ -15,7 +15,7 @@ dropped the next time anything would have been sent to them.
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import BigInteger, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -26,7 +26,7 @@ class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     session_id: Mapped[int] = mapped_column(ForeignKey("auth_sessions.id"), index=True)
     #: The browser's address at its push service; one per browser.
     endpoint: Mapped[str] = mapped_column(String(1000), unique=True)

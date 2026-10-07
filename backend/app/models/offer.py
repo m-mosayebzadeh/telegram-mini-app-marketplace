@@ -7,7 +7,7 @@ creating one never requires a profile to exist first.
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, CheckConstraint, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.config import SESSION_BLOCK_COUNT
@@ -31,7 +31,7 @@ class Offer(Base):
     __tablename__ = "offers"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    provider_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    provider_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
 
     service_type: Mapped[OfferServiceType] = mapped_column(
         Enum(OfferServiceType, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),

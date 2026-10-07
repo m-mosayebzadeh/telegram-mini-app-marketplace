@@ -88,6 +88,10 @@ export async function turnPushOn(): Promise<PushState> {
 }
 
 /** Off on this browser: unsubscribed here and forgotten by the server. */
+/** Whether notifications show the message itself, for this person on every device. */
+export const setPushPreview = (show: boolean) =>
+  apiFetch<void>('/push/preview', { method: 'PUT', body: JSON.stringify({ show }) })
+
 export async function turnPushOff(): Promise<PushState> {
   if (!browserCan()) return 'unsupported'
   const subscription = await (await registration()).pushManager.getSubscription()

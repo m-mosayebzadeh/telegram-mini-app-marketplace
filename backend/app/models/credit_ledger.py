@@ -17,7 +17,7 @@ to within one Toman (see TECHNICAL_REQUIREMENTS.md, 14).
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import BigInteger, CheckConstraint, Enum, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -60,7 +60,7 @@ class CreditLedgerEntry(Base):
     # deliberately isn't attached to a user — enforced by the CHECK
     # constraint below, the same "flag <-> matching column" pattern used
     # throughout this codebase (see Content, Request).
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    user_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=True)
 
     # Positive = money added to the wallet, negative = money removed.
     # Toman, per the module docstring above.

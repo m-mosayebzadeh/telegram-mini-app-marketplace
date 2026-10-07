@@ -8,9 +8,10 @@ everything else in the app (offers, requests, chat sessions, ...).
 """
 
 import enum
+import secrets
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Enum, String
+from sqlalchemy import Boolean, BigInteger, Enum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -33,12 +34,33 @@ class UserStatus(str, enum.Enum):
     TEAM = "team"
 
 
+#: The range a person's id is drawn from: sixteen digits, and below 2^53 so
+#: the app's JavaScript holds it exactly.
+ID_LOW = 10**15
+ID_HIGH = 9 * 10**15
+
+
+def new_user_id() -> int:
+    """A person's id, drawn at random (section 40) rather than counted
+    1, 2, 3: counting would let anybody walk from one person to the next by
+    adding one, and tell from the newest id how many people the app has.
+    Among eight thousand million million possibilities, a guess finds
+    somebody about once in a thousand million tries even with ten million
+    people. Two people drawing the same id is as unlikely; the primary key
+    refuses it if it ever happens.
+
+    It hides nothing by itself being unknown: every route that takes a
+    person's id still checks what the asker may see.
+    """
+    return ID_LOW + secrets.randbelow(ID_HIGH - ID_LOW)
+
+
 class User(Base):
     __tablename__ = "users"
 
-    # Our own internal primary key. This is what other tables (offers,
-    # requests, ...) will reference later — never the Telegram id directly.
-    id: Mapped[int] = mapped_column(primary_key=True)
+    # Our own internal primary key, drawn at random (new_user_id). This is
+    # what other tables reference — never the Telegram id directly.
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False, default=new_user_id)
 
     # Telegram's user id. This is the real identity anchor: it never
     # changes, and every future "who is this request from?" lookup goes
@@ -122,6 +144,10 @@ class User(Base):
     #: "en"), so what the server writes to them — Cosmos Team's messages,
     #: later notifications — is in their language. Set by the app.
     language: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    #: Whether a notification shows what the message says, or only who
+    #: wrote (section 38). Off until the person turns it on: on a lock
+    #: screen, a message from somebody new is nobody else's business.
+    push_preview: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     #: When the account was deleted; see UserStatus.DELETED.
     deleted_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

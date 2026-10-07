@@ -17,7 +17,7 @@ this model only tracks the conversation's own open/closed state.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Boolean, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -86,7 +86,7 @@ class ChatSession(Base):
     # before the boundary, and being ten seconds late costs a whole block.
     # Changing your mind simply clears both fields again.
     close_at_block_end_by_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+        BigInteger, ForeignKey("users.id"), nullable=True
     )
     # The boundary itself, fixed when the request is made rather than worked
     # out later: recomputing it would let the target slide forward into every
@@ -142,7 +142,7 @@ class ChatSession(Base):
     opened_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     closed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     closed_by_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+        BigInteger, ForeignKey("users.id"), nullable=True
     )
 
     # Per-viewer "archived" state — moves a session out of the Chats

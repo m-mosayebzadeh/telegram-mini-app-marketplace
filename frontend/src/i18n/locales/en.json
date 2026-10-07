@@ -1117,6 +1117,11 @@
       "blocked": "Notifications are blocked in the browser. Allow them for this site in the browser’s settings.",
       "install_first": "On iPhone, first add the app to your home screen, then turn notifications on from there.",
       "unsupported": "This browser doesn’t do notifications. Open the app in Chrome, Firefox or Safari."
+    },
+    "preview": {
+      "title": "Show message text",
+      "on": "Notifications show the message itself",
+      "off": "Notifications only say who wrote; the text stays off the lock screen"
     }
   },
   "team": {
@@ -1124,7 +1129,9 @@
     "placeholder": "A message to the Cosmos team…",
     "closeSession": "Close this session",
     "closed": "This session was closed.",
-    "tryAgain": "Didn’t close. Tap again"
+    "tryAgain": "Didn’t close. Tap again",
+    "thisDevice": "This is this device.",
+    "notOpen": "This session is no longer open."
   },
   "talkList": {
     "empty": "You haven't talked to anyone yet. Tap someone in the world and say hello.",

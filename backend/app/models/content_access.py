@@ -16,7 +16,7 @@ item:
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -27,7 +27,7 @@ class ContentPurchase(Base):
     __tablename__ = "content_purchases"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     content_id: Mapped[int] = mapped_column(ForeignKey("contents.id"))
     purchased_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
@@ -40,6 +40,6 @@ class ContentOpenLog(Base):
     __tablename__ = "content_open_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     content_id: Mapped[int] = mapped_column(ForeignKey("contents.id"))
     opened_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

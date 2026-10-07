@@ -18,7 +18,7 @@ work. New voice messages always carry audio.
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Enum, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Enum, ForeignKey, Index, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -56,7 +56,7 @@ class ChatMessage(Base):
     chat_session_id: Mapped[int | None] = mapped_column(
         ForeignKey("chat_sessions.id"), index=True, nullable=True
     )
-    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    sender_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
 
     type: Mapped[ChatMessageType] = mapped_column(
         Enum(ChatMessageType, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),

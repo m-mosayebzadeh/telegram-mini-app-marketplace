@@ -18,13 +18,14 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Request as HttpRequest  # "Request" is the session-request model here
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import current_session_id, get_current_user
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.migrate import run_migrations
@@ -177,7 +178,7 @@ def read_pricing_config(
 
 @app.get("/me")
 def read_current_user(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+    request: HttpRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> dict:
     """
     Returns the authenticated user's own record.
@@ -237,6 +238,11 @@ def read_current_user(
         "status": current_user.status.value,
         # The language the app last said it is shown in (PUT /me/language).
         "language": current_user.language,
+        # Notifications show the message itself, or only who wrote (section 38).
+        "push_preview": current_user.push_preview,
+        # This device's own session, so a "close this session" message about
+        # this very device says so instead of offering to sign it out.
+        "session_id": current_session_id(request),
         "joined_at": current_user.joined_at.isoformat(),
         # The bottom nav's own small avatar thumbnail (see App.tsx) reads
         # this directly instead of running its own separate fetch — that

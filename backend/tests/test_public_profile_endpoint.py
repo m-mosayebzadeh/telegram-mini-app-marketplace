@@ -231,7 +231,11 @@ def test_buyer_summary_for_a_brand_new_user(client):
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
 
-    response = client.get(f"/profiles/{bob['id']}/buyer-summary", headers=_auth_header(1, "Alice"))
+    # What somebody spent is not for a stranger with their id (section 40)...
+    stranger = client.get(f"/profiles/{bob['id']}/buyer-summary", headers=_auth_header(1, "Alice"))
+    assert stranger.status_code == 404
+    # ...but it is theirs to see.
+    response = client.get(f"/profiles/{bob['id']}/buyer-summary", headers=_auth_header(2, "Bob"))
 
     assert response.status_code == 200
     body = response.json()

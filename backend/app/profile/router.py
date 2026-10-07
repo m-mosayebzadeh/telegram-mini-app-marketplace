@@ -23,8 +23,8 @@ from app.models.profile import GENDERS, MAX_INTERESTS, Profile
 from app.models.profile_photo import ProfilePhoto
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
-from app.models.user import User
-from app.friends.router import friend_status
+from app.models.user import User, UserStatus
+from app.friends.router import _blocked_between, friend_status
 from app.profile.note import MAX_NOTE, fresh_note, fresh_note_at
 from app.profile.photos import get_current_avatar_url
 from app.profile.schemas import (
@@ -270,6 +270,23 @@ def _query_photos(db: Session, user_id: int) -> list[ProfilePhoto]:
     )
 
 
+def _person_or_404(db: Session, user_id: int, viewer_id: int) -> User:
+    """The person these public pages are about, as `viewer_id` may see them.
+
+    Cosmos Team is not a person (section 37) and has no profile. And
+    between two people where either blocked the other, the pages do not
+    exist either way (section 40): a block is silent everywhere else, and a
+    profile that stayed open would let the blocked person keep watching —
+    photos, notes, where they are — which is what blocking is for.
+    """
+    target = db.get(User, user_id)
+    if target is None or target.status == UserStatus.TEAM:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    if user_id != viewer_id and _blocked_between(db, user_id, viewer_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return target
+
+
 @public_router.get("/{user_id}/photos", response_model=list[ProfilePhotoOut])
 def list_photos(
     user_id: int,
@@ -282,8 +299,7 @@ def list_photos(
     audience restriction, same as the rest of this file — a profile
     photo has no privacy rule the way Content does.
     """
-    if db.get(User, user_id) is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+    _person_or_404(db, user_id, current_user.id)
     return _query_photos(db, user_id)
 
 
@@ -298,9 +314,7 @@ def read_public_profile(
     User (display_name/username only, no avatar/bio) is still a valid
     thing to look at, e.g. right after their first login.
     """
-    target = db.get(User, user_id)
-    if target is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    target = _person_or_404(db, user_id, current_user.id)
 
     profile = db.query(Profile).filter(Profile.user_id == user_id).first()
 
@@ -343,9 +357,7 @@ def read_provider_summary(
     and TECHNICAL_REQUIREMENTS.md section 2 for which fields are real
     today vs. still waiting on the (unbuilt) Rating entity.
     """
-    target = db.get(User, user_id)
-    if target is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    target = _person_or_404(db, user_id, current_user.id)
 
     completed_services_count = (
         db.query(Transaction)
@@ -395,8 +407,14 @@ def read_buyer_summary(
     fields are real today vs. still blocked (buyer-cancel, disputes,
     ratings — none of those exist yet).
     """
-    target = db.get(User, user_id)
-    if target is None:
+    target = _person_or_404(db, user_id, current_user.id)
+    # What somebody spent is theirs (section 40): shown to themselves, and
+    # to an offerer deciding on a request they actually sent — never to
+    # anybody who merely has their id.
+    asked_me = db.query(Request.id).join(Offer, Request.offer_id == Offer.id).filter(
+        Request.buyer_id == user_id, Offer.provider_id == current_user.id
+    ).first()
+    if user_id != current_user.id and asked_me is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
 
     completed_transactions_count = (

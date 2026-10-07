@@ -16,6 +16,9 @@ modules inside it, so this always runs first.
 import os
 import uuid
 
+# Never the real settings: the development machines have an Infisical
+# identity (app/core/infisical.py), and the tests must not run on it.
+os.environ["COSMOS_SETTINGS"] = "local"
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-bot-token-for-pytest-only")
 os.environ.setdefault("ENABLE_DEV_TOOLS", "false")
 

@@ -7,7 +7,7 @@ separate column here — it's always reachable via request.offer.provider_id.
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, String
+from sqlalchemy import BigInteger, CheckConstraint, Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -51,7 +51,7 @@ class Request(Base):
     __tablename__ = "requests"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    buyer_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    buyer_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"))
 
     status: Mapped[RequestStatus] = mapped_column(

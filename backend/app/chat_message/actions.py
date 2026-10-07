@@ -186,6 +186,7 @@ def messages_out(db: Session, messages: list[ChatMessage]) -> list[ChatMessageOu
         else {}
     )
     reactions = reactions_of(db, [m.id for m in messages])
+    still_open = _open_sessions(db, messages)
 
     out: list[ChatMessageOut] = []
     for message in messages:
@@ -199,5 +200,33 @@ def messages_out(db: Session, messages: list[ChatMessage]) -> list[ChatMessageOu
                 id=target.id, sender_id=target.sender_id, type=target.type.value, text=target.text
             )
         shaped.reactions = reactions.get(message.id, [])
+        session_id = _closable_session(message)
+        if session_id is not None:
+            shaped.action_open = session_id in still_open
         out.append(shaped)
     return out
+
+
+def _closable_session(message: ChatMessage) -> int | None:
+    """The session a Cosmos Team "close this session" message is about."""
+    kind, _, value = (message.action or "").partition(":")
+    return int(value) if kind == "close_session" and value.isdigit() else None
+
+
+def _open_sessions(db: Session, messages: list[ChatMessage]) -> set[int]:
+    """Which of the sessions these messages offer to close are still open:
+    one query for the whole list. Only the reader's own sessions are ever
+    named in their messages, and closing still checks that (auth/router.py)."""
+    from app.auth import sessions
+    from app.core.time import utcnow
+    from app.models.auth_session import AuthSession
+
+    ids = {i for i in (_closable_session(m) for m in messages) if i is not None}
+    if not ids:
+        return set()
+    oldest = utcnow() - sessions.lifetime()
+    return set(
+        db.scalars(
+            select(AuthSession.id).where(AuthSession.id.in_(ids), AuthSession.revoked_at.is_(None), AuthSession.last_used_at > oldest)
+        )
+    )

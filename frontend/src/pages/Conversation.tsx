@@ -732,7 +732,7 @@ export default function Conversation() {
 
         {message.type === 'text' && message.text && <EmojiText text={message.text} />}
 
-        {message.action && message.sender_id !== me?.id && <TeamAction action={message.action} />}
+        {message.action && message.sender_id !== me?.id && <TeamAction action={message.action} open={message.action_open} hereSession={me?.session_id} />}
 
         {message.type === 'photo' && thread && (
           <MessagePhoto

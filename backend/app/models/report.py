@@ -17,7 +17,7 @@ decides.
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, String
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -65,10 +65,10 @@ class Report(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    reporter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reporter_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     #: The REAL account, never the anonymous side of a random chat. A
     #: report that pointed at a session would vanish with the session.
-    reported_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    reported_user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
 
     reason: Mapped[str] = mapped_column(String(24))
 
@@ -90,7 +90,7 @@ class Report(Base):
     #: deleting handled reports would erase it.
     reviewed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     reviewed_by_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+        BigInteger, ForeignKey("users.id"), nullable=True
     )
 
     __table_args__ = (
@@ -113,7 +113,7 @@ class Suspension(Base):
     __tablename__ = "suspensions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     scope: Mapped[str] = mapped_column(String(24))
 
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
@@ -122,7 +122,7 @@ class Suspension(Base):
     #: ever wanted it should be a different, deliberate thing.
     expires_at: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
 
-    created_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_by_user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     #: For staff, not for the user. Short and internal.
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
 

@@ -869,9 +869,12 @@ def test_a_no_finds_the_next_person_at_once(client, db_session):
     _person(client, db_session, 9110, gender=GENDER_FEMALE, birth_year=1990, name="Mina")
     client.post("/random-chat/search", json={}, headers=_auth(9110))
     client.post(f"/random-chat/proposals/{card['id']}/decline", headers=_auth(9109))
-    status = client.get("/random-chat/status", headers=_auth(9108)).json()
-    assert status["proposal"] is not None
-    assert status["proposal"]["id"] != card["id"]
+    # Mina is found at once by one of the two now searching again — which
+    # one depends on who comes first among equals, and people's ids (the
+    # tie-break) are drawn at random, so either may.
+    mina = client.get("/random-chat/status", headers=_auth(9110)).json()
+    assert mina["proposal"] is not None
+    assert mina["proposal"]["id"] != card["id"]
 
 
 def test_when_time_runs_out_whoever_did_not_answer_stops_searching(client, db_session):

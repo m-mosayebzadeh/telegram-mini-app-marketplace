@@ -9,7 +9,7 @@ database can enforce "no duplicate membership" itself.
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -20,7 +20,7 @@ class AudienceGroup(Base):
     __tablename__ = "audience_groups"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    owner_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     name: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
@@ -39,7 +39,7 @@ class AudienceGroupMember(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     group_id: Mapped[int] = mapped_column(ForeignKey("audience_groups.id"))
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
     added_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
     group: Mapped["AudienceGroup"] = relationship(back_populates="members")

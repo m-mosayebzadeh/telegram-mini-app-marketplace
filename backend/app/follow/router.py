@@ -193,6 +193,17 @@ def reject_follow(
     return follow
 
 
+def _visible_or_404(db: Session, user_id: int, viewer_id: int) -> None:
+    """Somebody's lists exist for `viewer_id` the way their profile does
+    (profile/router.py): not for Cosmos Team, and not across a block."""
+    from app.friends.router import _blocked_between
+    from app.models.user import UserStatus
+
+    target = db.get(User, user_id)
+    if target is None or target.status == UserStatus.TEAM or (user_id != viewer_id and _blocked_between(db, user_id, viewer_id)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+
+
 @router.get("/{user_id}/followers", response_model=list[FollowListItemOut])
 def list_followers(
     user_id: int,
@@ -201,8 +212,7 @@ def list_followers(
 ) -> list[FollowListItemOut]:
     """Everyone who ACCEPTED-follows `user_id` — a pending request isn't
     a follower yet, same rule the counts on PublicProfileOut use."""
-    if db.get(User, user_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    _visible_or_404(db, user_id, current_user.id)
 
     followers = (
         db.query(User)
@@ -220,8 +230,7 @@ def list_following(
     db: Session = Depends(get_db),
 ) -> list[FollowListItemOut]:
     """Everyone `user_id` ACCEPTED-follows."""
-    if db.get(User, user_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    _visible_or_404(db, user_id, current_user.id)
 
     following = (
         db.query(User)

@@ -41,7 +41,7 @@ class AuthIdentity(Base):
     __tablename__ = "auth_identities"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     provider: Mapped[str] = mapped_column(String(16))
     #: Who they are at that door: Google's account id, a phone number in
     #: international form, a Telegram user id.
@@ -60,7 +60,7 @@ class AuthSession(Base):
     __tablename__ = "auth_sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
     #: SHA-256 of the token in the cookie. The token itself is never stored.
     token_hash: Mapped[str] = mapped_column(String(64), unique=True)
     #: Which door this session came through, shown in the list of sessions.
@@ -112,7 +112,7 @@ class DeviceSignInRequest(Base):
     #: When a signed-in phone opened the request (scanned or typed), so the
     #: asking device can say "now confirm it on your phone".
     seen_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
-    approved_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    approved_by_user_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     refused_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
@@ -161,7 +161,7 @@ class BotSignInRequest(Base):
     #: PURPOSE_SIGN_IN, or for a signed-in person PURPOSE_CONFIRM / PURPOSE_LINK.
     purpose: Mapped[str] = mapped_column(String(8), default=PURPOSE_SIGN_IN)
     #: Who asked, for confirming or connecting: only they may collect it.
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    user_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=True)
     #: Why it was refused when the bot refused it on its own, for the page
     #: to say: "not_yours" (not this account's Telegram), "taken" (that
     #: Telegram belongs to another account).

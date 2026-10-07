@@ -54,6 +54,7 @@ WORDS = {
         "video": "یک ویدیو فرستاد",
         "friend_asked": "می‌خواهد با تو دوست شود",
         "friend_accepted": "درخواستِ دوستی‌ات را پذیرفت",
+        "message": "یک پیام فرستاد",
     },
     "en": {
         "photo": "sent a photo",
@@ -61,6 +62,7 @@ WORDS = {
         "video": "sent a video",
         "friend_asked": "wants to be your friend",
         "friend_accepted": "accepted your friend request",
+        "message": "sent a message",
     },
 }
 
@@ -152,7 +154,11 @@ def message_sent(db: Session, conversation, message, sender: User) -> None:
     others = [p.user_id for p in conversation.participants if p.user_id != sender.id and p.user_id not in muted]
 
     def build(reader: User) -> dict:
-        if message.type == ChatMessageType.TEXT:
+        if not reader.push_preview:
+            # Only who wrote, unless the reader chose to see the words too:
+            # a lock screen is seen by whoever is next to it.
+            body = words_for(reader)["message"]
+        elif message.type == ChatMessageType.TEXT:
             text = (message.text or "").strip()
             body = text if len(text) <= PREVIEW else text[: PREVIEW - 1] + "…"
         else:

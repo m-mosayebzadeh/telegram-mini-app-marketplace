@@ -11,7 +11,7 @@ of is not one.
 
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import BigInteger, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -50,7 +50,7 @@ class HiddenMessage(Base):
 
     __tablename__ = "hidden_messages"
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), primary_key=True)
     message_id: Mapped[int] = mapped_column(ForeignKey("chat_messages.id"), primary_key=True)
     hidden_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
@@ -66,7 +66,7 @@ class MessageReaction(Base):
     __tablename__ = "message_reactions"
 
     message_id: Mapped[int] = mapped_column(ForeignKey("chat_messages.id"), primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), primary_key=True, index=True)
     emoji: Mapped[str] = mapped_column(String(MAX_REACTION_LENGTH))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 

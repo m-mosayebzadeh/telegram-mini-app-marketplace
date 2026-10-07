@@ -43,10 +43,17 @@ def test_a_new_sign_in_to_an_existing_account_is_told_with_a_button_to_close_it(
     assert "ورودِ تازه" in note["text"] and "گوگل" in note["text"]
     newest = db_session.query(AuthSession).filter_by(user_id=me.id).order_by(AuthSession.id.desc()).first()
     assert note["action"] == f"close_session:{newest.id}"
+    assert note["action_open"] is True
+    # Each device knows its own session: the new one sees the note is about itself.
+    assert second.get("/me").json()["session_id"] == newest.id
+    assert first.get("/me").json()["session_id"] != newest.id
 
     # The button: closing that session signs the other device out.
     assert first.delete(f"/auth/sessions/{newest.id}").status_code == 204
     assert second.get("/me").status_code == 401
+    # And the note says so from then on, instead of offering a button that does nothing.
+    _, messages = _team_thread(first)
+    assert messages[-1]["action_open"] is False
 
 
 def test_the_team_never_appears_among_people(client, db_session):
@@ -96,3 +103,16 @@ def test_the_app_says_which_language_it_is_shown_in(client, db_session):
     assert client.put("/me/language", json={"language": "fa"}).status_code == 204
     assert client.get("/me").json()["language"] == "fa"
     assert client.put("/me/language", json={"language": "xx"}).status_code == 400
+
+
+def test_the_team_has_no_public_profile(client, db_session):
+    """Cosmos Team is not a person: its public pages do not exist."""
+    from app.core import team as team_module
+    from tests.helpers import sign_init_data
+
+    headers = {"X-Telegram-Init-Data": sign_init_data({"id": 55501, "first_name": "Lea"})}
+    client.get("/me", headers=headers)
+    the_team = team_module.team_user(db_session)
+    db_session.commit()
+    for path in ("", "/photos", "/provider-summary", "/buyer-summary"):
+        assert client.get(f"/profiles/{the_team.id}{path}", headers=headers).status_code == 404

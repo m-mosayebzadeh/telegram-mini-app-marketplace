@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   savePrivacy: vi.fn(),
   deleteAccount: vi.fn(),
   markDeleted: vi.fn(),
+  pushState: vi.fn(),
+  setPushPreview: vi.fn(),
+  refreshMe: vi.fn(),
 }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en', changeLanguage: vi.fn() } }),
@@ -19,7 +22,13 @@ vi.mock('../lib/accountApi', () => ({
   deleteAccount: mocks.deleteAccount,
 }))
 vi.mock('../lib/MeContext', () => ({
-  useMe: () => ({ me: { pending_follow_requests_count: 0 }, markDeleted: mocks.markDeleted }),
+  useMe: () => ({ me: { pending_follow_requests_count: 0, push_preview: false }, markDeleted: mocks.markDeleted, refreshMe: mocks.refreshMe }),
+}))
+vi.mock('../lib/push', () => ({
+  pushState: mocks.pushState,
+  setPushPreview: mocks.setPushPreview,
+  turnPushOn: vi.fn(),
+  turnPushOff: vi.fn(),
 }))
 vi.mock('../lib/auth', () => ({ signOut: vi.fn() }))
 vi.mock('../components/ui', async (original) => ({
@@ -37,6 +46,8 @@ describe('settings', () => {
     mocks.savePrivacy.mockReset().mockImplementation(async (p) => p)
     mocks.deleteAccount.mockReset().mockResolvedValue(undefined)
     mocks.markDeleted.mockReset()
+    mocks.pushState.mockReset().mockResolvedValue('unsupported')
+    mocks.setPushPreview.mockReset().mockResolvedValue(undefined)
     host = document.createElement('div')
     document.body.appendChild(host)
     root = createRoot(host)
@@ -67,6 +78,22 @@ describe('settings', () => {
     expect(mocks.savePrivacy).toHaveBeenCalledWith({ chat_door: 'friends', hide_online: false })
     await act(async () => button('settings.hideOnline').click())
     expect(mocks.savePrivacy).toHaveBeenLastCalledWith({ chat_door: 'friends', hide_online: true })
+  })
+
+  it('offers to show message text only once notifications are on, off at first', async () => {
+    await open()
+    expect(host.textContent).not.toContain('push.preview.title')
+    act(() => root.unmount())
+    root = createRoot(host)
+    mocks.pushState.mockResolvedValue('on')
+    await open()
+    await act(async () => {})
+    const row = button('push.preview.title')
+    expect(row.getAttribute('aria-checked')).toBe('false')
+    expect(row.textContent).toContain('push.preview.off')
+    await act(async () => row.click())
+    expect(mocks.setPushPreview).toHaveBeenCalledWith(true)
+    expect(button('push.preview.title').getAttribute('aria-checked')).toBe('true')
   })
 
   it('turns light graphics on for this phone', async () => {

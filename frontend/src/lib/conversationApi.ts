@@ -93,6 +93,8 @@ export interface ConversationMessage {
   reactions?: Reaction[]
   /** What a Cosmos Team message offers to do: "close_session:<id>". */
   action?: string | null
+  /** For "close_session": whether that session is still open. */
+  action_open?: boolean | null
 }
 
 /** Every thread you are in, most recent first. */

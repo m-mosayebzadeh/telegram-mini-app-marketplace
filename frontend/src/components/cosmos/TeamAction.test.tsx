@@ -31,11 +31,23 @@ describe('the button under a Cosmos Team message', () => {
     expect(host.textContent).toContain('team.closed')
   })
 
-  it('a session already closed is simply closed, not an error', async () => {
+  it('a session closed meanwhile says it is no longer open, not an error', async () => {
     mocks.closeSession.mockRejectedValue(new ApiError(404, null))
     await act(async () => root.render(<TeamAction action="close_session:42" />))
     await act(async () => host.querySelector('button')!.click())
-    expect(host.textContent).toContain('team.closed')
+    expect(host.textContent).toContain('team.notOpen')
+  })
+
+  it('an old note about a closed session offers no button', async () => {
+    await act(async () => root.render(<TeamAction action="close_session:42" open={false} />))
+    expect(host.querySelector('button')).toBeNull()
+    expect(host.textContent).toContain('team.notOpen')
+  })
+
+  it('a note about this very device does not offer to sign it out', async () => {
+    await act(async () => root.render(<TeamAction action="close_session:42" open hereSession={42} />))
+    expect(host.querySelector('button')).toBeNull()
+    expect(host.textContent).toContain('team.thisDevice')
   })
 
   it('offers to try again when it did not go through', async () => {

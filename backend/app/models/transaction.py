@@ -23,7 +23,7 @@ Photon was worth at the time would be unauditable.
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Enum, ForeignKey, Integer
+from sqlalchemy import BigInteger, CheckConstraint, Enum, ForeignKey, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -67,8 +67,8 @@ class Transaction(Base):
         Enum(TransactionKind, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
     )
 
-    buyer_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    provider_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    buyer_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
+    provider_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
 
     # Exactly one of these two is set, matching `kind` — same
     # "CHECK enforces which column is filled in" pattern as Content's

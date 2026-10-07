@@ -30,6 +30,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     Enum,
@@ -65,7 +66,7 @@ class Content(Base):
     __tablename__ = "contents"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"))
 
     content_type: Mapped[ContentType] = mapped_column(
         Enum(ContentType, values_callable=lambda enum_cls: [e.value for e in enum_cls], native_enum=False),
@@ -101,7 +102,7 @@ class Content(Base):
     # Exactly one of these two is set, and only when audience_type
     # actually calls for it — enforced below, not just by convention.
     audience_user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id"), nullable=True
+        BigInteger, ForeignKey("users.id"), nullable=True
     )
     audience_group_id: Mapped[int | None] = mapped_column(
         ForeignKey("audience_groups.id"), nullable=True

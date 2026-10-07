@@ -8,7 +8,7 @@ import { deleteAccount, fetchPrivacy, savePrivacy, type ChatDoor, type FriendsSe
 import { ChosenViewersSheet } from '../components/profile/ChosenViewersSheet'
 import { readLightGraphics, setLightGraphics } from '../lib/lightGraphics'
 import { signOut } from '../lib/auth'
-import { pushState, turnPushOff, turnPushOn, type PushState } from '../lib/push'
+import { pushState, setPushPreview, turnPushOff, turnPushOn, type PushState } from '../lib/push'
 import { IconChevron, IconUsers } from '../components/icons'
 
 /**
@@ -344,6 +344,7 @@ function NotificationsRow() {
   const on = state === 'on'
   const can = state === 'on' || state === 'off'
   return (
+    <>
     <button
       type="button"
       className="ui-row is-wrap"
@@ -365,6 +366,47 @@ function NotificationsRow() {
           <span className="ui-switch" aria-hidden="true" aria-checked={on} />
         </span>
       )}
+    </button>
+    {on && <PreviewRow />}
+    </>
+  )
+}
+
+/**
+ * Whether a notification shows what the message says, or only who wrote it
+ * (section 38). Off until turned on: a lock screen is seen by whoever is
+ * next to it, and a message from somebody new is nobody else's business.
+ */
+function PreviewRow() {
+  const { t } = useTranslation()
+  const { me, refreshMe } = useMe()
+  const [show, setShow] = useState(Boolean(me?.push_preview))
+  const [busy, setBusy] = useState(false)
+  return (
+    <button
+      type="button"
+      className="ui-row is-wrap"
+      role="switch"
+      aria-checked={show}
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          await setPushPreview(!show)
+          setShow(!show)
+          refreshMe()
+        } finally {
+          setBusy(false)
+        }
+      }}
+    >
+      <span className="ui-row-main">
+        <span className="ui-row-title">{t('push.preview.title')}</span>
+        <span className="ui-row-subtitle">{t(show ? 'push.preview.on' : 'push.preview.off')}</span>
+      </span>
+      <span className="ui-row-trailing">
+        <span className="ui-switch" aria-hidden="true" aria-checked={show} />
+      </span>
     </button>
   )
 }

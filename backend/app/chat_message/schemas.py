@@ -46,6 +46,10 @@ class ChatMessageOut(BaseModel):
     note_quote: str | None = None
     #: What a Cosmos Team message offers to do ("close_session:<id>").
     action: str | None = None
+    #: For "close_session": whether that session is still open, so an old
+    #: message says "no longer open" instead of offering a button that would
+    #: do nothing (section 40). Filled by messages_out.
+    action_open: bool | None = None
     #: Filled by app/chat_message/actions.py's messages_out; empty where a
     #: route returns plain rows.
     reply_to: ReplyPreview | None = None

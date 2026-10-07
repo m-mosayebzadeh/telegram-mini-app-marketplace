@@ -2,10 +2,15 @@
 Application settings.
 
 Instead of hardcoding values like the bot token directly in code (which is
-dangerous — anyone with access to the code would also get the secret), we
-read them from a ".env" file. The pydantic-settings library does this
+dangerous — anyone with access to the code would also get the secret), they
+are read from environment variables. The pydantic-settings library does this
 automatically: we define a class where each field maps to an environment
 variable.
+
+Where they come from (TECHNICAL_REQUIREMENTS.md section 41): Infisical,
+fetched by the server itself as it starts (app/core/infisical.py), for the
+environment COSMOS_ENV names. A local ".env" file, or variables set by
+hand, still work for anybody without an Infisical identity.
 """
 
 from pathlib import Path
@@ -83,7 +88,10 @@ class Settings(BaseSettings):
     # Without them the app simply never offers notifications.
     vapid_public_key: str | None = None
     vapid_private_key: str | None = None
-    vapid_subject: str = "mailto:team@cosmos.invalid"
+    # Who a push service contacts if something is wrong with our
+    # notifications: "mailto:<address>" (the owner's own, for now) or the
+    # site's address. Set in .env; read once at start.
+    vapid_subject: str = "https://cosmos.invalid"
 
     # Enables developer-only routes (e.g. /dev/test-init-data) that must
     # never be reachable in production. Defaults to OFF on purpose: an
@@ -162,6 +170,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=BACKEND_DIR / ".env", extra="ignore")
 
 
-# A single shared settings instance used throughout the app.
-# Creating it is what actually triggers reading the .env file.
+# The settings from Infisical first, when this machine has an identity
+# there; then the single shared instance used throughout the app reads them
+# like any environment variables.
+from app.core.infisical import load_into_environment  # noqa: E402
+
+load_into_environment(BACKEND_DIR)
 settings = Settings()
