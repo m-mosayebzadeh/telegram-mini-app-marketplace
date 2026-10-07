@@ -85,8 +85,7 @@
    stacked above a small label, same proportions as Telegram's own
    profile action row, just in this app's own dark/glass palette instead
    of copying Telegram's colors. DOM order is the ONE thing that decides
-   left-to-right vs. right-to-left placement (see ProfileHeader.tsx's
-   comment) — a plain flex row already mirrors on its own under
+   left-to-right vs. right-to-left placement — a plain flex row already mirrors on its own under
    dir="rtl", no per-language branching needed here either. */
 .hp-avatar-preview-backdrop {
   position: fixed;

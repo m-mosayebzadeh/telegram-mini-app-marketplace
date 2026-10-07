@@ -320,18 +320,18 @@ def test_group_targeted_content_only_visible_to_members(client):
     assert len(client.get("/content", headers=auth_b, params={"user_id": alice["id"]}).json()) == 1
 
 
-def test_followers_only_content_requires_accepted_follow(client):
+def test_friends_only_content_requires_a_friendship(client):
     auth_a = _auth_header(1, "Alice")
     auth_b = _auth_header(2, "Bob")
     alice = _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
-    _upload(client, auth_a, audience_type="followers")
+    _upload(client, auth_a, audience_type="friends")
 
-    # Bob isn't following Alice yet.
+    # Bob and Alice aren't friends yet.
     assert client.get("/content", headers=auth_b, params={"user_id": alice["id"]}).json() == []
 
-    client.post(f"/follow/{alice['id']}", headers=auth_b)
-    client.post(f"/follow/{bob['id']}/accept", headers=auth_a)
+    client.post(f"/friends/{alice['id']}", headers=auth_b)
+    client.post(f"/friends/{bob['id']}/accept", headers=auth_a)
 
     assert len(client.get("/content", headers=auth_b, params={"user_id": alice["id"]}).json()) == 1
 

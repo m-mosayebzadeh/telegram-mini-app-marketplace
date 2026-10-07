@@ -12,7 +12,7 @@ Ideas carried over unchanged from when this was called "Photo":
      else in this file.
   2. Paid content always has a spoiler (CHECK constraint, not just
      application code).
-  3. Its audience is EXACTLY ONE of: public, followers, a single user,
+  3. Its audience is EXACTLY ONE of: public, friends, a single user,
      or a single group (also a CHECK constraint).
 
 New for "Content" (vs. the old "Photo"):
@@ -57,7 +57,9 @@ class ContentType(str, enum.Enum):
 
 class ContentAudience(str, enum.Enum):
     PUBLIC = "public"
-    FOLLOWERS = "followers"
+    # Was "followers" until following was replaced by friendship
+    # (TECHNICAL_REQUIREMENTS.md section 42).
+    FRIENDS = "friends"
     USER = "user"
     GROUP = "group"
 
@@ -152,9 +154,9 @@ class Content(Base):
         # The audience_type must agree with which target column (if any)
         # is filled in — a "user" audience needs audience_user_id and
         # nothing else; a "group" audience needs audience_group_id and
-        # nothing else; public/followers need neither.
+        # nothing else; public/friends need neither.
         CheckConstraint(
-            "(audience_type IN ('public', 'followers') "
+            "(audience_type IN ('public', 'friends') "
             " AND audience_user_id IS NULL AND audience_group_id IS NULL)"
             "OR (audience_type = 'user' "
             " AND audience_user_id IS NOT NULL AND audience_group_id IS NULL)"

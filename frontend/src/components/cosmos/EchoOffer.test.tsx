@@ -72,7 +72,7 @@ function started(): EchoStatus {
       shared_tags: ['books'],
       gender_as_asked: true,
       age_as_asked: true,
-      follow_status: 'none',
+      friend_status: 'none',
       started_at: new Date().toISOString(),
     },
   })

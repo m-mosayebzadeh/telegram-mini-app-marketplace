@@ -30,7 +30,6 @@ from app.models.random_chat import (
     RandomChatSession,
     RandomChatTicket,
 )
-from app.models.follow import Follow, FollowStatus
 from app.models.report import SUSPEND_RANDOM_CHAT
 from app.models.user import User
 from app.profile.photos import get_current_avatar_url
@@ -39,10 +38,10 @@ from app.models.random_chat import DEFAULT_PROPOSAL_SECONDS, EchoProposal
 # The interest list lives with its groups (tags.py).
 from app.random_chat.tags import SEARCH_TAGS
 from app.profile.note import fresh_note
+from app.friends.router import FriendStatusOut, ask as ask_to_be_friends, friend_status
 from app.random_chat.readiness import age_from_birth_year, missing_for_random_chat
 from app.random_chat.service import (
     active_session_for,
-    follow_from_random_chat,
     schedule_row,
     used_today,
     end_session,
@@ -87,10 +86,9 @@ class MatchedOut(BaseModel):
     #: When you met — so the screen shows "found" only for a meeting that
     #: just happened, not one from days ago that nobody closed.
     started_at: str | None = None
-    #: The follow button at the top of the conversation. "requested" once
-    #: this person has pressed it, "following" once the other side has
-    #: agreed too — which is what greys the button out.
-    follow_status: str  # "none" | "requested" | "following"
+    #: You and them, for the friend button at the top of the conversation:
+    #: "none", "requested", "incoming" or "friends" (as on their profile).
+    friend_status: str = "none"
 
 
 class LastSearchOut(BaseModel):
@@ -161,18 +159,6 @@ def _matched_out(
 ) -> MatchedOut:
     other_id = session.other_user_id(viewer_id)
     other = db.get(User, other_id)
-    mine = db.scalar(
-        select(Follow).where(
-            Follow.follower_id == viewer_id, Follow.followee_id == other_id
-        )
-    )
-    if mine is None or mine.status == FollowStatus.REJECTED:
-        follow_status = "none"
-    elif mine.status == FollowStatus.ACCEPTED:
-        follow_status = "following"
-    else:
-        follow_status = "requested"
-
     return MatchedOut(
         session_id=session.id,
         conversation_id=session.conversation_id,
@@ -185,7 +171,7 @@ def _matched_out(
         # gone by now, and these two facts are what the screen needs.
         gender_as_asked=True,
         age_as_asked=True,
-        follow_status=follow_status,
+        friend_status=friend_status(db, viewer_id, other_id),
         tagline=fresh_note(_profile_of(db, other_id)),
         started_at=session.started_at.isoformat() if session.started_at else None,
     )
@@ -653,29 +639,19 @@ def set_schedule(
     )
 
 
-class FollowResultOut(BaseModel):
-    #: True when the other person had already asked to follow you, so both
-    #: requests were accepted at once — a follow and a follow-back.
-    mutual: bool
-    follow_status: str
-
-
-@router.post("/sessions/{session_id}/follow", response_model=FollowResultOut)
-def follow_the_other_person(
+@router.post("/sessions/{session_id}/friend", response_model=FriendStatusOut)
+def ask_the_other_person_to_be_friends(
     session_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> FollowResultOut:
-    """The follow button at the top of a random conversation.
+) -> FriendStatusOut:
+    """The friend button at the top of a random conversation.
 
-    A shortcut to the button on their profile, nothing more: the other
-    person still decides. The one exception is when they had already asked
-    to follow you — then both of you have said yes to the same thing and
-    it becomes a follow and a follow-back immediately.
+    Exactly the button on their profile, taken while you are still
+    talking: an ordinary request the other person answers, and a yes at
+    once if they had already asked you. Was a follow button until
+    following was replaced by friendship (TECHNICAL_REQUIREMENTS.md
+    section 42); only somebody you were matched with can be asked here.
     """
     session = _my_session_or_404(db, session_id, current_user.id)
-    mutual = follow_from_random_chat(db, session, current_user.id)
-    db.commit()
-    return FollowResultOut(
-        mutual=mutual, follow_status="following" if mutual else "requested"
-    )
+    return ask_to_be_friends(session.other_user_id(current_user.id), current_user, db)

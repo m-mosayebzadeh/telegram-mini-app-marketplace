@@ -1,5 +1,5 @@
 import type { Relation } from './relations'
-import type { ChatSession, IncomingFollowRequest } from './types'
+import type { ChatSession } from './types'
 
 /**
  * The news: what is waiting for you, derived from what is actually true.
@@ -17,7 +17,6 @@ import type { ChatSession, IncomingFollowRequest } from './types'
 
 export type NewsKind =
   | 'confirm'  // they accepted your offer — confirm or refuse, right here
-  | 'follow'   // they want to follow you — accept or refuse, right here
   | 'pay'      // your acceptance was confirmed — pay to start
   | 'message'  // something unread from them
   | 'settle'   // a session ended — its Photons wait for your release
@@ -35,7 +34,6 @@ export interface NewsItem {
   at: string
   /** For the answerable kinds: what the answer acts on. */
   requestId?: number
-  followerId?: number
   /** Where tapping through goes. */
   conversationId: number | null
   sessionId?: number
@@ -53,11 +51,10 @@ export interface NewsItem {
 }
 
 /** Whether this item can be answered on the card itself. */
-export const ANSWERABLE: readonly NewsKind[] = ['confirm', 'follow']
+export const ANSWERABLE: readonly NewsKind[] = ['confirm']
 
 export function buildNews(
   relations: Relation[],
-  follows: IncomingFollowRequest[],
   sessions: ChatSession[],
   dismissed: ReadonlySet<string>,
 ): NewsItem[] {
@@ -76,15 +73,6 @@ export function buildNews(
     if (r.unread && r.conversationId !== null) {
       items.push({ ...base, key: `message:${r.conversationId}:${r.lastAt}`, kind: 'message', at: r.lastAt, text: r.lastText })
     }
-  }
-
-  for (const f of follows) {
-    if (f.status !== 'pending') continue
-    items.push({
-      key: `follow:${f.follow_id}`, kind: 'follow', userId: f.requester.user_id, name: f.requester.display_name,
-      avatarUrl: f.requester.avatar_url, at: f.requested_at, followerId: f.requester.user_id,
-      conversationId: conversationOf.get(f.requester.user_id) ?? null,
-    })
   }
 
   for (const s of sessions) {

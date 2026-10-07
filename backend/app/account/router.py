@@ -22,7 +22,6 @@ from app.core.database import get_db
 from app.core.time import utcnow
 from app.models.block import Block
 from app.models.feedback import MAX_FEEDBACK_TEXT, Feedback
-from app.models.follow import Follow
 from app.models.friendship import Friendship, FriendsListViewer
 from app.friends.router import check_seen_by
 from app.models.profile import CHAT_DOOR_OPEN, CHAT_DOORS, Profile
@@ -171,7 +170,6 @@ def delete_account(
         proposals.decline(db, held, user_id)
     db.execute(update(RandomChatTicket).where(RandomChatTicket.user_id == user_id).values(active=False))
 
-    db.execute(delete(Follow).where(or_(Follow.follower_id == user_id, Follow.followee_id == user_id)))
     db.execute(delete(Friendship).where(or_(Friendship.user_low_id == user_id, Friendship.user_high_id == user_id)))
     db.execute(delete(FriendsListViewer).where(or_(FriendsListViewer.owner_id == user_id, FriendsListViewer.viewer_id == user_id)))
     db.execute(delete(Block).where(or_(Block.blocker_id == user_id, Block.blocked_id == user_id)))

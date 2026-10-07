@@ -109,28 +109,6 @@ class PublicProfileOut(BaseModel):
     # having set one — deliberately, since "hidden" is itself private.
     birthday_year: int | None
     gender: str | None
-    # Only counts ACCEPTED follows (see app/models/follow.py) — a
-    # pending follow request isn't a real follower yet.
-    followers_count: int
-    following_count: int
-    # The VIEWER's own relationship to this profile — "not_following" if
-    # there's no Follow row from the current caller to this user at all,
-    # otherwise that row's actual status. Always "not_following" when
-    # viewing your own profile (you can't follow yourself). Lets the
-    # frontend show the right button (Follow / Requested / Following)
-    # without a second round trip.
-    follow_status: str
-
-
-class FollowListItemOut(BaseModel):
-    """One row in a followers/following list (GET /follow/{user_id}/followers
-    or /following) — a lighter version of PublicProfileOut with no bio or
-    counts, since a list of many people doesn't need either."""
-
-    user_id: int
-    display_name: str
-    username: str | None
-    avatar_url: str | None
 
 
 class ProviderSummaryOut(BaseModel):

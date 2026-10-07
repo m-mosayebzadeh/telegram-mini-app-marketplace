@@ -128,7 +128,7 @@ const match = (over: Record<string, unknown> = {}) => ({
   shared_tags: ['music'],
   gender_as_asked: true,
   age_as_asked: true,
-  follow_status: 'none' as const,
+  friend_status: 'none' as const,
   tagline: 'Up at night.',
   started_at: new Date().toISOString(),
   ...over,

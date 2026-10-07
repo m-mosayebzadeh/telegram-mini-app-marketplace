@@ -27,10 +27,6 @@ export interface Me {
   // name" card edits these separately (see PUT /me/name).
   first_name: string
   last_name: string | null
-  // How many people currently have an unanswered follow request in to
-  // you — shown as a badge on the Profile tab (see GET
-  // /follow/incoming-requests for the full inbox this links to).
-  pending_follow_requests_count: number
   // Whether ANY of your own offers has a request you haven't seen yet
   // (see backend/app/offer/router.py's list_offers and
   // backend/app/request/router.py's list_requests_for_offer, which own
@@ -284,9 +280,6 @@ export interface PublicProfile {
   // which is not the same thing as 'unsaid'. Signup deliberately does not
   // ask; Echo's door does.
   gender: string | null
-  followers_count: number
-  following_count: number
-  follow_status: 'not_following' | 'pending' | 'accepted'
   /** You and them (section 32): none, requested (you asked), incoming
    *  (they asked) or friends. */
   friend_status?: 'none' | 'requested' | 'incoming' | 'friends'
@@ -313,7 +306,7 @@ export interface Content {
   is_paid: boolean
   price_photons: number | null
   has_spoiler: boolean
-  audience_type: 'public' | 'followers' | 'user' | 'group'
+  audience_type: 'public' | 'friends' | 'user' | 'group'
   is_pinned: boolean
   created_at: string
   // Whether *this* viewer can currently see the real file — decides
@@ -325,7 +318,7 @@ export interface Content {
 
 /** PUT /profile/me's response — see backend/app/profile/schemas.py's
  * ProfileOut. Distinct from PublicProfile: this is only ever your own,
- * so it has no follower counts or follow_status. */
+ * so it has no friend_status. */
 export interface MyProfile {
   id: number
   avatar_url: string | null
@@ -358,27 +351,6 @@ export interface PricingConfig {
   start_window_minutes?: number
   /** Strangers one person may meet a day, "say hello" and Echo together. */
   daily_new_people?: number
-}
-
-/** One row in a followers/following list — GET /follow/{id}/followers or
- * /following. Lighter than PublicProfile: no bio, no counts. */
-export interface FollowListItem {
-  user_id: number
-  display_name: string
-  username: string | null
-  avatar_url: string | null
-}
-
-/** One row of GET /follow/incoming-requests — every follow request ever
- * sent to the logged-in user, pending or already responded to (see
- * backend/app/follow/schemas.py's IncomingFollowRequestOut). */
-export interface IncomingFollowRequest {
-  follow_id: number
-  requester: FollowListItem
-  status: 'pending' | 'accepted' | 'rejected'
-  requested_at: string
-  responded_at: string | null
-  i_follow_them_back: boolean
 }
 
 /** GET /profiles/{id}/provider-summary — see backend/app/profile/schemas.py's

@@ -116,7 +116,7 @@ def _validate_audience(
     400 with a real message instead of a raw IntegrityError. Also checks
     that a "group" target is actually one of the caller's own groups.
     """
-    if audience_type in (ContentAudience.PUBLIC, ContentAudience.FOLLOWERS):
+    if audience_type in (ContentAudience.PUBLIC, ContentAudience.FRIENDS):
         return None, None
 
     if audience_type == ContentAudience.USER:

@@ -76,11 +76,11 @@ def test_every_staff_route_refuses_an_ordinary_person(client, method, path):
 
 # --- a block closes a profile, both ways ----------------------------------------------
 
-PROFILE_PAGES = ("", "/photos", "/provider-summary", "/followers", "/following")
+PROFILE_PAGES = ("", "/photos", "/provider-summary", "/friends")
 
 
 def _pages(user_id, page):
-    return f"/follow/{user_id}{page}" if page in ("/followers", "/following") else f"/profiles/{user_id}{page}"
+    return f"/profiles/{user_id}{page}"
 
 
 def test_a_block_closes_the_profile_both_ways(client, db_session):
@@ -119,3 +119,15 @@ def test_what_somebody_spent_is_only_for_an_offerer_they_asked(client, db_sessio
     db_session.commit()
     assert client.get(f"/profiles/{sara_id}/buyer-summary", headers=bob).status_code == 200
     assert db_session.get(User, sara_id) is not None
+
+
+def test_a_block_closes_the_friends_list_too(client, db_session):
+    """Found while removing following (section 42): the friends list was
+    the one page of a profile still open across a block."""
+    sara, bob = _as(85001, "Sara"), _as(85002, "Bob")
+    sara_id, bob_id = _id(client, sara), _id(client, bob)
+    assert client.get(f"/profiles/{bob_id}/friends", headers=sara).status_code == 200
+    db_session.add(Block(blocker_id=sara_id, blocked_id=bob_id))
+    db_session.commit()
+    assert client.get(f"/profiles/{bob_id}/friends", headers=sara).status_code == 404
+    assert client.get(f"/profiles/{sara_id}/friends", headers=bob).status_code == 404

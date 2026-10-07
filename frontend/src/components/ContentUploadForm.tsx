@@ -18,7 +18,7 @@ interface ContentUploadFormProps {
 /**
  * The upload form for a new content item — file, type, optional
  * duration (video only), paid/price, spoiler, and audience
- * (public/followers only here; a user- or group-targeted item is still
+ * (public/friends only here; a user- or group-targeted item is still
  * fully supported by the backend, just not exposed in this first cut of
  * the UI — see backend/app/content/router.py for the full set).
  *
@@ -40,7 +40,7 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
   const [isPaid, setIsPaid] = useState(false)
   const [pricePhotons, setPricePhotons] = useState('')
   const [hasSpoiler, setHasSpoiler] = useState(false)
-  const [audienceType, setAudienceType] = useState<'public' | 'followers'>('public')
+  const [audienceType, setAudienceType] = useState<'public' | 'friends'>('public')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -180,10 +180,10 @@ export function ContentUploadForm({ onUploaded }: ContentUploadFormProps) {
           </button>
           <button
             type="button"
-            className={`hp-segmented-btn ${audienceType === 'followers' ? 'hp-segmented-active' : ''}`}
-            onClick={() => setAudienceType('followers')}
+            className={`hp-segmented-btn ${audienceType === 'friends' ? 'hp-segmented-active' : ''}`}
+            onClick={() => setAudienceType('friends')}
           >
-            {t('content.audienceFollowers')}
+            {t('content.audienceFriends')}
           </button>
         </div>
       </div>

@@ -97,42 +97,24 @@ def test_public_profile_reflects_is_trusted_once_set_directly_in_the_database(cl
     assert response.json()["is_trusted"] is True
 
 
-def test_public_profile_includes_follow_counts(client):
+def test_a_profile_carries_no_follow_counts(client):
+    """Following is gone (section 42): no counts to chase, only the
+    friend button's state."""
     _login(client, 1, "Alice")
     bob = _login(client, 2, "Bob")
 
-    response = client.get(f"/profiles/{bob['id']}", headers=_auth_header(1, "Alice"))
+    body = client.get(f"/profiles/{bob['id']}", headers=_auth_header(1, "Alice")).json()
 
-    assert response.json()["followers_count"] == 0
-    assert response.json()["following_count"] == 0
+    assert "followers_count" not in body and "follow_status" not in body
+    assert body["friend_status"] == "none"
 
 
-def test_follow_status_reflects_the_viewers_own_relationship(client):
+def test_the_old_follow_routes_are_gone(client):
     alice = _login(client, 1, "Alice")
-    bob = _login(client, 2, "Bob")
-    auth_alice = _auth_header(1, "Alice")
-
-    # Before following: not_following.
-    before = client.get(f"/profiles/{bob['id']}", headers=auth_alice).json()
-    assert before["follow_status"] == "not_following"
-
-    # After requesting, but before Bob accepts: pending.
-    client.post(f"/follow/{bob['id']}", headers=auth_alice)
-    pending = client.get(f"/profiles/{bob['id']}", headers=auth_alice).json()
-    assert pending["follow_status"] == "pending"
-
-    # After Bob accepts: accepted.
-    client.post(f"/follow/{alice['id']}/accept", headers=_auth_header(2, "Bob"))
-    accepted = client.get(f"/profiles/{bob['id']}", headers=auth_alice).json()
-    assert accepted["follow_status"] == "accepted"
-
-
-def test_follow_status_on_your_own_profile_is_not_following(client):
-    alice = _login(client, 1, "Alice")
-
-    response = client.get(f"/profiles/{alice['id']}", headers=_auth_header(1, "Alice"))
-
-    assert response.json()["follow_status"] == "not_following"
+    _login(client, 2, "Bob")
+    auth_bob = _auth_header(2, "Bob")
+    assert client.post(f"/follow/{alice['id']}", headers=auth_bob).status_code == 404
+    assert client.get("/follow/incoming-requests", headers=auth_bob).status_code == 404
 
 
 # --- provider summary ------------------------------------------------------

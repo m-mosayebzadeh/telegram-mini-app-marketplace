@@ -67,13 +67,6 @@
   },
   "profilePage": {
     "bio": "Bio",
-    "followersCount": "{{count, number}} followers",
-    "followingCount": "{{count, number}} following",
-    "followersTitle": "Followers",
-    "followingTitle": "Following",
-    "followListEmpty": "No one here yet",
-    "follow": "Follow",
-    "following": "Following",
     "requested": "Requested",
     "shareButton": "Share",
     "shareCopied": "Profile link copied",
@@ -112,8 +105,6 @@
     "themeLabel": "Theme",
     "themeDark": "Dark",
     "themeLight": "Light",
-    "followersEmptyHint": "Nobody is following yet.",
-    "followingEmptyHint": "Nobody followed yet.",
     "birthdayYear": "Year",
     "birthdayMonth": "Month",
     "birthdayDay": "Day",
@@ -153,7 +144,7 @@
     "report": "Report a problem",
     "delete": "Delete account",
     "deleteTitle": "Delete account",
-    "deleteText": "Your profile, photos, follows and your place in the world and in Echo are removed, and nobody can find you. Messages you sent stay with the other person.",
+    "deleteText": "Your profile, photos, friendships and your place in the world and in Echo are removed, and nobody can find you. Messages you sent stay with the other person.",
     "deleteNext": "Continue",
     "deleteSureTitle": "Are you sure?",
     "deleteSureText": "This cannot be undone. If you come back, you start from nothing.",
@@ -172,14 +163,6 @@
     "chosenHint": "From your friends only.",
     "chosenSave": "Save",
     "chosenEmpty": "You need a friend first."
-  },
-  "followRequests": {
-    "link": "Follow requests",
-    "linkWithCount": "Follow requests ({{count, number}} pending)",
-    "title": "Follow requests",
-    "none": "No follow requests yet",
-    "followBack": "Follow back",
-    "noneHint": "When someone asks to follow you, their request lands here."
   },
   "providerSummary": {
     "title": "Provider summary",
@@ -466,7 +449,7 @@
     "hasSpoilerLabel": "Show behind a spoiler",
     "audienceLabel": "Audience",
     "audiencePublic": "Public",
-    "audienceFollowers": "Followers only",
+    "audienceFriends": "Friends only",
     "uploadSubmit": "Upload",
     "uploadSuccess": "Uploaded",
     "pinButton": "Pin",
@@ -966,11 +949,6 @@
       "queuedNoTime": "After {{name}}'s session ends",
       "queuedTimed": "{{name}} first · {{time}} until free"
     },
-    "follow": {
-      "title": "{{name}} wants to follow you",
-      "body": "Yes or no, it's up to you",
-      "flown": "{{name}} follows you now."
-    },
     "pay": {
       "title": "{{name}} confirmed",
       "body": "“{{offer}}” · paying {{photons}} Photons starts the session",
@@ -984,17 +962,14 @@
       "title": "{{name}} thanked you",
       "body": ""
     },
-    "accept": "Accept",
     "refuse": "Decline",
     "talk": "Talk",
-    "profile": "Profile",
     "failed": "That didn't work. Try again.",
     "hint": "Swipe left or right to drop it into the black hole; tap to open it",
     "end": "That's all — nothing else",
     "allSeen": "You've seen everything",
     "touchToUndo": "Touch to bring it back",
     "youConfirmed": "You confirmed",
-    "youAccepted": "You accepted",
     "youRefused": "You declined"
   },
   "deal": {

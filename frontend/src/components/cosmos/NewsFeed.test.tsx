@@ -48,7 +48,7 @@ describe('news', () => {
           <NewsFeed
             items={list}
             loaded
-            onOpen={(i, where) => calls.open.push(`${i.key}${where ? `:${where}` : ''}`)}
+            onOpen={(i) => calls.open.push(i.key)}
             onDismiss={(key) => calls.dismiss.push(key)}
             onAnswer={async (i, yes) => { calls.answer.push([i.key, yes]) }}
             {...handlers}
@@ -182,27 +182,19 @@ describe('news', () => {
   })
 
   it('takes the answer back when the settling card is touched, and sends nothing', () => {
-    const { calls } = render([item({ key: 'f1', kind: 'follow', followerId: 2 })])
-    tap(card('f1')!)
+    const { calls } = render([item({ key: 'c2', kind: 'confirm', requestId: 6 })])
+    tap(card('c2')!)
     click(host.querySelectorAll('.cos-news-act')[1])
     wait(SETTLE_MS / 2)
-    tap(card('f1')!)
+    tap(card('c2')!)
     wait(UNDO_MS + 10)
     wait(SETTLE_MS * 2)
     expect(calls.answer).toEqual([])
     // Exactly as it was: calm, saying what it said, answerable again.
-    expect(card('f1')!.classList.contains('is-burning')).toBe(false)
-    expect(card('f1')!.textContent).toContain('news.follow.body')
-    tap(card('f1')!)
-    expect(card('f1')!.classList.contains('is-turned')).toBe(true)
-  })
-
-  it('offers a follow request’s profile rather than a conversation', () => {
-    const { calls } = render([item({ key: 'f1', kind: 'follow', followerId: 2 })])
-    tap(card('f1')!)
-    expect(host.querySelector('.cos-news-act.is-yes')?.textContent).toBe('news.accept')
-    click(host.querySelector('.cos-news-act.is-talk'))
-    expect(calls.open).toEqual(['f1:profile'])
+    expect(card('c2')!.classList.contains('is-burning')).toBe(false)
+    expect(card('c2')!.textContent).toContain('news.confirm.body')
+    tap(card('c2')!)
+    expect(card('c2')!.classList.contains('is-turned')).toBe(true)
   })
 
   it('brings the card back, saying so, when a settled answer fails', async () => {

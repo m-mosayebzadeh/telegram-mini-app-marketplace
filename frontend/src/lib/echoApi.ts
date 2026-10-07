@@ -57,7 +57,8 @@ export interface EchoMatch {
    *  screen says so rather than quietly handing over a mismatch. */
   gender_as_asked: boolean
   age_as_asked: boolean
-  follow_status: 'none' | 'requested' | 'following'
+  /** You and them, for the friend button: as on their profile. */
+  friend_status: 'none' | 'requested' | 'incoming' | 'friends'
   /** Their own line, for the "found" card. */
   tagline?: string | null
   /** When you met; "found" is shown only for a meeting that just happened. */
@@ -177,15 +178,9 @@ export function keepEchoSession(sessionId: number): Promise<void> {
   return apiFetch<void>(`/random-chat/sessions/${sessionId}/keep`, { method: 'POST' })
 }
 
-export interface EchoFollowResult {
-  /** True when they had already asked to follow you, so pressing it made
-   *  a follow and a follow-back at once. */
-  mutual: boolean
-  follow_status: 'none' | 'requested' | 'following'
-}
-
-export function followFromEcho(sessionId: number): Promise<EchoFollowResult> {
-  return apiFetch<EchoFollowResult>(`/random-chat/sessions/${sessionId}/follow`, {
-    method: 'POST',
-  })
+/** Asks the person you were matched with to be friends: the button on
+ *  their profile, from inside the conversation. "friends" at once when
+ *  they had already asked you. */
+export function askFriendFromEcho(sessionId: number): Promise<{ status: 'requested' | 'friends' }> {
+  return apiFetch(`/random-chat/sessions/${sessionId}/friend`, { method: 'POST' })
 }

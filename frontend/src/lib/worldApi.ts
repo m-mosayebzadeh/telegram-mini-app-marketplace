@@ -7,7 +7,7 @@ import { buildNews, loadDismissed, saveDismissed, type NewsItem } from './news'
 import { buildRelations, orderRelations, type Relation } from './relations'
 import { dealWith, type Deal } from './deal'
 import { PAID_LAYER } from './paidLayer'
-import type { ChatSession, IncomingFollowRequest, RequestActivity } from './types'
+import type { ChatSession, RequestActivity } from './types'
 
 /**
  * Everything the world's regions need to know about the people you deal
@@ -29,7 +29,6 @@ export const CONVERSATION_PAGE = 15
 
 export const fetchActivity = () => apiFetch<RequestActivity[]>('/requests/activity')
 export const fetchMySessions = () => apiFetch<ChatSession[]>('/chat-sessions/mine')
-export const fetchIncomingFollows = () => apiFetch<IncomingFollowRequest[]>('/follow/incoming-requests')
 
 const post = <T>(path: string) => apiFetch<T>(path, { method: 'POST' })
 
@@ -40,8 +39,6 @@ export const refuseRequest = (id: number) => post(`/requests/${id}/reject`)
 export const withdrawRequest = (id: number) => post(`/requests/${id}/cancel`)
 export const payRequest = (id: number) => post(`/requests/${id}/pay`)
 
-export const acceptFollow = (userId: number) => post(`/follow/${userId}/accept`)
-export const refuseFollow = (userId: number) => post(`/follow/${userId}/reject`)
 
 export const fetchSession = (id: number) => apiFetch<ChatSession>(`/chat-sessions/${id}`)
 export const stopAtBlockEnd = (id: number) => post<ChatSession>(`/chat-sessions/${id}/stop-at-block-end`)
@@ -86,7 +83,6 @@ export interface World {
 /** Stable empty answers, so nothing downstream re-renders for a new []. */
 const NONE_ACTIVITY: RequestActivity[] = []
 const NONE_SESSIONS: ChatSession[] = []
-const NONE_FOLLOWS: IncomingFollowRequest[] = []
 
 export function useWorld(): World {
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -139,7 +135,6 @@ export function useWorld(): World {
       // others. Requests and sessions belong to the paid layer, which is
       // off in this version (lib/paidLayer.ts), so they are not asked for
       // at all — two requests on every visit that nobody could see.
-      // Follow requests are gone for good: friendship replaced following.
       const [c, a, s] = await Promise.allSettled([
         readConversations(),
         PAID_LAYER ? fetchActivity() : Promise.resolve(NONE_ACTIVITY),
@@ -181,7 +176,7 @@ export function useWorld(): World {
   }, [reload, readConversations])
 
   const relations = useMemo(() => orderRelations(buildRelations(conversations, activity, sessions)), [conversations, activity, sessions])
-  const news = useMemo(() => buildNews(relations, NONE_FOLLOWS, sessions, dismissed), [relations, sessions, dismissed])
+  const news = useMemo(() => buildNews(relations, sessions, dismissed), [relations, sessions, dismissed])
   const liveSession = useMemo(() => sessions.find((s) => s.status === 'open') ?? null, [sessions])
 
   const dismiss = useCallback((key: string) => {

@@ -12,8 +12,7 @@ interface ReportModalProps {
  * The "report a problem with this conversation" flow — UI ONLY, per the
  * spec: a real reviewer/moderation backend for reports doesn't exist yet
  * (TECHNICAL_REQUIREMENTS.md already lists report/complaint handling as
- * an open, unbuilt item elsewhere in the app — see ProfileHeader's own
- * inert Report menu entry for the same reason). Picking a reason and
+ * an open, unbuilt item elsewhere in the app). Picking a reason and
  * submitting here only shows a local acknowledgement; nothing is sent
  * anywhere. This is deliberately a real, usable form (not just a
  * disabled placeholder) because the spec explicitly calls for a reasons

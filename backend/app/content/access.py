@@ -4,12 +4,12 @@ separate from each other on purpose (see TECHNICAL_REQUIREMENTS.md
 section 4 — audience and paid-status are independent axes):
 
   1. can_view_content(): is this viewer even allowed to know the content
-     item exists at all? (the audience check — public/followers/user/group)
+     item exists at all? (the audience check — public/friends/user/group)
   2. can_see_original(): assuming (1) is already true, is this viewer
      allowed to see the real content right now (spoiler lifted)?
 
 Both take a `db` session because answering them may require querying
-Follow or AudienceGroupMember — they're not decidable from the Content
+a friendship or AudienceGroupMember — they're not decidable from the Content
 row alone.
 """
 
@@ -18,21 +18,8 @@ from sqlalchemy.orm import Session
 from app.models.audience_group import AudienceGroupMember
 from app.models.content import Content, ContentAudience
 from app.models.content_access import ContentPurchase
-from app.models.follow import Follow, FollowStatus
 from app.models.user import User
-
-
-def _is_accepted_follower(db: Session, *, follower_id: int, followee_id: int) -> bool:
-    return (
-        db.query(Follow)
-        .filter(
-            Follow.follower_id == follower_id,
-            Follow.followee_id == followee_id,
-            Follow.status == FollowStatus.ACCEPTED,
-        )
-        .first()
-        is not None
-    )
+from app.friends.router import are_friends
 
 
 def _is_group_member(db: Session, *, group_id: int, user_id: int) -> bool:
@@ -87,8 +74,8 @@ def can_view_content(db: Session, viewer: User, content: Content) -> bool:
 
     if content.audience_type == ContentAudience.PUBLIC:
         return True
-    if content.audience_type == ContentAudience.FOLLOWERS:
-        return _is_accepted_follower(db, follower_id=viewer.id, followee_id=owner_id)
+    if content.audience_type == ContentAudience.FRIENDS:
+        return are_friends(db, viewer.id, owner_id)
     if content.audience_type == ContentAudience.USER:
         return viewer.id == content.audience_user_id
     if content.audience_type == ContentAudience.GROUP:

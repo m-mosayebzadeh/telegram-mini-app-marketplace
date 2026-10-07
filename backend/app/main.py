@@ -43,9 +43,7 @@ from app.report.router import admin_router as admin_report_router
 from app.report.router import router as report_router
 from app.block.router import router as block_router
 from app.content.router import router as content_router
-from app.follow.router import router as follow_router
 from app.models import User  # importing app.models registers every model with Base
-from app.models.follow import Follow, FollowStatus
 from app.models.friendship import FRIENDSHIP_PENDING, Friendship
 from app.models.offer import Offer
 from app.models.request import Request, RequestStatus
@@ -116,7 +114,6 @@ app.include_router(friends_public_router)
 app.include_router(admin_feedback_router)
 app.include_router(profile_router)
 app.include_router(public_profile_router)
-app.include_router(follow_router)
 app.include_router(audience_group_router)
 app.include_router(content_router)
 app.include_router(offer_router)
@@ -187,20 +184,13 @@ def read_current_user(
     (frontend lib/auth.ts): the session's cookie → get_current_user →
     our own User row, or "signed_out".
     """
-    pending_follow_requests_count = (
-        db.query(Follow)
-        .filter(Follow.followee_id == current_user.id, Follow.status == FollowStatus.PENDING)
-        .count()
-    )
     # Whether ANY of this user's own offers has a request they haven't
     # seen yet (see app/offer/router.py's list_offers and
     # app/request/router.py's list_requests_for_offer, which together
     # own the actual per-offer counting/clearing) — just a boolean here,
     # for the bottom nav's plain "something needs attention" dot (see
     # App.tsx), which has no room for — and doesn't need — an exact
-    # number. Same "checked on every app load" limitation as
-    # pending_follow_requests_count above, until a real push-notification
-    # system exists (TECHNICAL_REQUIREMENTS.md section 9).
+    # number.
     has_unseen_requests = (
         db.query(Request)
         .join(Offer, Request.offer_id == Offer.id)
@@ -252,12 +242,6 @@ def read_current_user(
         # reload. Now it just comes along for free with the same
         # refreshMe() every other /me-backed value already uses.
         "avatar_url": get_current_avatar_url(db, current_user.id),
-        # Shown as a badge on the Profile tab (see GET
-        # /follow/incoming-requests for the full inbox) — checked every
-        # time the app loads, since there's no push-notification system
-        # yet (TECHNICAL_REQUIREMENTS.md section 9 still has that as an
-        # undone idea).
-        "pending_follow_requests_count": pending_follow_requests_count,
         "has_unseen_requests": has_unseen_requests,
         "unseen_sent_request_updates_count": unseen_sent_request_updates_count,
         # Raw first_name/last_name, not just the combined display_name —

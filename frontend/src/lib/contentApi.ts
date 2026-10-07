@@ -17,7 +17,7 @@ export interface UploadContentInput {
   isPaid: boolean
   pricePhotons?: number
   hasSpoiler: boolean
-  audienceType: 'public' | 'followers' | 'user' | 'group'
+  audienceType: 'public' | 'friends' | 'user' | 'group'
   audienceUserId?: number
   audienceGroupId?: number
 }

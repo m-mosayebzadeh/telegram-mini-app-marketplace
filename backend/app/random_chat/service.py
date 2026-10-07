@@ -14,7 +14,6 @@ from app.conversation.service import get_or_create_direct
 from app.core.time import start_of_utc_day, utcnow
 from app.models.conversation import Conversation
 from app.models.feature_schedule import FEATURE_RANDOM_CHAT, FeatureSchedule
-from app.models.follow import Follow, FollowStatus
 from app.models.random_chat import RandomChatSession, RandomChatTicket
 from app.models.report import SUSPEND_EVERYTHING, SUSPEND_RANDOM_CHAT, Suspension
 
@@ -171,57 +170,6 @@ def end_session(
     session.ended_at = utcnow()
     session.ended_by_user_id = ended_by_user_id
     _settle_thread(db, session)
-
-
-def follow_from_random_chat(
-    db: Session, session: RandomChatSession, follower_id: int
-) -> bool:
-    """The follow button at the top of a random conversation.
-
-    It is an ordinary follow request, not a special kind of bond — a
-    shortcut to the button on somebody's profile, taken while you are
-    still talking to them. So the normal rule holds: the other person
-    decides, from their own profile, whether to accept.
-
-    The one shortcut is mutual consent. If they had already asked to
-    follow you, then both of you have now said yes to the same thing and
-    there is nobody left to ask, so both requests are accepted at once —
-    a follow and a follow-back in one move.
-
-    Returns True when that happened, so the screen can say so.
-    """
-    followee_id = session.other_user_id(follower_id)
-
-    mine = db.scalar(
-        select(Follow).where(
-            Follow.follower_id == follower_id, Follow.followee_id == followee_id
-        )
-    )
-    if mine is None:
-        mine = Follow(follower_id=follower_id, followee_id=followee_id)
-        db.add(mine)
-    elif mine.status == FollowStatus.REJECTED:
-        # Same behaviour as asking again from the profile: the row is
-        # reset rather than duplicated, and the earlier history stays.
-        mine.status = FollowStatus.PENDING
-        mine.requested_at = utcnow()
-        mine.responded_at = None
-
-    theirs = db.scalar(
-        select(Follow).where(
-            Follow.follower_id == followee_id, Follow.followee_id == follower_id
-        )
-    )
-    if theirs is not None and theirs.status == FollowStatus.PENDING:
-        now = utcnow()
-        for follow in (mine, theirs):
-            follow.status = FollowStatus.ACCEPTED
-            follow.responded_at = now
-        db.flush()
-        return True
-
-    db.flush()
-    return False
 
 
 def set_kept(db: Session, session: RandomChatSession, user_id: int, kept: bool) -> None:

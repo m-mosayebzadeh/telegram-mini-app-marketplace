@@ -17,14 +17,13 @@ from app.auth.dependencies import get_current_user
 from app.core.database import get_db
 from app.core.time import utcnow
 from app.core.storage import delete_avatar_file, save_avatar_file
-from app.models.follow import Follow, FollowStatus
 from app.models.offer import Offer
 from app.models.profile import GENDERS, MAX_INTERESTS, Profile
 from app.models.profile_photo import ProfilePhoto
 from app.models.request import Request, RequestStatus
 from app.models.transaction import Transaction, TransactionStatus
 from app.models.user import User, UserStatus
-from app.friends.router import _blocked_between, friend_status
+from app.friends.router import friend_status, person_or_404 as _person_or_404
 from app.profile.note import MAX_NOTE, fresh_note, fresh_note_at
 from app.profile.photos import get_current_avatar_url
 from app.profile.schemas import (
@@ -38,35 +37,6 @@ from app.profile.schemas import (
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 public_router = APIRouter(prefix="/profiles", tags=["profile"])
-
-
-def _followers_count(db: Session, user_id: int) -> int:
-    return (
-        db.query(Follow)
-        .filter(Follow.followee_id == user_id, Follow.status == FollowStatus.ACCEPTED)
-        .count()
-    )
-
-
-def _following_count(db: Session, user_id: int) -> int:
-    return (
-        db.query(Follow)
-        .filter(Follow.follower_id == user_id, Follow.status == FollowStatus.ACCEPTED)
-        .count()
-    )
-
-
-def _follow_status(db: Session, *, viewer_id: int, target_id: int) -> str:
-    """The VIEWER's own relationship to target_id — see
-    PublicProfileOut.follow_status's docstring. Trivially "not_following"
-    when viewing your own profile, since a self-follow Follow row can
-    never exist (see the model's ck_no_self_follow constraint)."""
-    follow = (
-        db.query(Follow)
-        .filter(Follow.follower_id == viewer_id, Follow.followee_id == target_id)
-        .first()
-    )
-    return follow.status.value if follow else "not_following"
 
 
 def _to_profile_out(db: Session, profile: Profile) -> ProfileOut:
@@ -270,23 +240,6 @@ def _query_photos(db: Session, user_id: int) -> list[ProfilePhoto]:
     )
 
 
-def _person_or_404(db: Session, user_id: int, viewer_id: int) -> User:
-    """The person these public pages are about, as `viewer_id` may see them.
-
-    Cosmos Team is not a person (section 37) and has no profile. And
-    between two people where either blocked the other, the pages do not
-    exist either way (section 40): a block is silent everywhere else, and a
-    profile that stayed open would let the blocked person keep watching —
-    photos, notes, where they are — which is what blocking is for.
-    """
-    target = db.get(User, user_id)
-    if target is None or target.status == UserStatus.TEAM:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    if user_id != viewer_id and _blocked_between(db, user_id, viewer_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
-    return target
-
-
 @public_router.get("/{user_id}/photos", response_model=list[ProfilePhotoOut])
 def list_photos(
     user_id: int,
@@ -339,9 +292,6 @@ def read_public_profile(
         note=fresh_note(profile),
         note_at=fresh_note_at(profile),
         friend_status=friend_status(db, current_user.id, user_id),
-        followers_count=_followers_count(db, user_id),
-        following_count=_following_count(db, user_id),
-        follow_status=_follow_status(db, viewer_id=current_user.id, target_id=user_id),
     )
 
 

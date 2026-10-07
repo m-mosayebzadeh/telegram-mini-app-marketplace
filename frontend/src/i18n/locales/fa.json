@@ -67,13 +67,6 @@
   },
   "profilePage": {
     "bio": "بیوگرافی",
-    "followersCount": "{{count, number}} دنبال‌کننده",
-    "followingCount": "{{count, number}} دنبال‌شونده",
-    "followersTitle": "دنبال‌کنندگان",
-    "followingTitle": "دنبال‌شونده‌ها",
-    "followListEmpty": "فعلاً کسی اینجا نیست",
-    "follow": "دنبال کردن",
-    "following": "دنبال می‌کنید",
     "requested": "درخواست ارسال شد",
     "shareButton": "اشتراک‌گذاری",
     "shareCopied": "لینک پروفایل کپی شد",
@@ -112,8 +105,6 @@
     "themeLabel": "تم",
     "themeDark": "تاریک",
     "themeLight": "روشن",
-    "followersEmptyHint": "هنوز کسی اینجا رو دنبال نمی‌کنه.",
-    "followingEmptyHint": "هنوز کسی دنبال نشده.",
     "birthdayYear": "سال",
     "birthdayMonth": "ماه",
     "birthdayDay": "روز",
@@ -153,7 +144,7 @@
     "report": "گزارشِ یک مشکل",
     "delete": "حذفِ حساب",
     "deleteTitle": "حذفِ حساب",
-    "deleteText": "پروفایل، عکس‌ها، دنبال‌کردن‌ها و جایت در جهان و Echo پاک می‌شود و کسی دیگر پیدایت نمی‌کند. پیام‌هایی که فرستاده‌ای برای طرفِ مقابل می‌ماند.",
+    "deleteText": "پروفایل، عکس‌ها، دوستی‌ها و جایت در جهان و Echo پاک می‌شود و کسی دیگر پیدایت نمی‌کند. پیام‌هایی که فرستاده‌ای برای طرفِ مقابل می‌ماند.",
     "deleteNext": "ادامه",
     "deleteSureTitle": "مطمئنی؟",
     "deleteSureText": "این کار برگشت ندارد. اگر دوباره بیایی، از صفر شروع می‌کنی.",
@@ -172,14 +163,6 @@
     "chosenHint": "فقط از میانِ دوستانت.",
     "chosenSave": "ذخیره",
     "chosenEmpty": "اول باید دوستی داشته باشی."
-  },
-  "followRequests": {
-    "link": "درخواست‌های دنبال کردن",
-    "linkWithCount": "درخواست‌های دنبال کردن ({{count, number}} در انتظار)",
-    "title": "درخواست‌های دنبال کردن",
-    "none": "فعلاً درخواستی نداشتید",
-    "followBack": "فالو بک",
-    "noneHint": "وقتی کسی بخواد دنبالت کنه، درخواستش همین‌جا میاد."
   },
   "providerSummary": {
     "title": "خلاصه ارائه‌دهنده",
@@ -466,7 +449,7 @@
     "hasSpoilerLabel": "پشت اسپویل نمایش داده بشه",
     "audienceLabel": "مخاطب",
     "audiencePublic": "عمومی",
-    "audienceFollowers": "فقط دنبال‌کنندگان",
+    "audienceFriends": "فقط دوستان",
     "uploadSubmit": "آپلود",
     "uploadSuccess": "آپلود شد",
     "pinButton": "سنجاق کردن",
@@ -966,11 +949,6 @@
       "queuedNoTime": "بعد از تمام شدنِ جلسه‌ی {{name}}",
       "queuedTimed": "اول کارِ {{name}} · {{time}} تا آزاد شدن"
     },
-    "follow": {
-      "title": "{{name}} می‌خواهد دنبالت کند",
-      "body": "بپذیری یا نه، با خودت است",
-      "flown": "{{name}} حالا دنبالت می‌کند."
-    },
     "pay": {
       "title": "{{name}} تأیید کرد",
       "body": "«{{offer}}» · با پرداختِ {{photons}} فوتون جلسه شروع می‌شود",
@@ -984,17 +962,14 @@
       "title": "{{name}} از تو تشکر کرد",
       "body": ""
     },
-    "accept": "پذیرفتن",
     "refuse": "رد",
     "talk": "گفتگو",
-    "profile": "پروفایل",
     "failed": "نشد. دوباره امتحان کن.",
     "hint": "به چپ یا راست بکش تا در سیاه‌چاله بیفتد؛ بزن تا بازش کنی",
     "end": "تمام شد — چیزِ دیگری نیست",
     "allSeen": "همه را دیدی",
     "touchToUndo": "لمس کن تا برگردد",
     "youConfirmed": "تأیید کردی",
-    "youAccepted": "پذیرفتی",
     "youRefused": "رد کردی"
   },
   "deal": {

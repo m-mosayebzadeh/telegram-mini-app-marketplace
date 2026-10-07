@@ -14,7 +14,7 @@ import { IconChevron, IconUsers } from '../components/icons'
 /**
  * Settings (section 32, step 4): what the owner settled for "me".
  *
- * - You: edit the profile, and follow requests.
+ * - You: edit the profile.
  * - Privacy: who may message you, hiding when you are online, and the
  *   people you blocked. Everything starts at the freest setting, and
  *   whoever wants it narrower narrows it (the owner's rule).

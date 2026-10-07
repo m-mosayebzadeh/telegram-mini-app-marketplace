@@ -1,7 +1,7 @@
 """
 Shared helper for "what's this user's current avatar url" — used
 anywhere a single avatar_url is needed (PublicProfileOut,
-FollowListItemOut, ChatSessionParticipantOut, ...), now that a user can
+ChatSessionParticipantOut, ...), now that a user can
 have any number of ProfilePhoto rows instead of one stored column (see
 app/models/profile_photo.py). The current avatar is always just the
 newest one; every older photo is still reachable through the fullscreen

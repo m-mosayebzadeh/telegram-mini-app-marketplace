@@ -415,50 +415,49 @@ def test_what_was_said_stays_for_both_after_it_ends(client, db_session):
         assert texts == ["nice to meet you"]
 
 
-def test_following_from_the_chat_is_an_ordinary_request(client, db_session):
+def test_asking_to_be_friends_from_the_chat_is_an_ordinary_request(client, db_session):
     """A shortcut to the button on their profile, not a special bond: the
     other person still decides."""
     session_id, _ = _matched_pair(client, db_session, a=9046, b=9047)
     body = client.post(
-        f"/random-chat/sessions/{session_id}/follow", headers=_auth(9046)
+        f"/random-chat/sessions/{session_id}/friend", headers=_auth(9046)
     ).json()
-    assert body == {"mutual": False, "follow_status": "requested"}
+    assert body == {"status": "requested"}
 
-    # It shows up where every other follow request does, waiting for them.
-    incoming = client.get("/follow/incoming-requests", headers=_auth(9047)).json()
-    assert [r["status"] for r in incoming] == ["pending"]
+    # It shows up where every other friend request does, waiting for them.
+    waiting = client.get("/friends/requests", headers=_auth(9047)).json()
+    assert len(waiting) == 1
 
 
-def test_both_pressing_follow_makes_it_mutual_at_once(client, db_session):
-    """Both have said yes to the same thing, so there is nobody left to
-    ask — a follow and a follow-back in one move."""
+def test_both_pressing_it_makes_friends_at_once(client, db_session):
+    """Both have said yes to the same thing, so there is nobody left to ask."""
     session_id, _ = _matched_pair(client, db_session, a=9070, b=9071)
-    first = client.post(
-        f"/random-chat/sessions/{session_id}/follow", headers=_auth(9070)
-    ).json()
-    second = client.post(
-        f"/random-chat/sessions/{session_id}/follow", headers=_auth(9071)
-    ).json()
+    first = client.post(f"/random-chat/sessions/{session_id}/friend", headers=_auth(9070)).json()
+    second = client.post(f"/random-chat/sessions/{session_id}/friend", headers=_auth(9071)).json()
 
-    assert first["mutual"] is False
-    assert second == {"mutual": True, "follow_status": "following"}
-
-    # Nothing is left waiting for anybody to approve. The rows are still
-    # there — this list keeps the history too — but none of them is
-    # pending any more.
+    assert first == {"status": "requested"}
+    assert second == {"status": "friends"}
     for telegram_id in (9070, 9071):
-        incoming = client.get("/follow/incoming-requests", headers=_auth(telegram_id)).json()
-        assert [r["status"] for r in incoming] == ["accepted"]
+        assert client.get("/friends/requests", headers=_auth(telegram_id)).json() == []
 
 
 def test_the_button_says_whether_it_has_been_pressed(client, db_session):
     session_id, _ = _matched_pair(client, db_session, a=9072, b=9073)
     before = client.get("/random-chat/status", headers=_auth(9072)).json()
-    assert before["matched"]["follow_status"] == "none"
+    assert before["matched"]["friend_status"] == "none"
 
-    client.post(f"/random-chat/sessions/{session_id}/follow", headers=_auth(9072))
+    client.post(f"/random-chat/sessions/{session_id}/friend", headers=_auth(9072))
     after = client.get("/random-chat/status", headers=_auth(9072)).json()
-    assert after["matched"]["follow_status"] == "requested"
+    assert after["matched"]["friend_status"] == "requested"
+    theirs = client.get("/random-chat/status", headers=_auth(9073)).json()
+    assert theirs["matched"]["friend_status"] == "incoming"
+
+
+def test_only_the_person_you_were_matched_with_can_be_asked(client, db_session):
+    session_id, _ = _matched_pair(client, db_session, a=9074, b=9075)
+    client.get("/me", headers=_auth(9076))
+    stranger = client.post(f"/random-chat/sessions/{session_id}/friend", headers=_auth(9076))
+    assert stranger.status_code == 404
 
 
 def test_a_thread_that_existed_before_is_never_cleared(client, db_session):

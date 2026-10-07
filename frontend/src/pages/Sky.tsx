@@ -32,7 +32,7 @@ import {
 import { fetchSky, type SkyPerson } from '../lib/skyApi'
 import { formatApiError } from '../lib/api'
 import type { NewsItem } from '../lib/news'
-import { acceptFollow, confirmRequest, refuseFollow, refuseRequest, useWorld } from '../lib/worldApi'
+import { confirmRequest, refuseRequest, useWorld } from '../lib/worldApi'
 import { regionOf, type Region } from '../lib/regions'
 
 /**
@@ -323,8 +323,6 @@ export default function Sky() {
     try {
       if (item.kind === 'confirm' && item.requestId !== undefined) {
         await (yes ? confirmRequest(item.requestId) : refuseRequest(item.requestId))
-      } else if (item.kind === 'follow' && item.followerId !== undefined) {
-        await (yes ? acceptFollow(item.followerId) : refuseFollow(item.followerId))
       }
     } catch (err) {
       setAnswering((prev) => {
@@ -337,9 +335,8 @@ export default function Sky() {
     await world.reload()
   }
 
-  function openNews(item: NewsItem, where?: 'profile') {
-    if (where === 'profile') navigate(`/profiles/${item.userId}`)
-    else navigate(`/conversations/with/${item.userId}`)
+  function openNews(item: NewsItem) {
+    navigate(`/conversations/with/${item.userId}`)
   }
 
   /** The glass, as the arithmetic sees it. Read fresh every time rather

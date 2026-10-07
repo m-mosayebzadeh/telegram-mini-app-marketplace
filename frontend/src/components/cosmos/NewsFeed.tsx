@@ -20,8 +20,8 @@ import {
  * real (lib/news.ts), so throwing one into the black hole removes only the
  * pointer, never the thing.
  *
- * Two kinds can be answered here — somebody accepted your offer, somebody
- * wants to follow you — and those cards have two faces: a tap turns the
+ * One kind can be answered here — somebody accepted your offer — and that
+ * card has two faces: a tap turns the
  * card over to its three buttons. An answer then takes a few seconds to
  * settle, and the settling IS the way to take it back:
  *
@@ -49,8 +49,8 @@ interface NewsFeedProps {
   onDismiss: (key: string) => void
   /** Send an answer, once its settling time has run out. */
   onAnswer: (item: NewsItem, yes: boolean) => Promise<void>
-  /** Go where the item points; for a follow request, to the profile. */
-  onOpen: (item: NewsItem, where?: 'profile') => void
+  /** Go where the item points. */
+  onOpen: (item: NewsItem) => void
   /** A payment window or a queue ran out: read the state again. */
   onDeadline?: () => void
 }
@@ -599,9 +599,8 @@ export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen, onDeadlin
     }
 
     const isTurned = turned.has(key)
-    const follow = item.kind === 'follow'
     const sub = kind
-      ? t(kind === 'burn' ? 'news.youRefused' : follow ? 'news.youAccepted' : 'news.youConfirmed')
+      ? t(kind === 'burn' ? 'news.youRefused' : 'news.youConfirmed')
       : failed.has(key)
         ? t('news.failed')
         : bodyOf(item)
@@ -618,7 +617,7 @@ export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen, onDeadlin
           </div>
           <div className="cos-news-side is-back" aria-hidden={!isTurned}>
             <button type="button" className="cos-news-act is-yes" tabIndex={isTurned ? 0 : -1} onClick={() => settle(item, 'charge')}>
-              {t(follow ? 'news.accept' : 'news.confirm.yes')}
+              {t('news.confirm.yes')}
             </button>
             <button type="button" className="cos-news-act" tabIndex={isTurned ? 0 : -1} onClick={() => settle(item, 'burn')}>
               {t('news.refuse')}
@@ -627,9 +626,9 @@ export function NewsFeed({ items, loaded, onDismiss, onAnswer, onOpen, onDeadlin
               type="button"
               className="cos-news-act is-talk"
               tabIndex={isTurned ? 0 : -1}
-              onClick={() => onOpen(item, follow ? 'profile' : undefined)}
+              onClick={() => onOpen(item)}
             >
-              {t(follow ? 'news.profile' : 'news.talk')}
+              {t('news.talk')}
             </button>
           </div>
         </div>

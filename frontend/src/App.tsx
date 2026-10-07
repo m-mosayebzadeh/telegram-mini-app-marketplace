@@ -30,8 +30,6 @@ import ProfileTab from './pages/ProfileTab'
 import Settings from './pages/Settings'
 import EditProfile from './pages/EditProfile'
 import ContentDetail from './pages/ContentDetail'
-import FollowList from './pages/FollowList'
-import FollowRequests from './pages/FollowRequests'
 import ProviderSummary from './pages/ProviderSummary'
 import BuyerSummary from './pages/BuyerSummary'
 import Activity from './pages/Activity'
@@ -101,7 +99,6 @@ const TABS = [
     isActive: (pathname: string) =>
       pathname === '/profile' ||
       pathname === '/settings' ||
-      pathname === '/follow-requests' ||
       pathname.startsWith('/content/') ||
       pathname.startsWith('/profiles/'),
   },
@@ -118,7 +115,7 @@ function AppShell() {
   // changed identity (effectively once per session), so uploading a new
   // avatar elsewhere in the app never updated this thumbnail until a
   // full reload. `me.avatar_url` updates the same way every other /me
-  // value does, via useMe()'s refreshMe() (see ProfileHeader.tsx).
+  // value does, via useMe()'s refreshMe().
   const avatarUrl = me?.avatar_url ?? null
   // A 5th nav item, only for the tiny minority of accounts with any
   // admin access at all — adminAccess is fetched once per session (see
@@ -213,12 +210,10 @@ function AppShell() {
         <Route path="/settings/ways" element={<SignInWays />} />
         <Route path="/link" element={<LinkDevice />} />
         <Route path="/settings/report" element={<ReportProblem />} />
-        <Route path="/follow-requests" element={<FollowRequests />} />
         <Route path="/content/:id" element={<ContentDetail />} />
         <Route path="/profiles/:id" element={<ProfileTab />} />
         <Route path="/profiles/:id/provider-summary" element={<ProviderSummary />} />
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
-        <Route path="/profiles/:id/:kind" element={<FollowList />} />
       </Routes>
       {door !== null && <WorldBar />}
       {/* Wherever you are: somebody found in Echo reaches you on any

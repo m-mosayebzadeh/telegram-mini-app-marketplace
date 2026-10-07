@@ -23,7 +23,6 @@ from app.models.content_access import ContentOpenLog, ContentPurchase  # noqa: F
 from app.models.credit_ledger import CreditLedgerEntry  # noqa: F401
 from app.models.feature_schedule import FeatureSchedule  # noqa: F401
 from app.models.feedback import Feedback  # noqa: F401
-from app.models.follow import Follow  # noqa: F401
 from app.models.friendship import Friendship, FriendsListViewer  # noqa: F401
 from app.models.like import Like  # noqa: F401
 from app.models.offer import Offer  # noqa: F401

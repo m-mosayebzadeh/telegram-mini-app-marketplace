@@ -95,6 +95,25 @@ def _blocked_between(db: Session, one: int, other: int) -> bool:
     ) is not None
 
 
+def person_or_404(db: Session, user_id: int, viewer_id: int) -> User:
+    """The person somebody's public pages are about, as `viewer_id` may see
+    them: their profile, photos, summaries and friends list.
+
+    Cosmos Team is not a person (section 37) and has no profile. And
+    between two people where either blocked the other, the pages do not
+    exist either way (section 40): a block is silent everywhere else, and a
+    profile that stayed open would let the blocked person keep watching —
+    photos, notes, where they are — which is what blocking is for.
+    """
+    target = db.get(User, user_id)
+    if target is None or target.status == UserStatus.TEAM:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    if user_id != viewer_id and _blocked_between(db, user_id, viewer_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+    return target
+
+
+
 class PersonOut(BaseModel):
     user_id: int
     display_name: str
@@ -336,7 +355,9 @@ def their_friends(
     db: Session = Depends(get_db),
 ) -> TheirFriendsOut:
     """Somebody's friends: the ones you share first, marked as shared, then
-    the rest — when their setting allows you to see the list at all."""
+    the rest — when their setting allows you to see the list at all. Like
+    the rest of their pages, not there at all across a block."""
+    person_or_404(db, user_id, current_user.id)
     if not may_see_friends_of(db, current_user.id, user_id):
         return TheirFriendsOut(visible=False, people=[])
     visible = True
