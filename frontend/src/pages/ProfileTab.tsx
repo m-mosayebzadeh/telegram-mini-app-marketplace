@@ -6,6 +6,7 @@ import { apiFetch, formatApiError } from '../lib/api'
 import { ConfirmDialog, ErrorState, useToast } from '../components/ui'
 import { Sheet } from '../components/ui/Sheet'
 import { ReportSheet } from '../components/cosmos/ReportSheet'
+import { CosSheet } from '../components/cosmos/CosSheet'
 import { MeetingSky } from '../components/cosmos/Constellation'
 import { MAX_NOTE, saveNote } from '../lib/noteApi'
 import { noteTime } from '../lib/noteTime'
@@ -335,7 +336,13 @@ export default function ProfileTab() {
       ) : null}
 
       {noteOpen && profile && (
-        <NoteSheet note={profile.note ?? null} onClose={() => setNoteOpen(false)} onSaved={() => { setNoteOpen(false); load() }} />
+        <NoteSheet
+          note={profile.note ?? null}
+          name={name}
+          avatarUrl={profile.avatar_url}
+          onClose={() => setNoteOpen(false)}
+          onSaved={() => { setNoteOpen(false); load() }}
+        />
       )}
 
       {moreOpen && profile && (
@@ -505,8 +512,20 @@ export function BothGlyph() {
   )
 }
 
-/** Writing today's note; always above the bar (the owner's report). */
-function NoteSheet({ note, onClose, onSaved }: { note: string | null; onClose: () => void; onSaved: () => void }) {
+/**
+ * Writing today's note (drawn as the approved prototype, section 42):
+ * your own orb above the curve of the world, and the note taking shape
+ * above it as you type — what other people will see on your card. The
+ * sixty letters are a small ring that fills and warms near the end.
+ * Always above the bar (the owner's report).
+ */
+function NoteSheet({ note, name, avatarUrl, onClose, onSaved }: {
+  note: string | null
+  name: string
+  avatarUrl: string | null
+  onClose: () => void
+  onSaved: () => void
+}) {
   const { t, i18n } = useTranslation()
   const [text, setText] = useState(note ?? '')
   const [busy, setBusy] = useState(false)
@@ -522,27 +541,49 @@ function NoteSheet({ note, onClose, onSaved }: { note: string | null; onClose: (
       setBusy(false)
     }
   }
+  const written = text.trim()
+  const left = MAX_NOTE - text.length
+  // The ring's length (2 x pi x 14), emptied as the note fills.
+  const RING = 88
   return (
-    <Sheet title={t('note.title')} onClose={onClose}>
-      <div className="co-form">
-        <label className="ui-field" htmlFor="note-text">
-          <span className="ui-field-label">
-            {t('note.label')}
-            <span className="ui-field-counter">{text.length.toLocaleString(i18n.language)} / {MAX_NOTE.toLocaleString(i18n.language)}</span>
-          </span>
-          <input id="note-text" className="ui-input" value={text} maxLength={MAX_NOTE} placeholder={t('note.placeholder')} onChange={(e) => setText(e.target.value)} />
-          <span className="ui-field-help">{t('note.hint')}</span>
-        </label>
-        {error !== '' && <p className="ui-field-error">{error}</p>}
-        <button type="button" className="ui-btn ui-btn-primary ui-btn-lg ui-btn-block" disabled={busy || text.trim() === ''} onClick={() => void save(text)}>
+    <CosSheet title={t('note.title')} titleHidden className="is-note" onClose={onClose}>
+      <div className="cos-q-note-stage" aria-hidden="true">
+        <div className={`cos-q-bubble${written ? '' : ' is-empty'}`} dir={written ? 'auto' : undefined}>
+          {written || t('note.add')}
+        </div>
+        <div className="cos-q-big-orb">{avatarUrl ? <img src={avatarUrl} alt="" /> : name.slice(0, 1)}</div>
+        <div className="cos-q-note-name">{name}</div>
+      </div>
+      <div className="cos-q-note-form">
+        <div className="cos-q-note-write">
+          <input
+            className="cos-q-input"
+            dir="auto"
+            value={text}
+            maxLength={MAX_NOTE}
+            placeholder={t('note.label')}
+            aria-label={t('note.title')}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className={`cos-q-count${left <= 10 ? ' is-near' : ''}`} aria-label={left.toLocaleString(i18n.language)}>
+            <svg viewBox="0 0 34 34" aria-hidden="true">
+              <circle className="is-track" cx="17" cy="17" r="14" />
+              <circle className="is-fill" cx="17" cy="17" r="14" strokeDasharray={RING} strokeDashoffset={RING - RING * (text.length / MAX_NOTE)} />
+            </svg>
+            <span aria-hidden="true">{left.toLocaleString(i18n.language)}</span>
+          </div>
+        </div>
+        <p className="cos-q-help">{t('note.example')}</p>
+        {error !== '' && <p className="cos-q-help is-error" role="alert">{error}</p>}
+        <button type="button" className="cos-q-primary" disabled={busy || written === ''} onClick={() => void save(text)}>
           {t('note.save')}
         </button>
         {note && (
-          <button type="button" className="ui-btn ui-btn-ghost ui-btn-lg ui-btn-block" disabled={busy} onClick={() => void save('')}>
+          <button type="button" className="cos-q-text" disabled={busy} onClick={() => void save('')}>
             {t('note.remove')}
           </button>
         )}
       </div>
-    </Sheet>
+    </CosSheet>
   )
 }

@@ -214,3 +214,17 @@ def test_this_week_is_a_handful_newest_first(client, db_session):
     week = [p["user_id"] for p in _week(client, 7430)]
     assert len(week) == 8
     assert week[0] == ids[-1]
+
+
+def test_your_blocked_list_says_since_when_newest_first(client, db_session):
+    """The blocked page shows "since 3 Mehr" under each name (section 42)."""
+    _user(client, db_session, 7501, "Me")
+    first = _user(client, db_session, 7502, "First")
+    second = _user(client, db_session, 7503, "Second")
+    client.post("/blocks", json={"user_id": first.id}, headers=_auth(7501))
+    client.post("/blocks", json={"user_id": second.id}, headers=_auth(7501))
+
+    listed = client.get("/blocks", headers=_auth(7501)).json()
+
+    assert [p["display_name"] for p in listed] == ["Second", "First"]
+    assert all(p["blocked_at"] for p in listed)

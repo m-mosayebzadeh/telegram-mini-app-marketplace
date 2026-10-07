@@ -36,6 +36,8 @@ export interface BlockedPerson {
   display_name: string
   username: string | null
   avatar_url: string | null
+  /** Since when, for "since 3 Mehr" under the name. */
+  blocked_at: string
 }
 
 export function fetchBlocked(): Promise<BlockedPerson[]> {

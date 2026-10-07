@@ -1,0 +1,507 @@
+/**
+ * Quiet pages (TECHNICAL_REQUIREMENTS.md section 42): settings and the
+ * pages under it, editing your profile, writing the note.
+ *
+ * Utility screens, so they are calm: sections divided by space and a
+ * hairline, never cards. They stand on the same night ground as the rest
+ * of the world and use its tokens (cosmos.css), with the world's bar along
+ * the bottom instead of the marketplace's old one. Built exactly from the
+ * approved prototype (https://claude.ai/artifact/WDn3ZUVxmdj26xynEMPvyT);
+ * the only bold things are the two that carry meaning — "you, as others
+ * see you" on settings, and the note written where it will float.
+ */
+
+.cos-q {
+  --cos-q-line: rgb(233 242 240 / 8%);
+  position: relative;
+  min-height: 100dvh;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  color: var(--cos-fg);
+  font-family: var(--cos-font-fa);
+  font-weight: 300;
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgb(122 215 200 / 9%), transparent 60%),
+    linear-gradient(var(--cos-deep), var(--cos-ink) 70%);
+  background-attachment: fixed;
+}
+.cos-q.has-foot { padding-bottom: calc(176px + env(safe-area-inset-bottom, 0px)); }
+/* Never wider than reading width, on a tablet or a desktop window. */
+.cos-q-in { max-width: 560px; margin-inline: auto; }
+
+/* Back at the start, the name in the middle, room for one thing at the end. */
+.cos-q-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 10px;
+  background: linear-gradient(var(--cos-deep) 60%, transparent);
+}
+.cos-q-top h1 { flex: 1; margin: 0; font-size: 16px; font-weight: 500; text-align: center; }
+.cos-q-round {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: rgb(233 242 240 / 6%);
+  color: var(--cos-fg);
+  cursor: pointer;
+}
+.cos-q-round svg { width: 20px; height: 20px; }
+.cos-q-round:active { scale: 0.94; }
+.cos-q-round:disabled { opacity: 0.4; cursor: default; scale: 1; }
+.cos-q-round.is-save { color: var(--cos-cool); }
+.cos-q-balance { flex: none; width: 44px; }
+/* Arrows are drawn for left-to-right and turned for a page read the
+   other way: back points to where the page starts, a row to where it goes. */
+[dir='rtl'] .cos-q-back svg,
+[dir='rtl'] .cos-q-chev { transform: scaleX(-1); }
+
+.cos-q-sec { margin-block-start: 22px; padding-inline: 18px; }
+.cos-q-sec.is-tight { margin-block-start: 8px; }
+.cos-q-sec.is-end { margin-block: 28px 30px; }
+.cos-q-sec-name {
+  margin: 0 0 4px;
+  padding-inline: 2px;
+  font-size: var(--cos-text-label);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  color: var(--cos-fg-faint);
+}
+.cos-q-rows { display: flex; flex-direction: column; }
+.cos-q-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding-block: 12px;
+  border: none;
+  border-block-end: 1px solid var(--cos-q-line);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.cos-q-row { cursor: pointer; }
+button.cos-q-row:active { background: rgb(233 242 240 / 3%); }
+.cos-q-rows > :last-child { border-block-end: none; }
+.cos-q-row.is-stack { flex-direction: column; align-items: stretch; gap: 12px; }
+.cos-q-row.is-center { justify-content: center; }
+.cos-q-row.is-center .cos-q-txt { flex: none; }
+.cos-q-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cos-q-t { font-size: var(--cos-text-read); font-weight: 400; line-height: 1.5; }
+.cos-q-h { font-size: var(--cos-text-label); line-height: 1.7; color: var(--cos-fg-faint); }
+.cos-q-v { flex: none; font-size: var(--cos-text-body); color: var(--cos-fg-soft); }
+.cos-q-v.is-latin { font-family: var(--cos-font-en); direction: ltr; }
+.cos-q-row.is-danger .cos-q-t { color: var(--cos-danger); }
+.cos-q-chev { flex: none; width: 16px; height: 16px; color: var(--cos-fg-faint); }
+.cos-q-ico {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(233 242 240 / 5%);
+  color: var(--cos-fg-soft);
+}
+.cos-q-ico.is-blank { background: none; }
+.cos-q-ico svg { width: 18px; height: 18px; }
+.cos-q-mark { flex: none; width: 36px; height: 36px; display: grid; place-items: center; }
+.cos-q-mark svg { width: 24px; height: 24px; }
+
+/* A choice of a few: the chosen one is lit cool, like every choice in the world. */
+.cos-q-seg {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid rgb(233 242 240 / 8%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(233 242 240 / 4%);
+}
+.cos-q-seg button {
+  flex: 1;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--cos-radius-sm);
+  background: none;
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  cursor: pointer;
+  transition: background var(--cos-t-quick), color var(--cos-t-quick), border-color var(--cos-t-quick);
+}
+.cos-q-seg button[aria-pressed='true'] {
+  border-color: rgb(122 215 200 / 45%);
+  background: rgb(122 215 200 / 12%);
+  color: var(--cos-cool);
+}
+.cos-q-seg button:disabled { cursor: default; }
+.cos-q-seg .is-latin { font-family: var(--cos-font-en); }
+.cos-q-link {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--cos-cool);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  cursor: pointer;
+}
+
+/* A switch. Never green: green means "here now" and nothing else. */
+.cos-q-sw {
+  flex: none;
+  position: relative;
+  width: 48px;
+  height: 28px;
+  border: 1px solid rgb(233 242 240 / 14%);
+  border-radius: 14px;
+  background: rgb(233 242 240 / 6%);
+  cursor: pointer;
+  transition: background var(--cos-t-quick), border-color var(--cos-t-quick);
+}
+.cos-q-sw::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--cos-fg-soft);
+  transition: inset-inline-start var(--cos-t-quick) var(--cos-ease-settle), background var(--cos-t-quick);
+}
+.cos-q-sw[aria-checked='true'] { border-color: rgb(122 215 200 / 55%); background: rgb(122 215 200 / 22%); }
+.cos-q-sw[aria-checked='true']::after { inset-inline-start: 23px; background: var(--cos-cool); }
+.cos-q-sw:disabled { opacity: 0.5; cursor: default; }
+
+/* "You, as others see you". The ring is the world's ring and means what it
+   means everywhere; nothing new is loaded onto it. */
+.cos-q-seen {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 6px 18px 0;
+  padding: 18px 16px;
+  border-radius: 20px;
+  background: radial-gradient(90% 120% at 50% 110%, rgb(122 215 200 / 10%), transparent 70%);
+}
+.cos-q-mini { position: relative; flex: none; width: 64px; height: 64px; }
+.cos-q-mini-body {
+  position: absolute;
+  inset: 6px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 20px;
+  background: radial-gradient(circle at 38% 32%, #f8d3a6, #e0975a 55%, #9a5d2c);
+  box-shadow: inset 0 0 14px rgb(255 240 220 / 35%);
+}
+.cos-q-mini-body img { width: 100%; height: 100%; object-fit: cover; }
+.cos-q-mini-ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--cos-live);
+  border-radius: 50%;
+  transition: opacity var(--cos-t-calm), scale var(--cos-t-calm) var(--cos-ease-settle);
+}
+.cos-q-mini.is-hidden .cos-q-mini-ring { opacity: 0; scale: 0.85; }
+.cos-q-seen-txt { display: flex; flex-direction: column; gap: 4px; }
+.cos-q-seen-txt b { font-size: 14px; font-weight: 500; }
+.cos-q-seen-txt span { font-size: var(--cos-text-label); line-height: 1.8; color: var(--cos-fg-soft); }
+
+/* Buttons. Warm is the one thing a page is for; the rest stay quiet. */
+.cos-q-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  border: none;
+  border-radius: var(--cos-radius-pill);
+  background: var(--cos-warm);
+  color: #1d1206;
+  font: inherit;
+  font-size: var(--cos-text-read);
+  font-weight: 500;
+  cursor: pointer;
+}
+.cos-q-primary:active { scale: 0.98; }
+.cos-q-primary:disabled { background: rgb(242 176 106 / 18%); color: rgb(242 176 106 / 50%); cursor: default; scale: 1; }
+.cos-q-primary.is-danger { background: var(--cos-danger); color: #2a0606; }
+.cos-q-quiet {
+  flex: none;
+  min-height: 40px;
+  padding-inline: 16px;
+  border: 1px solid rgb(233 242 240 / 14%);
+  border-radius: var(--cos-radius-pill);
+  background: none;
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  cursor: pointer;
+}
+.cos-q-quiet:disabled { opacity: 0.5; cursor: default; }
+.cos-q-text {
+  flex: none;
+  min-height: 44px;
+  padding-inline: 10px;
+  border: none;
+  background: none;
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  cursor: pointer;
+}
+.cos-q-text.is-cool { color: var(--cos-cool); }
+.cos-q-text.is-danger { padding-inline: 0; color: var(--cos-danger); }
+.cos-q-text:disabled { opacity: 0.4; cursor: default; }
+
+/* Fields */
+.cos-q-field { display: flex; flex-direction: column; gap: 8px; }
+.cos-q-field > label { font-size: var(--cos-text-label); color: var(--cos-fg-faint); }
+.cos-q-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: 1px solid rgb(233 242 240 / 12%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(233 242 240 / 4%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-read);
+  outline: none;
+  transition: border-color var(--cos-t-quick);
+}
+.cos-q-input:focus { border-color: rgb(122 215 200 / 55%); }
+.cos-q-input::placeholder { color: var(--cos-fg-faint); }
+.cos-q-input[aria-invalid='true'] { border-color: rgb(255 111 111 / 60%); }
+textarea.cos-q-input { min-height: 160px; resize: none; line-height: 1.9; }
+select.cos-q-input { padding-block: 0; }
+select.cos-q-input option { background: #0a161a; color: var(--cos-fg); }
+.cos-q-help { margin: 0; font-size: var(--cos-text-label); line-height: 1.8; color: var(--cos-fg-faint); }
+.cos-q-help.is-error { color: #ff8a80; }
+.cos-q-help.is-under { margin-block-start: 14px; }
+.cos-q-names {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(233 242 240 / 12%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(233 242 240 / 4%);
+}
+.cos-q-names input {
+  min-height: 52px;
+  padding-inline: 16px;
+  border: none;
+  background: none;
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-read);
+  outline: none;
+}
+.cos-q-names input + input { border-block-start: 1px solid var(--cos-q-line); }
+.cos-q-names input::placeholder { color: var(--cos-fg-faint); }
+.cos-q-names + .cos-q-help { margin-block-start: 8px; }
+/* A username is always Latin: the @ belongs to the field, at its left
+   edge, whatever the direction of the page around it. */
+.cos-q-handle {
+  display: flex;
+  align-items: center;
+  direction: ltr;
+  padding-inline-start: 16px;
+  border: 1px solid rgb(233 242 240 / 12%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(233 242 240 / 4%);
+}
+.cos-q-handle:focus-within { border-color: rgb(122 215 200 / 55%); }
+.cos-q-handle span { color: var(--cos-fg-faint); font-family: var(--cos-font-en); }
+.cos-q-handle input { flex: 1; min-height: 52px; padding-inline: 4px 16px; border: none; background: none; color: var(--cos-fg); font-family: var(--cos-font-en); font-size: var(--cos-text-read); outline: none; }
+.cos-q-date { display: flex; gap: 8px; }
+.cos-q-date select { flex: 1; }
+
+/* People and devices */
+.cos-q-person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  border-block-end: 1px solid var(--cos-q-line);
+}
+.cos-q-face {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #3f5a63;
+  font-size: 16px;
+  color: var(--cos-fg);
+}
+.cos-q-face img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.55) brightness(0.85); }
+.cos-q-tag {
+  margin-inline-start: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(122 215 200 / 12%);
+  color: var(--cos-cool);
+  font-size: var(--cos-text-caption);
+  font-weight: 400;
+}
+.cos-q-lead { margin: 0; padding-inline: 20px; font-size: var(--cos-text-body); line-height: 1.9; color: var(--cos-fg-soft); }
+.cos-q-sure { color: var(--cos-fg); }
+.cos-q-after { margin-block-start: 10px; padding-inline: 20px; }
+
+/* Nobody there: a far, soft body rather than a padlock. Somebody blocked
+   is exactly that, somebody no longer in your sky. */
+.cos-q-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 90px 32px 0; text-align: center; }
+.cos-q-far {
+  width: 54px;
+  height: 54px;
+  margin-block-end: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #8aa, #3c5458);
+  filter: blur(var(--cos-far-blur));
+  opacity: 0.55;
+}
+.cos-q-empty b { font-size: 16px; font-weight: 500; }
+.cos-q-empty p { margin: 0; font-size: var(--cos-text-body); line-height: 1.9; color: var(--cos-fg-soft); }
+.cos-q-wait { display: flex; flex-direction: column; gap: 12px; padding: 22px 18px; }
+.cos-q-wait span { height: 48px; border-radius: var(--cos-radius-md); background: rgb(233 242 240 / 4%); animation: cos-q-breathe 1.6s ease-in-out infinite; }
+@keyframes cos-q-breathe { 50% { opacity: 0.5; } }
+
+/* The one action of a page, pinned just above the world's bar. */
+.cos-q-foot {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+  z-index: 4;
+  padding: 12px 18px 14px;
+  background: linear-gradient(transparent, var(--cos-ink) 35%);
+}
+.cos-q-foot > * { max-width: 524px; margin-inline: auto; }
+
+/* Inside a sheet */
+.cos-q-choice { display: flex; flex-direction: column; gap: 8px; }
+.cos-q-choice > button,
+.cos-q-choice > label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  padding-inline: 18px;
+  border: 1px solid rgb(233 242 240 / 12%);
+  border-radius: var(--cos-radius-md);
+  background: rgb(233 242 240 / 4%);
+  color: var(--cos-fg);
+  font: inherit;
+  font-size: var(--cos-text-read);
+  text-align: start;
+  cursor: pointer;
+}
+.cos-q-choice > [aria-pressed='true'],
+.cos-q-choice > label:has(input:checked) {
+  border-color: rgb(122 215 200 / 55%);
+  background: rgb(122 215 200 / 10%);
+  color: var(--cos-cool);
+}
+.cos-q-choice input { width: 18px; height: 18px; accent-color: var(--cos-cool); }
+.cos-q-sheet-body { display: flex; flex-direction: column; gap: 14px; }
+.cos-q-sheet-text { margin: 0; font-size: 14px; line-height: 1.9; color: var(--cos-fg-soft); }
+.cos-q-sheet-actions { display: flex; flex-direction: column; gap: 8px; margin-block-start: 6px; }
+.cos-q-sheet-actions .cos-q-text { width: 100%; }
+
+/* ---- the note: written where it will float ---- */
+.cos-sheet.is-note { padding-inline: 0; }
+.cos-sheet.is-note .cos-sheet-title { padding-inline: 18px; }
+.cos-q-note-stage {
+  position: relative;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-block-end: 20px;
+  overflow: hidden;
+}
+.cos-q-note-stage::after {
+  content: '';
+  position: absolute;
+  inset-inline: -30%;
+  bottom: -210px;
+  height: 300px;
+  border-radius: 50%;
+  border-block-start: 1.5px solid rgb(122 215 200 / 35%);
+  box-shadow: 0 -10px 40px rgb(122 215 200 / 8%);
+}
+.cos-q-bubble {
+  position: relative;
+  max-width: 280px;
+  min-height: 40px;
+  margin-block-end: 14px;
+  padding: 9px 16px;
+  border: 1px solid rgb(233 242 240 / 14%);
+  border-radius: 18px;
+  background: rgb(233 242 240 / 9%);
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.cos-q-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  border-inline-end: inherit;
+  border-block-end: inherit;
+  transform: translateX(-50%) rotate(45deg);
+}
+.cos-q-bubble.is-empty { border-style: dashed; background: transparent; color: var(--cos-fg-faint); }
+.cos-q-bubble.is-empty::after { display: none; }
+.cos-q-big-orb {
+  position: relative;
+  z-index: 1;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 34px;
+  background: radial-gradient(circle at 38% 32%, #f8d3a6, #e0975a 55%, #9a5d2c);
+  box-shadow: 0 0 50px rgb(242 176 106 / 22%);
+}
+.cos-q-big-orb img { width: 100%; height: 100%; object-fit: cover; }
+.cos-q-note-name { position: relative; z-index: 1; margin-block-start: 10px; font-size: 15px; font-weight: 500; }
+.cos-q-note-form { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px 0; }
+.cos-q-note-write { display: flex; align-items: center; gap: 10px; }
+/* Sixty letters as a small ring that fills, and warms near the end, rather
+   than a number that keeps pulling at the eye. */
+.cos-q-count { position: relative; flex: none; width: 34px; height: 34px; }
+.cos-q-count svg { width: 34px; height: 34px; transform: rotate(-90deg); }
+.cos-q-count circle { fill: none; stroke-width: 2.5; }
+.cos-q-count .is-track { stroke: rgb(233 242 240 / 10%); }
+.cos-q-count .is-fill { stroke: var(--cos-cool); stroke-linecap: round; transition: stroke-dashoffset 0.15s, stroke 0.2s; }
+.cos-q-count.is-near .is-fill { stroke: var(--cos-warm); }
+.cos-q-count span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: var(--cos-fg-faint); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cos-q-mini-ring,
+  .cos-q-sw,
+  .cos-q-sw::after { transition: none; }
+  .cos-q-wait span { animation: none; }
+}

@@ -64,6 +64,11 @@ describe('the bar along the bottom', () => {
     expect(doorOf('/events')).toBe('events')
     expect(doorOf('/profile')).toBe('me')
     expect(doorOf('/friends')).toBe('me')
+    // Settings and what hangs under it are yours, not the old marketplace's.
+    expect(doorOf('/settings')).toBe('me')
+    expect(doorOf('/settings/blocked')).toBe('me')
+    expect(doorOf('/profile/edit')).toBe('me')
+    expect(doorOf('/link')).toBe('me')
     // A conversation owns the whole screen; somebody else's page is reached
     // from the world, so the world's door is the lit one there.
     expect(doorOf('/conversations/3')).toBeNull()

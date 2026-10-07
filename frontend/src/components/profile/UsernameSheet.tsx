@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sheet } from '../ui/Sheet'
-import { Button } from '../ui/Button'
+import { CosSheet } from '../cosmos/CosSheet'
 
 /** a-z, A-Z, 0-9 and underscore, 3 to 32 — the same rule the backend
  *  enforces (see app/main.py's USERNAME_PATTERN). */
@@ -49,61 +48,47 @@ export function UsernameSheet({
   const clearing = trimmed.length === 0 && value.length > 0
 
   return (
-    <Sheet
-      title={t('profilePage.usernameLabel')}
-      onClose={onClose}
-      footer={
-        <Button
-          variant={clearing ? 'danger' : 'primary'}
-          size="lg"
-          block
-          disabled={invalid || (trimmed.length === 0 && value.length === 0)}
-          loading={saving}
+    <CosSheet title={t('profilePage.usernameLabel')} onClose={onClose}>
+      <div className="cos-q-sheet-body">
+        <div className="cos-q-field">
+          {/* The group runs left-to-right as a unit, so the @ sits where
+              the name starts rather than at the far end of an RTL row. */}
+          <div className="cos-q-handle">
+            <span aria-hidden="true">@</span>
+            <input
+              id="profile-username"
+              value={draft}
+              onChange={(event) => {
+                setDraft(event.target.value)
+                onErrorCleared()
+              }}
+              // A username is never Persian, so the keyboard and the
+              // autocorrect should not behave as though it might be.
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label={t('profilePage.usernameLabel')}
+              aria-invalid={invalid || !!error || undefined}
+              autoFocus
+            />
+          </div>
+          {invalid ? (
+            <p className="cos-q-help is-error">{t('profilePage.usernameInvalidChars')}</p>
+          ) : error ? (
+            <p className="cos-q-help is-error">{error}</p>
+          ) : (
+            <p className="cos-q-help">{clearing ? t('profilePage.usernameRemoveHint') : t('profilePage.usernameHint')}</p>
+          )}
+        </div>
+        <button
+          type="button"
+          className={`cos-q-primary${clearing ? ' is-danger' : ''}`}
+          disabled={saving || invalid || (trimmed.length === 0 && value.length === 0)}
           onClick={() => onSave(trimmed)}
         >
           {clearing ? t('profilePage.usernameRemove') : t('profilePage.saveButton')}
-        </Button>
-      }
-    >
-      <div className={`ui-field${invalid || error ? ' ui-field-invalid' : ''}`}>
-        <label className="ui-field-label" htmlFor="profile-username">
-          {t('profilePage.usernameLabel')}
-        </label>
-
-        {/* The group runs left-to-right as a unit, so the @ sits where
-            the name starts rather than at the far end of an RTL row. */}
-        <div className="ui-input-group ep-username-group">
-          <span className="ep-username-at" aria-hidden="true">
-            @
-          </span>
-          <input
-            id="profile-username"
-            className="ui-input ep-username-input"
-            value={draft}
-            onChange={(event) => {
-              setDraft(event.target.value)
-              onErrorCleared()
-            }}
-            // A username is never Persian, so the keyboard and the
-            // autocorrect should not behave as though it might be.
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            aria-invalid={invalid || !!error || undefined}
-            autoFocus
-          />
-        </div>
-
-        {invalid ? (
-          <span className="ui-field-error">{t('profilePage.usernameInvalidChars')}</span>
-        ) : error ? (
-          <span className="ui-field-error">{error}</span>
-        ) : (
-          <span className="ui-field-help">
-            {clearing ? t('profilePage.usernameRemoveHint') : t('profilePage.usernameHint')}
-          </span>
-        )}
+        </button>
       </div>
-    </Sheet>
+    </CosSheet>
   )
 }

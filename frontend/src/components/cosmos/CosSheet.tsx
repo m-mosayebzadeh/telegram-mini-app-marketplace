@@ -18,9 +18,14 @@ interface CosSheetProps {
   title: string
   onClose: () => void
   children: ReactNode
+  /** For a sheet whose picture says what it is (the note, written above
+   *  your own orb): the title stays for screen readers only. */
+  titleHidden?: boolean
+  /** A variant of the sheet's own frame, such as "is-note". */
+  className?: string
 }
 
-export function CosSheet({ title, onClose, children }: CosSheetProps) {
+export function CosSheet({ title, onClose, children, titleHidden, className }: CosSheetProps) {
   // Escape closes it, because a sheet with no keyboard exit is a trap on
   // the desktop where this is also opened during development.
   useEffect(() => {
@@ -39,9 +44,9 @@ export function CosSheet({ title, onClose, children }: CosSheetProps) {
         onClick={onClose}
         aria-label={title}
       />
-      <div className="cos-sheet" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`cos-sheet${className ? ` ${className}` : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <span className="cos-sheet-grab" aria-hidden="true" />
-        <h2 className="cos-sheet-title">{title}</h2>
+        <h2 className={titleHidden ? 'cos-visually-hidden' : 'cos-sheet-title'}>{title}</h2>
         {children}
       </div>
     </div>

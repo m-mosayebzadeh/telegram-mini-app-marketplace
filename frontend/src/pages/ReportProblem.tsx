@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Button, PageHeader, useToast } from '../components/ui'
+import { useToast } from '../components/ui'
+import { QuietPage, QuietSection } from '../components/cosmos/Quiet'
 import { formatApiError } from '../lib/api'
 import { sendFeedback } from '../lib/accountApi'
 
@@ -9,10 +10,12 @@ import { sendFeedback } from '../lib/accountApi'
 const MAX = 1000
 
 /**
- * "Report a problem" (section 32, step 4): a few words about the app
- * itself — something broken, something confusing, an idea. Read by the
- * team in the admin panel. A report about a person is a different thing,
- * made from their profile or a conversation.
+ * "Report a problem" (section 32, step 4; drawn as the approved prototype,
+ * section 42): a few words about the app itself — something broken,
+ * something confusing, an idea. Read by the team in the admin panel. A
+ * report about a person is a different thing, made from their profile or
+ * a conversation. The send button stays faint until there is something to
+ * send, then warms.
  */
 export default function ReportProblem() {
   const { t } = useTranslation()
@@ -36,30 +39,30 @@ export default function ReportProblem() {
   }
 
   return (
-    <div className="ui-page">
-      <PageHeader title={t('settings.report')} onBack={() => navigate(-1)} />
-      <div className="ui-page-body ui-page-body-action">
-        <div className="co-form">
-          <label className="ui-field" htmlFor="report-text">
-            <span className="ui-field-label">{t('report.label')}</span>
-            <textarea
-              id="report-text"
-              className="ui-input ui-textarea"
-              rows={6}
-              maxLength={MAX}
-              value={text}
-              placeholder={t('report.placeholder')}
-              onChange={(event) => setText(event.target.value)}
-            />
-          </label>
-          <span className="ui-field-help">{t('report.hint')}</span>
-        </div>
-      </div>
-      <div className="ui-action-bar">
-        <Button variant="primary" size="lg" block disabled={text.trim() === ''} loading={busy} onClick={() => void send()}>
+    <QuietPage
+      title={t('settings.report')}
+      onBack={() => navigate(-1)}
+      foot={
+        <button type="button" className="cos-q-primary" disabled={text.trim() === '' || busy} onClick={() => void send()}>
           {t('report.send')}
-        </Button>
-      </div>
-    </div>
+        </button>
+      }
+    >
+      <QuietSection className="is-tight">
+        <div className="cos-q-field">
+          <label htmlFor="report-text">{t('report.label')}</label>
+          <textarea
+            id="report-text"
+            className="cos-q-input"
+            dir="auto"
+            maxLength={MAX}
+            value={text}
+            placeholder={t('report.placeholder')}
+            onChange={(event) => setText(event.target.value)}
+          />
+        </div>
+        <p className="cos-q-help is-under">{t('report.hint')}</p>
+      </QuietSection>
+    </QuietPage>
   )
 }

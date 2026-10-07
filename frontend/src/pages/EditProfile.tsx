@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ApiError, apiFetch, formatApiError } from '../lib/api'
 import { formatBirthday } from '../lib/jalali'
-import { ErrorState, PageHeader, SkeletonRows, useToast } from '../components/ui'
-import { IconCheck, IconChevron } from '../components/icons'
+import { useToast } from '../components/ui'
+import { QuietError, QuietPage, QuietRow, QuietSection, QuietWaiting } from '../components/cosmos/Quiet'
+import { QCheck } from '../components/cosmos/quietIcons'
 import { BirthdaySheet, type BirthdayValue } from '../components/profile/BirthdaySheet'
 import { GenderSheet } from '../components/profile/GenderSheet'
 import { UsernameSheet } from '../components/profile/UsernameSheet'
@@ -173,103 +174,77 @@ export default function EditProfile() {
 
   if (loadError || !profile) {
     return (
-      <div className="ui-page">
-        <PageHeader title={t('profilePage.editTitle')} onBack={() => navigate(-1)} />
-        <div className="ui-page-body">
-          {loadError ? <ErrorState text={loadError} onRetry={load} /> : <SkeletonRows count={4} />}
-        </div>
-      </div>
+      <QuietPage title={t('profilePage.editTitle')} onBack={() => navigate(-1)}>
+        {loadError ? <QuietError text={loadError} onRetry={load} /> : <QuietWaiting rows={4} />}
+      </QuietPage>
     )
   }
 
   const birthdayLabel =
     birthday.month != null && birthday.day != null
       ? formatBirthday(birthday.month, birthday.day, birthday.year, i18n.language)
-      : t('profilePage.addBirthday')
+      : t('profilePage.add')
 
   return (
-    <div className="ui-page">
-      <PageHeader
-        title={t('profilePage.editTitle')}
-        onBack={() => navigate(-1)}
-        action={
-          /* Save lives in the header because this page is a list of
-             small edits, not one form with one outcome. It stays
-             disabled until the page is saveable rather than erroring
-             after the tap. */
-          <button
-            className="ui-btn ui-btn-icon ep-save"
-            disabled={firstNameEmpty || busy}
-            onClick={saveNameAndBio}
-            aria-label={t('profilePage.saveButton')}
-          >
-            <IconCheck size={22} />
-          </button>
-        }
-      />
-
-      <div className="ui-page-body">
+    <QuietPage
+      title={t('profilePage.editTitle')}
+      onBack={() => navigate(-1)}
+      action={
+        /* Save lives in the top bar because this page is a list of small
+           edits, not one form with one outcome. It stays disabled until
+           the page is saveable rather than erroring after the tap. */
+        <button
+          type="button"
+          className="cos-q-round is-save"
+          disabled={firstNameEmpty || busy}
+          onClick={saveNameAndBio}
+          aria-label={t('profilePage.saveButton')}
+        >
+          <QCheck />
+        </button>
+      }
+    >
+      <QuietSection name={t('profilePage.nameGroup')} className="is-tight">
         {/* Two rows of one block: a first and last name are halves of one
-            answer, and two bordered boxes would say they are two
-            questions. */}
-        <div className="ep-group">
+            answer, and two bordered boxes would say they are two questions. */}
+        <div className="cos-q-names">
           <input
-            className="ep-group-input"
+            dir="auto"
             placeholder={t('profilePage.firstNamePlaceholder')}
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             aria-label={t('profilePage.firstNamePlaceholder')}
           />
           <input
-            className="ep-group-input"
-            placeholder={t('profilePage.lastNamePlaceholder')}
+            dir="auto"
+            placeholder={t('profilePage.lastNameOptional')}
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             aria-label={t('profilePage.lastNamePlaceholder')}
           />
         </div>
+        <p className="cos-q-help">{t('profilePage.nameHint')}</p>
+      </QuietSection>
 
-        <section className="ui-section">
-          <h2 className="ui-section-title">{t('profilePage.yourInfoLabel')}</h2>
-          {/* Each of these is its own thing with its own rules, and each
-              saves on its own — which is what lets each have a real
-              editor rather than a text field pretending to be one. */}
-          <div className="ui-list">
-            <button className="ui-row" onClick={() => setSheet('username')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('profilePage.usernameLabel')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <span className={username ? 'ep-value-latin' : undefined}>
-                  {username ? `@${username}` : t('profilePage.addUsername')}
-                </span>
-                <IconChevron size={20} className="ui-row-chevron" />
-              </span>
-            </button>
-
-            <button className="ui-row" onClick={() => setSheet('gender')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('profilePage.genderLabel')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                {gender ? t(`echo.gender.${gender}`) : t('profilePage.notSet')}
-                <IconChevron size={20} className="ui-row-chevron" />
-              </span>
-            </button>
-
-            <button className="ui-row" onClick={() => setSheet('birthday')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('profilePage.birthdayLabel')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                {birthdayLabel}
-                <IconChevron size={20} className="ui-row-chevron" />
-              </span>
-            </button>
-
-          </div>
-        </section>
-      </div>
+      <QuietSection name={t('profilePage.aboutGroup')}>
+        {/* Each of these is its own thing with its own rules, and each
+            saves on its own — which is what lets each have a real editor
+            rather than a text field pretending to be one. */}
+        <div className="cos-q-rows">
+          <QuietRow
+            title={t('profilePage.usernameLabel')}
+            value={username ? `@${username}` : t('profilePage.add')}
+            valueLatin={!!username}
+            onClick={() => setSheet('username')}
+          />
+          <QuietRow
+            title={t('profilePage.genderLabel')}
+            value={gender ? t(`echo.gender.${gender}`) : t('profilePage.notSet')}
+            onClick={() => setSheet('gender')}
+          />
+          <QuietRow title={t('profilePage.birthdayLabel')} value={birthdayLabel} onClick={() => setSheet('birthday')} />
+        </div>
+      </QuietSection>
 
       {sheet === 'username' && (
         <UsernameSheet
@@ -314,6 +289,6 @@ export default function EditProfile() {
         />
       )}
 
-    </div>
+    </QuietPage>
   )
 }

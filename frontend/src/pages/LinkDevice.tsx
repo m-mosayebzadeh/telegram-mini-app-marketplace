@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Button, ErrorState, PageHeader, SkeletonRows } from '../components/ui'
+import { QuietError, QuietPage, QuietSection, QuietWaiting } from '../components/cosmos/Quiet'
 import { apiReason, formatApiError } from '../lib/api'
 import {
   approveDeviceRequest,
@@ -62,21 +62,36 @@ export default function LinkDevice() {
     }
   }
 
+  const asking = request && !done && !error
   return (
-    <div className="ui-page">
-      <PageHeader title={t('link.title')} onBack={() => navigate('/settings')} />
-      <div className={`ui-page-body${request && !done ? ' ui-page-body-action' : ''}`}>
+    <QuietPage
+      title={t('link.title')}
+      onBack={() => navigate('/settings')}
+      foot={
+        asking && (
+          <div className="cos-link-actions">
+            <button type="button" className="cos-q-primary" disabled={busy} onClick={() => void answer(true)}>
+              {t('link.yes')}
+            </button>
+            <button type="button" className="cos-q-text" disabled={busy} onClick={() => void answer(false)}>
+              {t('link.no')}
+            </button>
+          </div>
+        )
+      }
+    >
+      <QuietSection className="is-tight">
         {done ? (
           <section className="cos-link-done">
             <p className="cos-link-big">{done === 'approved' ? t('link.approved') : t('link.refused')}</p>
-            <Button variant="secondary" size="lg" block onClick={() => navigate('/sky')}>
+            <button type="button" className="cos-q-primary" onClick={() => navigate('/sky')}>
               {t('link.toWorld')}
-            </Button>
+            </button>
           </section>
         ) : !code ? (
           // Reached from Settings: type the letters the other device shows.
           <form
-            className="co-form"
+            className="cos-link-done"
             onSubmit={(e) => {
               e.preventDefault()
               const clean = cleanCode(typed)
@@ -84,11 +99,11 @@ export default function LinkDevice() {
             }}
           >
             <p className="cos-link-hint">{t('link.typeHint')}</p>
-            <label className="ui-field" htmlFor="link-code">
-              <span className="ui-field-label">{t('link.codeLabel')}</span>
+            <div className="cos-q-field">
+              <label htmlFor="link-code">{t('link.codeLabel')}</label>
               <input
                 id="link-code"
-                className="ui-input cos-link-input"
+                className="cos-q-input cos-link-input"
                 dir="ltr"
                 autoCapitalize="characters"
                 autoComplete="off"
@@ -97,15 +112,15 @@ export default function LinkDevice() {
                 placeholder="K7Q2 9MXA"
                 onChange={(e) => setTyped(e.target.value)}
               />
-            </label>
-            <Button variant="primary" size="lg" block type="submit" disabled={cleanCode(typed).length < 6}>
+            </div>
+            <button type="submit" className="cos-q-primary" disabled={cleanCode(typed).length < 6}>
               {t('link.find')}
-            </Button>
+            </button>
           </form>
         ) : error ? (
-          <ErrorState text={error} onRetry={() => { setCode(''); setRequest(null); setError('') }} />
+          <QuietError text={error} onRetry={() => { setCode(''); setRequest(null); setError('') }} />
         ) : !request ? (
-          <SkeletonRows count={2} />
+          <QuietWaiting rows={2} />
         ) : (
           <section className="cos-link-ask">
             <p className="cos-link-big">{t('link.question')}</p>
@@ -117,18 +132,7 @@ export default function LinkDevice() {
             <p className="cos-link-hint">{t('link.warning')}</p>
           </section>
         )}
-      </div>
-
-      {request && !done && !error && (
-        <div className="ui-action-bar cos-link-actions">
-          <Button variant="primary" size="lg" block loading={busy} onClick={() => void answer(true)}>
-            {t('link.yes')}
-          </Button>
-          <Button variant="ghost" size="lg" block disabled={busy} onClick={() => void answer(false)}>
-            {t('link.no')}
-          </Button>
-        </div>
-      )}
-    </div>
+      </QuietSection>
+    </QuietPage>
   )
 }

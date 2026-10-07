@@ -203,4 +203,24 @@ describe('the me page', () => {
     expect(mocks.end).not.toHaveBeenCalled()
     expect(host.textContent).not.toContain('friends.takeBackTitle')
   })
+
+  it('writes the note above your own orb, taking shape as it is typed', async () => {
+    await open()
+    await act(async () => host.querySelector<HTMLButtonElement>('.cos-me-note')!.click())
+    const bubble = () => document.querySelector('.cos-q-bubble')!
+    // Empty at first: the same invitation as on the page.
+    expect(bubble().classList.contains('is-empty')).toBe(true)
+    expect((document.querySelector('.cos-q-note-form .cos-q-primary') as HTMLButtonElement).disabled).toBe(true)
+    const input = document.querySelector<HTMLInputElement>('.cos-q-note-form input')!
+    await act(async () => {
+      const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+      set.call(input, 'looking for a film')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(bubble().textContent).toBe('looking for a film')
+    expect(bubble().classList.contains('is-empty')).toBe(false)
+    // Sixty letters, eighteen used: the ring says forty-two are left.
+    expect(document.querySelector('.cos-q-count span')!.textContent).toBe('42')
+    expect((document.querySelector('.cos-q-note-form .cos-q-primary') as HTMLButtonElement).disabled).toBe(false)
+  })
 })

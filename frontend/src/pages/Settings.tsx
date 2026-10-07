@@ -1,27 +1,31 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ConfirmDialog, PageHeader, useToast } from '../components/ui'
+import { useToast } from '../components/ui'
+import { QuietChoiceRow, QuietConfirm, QuietPage, QuietRow, QuietSection, QuietSwitchRow } from '../components/cosmos/Quiet'
+import { QBell, QFlag, QKey, QDevice, QLeaf, QOut, QPerson, QTwoDevices } from '../components/cosmos/quietIcons'
 import { useMe } from '../lib/MeContext'
 import { formatApiError } from '../lib/api'
-import { deleteAccount, fetchPrivacy, savePrivacy, type ChatDoor, type FriendsSeenBy, type Privacy } from '../lib/accountApi'
+import { deleteAccount, fetchBlocked, fetchPrivacy, savePrivacy, type ChatDoor, type FriendsSeenBy, type Privacy } from '../lib/accountApi'
+import { fetchFriendsViewers } from '../lib/friendsApi'
 import { ChosenViewersSheet } from '../components/profile/ChosenViewersSheet'
 import { readLightGraphics, setLightGraphics } from '../lib/lightGraphics'
 import { signOut } from '../lib/auth'
 import { pushState, setPushPreview, turnPushOff, turnPushOn, type PushState } from '../lib/push'
-import { IconChevron, IconUsers } from '../components/icons'
 
 /**
- * Settings (section 32, step 4): what the owner settled for "me".
+ * Settings (section 32, step 4; drawn as the approved prototype, section 42).
  *
  * - You: edit the profile.
- * - Privacy: who may message you, hiding when you are online, and the
- *   people you blocked. Everything starts at the freest setting, and
- *   whoever wants it narrower narrows it (the owner's rule).
- * - The app: the language, and light graphics for phones that need it.
- *   The light/dark choice is gone; the world is a night sky.
+ * - Privacy: who may message you, hiding when you are online, who sees
+ *   your friends, and the people you blocked — under "you, as others see
+ *   you", your own small orb showing what those settings do to it.
+ *   Everything starts at the freest setting, and whoever wants it narrower
+ *   narrows it (the owner's rule).
+ * - The app: the language, notifications, light graphics.
  * - Help: report a problem.
- * - The account: deleting it, asked twice.
+ * - The account: ways in, devices, signing in another device, signing out,
+ *   and deleting it, asked twice.
  *
  * The wallet is not here: the paid layer is hidden (section 32).
  */
@@ -34,6 +38,8 @@ export default function Settings() {
   const [privacy, setPrivacy] = useState<Privacy | null>(null)
   const [lite, setLite] = useState(readLightGraphics)
   const [choosing, setChoosing] = useState(false)
+  const [chosenCount, setChosenCount] = useState<number | null>(null)
+  const [blockedCount, setBlockedCount] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<0 | 1 | 2>(0)
   const [signingOut, setSigningOut] = useState(false)
   const [deleteBusy, setDeleteBusy] = useState(false)
@@ -42,11 +48,23 @@ export default function Settings() {
     fetchPrivacy()
       .then(setPrivacy)
       .catch(() => setPrivacy({ chat_door: 'open', hide_online: false }))
+    fetchBlocked()
+      .then((people) => setBlockedCount(people.length))
+      .catch(() => setBlockedCount(null))
   }, [])
 
-  // A switch takes effect the moment it is tapped (the design system's
-  // rule for switches), so each change is saved at once, and put back if
-  // the server says no.
+  // How many people were chosen, for "choose people · 3", read again each
+  // time the choosing sheet closes.
+  const chosen = privacy?.friends_seen_by === 'chosen'
+  useEffect(() => {
+    if (!chosen || choosing) return
+    fetchFriendsViewers()
+      .then((ids) => setChosenCount(ids.length))
+      .catch(() => setChosenCount(null))
+  }, [chosen, choosing])
+
+  // A switch takes effect the moment it is tapped, so each change is saved
+  // at once, and put back if the server says no.
   function changePrivacy(next: Privacy) {
     const before = privacy
     setPrivacy(next)
@@ -68,227 +86,116 @@ export default function Settings() {
     }
   }
 
-  const door = (value: ChatDoor, label: string) => (
-    <button
-      type="button"
-      className={`st-segment-option${privacy?.chat_door === value ? ' st-segment-option-active' : ''}`}
-      aria-pressed={privacy?.chat_door === value}
-      disabled={!privacy}
-      onClick={() => privacy && changePrivacy({ ...privacy, chat_door: value })}
-    >
-      {label}
-    </button>
-  )
-
   return (
-    <div className="ui-page">
-      <PageHeader title={t('settings.title')} onBack={() => navigate(-1)} />
+    <QuietPage title={t('settings.title')} onBack={() => navigate(-1)}>
+      <QuietSection name={t('settings.youGroup')}>
+        <div className="cos-q-rows">
+          <QuietRow icon={<QPerson />} title={t('profilePage.editButton')} hint={t('settings.youHint')} onClick={() => navigate('/profile/edit')} />
+        </div>
+      </QuietSection>
 
-      <div className="ui-page-body">
-        <section className="ui-section">
-          <h2 className="ui-section-title">{t('settings.youGroup')}</h2>
-          <div className="ui-list">
-            <button className="ui-row" onClick={() => navigate('/profile/edit')}>
-              <span className="ui-row-media">
-                <IconUsers size={20} />
-              </span>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('profilePage.editButton')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <IconChevron size={20} />
-              </span>
-            </button>
-          </div>
-        </section>
-
-        <section className="ui-section">
-          <h2 className="ui-section-title">{t('settings.privacyGroup')}</h2>
-          <div className="ui-list">
-            <div className="ui-row is-wrap st-stack">
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('settings.door')}</span>
-                <span className="ui-row-subtitle">{t('settings.doorHint')}</span>
-              </span>
-              <div className="st-segment" role="group" aria-label={t('settings.door')}>
-                {door('open', t('settings.doorOpen'))}
-                {door('friends', t('settings.doorFriends'))}
-              </div>
-            </div>
-            <button
-              type="button"
-              className="ui-row is-wrap"
-              role="switch"
-              aria-checked={privacy?.hide_online ?? false}
-              disabled={!privacy}
-              onClick={() => privacy && changePrivacy({ ...privacy, hide_online: !privacy.hide_online })}
-            >
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('settings.hideOnline')}</span>
-                <span className="ui-row-subtitle">{t('settings.hideOnlineHint')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <span className="ui-switch" aria-hidden="true" aria-checked={privacy?.hide_online ?? false} />
-              </span>
-            </button>
-            <div className="ui-row is-wrap st-stack">
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('settings.friendsSeen')}</span>
-                <span className="ui-row-subtitle">{t('settings.friendsSeenHint')}</span>
-              </span>
-              <div className="st-segment st-segment-wrap" role="group" aria-label={t('settings.friendsSeen')}>
-                {(['everyone', 'friends', 'chosen', 'nobody'] as FriendsSeenBy[]).map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`st-segment-option${(privacy?.friends_seen_by ?? 'everyone') === value ? ' st-segment-option-active' : ''}`}
-                    aria-pressed={(privacy?.friends_seen_by ?? 'everyone') === value}
-                    disabled={!privacy}
-                    onClick={() => {
-                      if (!privacy) return
-                      changePrivacy({ ...privacy, friends_seen_by: value })
-                      if (value === 'chosen') setChoosing(true)
-                    }}
-                  >
-                    {t(`settings.seen.${value}`)}
-                  </button>
-                ))}
-              </div>
-              {privacy?.friends_seen_by === 'chosen' && (
-                <button type="button" className="ui-btn ui-btn-secondary ui-btn-sm st-choose" onClick={() => setChoosing(true)}>
-                  {t('settings.chooseViewers')}
+      <QuietSection name={t('settings.privacyGroup')} />
+      <SeenByOthers privacy={privacy} />
+      <QuietSection className="is-tight">
+        <div className="cos-q-rows">
+          <QuietChoiceRow<ChatDoor>
+            title={t('settings.door')}
+            hint={t('settings.doorHint')}
+            choices={[
+              { value: 'open', label: t('settings.doorOpen') },
+              { value: 'friends', label: t('settings.doorFriends') },
+            ]}
+            value={privacy?.chat_door ?? null}
+            disabled={!privacy}
+            onChoose={(value) => privacy && changePrivacy({ ...privacy, chat_door: value })}
+          />
+          <QuietSwitchRow
+            title={t('settings.hideOnline')}
+            hint={t('settings.hideOnlineHint')}
+            on={privacy?.hide_online ?? false}
+            disabled={!privacy}
+            onToggle={() => privacy && changePrivacy({ ...privacy, hide_online: !privacy.hide_online })}
+          />
+          <QuietChoiceRow<FriendsSeenBy>
+            title={t('settings.friendsSeen')}
+            hint={t('settings.friendsSeenHint')}
+            choices={(['everyone', 'friends', 'chosen', 'nobody'] as FriendsSeenBy[]).map((value) => ({ value, label: t(`settings.seen.${value}`) }))}
+            value={privacy ? (privacy.friends_seen_by ?? 'everyone') : null}
+            disabled={!privacy}
+            onChoose={(value) => {
+              if (!privacy) return
+              changePrivacy({ ...privacy, friends_seen_by: value })
+              if (value === 'chosen') setChoosing(true)
+            }}
+            after={
+              chosen && (
+                <button type="button" className="cos-q-link" onClick={() => setChoosing(true)}>
+                  {chosenCount === null ? t('settings.chooseViewers') : t('settings.chooseViewersCount', { count: chosenCount })}
                 </button>
-              )}
-            </div>
-            <button className="ui-row" onClick={() => navigate('/settings/blocked')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('settings.blocked')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <IconChevron size={20} />
-              </span>
-            </button>
-          </div>
-        </section>
+              )
+            }
+          />
+          <QuietRow
+            title={t('settings.blocked')}
+            value={blockedCount ? t('settings.people', { count: blockedCount }) : undefined}
+            onClick={() => navigate('/settings/blocked')}
+          />
+        </div>
+      </QuietSection>
 
-        <section className="ui-section">
-          <h2 className="ui-section-title">{t('settings.appGroup')}</h2>
-          <div className="ui-list">
-            <div className="ui-row">
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('common.language')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <div className="st-segment" role="group" aria-label={t('common.language')}>
-                  {/* Each language is labelled in ITSELF, never
-                      translated — someone who has landed in the wrong
-                      language has to be able to find their way out. */}
-                  <button
-                    type="button"
-                    className={`st-segment-option${i18n.language === 'fa' ? ' st-segment-option-active' : ''}`}
-                    aria-pressed={i18n.language === 'fa'}
-                    onClick={() => i18n.changeLanguage('fa')}
-                  >
-                    فارسی
-                  </button>
-                  <button
-                    type="button"
-                    className={`st-segment-option${i18n.language === 'en' ? ' st-segment-option-active' : ''}`}
-                    aria-pressed={i18n.language === 'en'}
-                    onClick={() => i18n.changeLanguage('en')}
-                  >
-                    English
-                  </button>
-                </div>
-              </span>
-            </div>
-            <button
-              type="button"
-              className="ui-row is-wrap"
-              role="switch"
-              aria-checked={lite}
-              onClick={() => {
-                setLite(!lite)
-                setLightGraphics(!lite)
-              }}
-            >
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('settings.lite')}</span>
-                <span className="ui-row-subtitle">{t('settings.liteHint')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <span className="ui-switch" aria-hidden="true" aria-checked={lite} />
-              </span>
-            </button>
-            <NotificationsRow />
-          </div>
-        </section>
+      <QuietSection name={t('settings.appGroup')}>
+        <div className="cos-q-rows">
+          {/* Each language is labelled in ITSELF, never translated: someone
+              who has landed in the wrong language has to find the way out. */}
+          <QuietChoiceRow
+            title={t('common.language')}
+            choices={[
+              { value: 'fa', label: 'فارسی' },
+              { value: 'en', label: 'English', latin: true },
+            ]}
+            value={i18n.language.startsWith('fa') ? 'fa' : 'en'}
+            onChoose={(value) => void i18n.changeLanguage(value)}
+          />
+          <NotificationsRows />
+          <QuietSwitchRow
+            icon={<QLeaf />}
+            title={t('settings.lite')}
+            hint={t('settings.liteHint')}
+            on={lite}
+            onToggle={() => {
+              setLite(!lite)
+              setLightGraphics(!lite)
+            }}
+          />
+        </div>
+      </QuietSection>
 
-        <section className="ui-section">
-          <h2 className="ui-section-title">{t('settings.helpGroup')}</h2>
-          <div className="ui-list">
-            <button className="ui-row" onClick={() => navigate('/settings/report')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('settings.report')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <IconChevron size={20} />
-              </span>
-            </button>
-          </div>
-        </section>
+      <QuietSection name={t('settings.helpGroup')}>
+        <div className="cos-q-rows">
+          <QuietRow icon={<QFlag />} title={t('settings.report')} onClick={() => navigate('/settings/report')} />
+        </div>
+      </QuietSection>
 
-        <section className="ui-section">
-          <h2 className="ui-section-title">{t('settings.accountGroup')}</h2>
-          <div className="ui-list">
-            <button className="ui-row" onClick={() => navigate('/settings/ways')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('ways.title')}</span>
-                <span className="ui-row-subtitle">{t('ways.rowHint')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <IconChevron size={20} />
-              </span>
-            </button>
-            <button className="ui-row" onClick={() => navigate('/settings/sessions')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('sessions.title')}</span>
-                <span className="ui-row-subtitle">{t('sessions.rowHint')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <IconChevron size={20} />
-              </span>
-            </button>
-            <button className="ui-row" onClick={() => navigate('/link')}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('link.title')}</span>
-                <span className="ui-row-subtitle">{t('link.rowHint')}</span>
-              </span>
-              <span className="ui-row-trailing">
-                <IconChevron size={20} />
-              </span>
-            </button>
-            <button className="ui-row" onClick={() => setSigningOut(true)}>
-              <span className="ui-row-main">
-                <span className="ui-row-title">{t('sessions.signOut')}</span>
-              </span>
-            </button>
-            <button className="ui-row" onClick={() => setDeleting(1)}>
-              <span className="ui-row-main">
-                <span className="ui-row-title ui-text-danger">{t('settings.delete')}</span>
-              </span>
-            </button>
-          </div>
-        </section>
-
-      </div>
+      <QuietSection name={t('settings.accountGroup')}>
+        <div className="cos-q-rows">
+          <QuietRow icon={<QKey />} title={t('ways.title')} hint={t('ways.rowHint')} onClick={() => navigate('/settings/ways')} />
+          <QuietRow icon={<QDevice />} title={t('sessions.title')} hint={t('sessions.rowHint')} onClick={() => navigate('/settings/sessions')} />
+          <QuietRow icon={<QTwoDevices />} title={t('link.title')} hint={t('link.rowHint')} onClick={() => navigate('/link')} />
+          <QuietRow icon={<QOut />} title={t('sessions.signOut')} opens={false} onClick={() => setSigningOut(true)} />
+        </div>
+      </QuietSection>
+      <QuietSection className="is-end">
+        <div className="cos-q-rows">
+          <QuietRow title={t('settings.delete')} danger center onClick={() => setDeleting(1)} />
+        </div>
+      </QuietSection>
 
       {choosing && <ChosenViewersSheet onClose={() => setChoosing(false)} />}
 
       {signingOut && (
         // Asked once: signing out loses nothing, but it is easy to tap by
         // accident and annoying to come back from.
-        <ConfirmDialog
+        <QuietConfirm
           title={t('sessions.signOutTitle')}
           text={t('sessions.signOutText')}
           confirmLabel={t('sessions.signOut')}
@@ -300,7 +207,7 @@ export default function Settings() {
       {/* Asked twice: first what goes and what stays, then once more, with
           the button that does it. */}
       {deleting === 1 && (
-        <ConfirmDialog
+        <QuietConfirm
           title={t('settings.deleteTitle')}
           text={t('settings.deleteText')}
           confirmLabel={t('settings.deleteNext')}
@@ -310,16 +217,45 @@ export default function Settings() {
         />
       )}
       {deleting === 2 && (
-        <ConfirmDialog
+        <QuietConfirm
           title={t('settings.deleteSureTitle')}
           text={t('settings.deleteSureText')}
           confirmLabel={t('settings.deleteConfirm')}
           destructive
-          loading={deleteBusy}
+          busy={deleteBusy}
           onCancel={() => setDeleting(0)}
           onConfirm={() => void reallyDelete()}
         />
       )}
+    </QuietPage>
+  )
+}
+
+/**
+ * "You, as others see you": your own small orb as other people see it.
+ * Hiding when you are online takes its ring away — the world's ring, which
+ * means "here now" and nothing else — and the sentence says who may start
+ * a conversation with you. The settings below change it as they are tapped.
+ */
+function SeenByOthers({ privacy }: { privacy: Privacy | null }) {
+  const { t } = useTranslation()
+  const { me } = useMe()
+  const hidden = privacy?.hide_online ?? false
+  const friendsOnly = privacy?.chat_door === 'friends'
+  return (
+    <div className="cos-q-seen" aria-live="polite">
+      <div className={`cos-q-mini${hidden ? ' is-hidden' : ''}`} aria-hidden="true">
+        <span className="cos-q-mini-ring" />
+        <span className="cos-q-mini-body">
+          {me?.avatar_url ? <img src={me.avatar_url} alt="" /> : (me?.display_name ?? '').slice(0, 1)}
+        </span>
+      </div>
+      <div className="cos-q-seen-txt">
+        <b>{t('settings.seenTitle')}</b>
+        <span>
+          {t(hidden ? 'settings.seenHidden' : 'settings.seenOnline')} {t(friendsOnly ? 'settings.seenFriends' : 'settings.seenAll')}
+        </span>
+      </div>
     </div>
   )
 }
@@ -329,7 +265,7 @@ export default function Settings() {
  * switch where they can be turned on; where they cannot, the row says why
  * and what would make it possible, instead of a switch that does nothing.
  */
-function NotificationsRow() {
+function NotificationsRows() {
   const { t } = useTranslation()
   const [state, setState] = useState<PushState | null>(null)
   const [busy, setBusy] = useState(false)
@@ -343,31 +279,32 @@ function NotificationsRow() {
   if (state === null) return null
   const on = state === 'on'
   const can = state === 'on' || state === 'off'
+  if (!can) {
+    return (
+      <div className="cos-q-row">
+        <span className="cos-q-ico"><QBell /></span>
+        <span className="cos-q-txt">
+          <span className="cos-q-t">{t('push.title')}</span>
+          <span className="cos-q-h">{t(`push.state.${state}`)}</span>
+        </span>
+      </div>
+    )
+  }
   return (
     <>
-    <button
-      type="button"
-      className="ui-row is-wrap"
-      role="switch"
-      aria-checked={on}
-      disabled={!can || busy}
-      onClick={async () => {
-        setBusy(true)
-        setState(await (on ? turnPushOff() : turnPushOn()).catch(() => state))
-        setBusy(false)
-      }}
-    >
-      <span className="ui-row-main">
-        <span className="ui-row-title">{t('push.title')}</span>
-        <span className="ui-row-subtitle">{t(`push.state.${state}`)}</span>
-      </span>
-      {can && (
-        <span className="ui-row-trailing">
-          <span className="ui-switch" aria-hidden="true" aria-checked={on} />
-        </span>
-      )}
-    </button>
-    {on && <PreviewRow />}
+      <QuietSwitchRow
+        icon={<QBell />}
+        title={t('push.title')}
+        hint={t(`push.state.${state}`)}
+        on={on}
+        disabled={busy}
+        onToggle={async () => {
+          setBusy(true)
+          setState(await (on ? turnPushOff() : turnPushOn()).catch(() => state))
+          setBusy(false)
+        }}
+      />
+      {on && <PreviewRow />}
     </>
   )
 }
@@ -376,6 +313,7 @@ function NotificationsRow() {
  * Whether a notification shows what the message says, or only who wrote it
  * (section 38). Off until turned on: a lock screen is seen by whoever is
  * next to it, and a message from somebody new is nobody else's business.
+ * Sits under notifications, indented to their text, because it is part of them.
  */
 function PreviewRow() {
   const { t } = useTranslation()
@@ -383,13 +321,13 @@ function PreviewRow() {
   const [show, setShow] = useState(Boolean(me?.push_preview))
   const [busy, setBusy] = useState(false)
   return (
-    <button
-      type="button"
-      className="ui-row is-wrap"
-      role="switch"
-      aria-checked={show}
+    <QuietSwitchRow
+      icon={null}
+      title={t('push.preview.title')}
+      hint={t(show ? 'push.preview.on' : 'push.preview.off')}
+      on={show}
       disabled={busy}
-      onClick={async () => {
+      onToggle={async () => {
         setBusy(true)
         try {
           await setPushPreview(!show)
@@ -399,15 +337,6 @@ function PreviewRow() {
           setBusy(false)
         }
       }}
-    >
-      <span className="ui-row-main">
-        <span className="ui-row-title">{t('push.preview.title')}</span>
-        <span className="ui-row-subtitle">{t(show ? 'push.preview.on' : 'push.preview.off')}</span>
-      </span>
-      <span className="ui-row-trailing">
-        <span className="ui-switch" aria-hidden="true" aria-checked={show} />
-      </span>
-    </button>
+    />
   )
 }
-

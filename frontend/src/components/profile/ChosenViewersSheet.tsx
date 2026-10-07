@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sheet } from '../ui/Sheet'
+import { CosSheet } from '../cosmos/CosSheet'
 import { useToast } from '../ui'
 import { formatApiError } from '../../lib/api'
 import { fetchFriends, fetchFriendsViewers, saveFriendsViewers, type FriendPerson } from '../../lib/friendsApi'
@@ -42,20 +42,22 @@ export function ChosenViewersSheet({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Sheet title={t('settings.chosenTitle')} onClose={onClose}>
-      <p className="ui-field-help">{t('settings.chosenHint')}</p>
-      {friends !== null && friends.length === 0 && <p className="ui-field-help">{t('settings.chosenEmpty')}</p>}
-      <div className="ui-list">
-        {(friends ?? []).map((person) => (
-          <label key={person.user_id} className="ui-row st-choice">
-            <input type="checkbox" checked={chosen.has(person.user_id)} onChange={() => toggle(person.user_id)} />
-            <span className="ui-row-main"><span className="ui-row-title">{person.display_name}</span></span>
-          </label>
-        ))}
+    <CosSheet title={t('settings.chosenTitle')} onClose={onClose}>
+      <div className="cos-q-sheet-body">
+        <p className="cos-q-help">{t('settings.chosenHint')}</p>
+        {friends !== null && friends.length === 0 && <p className="cos-q-help">{t('settings.chosenEmpty')}</p>}
+        <div className="cos-q-choice">
+          {(friends ?? []).map((person) => (
+            <label key={person.user_id}>
+              <input type="checkbox" checked={chosen.has(person.user_id)} onChange={() => toggle(person.user_id)} />
+              {person.display_name}
+            </label>
+          ))}
+        </div>
+        <button type="button" className="cos-q-primary" disabled={busy} onClick={() => void save()}>
+          {t('settings.chosenSave')}
+        </button>
       </div>
-      <button type="button" className="ui-btn ui-btn-primary ui-btn-lg ui-btn-block" disabled={busy} onClick={() => void save()}>
-        {t('settings.chosenSave')}
-      </button>
-    </Sheet>
+    </CosSheet>
   )
 }

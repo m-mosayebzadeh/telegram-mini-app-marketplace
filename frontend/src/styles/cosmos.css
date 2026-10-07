@@ -1128,7 +1128,9 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
 .cos-sheet-layer {
   position: fixed;
   inset: 0;
-  z-index: 20;
+  /* Above the world's bar (50): a sheet is the thing being done now, and
+     its own button must never sit under the bar (the owner's report). */
+  z-index: 60;
   display: flex;
   align-items: flex-end;
 }

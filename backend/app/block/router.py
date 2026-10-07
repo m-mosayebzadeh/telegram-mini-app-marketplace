@@ -12,6 +12,8 @@ reached — being told you are blocked is an invitation to come back
 through another account.
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -36,6 +38,8 @@ class BlockedUserOut(BaseModel):
     display_name: str
     username: str | None
     avatar_url: str | None
+    #: Since when, for the small "since 3 Mehr" under the name.
+    blocked_at: datetime
 
 
 @router.get("", response_model=list[BlockedUserOut])
@@ -43,24 +47,29 @@ def list_blocks(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[BlockedUserOut]:
-    """Who this person has blocked. Only their own list — a block is not
-    something anyone else can see."""
-    blocked_ids = db.scalars(
-        select(Block.blocked_id).where(Block.blocker_id == current_user.id)
+    """Who this person has blocked, the newest first. Only their own list
+    — a block is not something anyone else can see."""
+    rows = db.execute(
+        select(Block.blocked_id, Block.created_at)
+        .where(Block.blocker_id == current_user.id)
+        .order_by(Block.created_at.desc())
     ).all()
-    if not blocked_ids:
+    if not rows:
         return []
 
+    blocked_ids = [blocked_id for blocked_id, _ in rows]
     avatars = get_current_avatar_urls(db, blocked_ids)
-    users = db.scalars(select(User).where(User.id.in_(blocked_ids))).all()
+    users = {user.id: user for user in db.scalars(select(User).where(User.id.in_(blocked_ids)))}
     return [
         BlockedUserOut(
-            user_id=user.id,
-            display_name=user.display_name,
-            username=user.username,
-            avatar_url=avatars.get(user.id),
+            user_id=blocked_id,
+            display_name=users[blocked_id].display_name,
+            username=users[blocked_id].username,
+            avatar_url=avatars.get(blocked_id),
+            blocked_at=blocked_at,
         )
-        for user in users
+        for blocked_id, blocked_at in rows
+        if blocked_id in users
     ]
 
 

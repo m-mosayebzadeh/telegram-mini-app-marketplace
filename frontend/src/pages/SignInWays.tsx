@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { GoogleMark, TelegramMark } from '../components/cosmos/WayMarks'
 import { IconCheck } from '../components/icons'
-import { Button, ConfirmDialog, ErrorState, PageHeader, Sheet, SkeletonRows, useToast } from '../components/ui'
+import { useToast } from '../components/ui'
+import { CosSheet } from '../components/cosmos/CosSheet'
+import { QuietConfirm, QuietError, QuietPage, QuietSection, QuietWaiting } from '../components/cosmos/Quiet'
 import { apiReason, formatApiError } from '../lib/api'
 import {
   claimDoorTelegram,
@@ -129,26 +131,25 @@ export default function SignInWays() {
   const onlyOne = (doors?.doors.length ?? 0) <= 1
 
   return (
-    <div className="ui-page">
-      <PageHeader title={t('ways.title')} onBack={() => navigate('/settings')} />
-      <div className="ui-page-body">
-        {error ? (
-          <ErrorState text={error} onRetry={load} />
-        ) : doors === null ? (
-          <SkeletonRows count={2} />
-        ) : (
-          <section className="ui-section">
-            <p className="cos-sessions-hint">{t('ways.hint')}</p>
-            <div className="ui-list">
+    <QuietPage title={t('ways.title')} onBack={() => navigate('/settings')}>
+      {error ? (
+        <QuietError text={error} onRetry={load} />
+      ) : doors === null ? (
+        <QuietWaiting rows={2} />
+      ) : (
+        <>
+          <p className="cos-q-lead">{t('ways.hint')}</p>
+          <QuietSection>
+            <div className="cos-q-rows">
               {shown.map((provider) => {
                 const door = connected(provider)
                 return (
-                  <div key={provider} className="ui-row is-wrap">
-                    <span className="cos-ways-mark">{provider === 'google' ? <GoogleMark /> : <TelegramMark />}</span>
-                    <span className="ui-row-main">
-                      <span className="ui-row-title">{t(`ways.${provider}`)}</span>
+                  <div key={provider} className="cos-q-person">
+                    <span className="cos-q-mark">{provider === 'google' ? <GoogleMark /> : <TelegramMark />}</span>
+                    <span className="cos-q-txt">
+                      <span className="cos-q-t">{t(`ways.${provider}`)}</span>
                       {door ? (
-                        <span className="ui-row-subtitle cos-ways-line">
+                        <span className="cos-q-h cos-ways-line">
                           <bdi dir="ltr">{door.label ?? t('ways.connected')}</bdi>
                           <span className="cos-ways-verified">
                             <IconCheck size={14} />
@@ -156,63 +157,64 @@ export default function SignInWays() {
                           </span>
                         </span>
                       ) : (
-                        <span className="ui-row-subtitle">{t('ways.notConnected')}</span>
+                        <span className="cos-q-h">{t('ways.notConnected')}</span>
                       )}
                     </span>
-                    <span className="ui-row-trailing cos-ways-actions">
-                      {door ? (
-                        <>
-                          {/* Swapping goes through the way itself, so only where the server offers it. */}
-                          {doors[provider] && (
-                            <Button variant="ghost" size="sm" onClick={() => ask({ kind: 'connect', provider })}>
-                              {t('ways.swap')}
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="sm" disabled={onlyOne} onClick={() => ask({ kind: 'remove', provider })}>
-                            {t('ways.remove')}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button variant="secondary" size="sm" onClick={() => ask({ kind: 'connect', provider })}>
-                          {t('ways.connect')}
-                        </Button>
-                      )}
-                    </span>
+                    {door ? (
+                      <span className="cos-ways-actions">
+                        {/* Swapping goes through the way itself, so only where the server offers it. */}
+                        {doors[provider] && (
+                          <button type="button" className="cos-q-text is-cool" onClick={() => ask({ kind: 'connect', provider })}>
+                            {t('ways.swap')}
+                          </button>
+                        )}
+                        <button type="button" className="cos-q-text" disabled={onlyOne} onClick={() => ask({ kind: 'remove', provider })}>
+                          {t('ways.remove')}
+                        </button>
+                      </span>
+                    ) : (
+                      <button type="button" className="cos-q-quiet" onClick={() => ask({ kind: 'connect', provider })}>
+                        {t('ways.connect')}
+                      </button>
+                    )}
                   </div>
                 )
               })}
             </div>
-            {onlyOne && <p className="cos-sessions-hint cos-ways-note">{t('ways.lastWay')}</p>}
-          </section>
-        )}
-      </div>
+          </QuietSection>
+          {onlyOne && <p className="cos-q-help cos-q-after">{t('ways.lastWay')}</p>}
+        </>
+      )}
 
       {waiting && !telegram && doors && (
-        <Sheet title={t('ways.confirmTitle')} onClose={() => setWaiting(null)}>
-          <p className="cos-ways-sheet-text">{t('ways.confirmText')}</p>
-          <div className="cos-ways-sheet-actions">
-            {doors.doors.map((door) => (
-              <Button key={door.provider} variant="secondary" size="lg" block onClick={() => confirmWith(door.provider)}>
-                {t(`ways.confirmWith.${door.provider}`)}
-              </Button>
-            ))}
+        <CosSheet title={t('ways.confirmTitle')} onClose={() => setWaiting(null)}>
+          <div className="cos-q-sheet-body">
+            <p className="cos-q-sheet-text">{t('ways.confirmText')}</p>
+            <div className="cos-q-sheet-actions">
+              {doors.doors.map((door) => (
+                <button key={door.provider} type="button" className="cos-q-primary" onClick={() => confirmWith(door.provider)}>
+                  {t(`ways.confirmWith.${door.provider}`)}
+                </button>
+              ))}
+            </div>
           </div>
-        </Sheet>
+        </CosSheet>
       )}
 
       {telegram && <TelegramSheet purpose={telegram} onDone={telegramDone} onClose={() => setTelegram(null)} />}
 
       {removing && (
-        <ConfirmDialog
+        <QuietConfirm
           title={t('ways.removeTitle', { way: t(`ways.${removing}`) })}
           text={t('ways.removeText')}
           confirmLabel={t('ways.remove')}
-          loading={busy}
+          destructive
+          busy={busy}
           onCancel={() => setRemoving(null)}
           onConfirm={() => void remove()}
         />
       )}
-    </div>
+    </QuietPage>
   )
 }
 
@@ -269,16 +271,16 @@ function TelegramSheet({ purpose, onDone, onClose }: { purpose: DoorPurpose; onD
   }, [purpose, round])
 
   return (
-    <Sheet title={t(`ways.tg.${purpose}Title`)} onClose={onClose}>
-      <p className="cos-ways-sheet-text">{t(`ways.tg.${purpose}Lead`)}</p>
+    <CosSheet title={t(`ways.tg.${purpose}Title`)} onClose={onClose}>
+      <p className="cos-q-sheet-text">{t(`ways.tg.${purpose}Lead`)}</p>
       {ended ? (
         <div className="cos-ways-sheet-actions">
           <p className="cos-ways-problem" role="alert">
             {t(`ways.problem.${ended}`, { defaultValue: t('ways.problem.failed') })}
           </p>
-          <Button variant="secondary" size="lg" block onClick={() => setRound((r) => r + 1)}>
+          <button type="button" className="cos-q-primary" onClick={() => setRound((r) => r + 1)}>
             {t('ways.tg.again')}
-          </Button>
+          </button>
         </div>
       ) : request ? (
         <div className="cos-ways-sheet-actions">
@@ -296,6 +298,6 @@ function TelegramSheet({ purpose, onDone, onClose }: { purpose: DoorPurpose; onD
       ) : (
         <p className="cos-signin-wait">{t('signIn.device.preparing')}</p>
       )}
-    </Sheet>
+    </CosSheet>
   )
 }

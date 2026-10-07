@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Sheet } from '../ui/Sheet'
-import { Button } from '../ui/Button'
+import { CosSheet } from '../cosmos/CosSheet'
 import {
   JALALI_MONTH_NAMES,
   daysInJalaliMonth,
@@ -76,63 +75,62 @@ export function BirthdaySheet({ value, onClose, onSave, saving }: BirthdaySheetP
   }
 
   return (
-    <Sheet
-      title={t('profilePage.birthdayLabel')}
-      onClose={onClose}
-      footer={
-        <Button variant="primary" size="lg" block loading={saving} onClick={save}>
-          {t('profilePage.saveButton')}
-        </Button>
-      }
-    >
-      <div className="ep-birthday">
-        <select
-          className="ui-input ep-birthday-select"
-          aria-label={t('profilePage.birthdayYear')}
-          value={year ?? ''}
-          onChange={(event) => setYear(event.target.value ? Number(event.target.value) : null)}
-        >
-          <option value="">—</option>
-          {Array.from({ length: 100 }, (_, index) => currentYear - index).map((option) => (
-            <option key={option} value={option}>
-              {option.toLocaleString(i18n.language, { useGrouping: false })}
-            </option>
-          ))}
-        </select>
+    <CosSheet title={t('profilePage.birthdayLabel')} onClose={onClose}>
+      <div className="cos-q-sheet-body">
+        <div className="cos-q-date">
+          <select
+            className="cos-q-input"
+            aria-label={t('profilePage.birthdayYear')}
+            value={year ?? ''}
+            onChange={(event) => setYear(event.target.value ? Number(event.target.value) : null)}
+          >
+            <option value="">—</option>
+            {Array.from({ length: 100 }, (_, index) => currentYear - index).map((option) => (
+              <option key={option} value={option}>
+                {option.toLocaleString(i18n.language, { useGrouping: false })}
+              </option>
+            ))}
+          </select>
 
-        <select
-          className="ui-input ep-birthday-select"
-          aria-label={t('profilePage.birthdayMonth')}
-          value={month}
-          onChange={(event) => changeMonth(Number(event.target.value))}
-        >
-          {monthNames.map((name, index) => (
-            <option key={name} value={index + 1}>
-              {name}
-            </option>
-          ))}
-        </select>
+          <select
+            className="cos-q-input"
+            aria-label={t('profilePage.birthdayMonth')}
+            value={month}
+            onChange={(event) => changeMonth(Number(event.target.value))}
+          >
+            {monthNames.map((name, index) => (
+              <option key={name} value={index + 1}>
+                {name}
+              </option>
+            ))}
+          </select>
 
-        <select
-          className="ui-input ep-birthday-select"
-          aria-label={t('profilePage.birthdayDay')}
-          value={day}
-          onChange={(event) => setDay(Number(event.target.value))}
-        >
-          {Array.from({ length: maxDay }, (_, index) => index + 1).map((option) => (
-            <option key={option} value={option}>
-              {option.toLocaleString(i18n.language)}
-            </option>
-          ))}
-        </select>
+          <select
+            className="cos-q-input"
+            aria-label={t('profilePage.birthdayDay')}
+            value={day}
+            onChange={(event) => setDay(Number(event.target.value))}
+          >
+            {Array.from({ length: maxDay }, (_, index) => index + 1).map((option) => (
+              <option key={option} value={option}>
+                {option.toLocaleString(i18n.language)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="cos-q-sheet-actions">
+          <button type="button" className="cos-q-primary" disabled={saving} onClick={save}>
+            {t('profilePage.saveButton')}
+          </button>
+          {value.month != null && (
+            <button type="button" className="cos-q-text is-danger" disabled={saving} onClick={() => onSave({ month: null, day: null, year: null })}>
+              {t('profilePage.birthdayRemove')}
+            </button>
+          )}
+        </div>
       </div>
-
-      {value.month != null && (
-        <button type="button" className="ep-clear" onClick={() => onSave({ month: null, day: null, year: null })}>
-          {t('profilePage.birthdayRemove')}
-        </button>
-      )}
-    </Sheet>
+    </CosSheet>
   )
 }
 

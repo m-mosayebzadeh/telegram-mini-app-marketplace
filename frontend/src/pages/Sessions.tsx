@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Button, ConfirmDialog, ErrorState, PageHeader, SkeletonRows, useToast } from '../components/ui'
+import { useToast } from '../components/ui'
+import { QuietConfirm, QuietError, QuietPage, QuietSection, QuietWaiting } from '../components/cosmos/Quiet'
+import { QDevice, QTwoDevices } from '../components/cosmos/quietIcons'
 import { formatApiError } from '../lib/api'
 import { closeOtherSessions, closeSession, fetchSessions, type SignedInSession } from '../lib/sessionsApi'
 import { timeAgo } from '../lib/timeAgo'
@@ -54,62 +56,63 @@ export default function Sessions() {
   const others = (rows ?? []).filter((r) => !r.current)
   const door = (provider: string) => t(`sessions.via.${provider}`, { defaultValue: provider })
 
+  const name = (row: SignedInSession) => (row.device === '?' ? t('sessions.unknownDevice') : row.device)
+
   return (
-    <div className="ui-page">
-      <PageHeader title={t('sessions.title')} onBack={() => navigate('/settings')} />
-      <div className={`ui-page-body${others.length > 1 ? ' ui-page-body-action' : ''}`}>
-        {error ? (
-          <ErrorState text={error} onRetry={load} />
-        ) : rows === null ? (
-          <SkeletonRows count={3} />
-        ) : (
-          // Never empty: the device asking is always one of them.
-          <section className="ui-section">
-            <p className="cos-sessions-hint">{t('sessions.hint')}</p>
-            <div className="ui-list">
+    <QuietPage title={t('sessions.title')} onBack={() => navigate('/settings')}>
+      {error ? (
+        <QuietError text={error} onRetry={load} />
+      ) : rows === null ? (
+        <QuietWaiting />
+      ) : (
+        // Never empty: the device asking is always one of them.
+        <>
+          <p className="cos-q-lead">{t('sessions.hint')}</p>
+          <QuietSection>
+            <div className="cos-q-rows">
               {rows.map((row) => (
-                <div key={row.id} className="ui-row is-wrap">
-                  <span className="ui-row-main">
-                    <span className="ui-row-title">
-                      {row.device === '?' ? t('sessions.unknownDevice') : row.device}
-                      {row.current && <span className="cos-sessions-here">{t('sessions.thisDevice')}</span>}
+                <div key={row.id} className="cos-q-person">
+                  {/* A device that came in through another phone shows two. */}
+                  <span className="cos-q-ico">{row.provider === 'device' ? <QTwoDevices /> : <QDevice />}</span>
+                  <span className="cos-q-txt">
+                    <span className="cos-q-t">
+                      {name(row)}
+                      {row.current && <span className="cos-q-tag">{t('sessions.thisDevice')}</span>}
                     </span>
-                    <span className="ui-row-subtitle">
+                    <span className="cos-q-h">
                       {t('sessions.line', { door: door(row.provider), when: row.current ? t('sessions.now') : timeAgo(row.last_used_at, i18n.language) })}
                     </span>
                   </span>
                   {!row.current && (
-                    <span className="ui-row-trailing">
-                      <Button variant="ghost" size="sm" onClick={() => setClosing(row)}>
-                        {t('sessions.close')}
-                      </Button>
-                    </span>
+                    <button type="button" className="cos-q-quiet" onClick={() => setClosing(row)}>
+                      {t('sessions.close')}
+                    </button>
                   )}
                 </div>
               ))}
             </div>
-          </section>
-        )}
-      </div>
-
-      {others.length > 1 && (
-        <div className="ui-action-bar">
-          <Button variant="secondary" size="lg" block onClick={() => setClosing('others')}>
-            {t('sessions.closeOthers')}
-          </Button>
-        </div>
+          </QuietSection>
+          {/* The one dangerous act on the page, and the only red thing. */}
+          {others.length > 1 && (
+            <QuietSection>
+              <button type="button" className="cos-q-text is-danger" onClick={() => setClosing('others')}>
+                {t('sessions.closeOthers')}
+              </button>
+            </QuietSection>
+          )}
+        </>
       )}
 
       {closing && (
-        <ConfirmDialog
-          title={closing === 'others' ? t('sessions.closeOthersTitle') : t('sessions.closeTitle', { device: closing.device === '?' ? t('sessions.unknownDevice') : closing.device })}
+        <QuietConfirm
+          title={closing === 'others' ? t('sessions.closeOthersTitle') : t('sessions.closeTitle', { device: name(closing) })}
           text={t('sessions.closeText')}
           confirmLabel={t('sessions.close')}
-          loading={busy}
+          busy={busy}
           onCancel={() => setClosing(null)}
           onConfirm={() => void confirm()}
         />
       )}
-    </div>
+    </QuietPage>
   )
 }

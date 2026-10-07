@@ -18,8 +18,13 @@ export function doorOf(pathname: string): Door | null {
   if (pathname === '/echo') return 'echo'
   if (pathname === '/events') return 'events'
   // Your page and your friends are "me"; somebody else's page is reached
-  // from the world, so the world's door stays lit there.
+  // from the world, so the world's door stays lit there. Settings and
+  // everything under it, editing your profile and signing in another
+  // device are yours too (section 42): they used to show the marketplace's
+  // old bar, a second app inside this one.
   if (pathname === '/profile' || pathname === '/friends') return 'me'
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'me'
+  if (pathname === '/profile/edit' || pathname === '/link') return 'me'
   if (pathname.startsWith('/profiles/')) return 'world'
   return null
 }

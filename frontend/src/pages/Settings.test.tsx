@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   fetchPrivacy: vi.fn(),
   savePrivacy: vi.fn(),
   deleteAccount: vi.fn(),
+  fetchBlocked: vi.fn(),
   markDeleted: vi.fn(),
   pushState: vi.fn(),
   setPushPreview: vi.fn(),
@@ -20,9 +21,11 @@ vi.mock('../lib/accountApi', () => ({
   fetchPrivacy: mocks.fetchPrivacy,
   savePrivacy: mocks.savePrivacy,
   deleteAccount: mocks.deleteAccount,
+  fetchBlocked: mocks.fetchBlocked,
 }))
+vi.mock('../lib/friendsApi', () => ({ fetchFriendsViewers: vi.fn().mockResolvedValue([]) }))
 vi.mock('../lib/MeContext', () => ({
-  useMe: () => ({ me: { pending_follow_requests_count: 0, push_preview: false }, markDeleted: mocks.markDeleted, refreshMe: mocks.refreshMe }),
+  useMe: () => ({ me: { display_name: 'Mina', avatar_url: null, push_preview: false }, markDeleted: mocks.markDeleted, refreshMe: mocks.refreshMe }),
 }))
 vi.mock('../lib/push', () => ({
   pushState: mocks.pushState,
@@ -45,6 +48,7 @@ describe('settings', () => {
     mocks.fetchPrivacy.mockReset().mockResolvedValue({ chat_door: 'open', hide_online: false })
     mocks.savePrivacy.mockReset().mockImplementation(async (p) => p)
     mocks.deleteAccount.mockReset().mockResolvedValue(undefined)
+    mocks.fetchBlocked.mockReset().mockResolvedValue([])
     mocks.markDeleted.mockReset()
     mocks.pushState.mockReset().mockResolvedValue('unsupported')
     mocks.setPushPreview.mockReset().mockResolvedValue(undefined)
@@ -62,8 +66,11 @@ describe('settings', () => {
   async function open() {
     await act(async () => root.render(<MemoryRouter><Settings /></MemoryRouter>))
   }
+  // A switch is named by its row's title rather than holding the words.
   const button = (label: string) =>
-    [...document.querySelectorAll('button')].find((b) => (b.textContent ?? '').includes(label)) as HTMLButtonElement
+    [...document.querySelectorAll('button')].find(
+      (b) => (b.textContent ?? '').includes(label) || b.getAttribute('aria-label') === label,
+    ) as HTMLButtonElement
 
   it('has no theme choice and no wallet any more', async () => {
     await open()
@@ -90,10 +97,30 @@ describe('settings', () => {
     await act(async () => {})
     const row = button('push.preview.title')
     expect(row.getAttribute('aria-checked')).toBe('false')
-    expect(row.textContent).toContain('push.preview.off')
+    expect(row.closest('.cos-q-row')!.textContent).toContain('push.preview.off')
     await act(async () => row.click())
     expect(mocks.setPushPreview).toHaveBeenCalledWith(true)
     expect(button('push.preview.title').getAttribute('aria-checked')).toBe('true')
+  })
+
+  it('shows you as others see you, and the settings change it as they are tapped', async () => {
+    await open()
+    const mini = host.querySelector('.cos-q-mini')!
+    expect(mini.classList.contains('is-hidden')).toBe(false)
+    expect(host.querySelector('.cos-q-seen')!.textContent).toContain('settings.seenOnline')
+    expect(host.querySelector('.cos-q-seen')!.textContent).toContain('settings.seenAll')
+    await act(async () => button('settings.hideOnline').click())
+    // The ring, the world's sign of "here now", goes.
+    expect(mini.classList.contains('is-hidden')).toBe(true)
+    expect(host.querySelector('.cos-q-seen')!.textContent).toContain('settings.seenHidden')
+    await act(async () => button('settings.doorFriends').click())
+    expect(host.querySelector('.cos-q-seen')!.textContent).toContain('settings.seenFriends')
+  })
+
+  it('says how many people are blocked', async () => {
+    mocks.fetchBlocked.mockResolvedValue([{ user_id: 1 }, { user_id: 2 }])
+    await open()
+    expect(button('settings.blocked').textContent).toContain('settings.people')
   })
 
   it('turns light graphics on for this phone', async () => {

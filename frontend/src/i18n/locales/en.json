@@ -124,7 +124,13 @@
     "blockText": "You will not see them in the world or in Echo, and they cannot message you. They are not told. You can unblock them in settings.",
     "blocked": "Blocked",
     "moreComingSoon": "Not available yet",
-    "changePhoto": "Change photo"
+    "changePhoto": "Change photo",
+    "nameGroup": "Your name",
+    "nameHint": "This is the name under your orb in the world.",
+    "aboutGroup": "About you",
+    "lastNameOptional": "Last name (optional)",
+    "add": "Add",
+    "genderHint": "Only Echo uses it, for who you are looking for."
   },
   "settings": {
     "title": "Settings",
@@ -162,7 +168,15 @@
     "chosenTitle": "Who sees your friends",
     "chosenHint": "From your friends only.",
     "chosenSave": "Save",
-    "chosenEmpty": "You need a friend first."
+    "chosenEmpty": "You need a friend first.",
+    "youHint": "Name, username, gender, birthday",
+    "seenTitle": "You, as others see you",
+    "seenOnline": "The ring around you means you are here right now.",
+    "seenHidden": "Nobody can see that you are here right now.",
+    "seenAll": "Anyone can message you.",
+    "seenFriends": "Only your friends can start a new conversation.",
+    "people": "{{count, number}} people",
+    "chooseViewersCount": "Choose people · {{count, number}}"
   },
   "providerSummary": {
     "title": "Provider summary",
@@ -1214,7 +1228,10 @@
     "empty": "You have not blocked anybody",
     "emptyHint": "You can block anybody from their profile. They are not told.",
     "unblock": "Unblock",
-    "unblocked": "{{name}} is unblocked"
+    "unblocked": "{{name}} is unblocked",
+    "lead": "People you blocked do not see you in the world, and you do not see them. They are not told.",
+    "since": "Since {{date}}",
+    "remove": "Remove"
   },
   "adult": {
     "title": "Before your first Echo",
@@ -1243,7 +1260,8 @@
     "writtenAt": "written at {{time}}",
     "writtenYesterday": "written yesterday at {{time}}",
     "reply": "Answer",
-    "replyTo": "Answer the note: {{note}}"
+    "replyTo": "Answer the note: {{note}}",
+    "example": "For example: looking for a good film tonight. Shown under your name and on your card, and gone after a day."
   },
   "friends": {
     "title": "Friends",
