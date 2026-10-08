@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGoBack } from '../lib/goBack'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../components/ui'
 import { QuietConfirm, QuietError, QuietPage, QuietSection, QuietWaiting } from '../components/cosmos/Quiet'
@@ -19,7 +19,7 @@ import { timeAgo } from '../lib/timeAgo'
  */
 export default function Sessions() {
   const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
+  const back = useGoBack('/settings')
   const toast = useToast()
   const [rows, setRows] = useState<SignedInSession[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +59,7 @@ export default function Sessions() {
   const name = (row: SignedInSession) => (row.device === '?' ? t('sessions.unknownDevice') : row.device)
 
   return (
-    <QuietPage title={t('sessions.title')} onBack={() => navigate('/settings')}>
+    <QuietPage title={t('sessions.title')} onBack={back}>
       {error ? (
         <QuietError text={error} onRetry={load} />
       ) : rows === null ? (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useGoBack } from '../lib/goBack'
 import { useTranslation } from 'react-i18next'
 import { GoogleMark, TelegramMark } from '../components/cosmos/WayMarks'
 import { IconCheck } from '../components/icons'
@@ -51,7 +51,7 @@ function cameBackFromGoogle(): string | null {
 
 export default function SignInWays() {
   const { t, i18n } = useTranslation()
-  const navigate = useNavigate()
+  const back = useGoBack('/settings')
   const toast = useToast()
   const [doors, setDoors] = useState<Doors | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -131,7 +131,7 @@ export default function SignInWays() {
   const onlyOne = (doors?.doors.length ?? 0) <= 1
 
   return (
-    <QuietPage title={t('ways.title')} onBack={() => navigate('/settings')}>
+    <QuietPage title={t('ways.title')} onBack={back}>
       {error ? (
         <QuietError text={error} onRetry={load} />
       ) : doors === null ? (

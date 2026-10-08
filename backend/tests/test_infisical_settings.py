@@ -94,11 +94,59 @@ def test_without_saying_which_environment_it_will_not_start(machine, infisical_a
     assert infisical_answers == []
 
 
-def test_a_refused_identity_stops_the_start(machine, infisical_answers, monkeypatch):
+def test_every_answer_is_kept_as_a_local_copy(machine, infisical_answers, monkeypatch):
+    monkeypatch.setenv("COSMOS_ENV", "dev")
+    infisical.load_into_environment(machine)
+    kept = json.loads(infisical.cache_file(machine, "dev").read_text(encoding="utf-8"))
+    assert kept == {"SOME_SETTING": "from-dev", "ALREADY_SET": "from-infisical"}
+
+
+def test_without_infisical_it_starts_on_the_last_copy(machine, infisical_answers, monkeypatch, caplog):
+    """The owner's decision: up and saying so beats down."""
+    import os
+
+    import requests
+
+    monkeypatch.setenv("COSMOS_ENV", "dev")
+    infisical.load_into_environment(machine)  # Infisical answers once: a copy is kept
+    monkeypatch.delenv("SOME_SETTING")
+    monkeypatch.delenv("ALREADY_SET")
+
+    def unreachable(*args, **kwargs):
+        raise requests.ConnectionError("no route")
+
+    monkeypatch.setattr(requests, "post", unreachable)
+    assert infisical.load_into_environment(machine) == 2
+    assert os.environ["SOME_SETTING"] == "from-dev"
+    assert "copy kept" in caplog.text
+
+
+def test_a_refused_identity_falls_back_too(machine, infisical_answers, monkeypatch, caplog):
+    """Refused — or one day closed to us: the copy keeps the settings."""
+    import os
+
+    monkeypatch.setenv("COSMOS_ENV", "dev")
+    infisical.load_into_environment(machine)
+    monkeypatch.delenv("SOME_SETTING")
+    monkeypatch.delenv("ALREADY_SET")
+    monkeypatch.setenv("INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET", "wrong")
+    infisical.load_into_environment(machine)
+    assert os.environ["SOME_SETTING"] == "from-dev"
+    assert "refused" in caplog.text
+
+
+def test_with_no_copy_yet_it_starts_on_local_settings(machine, infisical_answers, monkeypatch, caplog):
     monkeypatch.setenv("COSMOS_ENV", "dev")
     monkeypatch.setenv("INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET", "wrong")
-    with pytest.raises(infisical.InfisicalError, match="refused"):
-        infisical.load_into_environment(machine)
+    assert infisical.load_into_environment(machine) == 0
+    assert "local settings" in caplog.text
+
+
+def test_each_environment_keeps_its_own_copy(machine, infisical_answers, monkeypatch):
+    monkeypatch.setenv("COSMOS_ENV", "prod")
+    infisical.load_into_environment(machine)
+    assert infisical.cache_file(machine, "prod").exists()
+    assert not infisical.cache_file(machine, "dev").exists()
 
 
 def test_without_an_identity_it_does_nothing(machine, infisical_answers, monkeypatch):

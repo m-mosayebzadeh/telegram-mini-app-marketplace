@@ -4,6 +4,8 @@ venv/
 
 # Secret config file — never commit this
 .env
+# The last settings Infisical gave this machine (app/core/infisical.py): secrets, never committed
+.settings-cache.*
 
 # Python cache files
 __pycache__/

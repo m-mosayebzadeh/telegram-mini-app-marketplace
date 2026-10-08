@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useGoBack } from '../lib/goBack'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { QuietError, QuietPage, QuietSection, QuietWaiting } from '../components/cosmos/Quiet'
@@ -26,6 +27,7 @@ import { timeAgo } from '../lib/timeAgo'
 export default function LinkDevice() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
+  const back = useGoBack('/settings')
   const [params] = useSearchParams()
   const [code, setCode] = useState(() => cleanCode(params.get('c') ?? ''))
   const [typed, setTyped] = useState('')
@@ -66,7 +68,7 @@ export default function LinkDevice() {
   return (
     <QuietPage
       title={t('link.title')}
-      onBack={() => navigate('/settings')}
+      onBack={back}
       foot={
         asking && (
           <div className="cos-link-actions">

@@ -34,8 +34,11 @@ since the development machines do have an identity.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
+
+log = logging.getLogger(__name__)
 
 #: Our Infisical lives in its EU region; INFISICAL_DOMAIN overrides it (a
 #: self-hosted Infisical one day).
@@ -89,11 +92,47 @@ def fetch(client_id: str, client_secret: str, project_id: str, environment: str,
         raise InfisicalError(f"Infisical could not be reached: {type(error).__name__}.") from error
 
 
+def cache_file(backend_dir: Path, environment: str) -> Path:
+    """The last settings Infisical gave this machine, kept beside the code
+    (outside git, like .env)."""
+    return backend_dir / f".settings-cache.{environment}.json"
+
+
+def _keep(backend_dir: Path, environment: str, values: dict[str, str]) -> None:
+    """Saves what Infisical just gave, replacing the last copy whole — written
+    beside it first, so a crash halfway never leaves half a file."""
+    target = cache_file(backend_dir, environment)
+    fresh = target.with_suffix(".tmp")
+    fresh.write_text(json.dumps(values, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
+    try:
+        os.chmod(fresh, 0o600)  # only this user may read it, where the system honours it
+    except OSError:
+        pass
+    os.replace(fresh, target)
+
+
+def _kept(backend_dir: Path, environment: str) -> dict[str, str] | None:
+    try:
+        return json.loads(cache_file(backend_dir, environment).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
 def load_into_environment(backend_dir: Path) -> int:
     """Fetches this machine's settings into the process's environment, if
-    the machine has an identity. Returns how many were set. Raises
-    InfisicalError when it has one but the settings cannot be had: better
-    not to start than to start on the wrong settings."""
+    the machine has an identity, and keeps a copy of them. Returns how many
+    were set.
+
+    When Infisical cannot be had — down, unreachable, refusing the identity,
+    or one day closed to us — the server still starts (the owner's decision,
+    section 41: a server that is up and says so loudly beats one that is
+    down): on the copy kept from the last time Infisical answered, or, with
+    no copy yet, on whatever this machine has locally (.env, variables set
+    by hand). Either way a warning says which. A copy is what keeps the
+    settings from being lost if Infisical ever closes the door on us.
+
+    Not saying which environment (COSMOS_ENV) still stops the start: that
+    is not Infisical failing but the machine not knowing what it is."""
     if os.environ.get("COSMOS_SETTINGS") == "local":
         return 0
     client_id = os.environ.get("INFISICAL_UNIVERSAL_AUTH_CLIENT_ID")
@@ -103,7 +142,19 @@ def load_into_environment(backend_dir: Path) -> int:
     environment = os.environ.get("COSMOS_ENV", "")
     if environment not in ENVIRONMENTS:
         raise InfisicalError('Set COSMOS_ENV to "dev" or "prod": which settings this server should run on.')
-    values = fetch(client_id, client_secret, _project_id(backend_dir), environment, os.environ.get("INFISICAL_DOMAIN", DEFAULT_DOMAIN))
+    try:
+        values = fetch(client_id, client_secret, _project_id(backend_dir), environment, os.environ.get("INFISICAL_DOMAIN", DEFAULT_DOMAIN))
+    except InfisicalError as error:
+        values = _kept(backend_dir, environment)
+        if values is None:
+            log.warning("SETTINGS: %s No copy kept yet: starting on this machine's local settings (.env).", error)
+            return 0
+        log.warning("SETTINGS: %s Starting on the copy kept from the last time Infisical answered.", error)
+    else:
+        try:
+            _keep(backend_dir, environment, values)
+        except OSError:
+            log.warning("SETTINGS: read from Infisical, but the local copy could not be saved.")
     set_here = 0
     for name, value in values.items():
         if name not in os.environ:  # a value set by hand wins, for one run
