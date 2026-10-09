@@ -54,6 +54,9 @@ class ChatMessageOut(BaseModel):
     #: route returns plain rows.
     reply_to: ReplyPreview | None = None
     reactions: list[ReactionOut] = []
+    #: Which staff member wrote a team answer — filled only for the owner,
+    #: in the support view (section 43). Null for everybody else, always.
+    staff_name: str | None = None
 
     # Deliberately no file_path field — never exposed directly (same
     # rule as Content.original_file_path). A 'photo'/'video' message's

@@ -35,6 +35,8 @@ from app.audience_group.router import router as audience_group_router
 from app.chat_message.router import router as chat_message_router
 from app.chat_session.router import router as chat_session_router
 from app.conversation.router import router as conversation_router
+from app.support.router import router as support_router
+from app.analytics.router import router as analytics_router
 from app.sky.router import router as sky_router
 from app.live.router import router as live_router
 from app.random_chat.router import admin_router as admin_random_chat_router
@@ -122,6 +124,8 @@ app.include_router(wallet_router)
 app.include_router(withdrawal_router)
 app.include_router(admin_withdrawal_router)
 app.include_router(conversation_router)
+app.include_router(support_router)
+app.include_router(analytics_router)
 app.include_router(live_router)
 app.include_router(sky_router)
 app.include_router(random_chat_router)

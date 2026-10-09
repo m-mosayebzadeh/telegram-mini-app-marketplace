@@ -14,9 +14,10 @@ ACTIVE, and everything that lists people lists active people only. In the
 conversation list it looks like somebody you chat with (the owner's
 decision).
 
-People may answer it. What they write stays in the conversation, and is
-also handed to "report a problem" (the feedback table), where the team
-reads it — so this conversation is also how somebody talks to us.
+People may answer it, and that is how somebody talks to us: staff with
+the support permission read and answer these conversations as the team,
+from the app's own conversation screen (app/support, section 43). The
+person only ever sees "Cosmos Team".
 """
 
 from __future__ import annotations
@@ -28,14 +29,10 @@ from app.conversation.service import get_or_create_direct, touch
 from app.core.time import utcnow
 from app.models.chat_message import ChatMessage, ChatMessageType
 from app.models.conversation import CAP_TEXT
-from app.models.feedback import MAX_FEEDBACK_TEXT, Feedback
 from app.models.user import User, UserStatus
 
 #: The name it goes by, in every language: it is a name, not a phrase.
 TEAM_NAME = "Cosmos Team"
-
-#: Where an answer to the team shows up among the "report a problem" rows.
-FEEDBACK_WHERE = "cosmos_team"
 
 #: What the team says, by the language the person uses the app in.
 WORDS = {
@@ -129,9 +126,3 @@ def door_changed(db: Session, user: User, event: str, label: str | None = None) 
     what = said["doors"][event].format(label=f" ({label})" if label else "")
     say(db, user, said["door_changed"].format(what=what))
 
-
-def heard(db: Session, user: User, text: str | None) -> None:
-    """Somebody answered the team: handed to "report a problem" as well.
-    Does not commit; it rides on the message's own commit."""
-    if text and text.strip():
-        db.add(Feedback(user_id=user.id, text=text.strip()[:MAX_FEEDBACK_TEXT], where=FEEDBACK_WHERE))

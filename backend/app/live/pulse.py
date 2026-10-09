@@ -43,6 +43,7 @@ from sqlalchemy import func, select, update
 
 from app.auth.dependencies import ONLINE_WITHIN
 from app.core.database import SessionLocal
+from app.core.presence import hiding_online
 from app.core.time import utcnow
 from app.live.hub import hub
 from app.models.random_chat import RandomChatTicket
@@ -157,10 +158,33 @@ def _match() -> None:
         run_batch(db)
 
 
+def announce_gone(db) -> int:
+    """Whoever stopped counting as here in the last minute: no socket kept
+    them seen, so their last sighting just passed the five minutes. Their
+    ring goes out in the worlds that show them. One query a minute, for
+    the whole server; never somebody who hides being online."""
+    now = utcnow()
+    gone = db.scalars(
+        select(User.id).where(
+            User.last_seen_at <= now - ONLINE_WITHIN,
+            User.last_seen_at > now - ONLINE_WITHIN - SEEN_EVERY,
+        )
+    ).all()
+    hiders = hiding_online(db, gone)
+    told = 0
+    for user_id in gone:
+        if user_id not in hiders and not hub.is_connected(user_id):
+            hub.presence(user_id, False)
+            told += 1
+    return told
+
+
 def _beat(echo: EchoPulse, write_seen: bool, sweep_notes: bool = False) -> None:
     with SessionLocal() as db:
         if write_seen:
             mark_connected_as_seen(db)
+            announce_gone(db)
+            hub.sweep_pending()
         if sweep_notes:
             erase_faded_notes(db)
         echo.tick(db)

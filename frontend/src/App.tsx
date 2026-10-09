@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useWide } from './lib/useWide'
+import { TalkColumn, TalkNobodyYet } from './components/cosmos/TalkColumn'
 import { PushOffer } from './components/cosmos/PushOffer'
 import BankAccounts from './pages/BankAccounts'
 import Withdraw from './pages/Withdraw'
@@ -9,7 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { IconActivity, IconChat, IconDashboard, IconDiscover, IconPersonFallback } from './components/icons'
 import { LiveSessionBar } from './components/LiveSessionBar'
 import { MeProvider, useMe } from './lib/MeContext'
-import { SIGNED_OUT_EVENT, checkSignedIn } from './lib/auth'
+import { SIGNED_OUT_EVENT, checkSignedIn, forgetWhereYouWere } from './lib/auth'
 import Discover from './pages/Discover'
 import Sky from './pages/Sky'
 import Conversation from './pages/Conversation'
@@ -37,9 +39,9 @@ import TopUp from './pages/TopUp'
 import AdminHub from './pages/AdminHub'
 import AdminEcho from './pages/AdminEcho'
 import AdminFeedback from './pages/AdminFeedback'
+import AdminAnalytics from './pages/AdminAnalytics'
 import BlockedPeople from './pages/BlockedPeople'
 import Friends from './pages/Friends'
-import ReportProblem from './pages/ReportProblem'
 import { AccountGone } from './components/cosmos/AccountDoors'
 import AdminFinance from './pages/AdminFinance'
 import AdminTopUps from './pages/AdminTopUps'
@@ -104,6 +106,20 @@ const TABS = [
   },
 ] as const
 
+/** The conversation list's column, and on /sky/talk the quiet "choose one"
+ *  where the open conversation will be. The open conversation itself is
+ *  the ordinary route, laid out beside the column by the stylesheet. */
+function TalkSplit({ pathname }: { pathname: string }) {
+  const byId = pathname.match(/^\/conversations\/(\d+)/)
+  const byPerson = pathname.match(/^\/conversations\/with\/(\d+)/)
+  return (
+    <>
+      <TalkColumn current={{ conversationId: byId ? Number(byId[1]) : undefined, userId: byPerson ? Number(byPerson[1]) : undefined }} />
+      {pathname === '/sky/talk' && <TalkNobodyYet />}
+    </>
+  )
+}
+
 function AppShell() {
   const { t } = useTranslation()
   const { me, adminAccess, deleted } = useMe()
@@ -136,11 +152,28 @@ function AppShell() {
   // The world's five doors (section 32) own the bottom wherever one of them
   // is the page — your own profile included — so the older tab bar steps
   // aside there rather than stacking a second navigation under the first.
-  const door = doorOf(location.pathname)
+  const wide = useWide()
+  // On a computer, conversations are two columns, like Telegram (the
+  // owner's call, section 43): the list beside the open one, the doors in
+  // their column — "conversations" lit, since that is where you are.
+  const talkSplit = wide && (location.pathname === '/sky/talk' || location.pathname.startsWith('/conversations/'))
+  const door = doorOf(location.pathname) ?? (talkSplit ? 'talk' : null)
   const immersive =
     door !== null ||
     location.pathname.startsWith('/chat-sessions/') ||
     COSMOS.some((path) => location.pathname === path || location.pathname.startsWith(path + '/'))
+
+  // On a computer the world's doors stand in a column at the side
+  // (section 43); the pages that have them make room for it. Only a class:
+  // the width at which it applies is the stylesheet's to decide.
+  useEffect(() => {
+    document.documentElement.classList.toggle('cos-has-rail', door !== null)
+    document.documentElement.classList.toggle('cos-talk-split', talkSplit)
+    // The admin panel's pages are built from the older shared components;
+    // in this one class they take the world's colours and type (section 43).
+    document.documentElement.classList.toggle('cos-admin', location.pathname.startsWith('/admin'))
+    return () => document.documentElement.classList.remove('cos-has-rail', 'cos-talk-split', 'cos-admin')
+  }, [door, talkSplit, location.pathname])
 
   // After the account was deleted, only the way to start again (section
   // 32, step 4). "Eighteen or over" is asked in Echo, not here.
@@ -165,7 +198,7 @@ function AppShell() {
         {/* One screen for the world and its regions, so travelling between
             them is a movement in the world rather than a page change, and
             the phone's back button still leaves a region. */}
-        <Route path="/sky/:region?" element={<Sky />} />
+        <Route path="/sky/:region?" element={talkSplit ? null : <Sky />} />
         <Route path="/echo" element={<Echo />} />
         <Route path="/events" element={<Events />} />
         {/* Two ways in: by person, from the world, which opens the
@@ -189,6 +222,7 @@ function AppShell() {
         <Route path="/admin" element={<AdminHub />} />
         <Route path="/admin/echo" element={<AdminEcho />} />
         <Route path="/admin/feedback" element={<AdminFeedback />} />
+        <Route path="/admin/analytics" element={<AdminAnalytics />} />
         <Route path="/admin/finance" element={<AdminFinance />} />
         <Route path="/admin/topups" element={<AdminTopUps />} />
         <Route path="/admin/rates" element={<AdminRates />} />
@@ -209,13 +243,13 @@ function AppShell() {
         <Route path="/settings/sessions" element={<Sessions />} />
         <Route path="/settings/ways" element={<SignInWays />} />
         <Route path="/link" element={<LinkDevice />} />
-        <Route path="/settings/report" element={<ReportProblem />} />
         <Route path="/content/:id" element={<ContentDetail />} />
         <Route path="/profiles/:id" element={<ProfileTab />} />
         <Route path="/profiles/:id/provider-summary" element={<ProviderSummary />} />
         <Route path="/profiles/:id/buyer-summary" element={<BuyerSummary />} />
       </Routes>
-      {door !== null && <WorldBar />}
+      {talkSplit && <TalkSplit pathname={location.pathname} />}
+      {door !== null && <WorldBar current={door} />}
       {/* Wherever you are: somebody found in Echo reaches you on any
           screen, because searching does not keep you on Echo's. */}
       <EchoOffer />
@@ -291,7 +325,10 @@ function App() {
     checkSignedIn()
       .then((yes) => { if (alive) setSignedIn(yes) })
       .catch(() => { if (alive) setSignedIn(false) })
-    const out = () => setSignedIn(false)
+    const out = () => {
+      forgetWhereYouWere()
+      setSignedIn(false)
+    }
     window.addEventListener(SIGNED_OUT_EVENT, out)
     return () => {
       alive = false

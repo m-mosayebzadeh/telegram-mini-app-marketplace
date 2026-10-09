@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { offerPush } from '../lib/pushOffer'
 import { TeamMark } from '../components/cosmos/TeamMark'
 import { TeamAction } from '../components/cosmos/TeamAction'
+import { SupportBand } from '../components/cosmos/SupportBand'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { SpaceGround } from '../components/cosmos/SpaceGround'
@@ -41,6 +42,7 @@ import { timeAgo } from '../lib/timeAgo'
 import { SessionBand } from '../components/cosmos/SessionBand'
 import { canRecordVoice, startVoiceRecording, type VoiceSession } from '../lib/voiceRecorder'
 import {
+  claimSupport,
   clearConversationHistory,
   deleteConversation,
   deleteMessages,
@@ -92,9 +94,20 @@ export default function Conversation() {
   const navigate = useNavigate()
   const { userId, id } = useParams()
   const opening = useLocation().state as NoteReplyState | null
-  const { me } = useMe()
+  const { me: signedIn } = useMe()
 
   const [thread, setThread] = useState<Thread | null>(null)
+  /** Staff answering as Cosmos Team (section 43) are the team here: the
+   *  team's messages are theirs, on the right, with their ticks. Everyone
+   *  else is simply themselves. */
+  const actingAs = thread?.acting_as ?? null
+  const me = useMemo(() => (signedIn && actingAs ? { ...signedIn, id: actingAs } : signedIn), [signedIn, actingAs])
+  /** A conversation with Cosmos Team, from either side: deleting there is
+   *  only ever for your own side (section 43; the server holds to it). */
+  const withTeam = !!thread && (!!actingAs || !!thread.others[0]?.team)
+  /** Another staff member answering this person right now. */
+  const [heldBy, setHeldBy] = useState<string | null>(null)
+  const claimedRef = useRef(false)
   const [messages, setMessages] = useState<ShownMessage[]>([])
   /** How far the other person has read, for the two ticks. */
   const [othersReadAt, setOthersReadAt] = useState<string | null>(null)
@@ -162,7 +175,7 @@ export default function Conversation() {
 
     open
       .then(async (found) => {
-        setThread(found)
+        followSupport(found)
         setOthersReadAt(found.others_read_at)
         setMuted(found.muted ?? false)
         setMessages(await fetchMessages(found.id))
@@ -276,6 +289,27 @@ export default function Conversation() {
     }
   }
 
+  /** The lock as the server last described it (section 43). */
+  function followSupport(next: Thread) {
+    setThread(next)
+    const info = next.support
+    setHeldBy(info && info.holder_name && !info.held_by_me ? info.holder_name : null)
+    claimedRef.current = !!info?.held_by_me
+  }
+
+  /** Takes the conversation as a staff member starts writing, so nobody
+   *  else answers this person meanwhile; told who has it when refused. */
+  function claim(threadId: number) {
+    claimedRef.current = true
+    claimSupport(threadId).catch((err) => {
+      claimedRef.current = false
+      if (apiReason(err) === 'support_held') {
+        const holder = (err instanceof ApiError ? (err.body as { detail?: { holder?: string } } | null)?.detail?.holder : null) ?? ''
+        setHeldBy(holder || t('support.someone'))
+      }
+    })
+  }
+
   /** Shows a message at once, with a clock, and queues it to be sent. */
   function enqueue(
     shape: Pick<ShownMessage, 'type'> & Partial<ShownMessage>,
@@ -300,7 +334,7 @@ export default function Conversation() {
     setMessages((current) => placeMessage(current, waiting))
     // My first words here: the moment "want to know when they answer?"
     // explains itself (section 38). Not to Cosmos Team.
-    if (!thread.others[0]?.team && !messages.some((m) => m.sender_id === me.id)) offerPush('message')
+    if (!actingAs && !thread.others[0]?.team && !messages.some((m) => m.sender_id === me.id)) offerPush('message')
     const threadId = thread.id
     outboxRef.current.push({ clientId, send: () => send(threadId, clientId) })
     void flush()
@@ -537,7 +571,7 @@ export default function Conversation() {
       }
       // Request changes are the deal's business (useDeal listens for them).
       // Nor are Echo's (lib/echoStore.ts listens for them).
-      if (event.type === 'requests' || event.type === 'echo' || event.type === 'echo_counts' || event.type === 'friends') return
+      if (event.type === 'requests' || event.type === 'echo' || event.type === 'echo_counts' || event.type === 'friends' || event.type === 'presence' || event.type === 'access') return
       // The other person cleared or deleted this chat for both of you:
       // read it again, and find it as they left it.
       if (event.type === 'cleared') {
@@ -732,6 +766,8 @@ export default function Conversation() {
 
         {message.type === 'text' && message.text && <EmojiText text={message.text} />}
 
+        {message.staff_name && <span className="cos-support-writer">{message.staff_name}</span>}
+
         {message.action && message.sender_id !== me?.id && <TeamAction action={message.action} open={message.action_open} hereSession={me?.session_id} />}
 
         {message.type === 'photo' && thread && (
@@ -906,7 +942,9 @@ export default function Conversation() {
             )
           )}
         </span>
-        {other && !other.team && thread?.origin !== 'echo' && (
+        {/* Not for staff answering as the team: the person is somebody they
+            serve, not somebody to go and find in the world. */}
+        {other && !other.team && !actingAs && thread?.origin !== 'echo' && (
           // Back to the world with this person held, so a conversation is
           // never a dead end away from the place they live in. Not for a
           // chat Echo made: that was a meeting at random, and it stays one
@@ -1061,6 +1099,15 @@ export default function Conversation() {
         </div>
       )}
 
+      {thread?.support && (
+        <SupportBand
+          conversationId={thread.id}
+          info={thread.support}
+          heldBy={heldBy}
+          onHanded={() => void fetchConversation(thread.id).then(followSupport).catch(() => {})}
+        />
+      )}
+
       {emojiOpen && (
         <EmojiPanel
           className="is-docked"
@@ -1151,6 +1198,7 @@ export default function Conversation() {
               setDraft(event.target.value)
               // Editing an old message is not "typing" to the other side.
               if (thread && !editing && event.target.value.trim()) sayTyping(thread.id)
+              if (thread?.support && !claimedRef.current && event.target.value.trim()) claim(thread.id)
             }}
             onKeyDown={(event) => {
               // Mid-way through composing a character in an input method
@@ -1163,6 +1211,7 @@ export default function Conversation() {
                 sendDraft()
               }
             }}
+            disabled={!!heldBy}
             placeholder={t(other?.team ? 'team.placeholder' : 'talk.placeholder')}
             aria-label={t(other?.team ? 'team.placeholder' : 'talk.placeholder')}
           />
@@ -1199,7 +1248,8 @@ export default function Conversation() {
       {chatAction && (
         <DeleteDialog
           count={1}
-          alsoFor={other?.display_name ?? null}
+          // With Cosmos Team, only ever for your own side (section 43).
+          alsoFor={withTeam ? null : (other?.display_name ?? null)}
           onCancel={() => setChatAction(null)}
           onConfirm={(forEveryone) => void confirmChatAction(forEveryone)}
           words={{
@@ -1239,6 +1289,7 @@ export default function Conversation() {
           // "Also for Sara" only when every message is yours and still
           // open; anybody else's can only ever leave your own view.
           alsoFor={
+            !withTeam &&
             messages
               .filter((message) => deleting.includes(message.id))
               .every((message) => isMine(message) && !lockedBySession(message))

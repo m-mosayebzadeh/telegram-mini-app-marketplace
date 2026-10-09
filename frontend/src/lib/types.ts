@@ -270,12 +270,11 @@ export interface PublicProfile {
   // at all when this is false, never an empty badge placeholder.
   is_trusted: boolean
   // Gregorian on the wire — see Profile.birthday_month's docstring.
-  // month/day are both-or-neither; year is independently optional even
-  // when month/day are set. Convert with lib/jalali.ts before
-  // displaying (the app's default locale uses the Jalali calendar).
+  // month/day are both-or-neither. Convert with lib/jalali.ts before
+  // displaying (the app's default locale uses the Jalali calendar). No
+  // year: another person's birth year is never sent (section 43).
   birthday_month: number | null
   birthday_day: number | null
-  birthday_year: number | null
   // 'male' | 'female' | 'unsaid', or null when nobody has asked yet —
   // which is not the same thing as 'unsaid'. Signup deliberately does not
   // ask; Echo's door does.

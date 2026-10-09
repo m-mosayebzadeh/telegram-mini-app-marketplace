@@ -24,15 +24,22 @@ self.addEventListener('push', (event) => {
       tag: note.tag,
       renotify: Boolean(note.tag),
       data: { url: note.url || '/' },
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      // PNG, not SVG: Android and several browsers draw no SVG here. The
+      // badge is the mark in white alone, which Android shows in the
+      // status bar by its shape (section 43).
+      icon: '/icon-192.png',
+      badge: '/badge-96.png',
     }),
   )
 })
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin)
+  // Marked, so the app can count a tapped notification and then drop the mark
+  // (src/lib/analytics.ts).
+  target.searchParams.set('from', 'push')
+  const url = target.href
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       const open = windows.find((w) => new URL(w.url).origin === self.location.origin)

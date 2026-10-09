@@ -85,6 +85,8 @@ def test_the_heartbeat_sweeps_faded_notes_only_when_asked(monkeypatch):
     monkeypatch.setattr(pulse, "SessionLocal", FakeSession)
     monkeypatch.setattr(pulse, "erase_faded_notes", lambda db: calls.append("notes"))
     monkeypatch.setattr(pulse, "mark_connected_as_seen", lambda db: calls.append("seen"))
+    monkeypatch.setattr(pulse, "announce_gone", lambda db: calls.append("gone"))
+    monkeypatch.setattr(pulse.hub, "sweep_pending", lambda: None)
     echo = pulse.EchoPulse()
     monkeypatch.setattr(echo, "tick", lambda db: calls.append("echo"))
 
@@ -92,4 +94,5 @@ def test_the_heartbeat_sweeps_faded_notes_only_when_asked(monkeypatch):
     assert calls == ["echo"]
     calls.clear()
     pulse._beat(echo, write_seen=True, sweep_notes=True)
-    assert calls == ["seen", "notes", "echo"]
+    # Leaving is told with the minute's sighting, right after it.
+    assert calls == ["seen", "gone", "notes", "echo"]

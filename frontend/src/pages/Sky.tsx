@@ -1,3 +1,7 @@
+import { withPresence } from '../lib/presence'
+import { subscribe } from '../lib/live'
+import { measureFrameRate } from '../lib/analytics'
+import { readLightGraphics } from '../lib/lightGraphics'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchNewPeopleLeft, type NoteReplyState } from '../lib/conversationApi'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -128,6 +132,9 @@ export default function Sky() {
   const region = regionOf(useParams().region)
   const world = useWorld()
   const unreadTotal = useUnread()
+  /** What the open tab of the conversations holds (support, for staff), for
+   *  the line under the region's name; null means your own conversations. */
+  const [talkSummary, setTalkSummary] = useState<{ tab: 'mine' | 'support'; count: number; unread: number } | null>(null)
   /** The region on screen. Trails `region` by the length of a journey, so
    *  the place being left can rush past before the new one arrives. */
   const [shown, setShown] = useState<Region>(region)
@@ -182,11 +189,26 @@ export default function Sky() {
   const detailRef = useRef<ReadonlySet<number>>(NOBODY)
   const detailAt = useRef(0)
 
+  // The world's frame rate, once a visit (lib/analytics.ts, section 43).
+  useEffect(() => measureFrameRate(readLightGraphics()), [])
+
   useEffect(() => {
     fetchSky()
       .then(setPeople)
       .catch((err) => setError(formatApiError(err)))
   }, [])
+
+  // Somebody in this world arrived or left: their ring changes at once,
+  // without asking the server again (section 43). The server tells only
+  // the people whose world shows them, and nobody who hides being online.
+  useEffect(
+    () =>
+      subscribe((event) => {
+        if (event.type !== 'presence') return
+        setPeople((current) => withPresence(current, event.user_id, event.online))
+      }),
+    [],
+  )
 
   const stars: Star[] = useMemo(() => {
     if (!people) return []
@@ -340,9 +362,21 @@ export default function Sky() {
   }
 
   /** The glass, as the arithmetic sees it. Read fresh every time rather
-   *  than remembered: a phone is rotated, and a keyboard opens. */
+   *  than remembered: a phone is rotated, and a keyboard opens. The
+   *  world's own box rather than the window: on a computer the doors stand
+   *  in a column beside it (section 43), and the world is narrower than
+   *  the window by exactly that column. */
   function view(): View {
-    return { width: innerWidth, height: innerHeight, floor: FLOOR }
+    const box = appRef.current
+    return { width: box?.clientWidth || innerWidth, height: box?.clientHeight || innerHeight, floor: FLOOR }
+  }
+
+  /** A finger's place on the world's own glass. On a phone the world starts
+   *  at the window's corner and this changes nothing; beside the doors'
+   *  column (left-to-right) it starts that column's width in. */
+  function onGlass(clientX: number, clientY: number): { x: number; y: number } {
+    const box = appRef.current?.getBoundingClientRect()
+    return { x: clientX - (box?.left ?? 0), y: clientY - (box?.top ?? 0) }
   }
 
   /** The camera loop. The only place any of this writes style. */
@@ -445,7 +479,7 @@ export default function Sky() {
       stars,
       camera.current,
       view(),
-      { x: clientX, y: clientY },
+      onGlass(clientX, clientY),
       HIT_RADIUS,
     ) as Star | null
   }
@@ -530,7 +564,7 @@ export default function Sky() {
     // holding one out here would open a conversation with somebody you
     // could barely see. A touch means "take me back in, around here".
     if (isWide(target.current)) {
-      const there = worldAt({ x: event.clientX, y: event.clientY }, camera.current, view())
+      const there = worldAt(onGlass(event.clientX, event.clientY), camera.current, view())
       velocity.current = { x: 0, y: 0 }
       gliding.current = true
       target.current = { x: there.x, y: there.y, z: 1 }
@@ -560,7 +594,7 @@ export default function Sky() {
     // an answer, not a journey. Only Sol's long trips get the slow ease.
     velocity.current = { x: 0, y: 0 }
     gliding.current = false
-    target.current = { x: star.x, y: star.y + innerHeight * HOLD_LIFT, z: camera.current.z }
+    target.current = { x: star.x, y: star.y + view().height * HOLD_LIFT, z: camera.current.z }
   }
 
   function release() {
@@ -711,7 +745,10 @@ export default function Sky() {
           hasMore={world.hasMore}
           onNearEnd={world.loadMore}
           onOpen={(relation) => navigate(`/conversations/with/${relation.userId}`)}
+          onOpenSupport={(conversationId) => navigate(`/conversations/${conversationId}`)}
           onChanged={world.reload}
+          mineUnread={unreadTotal}
+          onSummary={setTalkSummary}
         />
         </div>
       )}
@@ -736,7 +773,12 @@ export default function Sky() {
             <b className="cos-header-name">{t(`world.region.${shown}`)}</b>
           </span>
           <span className="cos-header-count">
-            {shown === 'talk'
+            {shown === 'talk' && talkSummary
+              ? t('world.talkSub', {
+                  n: talkSummary.count.toLocaleString(i18n.language),
+                  m: talkSummary.unread.toLocaleString(i18n.language),
+                })
+              : shown === 'talk'
               ? t('world.talkSub', {
                   n: world.relations.filter((r) => r.conversationId !== null).length.toLocaleString(i18n.language),
                   // From the server, over every conversation: the list

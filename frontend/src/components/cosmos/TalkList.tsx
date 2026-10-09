@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { TeamMark } from './TeamMark'
 import { useTranslation } from 'react-i18next'
+import { useMe } from '../../lib/MeContext'
+import { subscribe } from '../../lib/live'
 import type { Relation } from '../../lib/relations'
 import { timeAgo } from '../../lib/timeAgo'
 import { useHold } from '../../lib/useHold'
@@ -9,6 +12,8 @@ import {
   clearConversationHistory,
   deleteConversation,
   fetchArchivedConversations,
+  fetchSupportConversations,
+  fetchSupportUnread,
   markRead,
   setConversationArchived,
   setConversationMuted,
@@ -37,7 +42,22 @@ import { talkOrder } from './talkOrder'
  * three dots archive, mark as read and clear the history. Deleting and
  * clearing here are for you alone; "for them too" is only offered inside
  * one chat, where it is plain whose chat it is.
+ *
+ * Staff who answer for Cosmos Team (section 43) get two tabs at the top:
+ * their own conversations, and "support" — the conversations people have
+ * with the team, in exactly the same rows, opened in the same screen.
  */
+
+/** Which tab, remembered for the visit so coming back from a support chat
+ *  lands on support again. */
+const SECTION_KEY = 'cosmos.talk.section'
+function rememberedSection(): 'mine' | 'support' {
+  try {
+    return sessionStorage.getItem(SECTION_KEY) === 'support' ? 'support' : 'mine'
+  } catch {
+    return 'mine'
+  }
+}
 
 interface TalkListProps {
   relations: Relation[]
@@ -45,8 +65,18 @@ interface TalkListProps {
   hasMore: boolean
   onNearEnd: () => void
   onOpen: (relation: Relation) => void
+  /** Opens one of the team's conversations by its id (support, section 43). */
+  onOpenSupport?: (conversationId: number) => void
   /** Something was changed from the selection bar: read the list again. */
   onChanged?: () => void
+  /** On a computer, the conversation open beside the list (TalkColumn). */
+  current?: { conversationId?: number; userId?: number }
+  /** How many of your own conversations have something new, over all of
+   *  them (from the server): the number on the "conversations" tab. */
+  mineUnread?: number
+  /** Which tab is open and what is in it, for the line under the
+   *  region's name: it speaks of the tab in view, not of both at once. */
+  onSummary?: (summary: { tab: 'mine' | 'support'; count: number; unread: number } | null) => void
 }
 
 /** One row, whichever list it is in (the conversations or the archive). */
@@ -104,7 +134,7 @@ function fromConversation(c: Conversation): Row | null {
   }
 }
 
-export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChanged }: TalkListProps) {
+export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onOpenSupport, onChanged, current, mineUnread = 0, onSummary }: TalkListProps) {
   const { t, i18n } = useTranslation()
   const n = (value: number) => value.toLocaleString(i18n.language)
   const endRef = useRef<HTMLDivElement>(null)
@@ -116,6 +146,42 @@ export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChan
   const [archive, setArchive] = useState<Row[] | null>(null)
   const [inArchive, setInArchive] = useState(false)
 
+  const { adminAccess } = useMe()
+  const canSupport = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.includes('support.conversations'))
+  const [section, setSection] = useState<'mine' | 'support'>(rememberedSection)
+  const inSupport = canSupport && section === 'support'
+  const [supportRows, setSupportRows] = useState<Row[] | null>(null)
+  const [supportWaiting, setSupportWaiting] = useState(0)
+
+  function choose(next: 'mine' | 'support') {
+    setSection(next)
+    setSelected(new Set())
+    setInArchive(false)
+    try {
+      sessionStorage.setItem(SECTION_KEY, next)
+    } catch {
+      /* private window: the tab is simply not remembered */
+    }
+  }
+
+  // The support list and its number, read again whenever a team
+  // conversation moves (the server sends staff those events) — never on
+  // a clock.
+  const readSupport = useCallback(() => {
+    if (!canSupport) return
+    fetchSupportUnread().then(setSupportWaiting).catch(() => {})
+    fetchSupportConversations({ limit: 50 })
+      .then((list) => setSupportRows(list.map(fromConversation).filter((row): row is Row => row !== null)))
+      .catch(() => {})
+  }, [canSupport])
+  useEffect(() => {
+    if (!canSupport) return
+    readSupport()
+    return subscribe((event) => {
+      if (event.type === 'message' || event.type === 'read') readSupport()
+    })
+  }, [canSupport, readSupport])
+
   const readArchive = useCallback(() => {
     fetchArchivedConversations()
       .then((list) => setArchive(list.map(fromConversation).filter((row): row is Row => row !== null)))
@@ -124,7 +190,13 @@ export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChan
   useEffect(() => readArchive(), [readArchive])
 
   const threads = talkOrder(relations.filter((r) => r.conversationId !== null).map(fromRelation))
-  const rows = inArchive ? talkOrder(archive ?? []) : threads
+  const rows = inSupport ? (supportRows ?? []) : inArchive ? talkOrder(archive ?? []) : threads
+
+  // The line under the region's name follows the tab in view. Nothing is
+  // said while on your own conversations: the region already says that.
+  useEffect(() => {
+    onSummary?.(inSupport ? { tab: 'support', count: supportRows?.length ?? 0, unread: supportWaiting } : null)
+  }, [inSupport, supportRows, supportWaiting, onSummary])
   const selecting = selected.size > 0
   const chosen = rows.filter((row) => selected.has(row.conversationId))
 
@@ -174,8 +246,16 @@ export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChan
   const allPinned = chosen.length > 0 && chosen.every((row) => row.pinnedRank !== null)
   const allMuted = chosen.length > 0 && chosen.every((row) => row.muted)
 
-  return (
-    <div className="cos-talklist" data-chrome>
+  // The selection bar, its menu, the dialog and the notice are put on the
+  // page itself, not inside the list: the list fades out at its top and
+  // foot (so rows slip softly under the title and the doors), and that
+  // fade swallowed the bar whole — it sits exactly where the fade is.
+  //
+  // `data-chrome` keeps them part of the interface: the world takes hold of
+  // any touch that is not inside one (to drag the sky), and outside the
+  // list they had lost that mark — every tap on the bar went to the world.
+  const overlays = (
+    <div className="cos-talklist-overlays" data-chrome>
       {selecting && (
         <div className="cos-talklist-select" role="toolbar" aria-label={t('talkList.select.count', { n: n(selected.size) })}>
           <button type="button" className="cos-talk-tool" aria-label={t('talkList.select.cancel')} onClick={() => setSelected(new Set())}>
@@ -266,8 +346,27 @@ export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChan
       )}
 
       {notice && <p className="cos-talklist-notice" role="status">{notice}</p>}
+    </div>
+  )
 
-      {inArchive ? (
+  return (
+    <div className="cos-talklist" data-chrome>
+      {typeof document === 'undefined' ? overlays : createPortal(overlays, document.body)}
+
+      {canSupport && !selecting && !inArchive && (
+        <div className="cos-talklist-tabs" role="tablist">
+          <button type="button" role="tab" aria-selected={!inSupport} className="cos-talklist-tab" onClick={() => choose('mine')}>
+            {t('support.tabMine')}
+            {mineUnread > 0 && <i>{n(mineUnread)}</i>}
+          </button>
+          <button type="button" role="tab" aria-selected={inSupport} className="cos-talklist-tab" onClick={() => choose('support')}>
+            {t('support.tab')}
+            {supportWaiting > 0 && <i>{n(supportWaiting)}</i>}
+          </button>
+        </div>
+      )}
+
+      {inSupport ? null : inArchive ? (
         <button type="button" className="cos-talklist-archive" onClick={() => { setInArchive(false); setSelected(new Set()) }}>
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5 8 12l7 7" /></svg>
           <span>{t('talkList.archiveBack')}</span>
@@ -284,8 +383,10 @@ export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChan
         )
       )}
 
-      {loaded && rows.length === 0 && (
-        <p className="cos-talklist-empty">{inArchive ? t('talkList.archiveEmpty') : t('talkList.empty')}</p>
+      {(inSupport ? supportRows !== null : loaded) && rows.length === 0 && (
+        <p className="cos-talklist-empty">
+          {inSupport ? t('support.empty') : inArchive ? t('talkList.archiveEmpty') : t('talkList.empty')}
+        </p>
       )}
       <ul className="cos-talklist-rows">
         {rows.map((row) => (
@@ -294,12 +395,24 @@ export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChan
             row={row}
             selecting={selecting}
             selected={selected.has(row.conversationId)}
+            open={!!current && (current.conversationId === row.conversationId || (!inSupport && current.userId === row.userId))}
             onOpen={() => {
+              // A support chat is the team's, opened by its own id: opening
+              // "the conversation with this person" would open the staff
+              // member's own one instead.
+              if (inSupport) {
+                onOpenSupport?.(row.conversationId)
+                return
+              }
               const relation = relations.find((r) => r.conversationId === row.conversationId)
               if (relation) onOpen(relation)
               else onOpen({ userId: row.userId } as Relation)
             }}
-            onToggle={() => toggle(row.conversationId)}
+            // Nothing to select in support: pinning, muting and deleting
+            // are the team's own view, not one staff member's.
+            onToggle={() => {
+              if (!inSupport) toggle(row.conversationId)
+            }}
           />
         ))}
       </ul>
@@ -310,10 +423,12 @@ export function TalkList({ relations, loaded, hasMore, onNearEnd, onOpen, onChan
 
 /** One row: a tap opens the chat (or, while selecting, picks it); a hold
  *  picks it and starts selecting. */
-function TalkRow({ row, selecting, selected, onOpen, onToggle }: {
+function TalkRow({ row, selecting, selected, open, onOpen, onToggle }: {
   row: Row
   selecting: boolean
   selected: boolean
+  /** Open beside the list, on a computer. */
+  open?: boolean
   onOpen: () => void
   onToggle: () => void
 }) {
@@ -328,8 +443,9 @@ function TalkRow({ row, selecting, selected, onOpen, onToggle }: {
     <li>
       <button
         type="button"
-        className={`cos-talklist-row${row.unread ? ' is-unread' : ''}${row.muted ? ' is-muted' : ''}${selected ? ' is-selected' : ''}`}
+        className={`cos-talklist-row${row.unread ? ' is-unread' : ''}${row.muted ? ' is-muted' : ''}${selected ? ' is-selected' : ''}${open ? ' is-open' : ''}`}
         aria-pressed={selecting ? selected : undefined}
+        aria-current={open ? 'page' : undefined}
         {...hold}
       >
         {/* The tick sits beside the face, not inside it: the face clips to

@@ -82,6 +82,20 @@ export function MeProvider({ children }: { children: ReactNode }) {
   // reads from here, so it is asked again — told live, never on a clock.
   useEffect(() => subscribe((event) => { if (event.type === 'friends') fetchMe() }), [])
 
+  // A role was given, taken away or changed (section 43): what the admin
+  // panel and the support tab offer is read again at once, rather than
+  // staying as it was when the app opened.
+  useEffect(
+    () =>
+      subscribe((event) => {
+        if (event.type !== 'access') return
+        getMyAdminAccess()
+          .then((adminAccess) => setState((s) => ({ ...s, adminAccess })))
+          .catch(() => {})
+      }),
+    [],
+  )
+
   // The server writes to this person in the app's language (section 37).
   const meId = state.me?.id
   const meLanguage = state.me?.language

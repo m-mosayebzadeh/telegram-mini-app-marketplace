@@ -125,10 +125,19 @@ def update_privacy(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail={"reason": "unknown_door"})
     check_seen_by(payload.friends_seen_by)
     profile = _profile_row(db, current_user.id)
+    was_hiding = profile.hide_online
     profile.chat_door = payload.chat_door
     profile.hide_online = payload.hide_online
     profile.friends_seen_by = payload.friends_seen_by
     db.commit()
+    if was_hiding != payload.hide_online:
+        # Hiding is, to everyone else, leaving; showing again is arriving:
+        # the ring changes in the worlds that show this person at once
+        # (section 43), instead of when each of them next opens the world.
+        from app.auth.dependencies import is_online
+        from app.live.hub import hub
+
+        hub.presence(current_user.id, not payload.hide_online and is_online(current_user))
     return PrivacyOut(chat_door=profile.chat_door, hide_online=profile.hide_online, friends_seen_by=profile.friends_seen_by)
 
 

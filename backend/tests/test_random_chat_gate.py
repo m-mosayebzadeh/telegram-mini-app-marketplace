@@ -141,10 +141,12 @@ def test_a_profile_that_was_never_created_reads_as_unsaid(client):
     assert seen["gender"] is None
 
 
-# --- hiding the year --------------------------------------------------
+# --- the birth year: its owner's alone ---------------------------------
 
 
-def test_the_year_is_shown_by_default(client):
+def test_nobody_else_ever_sees_the_year(client):
+    """Nothing shows another person's birth year (section 43), so it is not
+    sent at all; day and month stay, so friends can wish them one."""
     alice, bob = _auth(1, "Alice"), _auth(2, "Bob")
     alice_id = client.get("/me", headers=alice).json()["id"]
     client.get("/me", headers=bob)
@@ -156,55 +158,27 @@ def test_the_year_is_shown_by_default(client):
 
     seen = client.get(f"/profiles/{alice_id}", headers=bob).json()
 
-    assert seen["birthday_year"] == 1995
-
-
-def test_hiding_the_year_keeps_the_day_and_month(client):
-    """The nice part of a birthday is that people can wish you one — only
-    the year goes."""
-    alice, bob = _auth(1, "Alice"), _auth(2, "Bob")
-    alice_id = client.get("/me", headers=alice).json()["id"]
-    client.get("/me", headers=bob)
-    client.put(
-        "/profile/me",
-        headers=alice,
-        json={
-            "birthday_year": 1995,
-            "birthday_month": 3,
-            "birthday_day": 14,
-            "hide_birth_year": True,
-        },
-    )
-
-    seen = client.get(f"/profiles/{alice_id}", headers=bob).json()
-
-    assert seen["birthday_year"] is None
+    assert "birthday_year" not in seen
     assert (seen["birthday_month"], seen["birthday_day"]) == (3, 14)
 
 
-def test_hiding_the_year_does_not_hide_it_from_yourself(client):
+def test_the_owner_still_sees_their_own_year(client):
     alice = _auth(1, "Alice")
     client.get("/me", headers=alice)
     client.put(
         "/profile/me",
         headers=alice,
-        json={
-            "birthday_year": 1995,
-            "birthday_month": 3,
-            "birthday_day": 14,
-            "hide_birth_year": True,
-        },
+        json={"birthday_year": 1995, "birthday_month": 3, "birthday_day": 14},
     )
 
     mine = client.get("/profile/me", headers=alice).json()
 
     assert mine["birthday_year"] == 1995
-    assert mine["hide_birth_year"] is True
+    assert "hide_birth_year" not in mine
 
 
-def test_a_hidden_year_is_still_there_for_matching(client, db_session):
-    """Hiding is about other people's eyes. The matcher reads the column,
-    and if it stopped being stored the whole switch would be pointless."""
+def test_the_year_is_still_there_for_matching(client, db_session):
+    """Not sent is not forgotten: Echo works out an age from the column."""
     from app.models.profile import Profile as ProfileModel
     alice = _auth(1, "Alice")
     client.get("/me", headers=alice)
@@ -216,7 +190,6 @@ def test_a_hidden_year_is_still_there_for_matching(client, db_session):
             "birthday_month": 3,
             "birthday_day": 14,
             "gender": GENDER_FEMALE,
-            "hide_birth_year": True,
         },
     )
 

@@ -114,20 +114,6 @@ class Profile(Base):
     # mean different things.
     gender: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
-    # Hide the birth YEAR from everyone else. Day and month stay visible,
-    # because the nice part of a birthday is that people can wish you one.
-    #
-    # The system still reads the real year for age matching. That is not a
-    # loophole, it is the point: the reason people leave a birth year
-    # blank is that they do not want their age public, not that they mind
-    # being matched by it. Hiding it answers the real objection, where
-    # simply not collecting it answered the wrong one. The interface must
-    # say so plainly — a match found by an age nobody could see reads as
-    # deceptive if it was never mentioned.
-    hide_birth_year: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", nullable=False
-    )
-
     # Open by default: a product where nobody can reach anybody is not a
     # product, and someone who wants the door shut is by definition someone
     # who has already been found.

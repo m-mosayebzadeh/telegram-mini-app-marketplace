@@ -666,3 +666,76 @@ describe('answering a note of the day', () => {
     expect(quote?.textContent).toContain('anyone for a walk?')
   })
 })
+
+/**
+ * Staff answering as Cosmos Team (section 43): the team's messages are
+ * theirs, the person's are the other side, and who else is answering is
+ * said above the composer — which is then closed to them.
+ */
+describe('answering as Cosmos Team', () => {
+  const TEAM = 3
+  let host: HTMLDivElement
+  let root: Root
+
+  beforeEach(() => {
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    mocks.api.mockReset()
+    Element.prototype.scrollIntoView = vi.fn()
+  })
+  afterEach(() => {
+    act(() => root.unmount())
+    host.remove()
+  })
+
+  async function open(holder: string | null) {
+    mocks.api.mockImplementation((path: string) => {
+      if (path === '/conversations/10')
+        return Promise.resolve(
+          thread({
+            capabilities: ['text'],
+            acting_as: TEAM,
+            support: {
+              holder_name: holder,
+              held_by_me: false,
+              handed: false,
+              can_hand: false,
+              language: 'fa',
+              joined_at: null,
+              last_notice: 'new_sign_in',
+            },
+          }),
+        )
+      if (path === '/conversations/10/messages') return Promise.resolve([message(1, TEAM, 'hello from the team'), message(2, SARA, 'the map froze')])
+      return Promise.resolve(undefined)
+    })
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/conversations/10']}>
+          <Routes>
+            <Route path="/conversations/:id" element={<Conversation />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    })
+  }
+
+  it("shows the team's words as the staff member's own", async () => {
+    await open(null)
+    const bubbles = [...host.querySelectorAll('.cos-bubble')]
+    const team = bubbles.find((b) => b.textContent?.includes('hello from the team'))
+    const person = bubbles.find((b) => b.textContent?.includes('the map froze'))
+    expect(team?.classList.contains('is-mine')).toBe(true)
+    expect(person?.classList.contains('is-mine')).toBe(false)
+    expect(host.querySelector('.cos-support-band')?.textContent).toContain('support.notice.new_sign_in')
+    // Staff serve the person; they do not go and find them in the world.
+    expect(host.querySelector('.cos-talk-go')).toBeNull()
+  })
+
+  it('says who is answering and closes the composer meanwhile', async () => {
+    await open('Ava')
+    expect(host.querySelector('.cos-support-held')).not.toBeNull()
+    expect((host.querySelector('.cos-talk-field') as HTMLTextAreaElement).disabled).toBe(true)
+  })
+})

@@ -50,6 +50,26 @@ export interface Conversation {
   /** How far anybody else has read. Your messages up to here show two
    *  ticks. */
   others_read_at: string | null
+  /** Staff answering as Cosmos Team (section 43): the team's id, which
+   *  the conversation screen treats as "me". Absent everywhere else. */
+  acting_as?: number | null
+  support?: SupportInfo | null
+}
+
+/** What staff see about a team conversation they answer. Never shown to
+ *  the person. */
+export interface SupportInfo {
+  /** Who is answering it now, or null when it is free. */
+  holder_name: string | null
+  held_by_me: boolean
+  /** Handed over by the owner: holds until that person answers. */
+  handed: boolean
+  /** The owner may hand it to somebody. */
+  can_hand: boolean
+  language: string | null
+  joined_at: string | null
+  /** What the team last told them: "new_sign_in", "notice", or null. */
+  last_notice: string | null
 }
 
 /** Enough of an answered message to draw the quote above a reply. */
@@ -95,6 +115,8 @@ export interface ConversationMessage {
   action?: string | null
   /** For "close_session": whether that session is still open. */
   action_open?: boolean | null
+  /** Which staff member wrote a team answer — only ever for the owner. */
+  staff_name?: string | null
 }
 
 /** Every thread you are in, most recent first. */
@@ -314,4 +336,39 @@ export function sendReport(input: {
       conversation_id: input.conversationId ?? null,
     }),
   })
+}
+
+/** Settings → "contact support": your conversation with Cosmos Team,
+ *  started if it never was (section 43). */
+export function openTeamConversation(): Promise<Conversation> {
+  return apiFetch<Conversation>('/conversations/team', { method: 'POST' })
+}
+
+/* ---- Support (section 43): the team conversations, for staff ---------- */
+
+/** The conversations people have with Cosmos Team, newest first, from the
+ *  team's side. Only for staff with the support permission. */
+export function fetchSupportConversations(page?: { limit: number; offset?: number }): Promise<Conversation[]> {
+  const query = page ? `?limit=${page.limit}&offset=${page.offset ?? 0}` : ''
+  return apiFetch<Conversation[]>(`/support/conversations${query}`)
+}
+
+/** How many of them wait for an answer. */
+export async function fetchSupportUnread(): Promise<number> {
+  return (await apiFetch<{ conversations: number }>('/support/unread')).conversations
+}
+
+/** Taken as somebody starts writing; refused (409, reason "support_held")
+ *  while another staff member holds it. */
+export function claimSupport(id: number): Promise<void> {
+  return apiFetch<void>(`/support/conversations/${id}/claim`, { method: 'POST' })
+}
+
+/** The owner gives a conversation to one staff member, or frees it (null). */
+export function handSupport(id: number, userId: number | null): Promise<void> {
+  return apiFetch<void>(`/support/conversations/${id}/hand`, { method: 'POST', body: JSON.stringify({ user_id: userId }) })
+}
+
+export function fetchSupportStaff(): Promise<{ user_id: number; display_name: string }[]> {
+  return apiFetch('/support/staff')
 }

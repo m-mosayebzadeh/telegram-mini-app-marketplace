@@ -36,6 +36,11 @@ export function QLeaf() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c0-8 5-13 14-14 0 9-5 14-13 14zM5 19l7-7" {...LINE} /></svg>
 }
 
+/** A speech bubble: talking to the team. */
+export function QTalk() {
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 11.5a7.5 7.5 0 0 1-11 6.6L4.5 19.5l1.4-4A7.5 7.5 0 1 1 19.5 11.5z" {...LINE} /></svg>
+}
+
 export function QFlag() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20V4.5M6 5h10l-2 3.5 2 3.5H6" {...LINE} /></svg>
 }

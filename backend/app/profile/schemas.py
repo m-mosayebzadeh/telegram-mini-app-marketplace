@@ -34,10 +34,6 @@ class ProfileUpdate(BaseModel):
     # in app/profile/router.py rather than with a Literal here, so the
     # database CHECK and the API stay defined in one place.
     gender: str | None = Field(default=None, max_length=16)
-    # Hides the birth YEAR from everyone else; day and month stay
-    # visible. See Profile.hide_birth_year (app/models/profile.py) —
-    # matching still uses the real year, and the interface has to say so.
-    hide_birth_year: bool = False
 
     # Deliberately no is_trusted here — see Profile.is_trusted's
     # docstring. A profile owner can never set their own trust badge
@@ -72,7 +68,6 @@ class ProfileOut(BaseModel):
     birthday_day: int | None
     birthday_year: int | None
     gender: str | None
-    hide_birth_year: bool
 
     # Lets FastAPI build this schema directly from a Profile ORM object
     # (profile.id, profile.avatar_url, ...) instead of requiring a plain
@@ -105,9 +100,8 @@ class PublicProfileOut(BaseModel):
     is_trusted: bool
     birthday_month: int | None
     birthday_day: int | None
-    # None when the owner hid it, which is indistinguishable from never
-    # having set one — deliberately, since "hidden" is itself private.
-    birthday_year: int | None
+    # Deliberately no birthday_year: another person's birth year is never
+    # sent (section 43). Day and month stay, so friends can wish them one.
     gender: str | None
 
 

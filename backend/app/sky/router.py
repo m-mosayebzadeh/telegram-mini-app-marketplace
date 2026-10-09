@@ -192,6 +192,13 @@ def get_sky(
     avatars = get_current_avatar_urls(db, [p[0].id for p in people])
     moons = _showcase_counts(db, [p[0].id for p in people])
 
+    if not viewer_hides:
+        # From now on this viewer hears when any of these people comes or
+        # goes (app/live/hub.py). Somebody who hides being online does not
+        # see anyone's ring, so is told nothing.
+        from app.live.hub import hub
+
+        hub.watch(current_user.id, [p[0].id for p in people])
     return [
         SkyPersonOut(
             user_id=user.id,

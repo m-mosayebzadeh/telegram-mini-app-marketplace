@@ -14,12 +14,13 @@ from datetime import timedelta
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import team
-from app.auth.dependencies import get_current_user, seen_roughly
+from app.support import service as support
+from app.auth.dependencies import get_current_user, is_owner, seen_roughly
 from app.core.presence import hiding_online, masked_seen
 from app.models.friendship import FRIENDSHIP_ACCEPTED, Friendship
 from app.models.profile import CHAT_DOOR_FRIENDS, Profile
@@ -30,6 +31,7 @@ from app.conversation.schemas import (
     ConversationOut,
     ConversationParticipantOut,
     OpenConversationIn,
+    SupportInfoOut,
 )
 from app.conversation.service import (
     active_paid_session,
@@ -60,6 +62,7 @@ from app.live.events import (
 from app.models.block import Block
 from app.models.chat_message import ChatMessage, ChatMessageType
 from app.models.conversation import (
+    CAP_TEXT,
     CONVERSATION_DIRECT,
     Conversation,
     ConversationParticipant,
@@ -94,6 +97,62 @@ def _participant_or_404(
     if participant is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found.")
     return conversation, participant
+
+
+def _side_or_404(
+    db: Session, conversation_id: int, current_user: User
+) -> tuple[Conversation, ConversationParticipant, User | None]:
+    """Like `_participant_or_404`, but staff answering for Cosmos Team get
+    the team's side of a team conversation (section 43). The third value
+    is the staff member when they act as the team, else None."""
+    conversation = db.get(Conversation, conversation_id)
+    if conversation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found.")
+    side = support.acting_side(db, conversation, current_user)
+    if side is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Conversation not found.")
+    staff = current_user if side != current_user.id else None
+    return conversation, conversation.participant_for(side), staff
+
+
+def _support_info(db: Session, conversation: Conversation, team_id: int, staff: User) -> SupportInfoOut:
+    """The lock and a little about the person, for staff only."""
+    person = db.get(User, conversation.other_user_id(team_id) or 0)
+    lock = support.live_lock(db, conversation.id)
+    holder = db.get(User, lock.holder_id) if lock is not None else None
+    notice = db.scalar(
+        select(ChatMessage)
+        .where(
+            ChatMessage.conversation_id == conversation.id,
+            ChatMessage.sender_id == team_id,
+            ChatMessage.staff_id.is_(None),
+        )
+        .order_by(ChatMessage.created_at.desc())
+        .limit(1)
+    )
+    if notice is None:
+        last_notice = None
+    elif (notice.action or "").startswith("close_session"):
+        last_notice = "new_sign_in"
+    else:
+        last_notice = "notice"
+    return SupportInfoOut(
+        holder_name=holder.display_name if holder else None,
+        held_by_me=lock is not None and lock.holder_id == staff.id,
+        handed=lock.handed if lock is not None else False,
+        can_hand=is_owner(staff),
+        language=person.language if person else None,
+        joined_at=person.joined_at if person else None,
+        last_notice=last_notice,
+    )
+
+
+def _one_sided_with_team(db: Session, conversation: Conversation, for_everyone: bool) -> None:
+    """With Cosmos Team, deleting is only ever for your own side (the
+    owner's rule, section 43): the person cannot take back what the team
+    has read, and staff cannot take back what the person was told."""
+    if for_everyone and support.is_team_conversation(db, conversation):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail={"reason": "team_one_sided"})
 
 
 def _door_open_to(db: Session, owner_id: int, visitor_id: int) -> bool:
@@ -215,8 +274,13 @@ def _unread_cheaply(db: Session, participant: ConversationParticipant) -> bool:
 
 
 def serialize(
-    db: Session, conversation: Conversation, participant: ConversationParticipant
+    db: Session,
+    conversation: Conversation,
+    participant: ConversationParticipant,
+    staff: User | None = None,
 ) -> ConversationOut:
+    """One conversation from `participant`'s side. `staff` is set when a
+    staff member reads it as Cosmos Team (section 43)."""
     others = [
         p for p in conversation.participants if p.user_id != participant.user_id
     ]
@@ -278,6 +342,8 @@ def serialize(
             (p.last_read_at for p in others if p.last_read_at is not None),
             default=None,
         ),
+        acting_as=participant.user_id if staff is not None else None,
+        support=_support_info(db, conversation, participant.user_id, staff) if staff is not None else None,
     )
 
 
@@ -389,6 +455,23 @@ def new_people_today(
     return NewPeopleOut(limit=new_people_limit(db), left=new_people_left(db, current_user.id))
 
 
+@router.post("/team", response_model=ConversationOut)
+def open_team_conversation(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ConversationOut:
+    """Settings → "contact support" (section 43): this person's conversation
+    with Cosmos Team, started if it was never needed before. Staff read and
+    answer it under "support". Words only, as every team conversation."""
+    if team.is_team(current_user):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail={"reason": "is_team"})
+    conversation = get_or_create_direct(db, current_user.id, team.team_user(db).id)
+    conversation.base_capabilities = [CAP_TEXT]
+    db.commit()
+    db.refresh(conversation)
+    return serialize(db, conversation, conversation.participant_for(current_user.id))
+
+
 @router.post("", response_model=ConversationOut, status_code=status.HTTP_201_CREATED)
 def open_conversation(
     payload: OpenConversationIn,
@@ -448,8 +531,12 @@ def get_conversation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ConversationOut:
-    conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
-    return serialize(db, conversation, participant)
+    conversation, participant, staff = _side_or_404(db, conversation_id, current_user)
+    if staff is not None:
+        # Every look by staff is recorded (section 21).
+        support.opened(db, conversation.id, staff)
+        db.commit()
+    return serialize(db, conversation, participant, staff)
 
 
 @router.get("/{conversation_id}/messages", response_model=list[ChatMessageOut])
@@ -458,8 +545,20 @@ def list_messages(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[ChatMessageOut]:
-    _participant_or_404(db, conversation_id, current_user.id)
-    return messages_out(db, list_conversation_messages(db, conversation_id, current_user.id))
+    _, participant, staff = _side_or_404(db, conversation_id, current_user)
+    rows = list_conversation_messages(db, conversation_id, participant.user_id)
+    shaped = messages_out(db, rows)
+    if staff is not None and is_owner(staff):
+        # Only the owner sees which staff member wrote each team answer.
+        writers = {r.id: r.staff_id for r in rows if r.staff_id}
+        names = {
+            u.id: u.display_name
+            for u in db.scalars(select(User).where(User.id.in_(set(writers.values()))))
+        }
+        for out in shaped:
+            if out.id in writers:
+                out.staff_name = names.get(writers[out.id])
+    return shaped
 
 
 @router.post(
@@ -497,10 +596,17 @@ def send_message(
     running. The check is here rather than in the app, because the app's
     composer is a convenience and this is the rule.
     """
-    conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
+    conversation, participant, staff = _side_or_404(db, conversation_id, current_user)
+    # Who the message is from: the person, or the team when staff answer.
+    author_id = participant.user_id
+    if staff is not None:
+        if message_type != ChatMessageType.TEXT:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail={"reason": "text_only"})
+        # Refused while another staff member is answering (the lock).
+        support.answered(db, conversation.id, staff)
 
     if client_id:
-        already = _already_sent(db, current_user.id, client_id)
+        already = _already_sent(db, author_id, client_id)
         if already is not None:
             return messages_out(db, [already])[0]
 
@@ -511,9 +617,9 @@ def send_message(
         message_in(db, conversation.id, reply_to_id)
 
     if conversation.kind == CONVERSATION_DIRECT:
-        other_user_id = conversation.other_user_id(current_user.id)
+        other_user_id = conversation.other_user_id(author_id)
         if other_user_id is not None and _blocked_between(
-            db, current_user.id, other_user_id
+            db, author_id, other_user_id
         ):
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN, detail={"reason": "unavailable"}
@@ -528,7 +634,7 @@ def send_message(
         # a complaint can point at exactly the messages of the session it
         # is about.
         chat_session_id=session.id if session is not None else None,
-        sender_id=current_user.id,
+        sender_id=author_id,
         message_type=message_type,
         text=text,
         duration_seconds=duration_seconds,
@@ -536,8 +642,9 @@ def send_message(
     )
     message.client_id = client_id
     message.reply_to_id = reply_to_id
+    message.staff_id = staff.id if staff is not None else None
     if to_note and conversation.kind == CONVERSATION_DIRECT:
-        other_id = conversation.other_user_id(current_user.id)
+        other_id = conversation.other_user_id(author_id)
         if other_id is not None:
             message.note_quote = fresh_note(
                 db.scalar(select(Profile).where(Profile.user_id == other_id))
@@ -549,14 +656,20 @@ def send_message(
             db.add(message)
             db.flush()
     except IntegrityError:
-        already = _already_sent(db, current_user.id, client_id) if client_id else None
+        already = _already_sent(db, author_id, client_id) if client_id else None
         if already is None:
             raise
         return messages_out(db, [already])[0]
 
-    if conversation.kind == CONVERSATION_DIRECT and team.is_team(db.get(User, conversation.other_user_id(current_user.id) or 0)):
-        # An answer to Cosmos Team is also a word to the people behind it.
-        team.heard(db, current_user, message.text)
+    if staff is None and support.is_team_conversation(db, conversation):
+        team_id = conversation.other_user_id(author_id)
+        if team_id is not None:
+            db.execute(
+                delete(HiddenMessage).where(
+                    HiddenMessage.user_id == team_id,
+                    HiddenMessage.message_id.in_(select(ChatMessage.id).where(ChatMessage.conversation_id == conversation.id)),
+                )
+            )
 
     touch(conversation, message.created_at)
     # Writing brings the thread back for the sender; their own message is
@@ -615,9 +728,12 @@ def delete_messages_route(
 ) -> DeleteOut:
     """Deletes one or many messages at once — a single tap in the menu and
     a whole selection are the same request."""
-    conversation, _ = _participant_or_404(db, conversation_id, current_user.id)
+    conversation, participant, staff = _side_or_404(db, conversation_id, current_user)
+    _one_sided_with_team(db, conversation, body.for_everyone)
+    # Staff hide for the team's side: every staff member stops seeing them,
+    # until the person writes again (send_message brings them back).
     everyone, only_me = delete_messages(
-        db, conversation, current_user.id, body.message_ids, body.for_everyone
+        db, conversation, participant.user_id, body.message_ids, body.for_everyone
     )
     db.commit()
     announce_deleted(conversation, everyone, only_for=None)
@@ -671,7 +787,7 @@ def get_message_file(
     A stranger, a missing message and a message with no file all get the
     same 404. The caller cannot tell them apart and does not need to.
     """
-    _, participant = _participant_or_404(db, conversation_id, current_user.id)
+    _, participant, _staff = _side_or_404(db, conversation_id, current_user)
 
     message = db.get(ChatMessage, message_id)
     if (
@@ -691,10 +807,10 @@ def mark_read(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> None:
-    conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
+    conversation, participant, _staff = _side_or_404(db, conversation_id, current_user)
     participant.last_read_at = utcnow()
     db.commit()
-    announce_read(conversation, current_user.id, participant.last_read_at)
+    announce_read(conversation, participant.user_id, participant.last_read_at)
 
 
 @router.post("/{conversation_id}/archive", status_code=status.HTTP_204_NO_CONTENT)
@@ -737,6 +853,7 @@ def delete_conversation(
     Not a block: somebody who writes again brings the chat back.
     """
     conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
+    _one_sided_with_team(db, conversation, for_everyone)
     now = utcnow()
     for side in _sides(conversation, participant, for_everyone):
         side.hide(now)
@@ -756,6 +873,7 @@ def clear_history(
     stays in the list, empty, ready for the next word. For both sides when
     `for_everyone` is ticked."""
     conversation, participant = _participant_or_404(db, conversation_id, current_user.id)
+    _one_sided_with_team(db, conversation, for_everyone)
     now = utcnow()
     for side in _sides(conversation, participant, for_everyone):
         side.clear(now)

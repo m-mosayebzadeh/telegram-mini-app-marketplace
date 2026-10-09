@@ -2380,6 +2380,47 @@ button.cos-sat:focus-visible { outline: 2px solid var(--cos-warm-bright); outlin
   animation: cos-menu-in 0.18s var(--cos-ease-settle) both;
 }
 
+/* Staff answering as Cosmos Team (section 43): who has this person now,
+   and a few facts about them. In the reply bar's own surface, above the
+   composer, because it is about what you are about to write. Never seen
+   by the person. */
+.cos-support-band {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 12px 6px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: var(--cos-rise);
+  font-size: var(--cos-text-caption);
+  color: var(--cos-fg-soft);
+}
+.cos-support-band p { margin: 0; }
+/* Somebody else is answering: the one thing here that stops you. */
+.cos-support-held { color: var(--cos-warm); }
+.cos-support-mine { color: var(--cos-cool); }
+.cos-support-hand {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  border: 1px solid rgb(122 215 200 / 35%);
+  background: none;
+  color: var(--cos-cool);
+  font: inherit;
+  cursor: pointer;
+}
+.cos-support-hand:active { background: rgb(122 215 200 / 10%); }
+/* Which staff member wrote a team answer: for the owner only. */
+.cos-support-writer {
+  display: block;
+  font-size: var(--cos-text-label);
+  color: var(--cos-warm);
+  opacity: 0.8;
+}
+
 .cos-talk-context-body {
   display: flex;
   flex: 1;
@@ -4819,6 +4860,8 @@ button.cos-person-line:focus-visible { outline: 2px solid var(--cos-cool); outli
 /* ------------------------------------------------- selecting in the list
    Holding a chat selects it (section 32); the bar of what can be done to
    all of them takes the top of the screen, over the region's name. */
+/* The overlays' holder takes no room: only the mark it carries matters. */
+.cos-talklist-overlays { display: contents; }
 .cos-talklist-select {
   position: fixed;
   top: 0;
@@ -4878,6 +4921,46 @@ button.cos-person-line:focus-visible { outline: 2px solid var(--cos-cool); outli
   cursor: pointer;
 }
 .cos-talklist-archive i { margin-inline-start: auto; font-style: normal; font-size: var(--cos-text-caption); }
+/* Staff who answer for the team (section 43): their own conversations and
+   "support", side by side above the rows. Quiet, in the archive button's
+   own glass, so it reads as part of the list rather than a new screen. */
+.cos-talklist-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 4px;
+  border-radius: 20px;
+  border: 1px solid rgb(182 156 255 / 14%);
+  background: rgb(255 255 255 / 3%);
+}
+.cos-talklist-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: var(--cos-fg-soft);
+  font: inherit;
+  font-size: var(--cos-text-body);
+  cursor: pointer;
+}
+.cos-talklist-tab[aria-selected='true'] { background: rgb(182 156 255 / 14%); color: var(--cos-fg); }
+.cos-talklist-tab i {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-style: normal;
+  font-size: var(--cos-text-caption);
+  line-height: 20px;
+  /* The same mark as a row's unread number: it means the same thing. */
+  font-weight: 500;
+  background: var(--cos-talk-line);
+  color: #140a2a;
+}
 .cos-talklist-notice {
   position: fixed;
   left: 50%;
@@ -5330,7 +5413,7 @@ button.cos-me-person { cursor: pointer; }
 }
 .cos-signin > * { width: 100%; max-width: 400px; margin-inline: auto; box-sizing: border-box; }
 .cos-signin-top { display: flex; justify-content: space-between; align-items: center; min-height: 52px; }
-.cos-signin-brand { font-size: 15px; font-weight: 500; letter-spacing: .08em; color: var(--cos-fg-soft); }
+.cos-signin-brand { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; letter-spacing: .08em; color: var(--cos-fg-soft); }
 .cos-signin-lang { min-height: 44px; padding: 0 12px; border: 0; border-radius: 12px; background: none; color: var(--cos-fg-soft); font: inherit; font-size: 13px; cursor: pointer; }
 .cos-signin-lang:active { background: rgb(233 242 240 / 8%); }
 .cos-signin-back { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; margin-inline-start: -8px; padding: 0 10px 0 8px; border: 0; border-radius: 12px; background: none; color: var(--cos-fg); font: inherit; font-size: 15px; cursor: pointer; }
@@ -5415,12 +5498,21 @@ button.cos-me-person { cursor: pointer; }
 /* Its face: the app's warm light on the night ink, its initial in it. Never
    a ring (a ring means online) and never a person's colours or photograph. */
 .cos-team-mark {
-  background: radial-gradient(circle at 50% 38%, var(--cos-warm-bright) 0%, var(--cos-warm) 26%, #3a2412 62%, var(--cos-ink) 100%);
-  color: var(--cos-ink);
-  font-weight: 600;
-  letter-spacing: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 42%, #0e2025 0%, var(--cos-ink) 78%);
 }
-.cos-team-mark > span { transform: translateY(-1px); }
+.cos-team-mark-art { width: 78%; height: 78%; }
+
+/* The mark's own motion (section 43, as approved): the rings come in from
+   either side, then the star lights. Once. */
+.cos-mark.is-arriving .cos-mark-warm { animation: cos-mark-from-start 1.4s cubic-bezier(.2,.7,.2,1) both; }
+.cos-mark.is-arriving .cos-mark-cool { animation: cos-mark-from-end 1.4s cubic-bezier(.2,.7,.2,1) both; }
+.cos-mark.is-arriving .cos-mark-star { transform-box: fill-box; transform-origin: center; animation: cos-mark-spark .8s 1s cubic-bezier(.2,.9,.3,1.3) both; }
+@keyframes cos-mark-from-start { from { transform: translateX(-16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cos-mark-from-end { from { transform: translateX(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cos-mark-spark { from { transform: scale(0) rotate(-45deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cos-mark.is-arriving * { animation: none; } }
 /* Under a team message: what it offers to do. Quiet, inside the bubble. */
 .cos-team-action {
   display: block;
@@ -5466,3 +5558,151 @@ button.cos-me-person { cursor: pointer; }
 .cos-push-offer-later { border: 1px solid rgb(233 242 240 / 18%); background: none; color: var(--cos-fg-soft); }
 .cos-push-offer-buttons button:focus-visible { outline: 2px solid var(--cos-warm-bright); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .cos-push-offer { animation: none; } }
+
+/* ------------------------------------------------------------ computer
+   On a computer (section 43, the approved prototype docs/prototypes/
+   desktop.html) the world's five doors stand in a column at the start of
+   the screen instead of along the bottom, and every page that has them
+   starts after that column. A phone and a tablet keep the bar at the
+   bottom, unchanged. */
+@media (min-width: 1024px) {
+  :root { --cos-rail: 84px; }
+  .cos-worldbar {
+    left: auto;
+    right: auto;
+    inset-inline-start: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--cos-rail);
+    grid-template-columns: 1fr;
+    grid-auto-rows: min-content;
+    align-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 8px;
+    background: rgb(4 9 12 / 96%);
+    border-inline-end: 1px solid rgb(233 242 240 / 8%);
+  }
+  .cos-worldbar-door { min-height: 64px; }
+  .cos-worldbar-sol { margin-bottom: 0; }
+  .cos-has-rail .cos-screen { inset-inline-start: var(--cos-rail); }
+  /* Pages that scroll start after the doors' column, and lose the room
+     the phone keeps at their foot for the bar along the bottom: here the
+     bar is a column, and that room was only making pages scroll for
+     nothing. */
+  .cos-has-rail .cos-q,
+  .cos-has-rail .cos-me {
+    box-sizing: border-box;
+    padding-inline-start: var(--cos-rail);
+    padding-bottom: 32px;
+  }
+  /* "Me" reads as a column, as the settings do. */
+  .cos-has-rail .cos-me > * { width: min(560px, 100% - 32px); margin-inline: auto; }
+  /* A wide conversation keeps a readable column, as Telegram does. The
+     scrolling list and the bar at its foot stay the full width — their
+     scroll and their background belong to the whole page — and only what
+     is inside them sits in the middle. */
+  .cos-talk-thread,
+  .cos-talk-say { padding-inline: max(16px, calc((100% - 760px) / 2)); }
+  .cos-talk-context,
+  .cos-support-band { width: min(760px, 100% - 24px); margin-inline: auto; }
+  /* Scrollbars in the night's own colours, thin: the browser's own grey
+     bars cut through the screen like a hole in it. */
+  html, html * { scrollbar-width: thin; scrollbar-color: rgb(233 242 240 / 16%) transparent; }
+}
+
+/* Conversations on a computer: the list's column beside the open one
+   (section 43). The open conversation is the ordinary page, starting
+   after the doors and the list. */
+@media (min-width: 1024px) {
+  :root { --cos-talkcol: 360px; }
+  .cos-talkcol {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: var(--cos-rail);
+    width: var(--cos-talkcol);
+    z-index: 40;
+    background: linear-gradient(to bottom, #130d28, #09081a);
+    border-inline-end: 1px solid rgb(182 156 255 / 14%);
+    color: var(--cos-fg);
+    font-family: var(--cos-font-fa);
+  }
+  .cos-talkcol-title {
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: 9;
+    margin: 0;
+    padding: 22px 20px 12px;
+    font-size: var(--cos-text-lead);
+    font-weight: 600;
+  }
+  /* No fade at the foot: on the phone it hides rows under the bar along
+     the bottom, and here there is no bar there. */
+  .cos-talkcol .cos-talklist { padding: 72px 12px 24px; animation: none; -webkit-mask-image: none; mask-image: none; }
+  .cos-talk-split .cos-screen { inset-inline-start: calc(var(--cos-rail) + var(--cos-talkcol)); }
+  .cos-talkcol-none {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: calc(var(--cos-rail) + var(--cos-talkcol));
+    inset-inline-end: 0;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(90% 70% at 50% 40%, rgb(182 156 255 / 10%), var(--cos-ink) 70%);
+    color: var(--cos-fg-faint);
+    font-family: var(--cos-font-fa);
+    font-size: var(--cos-text-body);
+  }
+  .cos-talklist-row.is-open { background: rgb(182 156 255 / 20%); border-color: rgb(182 156 255 / 45%); }
+}
+
+/* --------------------------------------------------------- admin panel
+   The panel's pages are built from the older shared components
+   (styles/components/*), which read their colours from the semantic
+   tokens of tokens.css. Rather than rebuild a dozen pages, the panel
+   restates those tokens in the world's own values (section 43, the owner:
+   "bring it to the current theme"): the night ink, the quiet pages' soft
+   lines and text, and the cool light that marks a choice there — never the
+   old orange. Every panel page follows at once, and stays consistent with
+   whatever the shared components gain later. */
+html.cos-admin {
+  --color-bg: var(--cos-ink);
+  --color-surface: rgb(233 242 240 / 4%);
+  --color-surface-2: rgb(233 242 240 / 7%);
+  --color-border: rgb(233 242 240 / 8%);
+  --color-text: var(--cos-fg);
+  --color-text-2: var(--cos-fg-soft);
+  --color-text-3: var(--cos-fg-faint);
+  --color-accent: var(--cos-cool);
+  --color-accent-ink: var(--cos-cool);
+  --color-on-accent: var(--cos-ink);
+  --color-notify: var(--cos-warm);
+  --color-danger: var(--cos-danger);
+  --color-backdrop: rgb(2 5 6 / 70%);
+  --color-scrim: rgb(4 8 10 / 94%);
+  --font: var(--cos-font-fa);
+  /* The bar along the bottom is the world's doors now, taller than the old
+     one: pinned action bars and page ends clear it through this one value. */
+  --nav-height: 88px;
+}
+/* The numbers are what the analytics page is for: in the text's own
+   colour and size, not as a faint aside. */
+html.cos-admin .ui-row .an-value { font: var(--text-body-md); color: var(--color-text); }
+html.cos-admin .ui-row .an-value.is-strong { font: var(--text-title); }
+html.cos-admin .ui-page {
+  font-weight: 300;
+  /* The quiet pages' own sky: a breath of the cool light at the top. */
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgb(122 215 200 / 9%), transparent 60%),
+    linear-gradient(var(--cos-deep), var(--cos-ink) 70%);
+  background-attachment: fixed;
+  /* Room at the foot for the world's doors along the bottom. */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+html.cos-admin .ui-header { background: transparent; backdrop-filter: blur(12px); }
+html.cos-admin .ui-page-body { width: 100%; max-width: 560px; margin-inline: auto; }
+@media (min-width: 1024px) {
+  html.cos-admin { --nav-height: 0px; }
+  html.cos-admin .ui-page { padding-inline-start: var(--cos-rail); padding-bottom: 32px; }
+  html.cos-admin .ui-action-bar { inset-inline-start: var(--cos-rail); }
+}

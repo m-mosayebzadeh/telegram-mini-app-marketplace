@@ -13,6 +13,14 @@ const mocks = vi.hoisted(() => ({
   pushState: vi.fn(),
   setPushPreview: vi.fn(),
   refreshMe: vi.fn(),
+  openTeam: vi.fn(),
+  adminAccess: null as null | { is_owner: boolean; scopes: string[] },
+  navigate: vi.fn(),
+}))
+vi.mock('../lib/conversationApi', () => ({ openTeamConversation: mocks.openTeam }))
+vi.mock('react-router-dom', async (original) => ({
+  ...(await original<typeof import('react-router-dom')>()),
+  useNavigate: () => mocks.navigate,
 }))
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en', changeLanguage: vi.fn() } }),
@@ -25,7 +33,7 @@ vi.mock('../lib/accountApi', () => ({
 }))
 vi.mock('../lib/friendsApi', () => ({ fetchFriendsViewers: vi.fn().mockResolvedValue([]) }))
 vi.mock('../lib/MeContext', () => ({
-  useMe: () => ({ me: { display_name: 'Mina', avatar_url: null, push_preview: false }, markDeleted: mocks.markDeleted, refreshMe: mocks.refreshMe }),
+  useMe: () => ({ me: { display_name: 'Mina', avatar_url: null, push_preview: false }, markDeleted: mocks.markDeleted, refreshMe: mocks.refreshMe, adminAccess: mocks.adminAccess }),
 }))
 vi.mock('../lib/push', () => ({
   pushState: mocks.pushState,
@@ -115,6 +123,26 @@ describe('settings', () => {
     expect(host.querySelector('.cos-q-seen')!.textContent).toContain('settings.seenHidden')
     await act(async () => button('settings.doorFriends').click())
     expect(host.querySelector('.cos-q-seen')!.textContent).toContain('settings.seenFriends')
+  })
+
+  it('contact support opens the conversation with Cosmos Team', async () => {
+    mocks.openTeam.mockResolvedValue({ id: 77 })
+    await open()
+    await act(async () => button('settings.support').click())
+    expect(mocks.openTeam).toHaveBeenCalled()
+    expect(mocks.navigate).toHaveBeenCalledWith('/conversations/77')
+  })
+
+  it('opens the admin panel for whoever holds any part of it, and only them', async () => {
+    await open()
+    expect(button('settings.admin')).toBeUndefined()
+    act(() => root.unmount())
+    root = createRoot(host)
+    mocks.adminAccess = { is_owner: true, scopes: [] }
+    await open()
+    await act(async () => button('settings.admin').click())
+    expect(mocks.navigate).toHaveBeenCalledWith('/admin')
+    mocks.adminAccess = null
   })
 
   it('says how many people are blocked', async () => {

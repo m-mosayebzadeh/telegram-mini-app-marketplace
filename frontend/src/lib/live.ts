@@ -36,6 +36,13 @@ export type LiveEvent =
   /** A friend request arrived, or one you sent was accepted. */
   | { type: 'friends' }
   | { type: 'cleared'; conversation_id: number }
+  /** Somebody your world shows arrived or left (section 43): their ring
+   *  lights or goes out at once. Only ever about the people your world
+   *  shows you. */
+  | { type: 'presence'; user_id: number; online: boolean }
+  /** Your admin access changed (a role given, taken away or edited): read
+   *  it again. */
+  | { type: 'access' }
 
 type Listener = (event: LiveEvent) => void
 

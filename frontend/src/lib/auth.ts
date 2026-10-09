@@ -18,6 +18,14 @@ export function announceSignedOut(): void {
   window.dispatchEvent(new Event(SIGNED_OUT_EVENT))
 }
 
+/** Back to the world's address once signed out, so signing in again opens
+ *  the world rather than whatever page was open when the session ended
+ *  (the owner found themselves back in Settings after signing out from
+ *  there). The sign-in screen itself has no address of its own. */
+export function forgetWhereYouWere(): void {
+  if (window.location.pathname !== '/') window.history.replaceState(null, '', '/')
+}
+
 /** Whether a refused request means "nobody is signed in on this device". */
 export function isSignedOutResponse(status: number, body: unknown): boolean {
   if (status !== 401) return false

@@ -58,7 +58,6 @@ export default function EditProfile() {
   // screen does not know about is a field this screen deletes — and
   // gender is usually set at Echo's door rather than here.
   const [gender, setGender] = useState<string | null>(null)
-  const [hideBirthYear] = useState(false)
 
   const [sheet, setSheet] = useState<OpenSheet>(null)
   const [usernameError, setUsernameError] = useState<string | null>(null)
@@ -66,8 +65,10 @@ export default function EditProfile() {
 
   function load() {
     if (!me) return
-    apiFetch<PublicProfile>(`/profiles/${me.id}`)
-      .then((loaded) => {
+    // The year comes from the private /profile/me: the public profile never
+    // carries it (section 43), and saving without it would erase it.
+    Promise.all([apiFetch<PublicProfile>(`/profiles/${me.id}`), apiFetch<MyProfile>('/profile/me')])
+      .then(([loaded, own]) => {
         // Cleared on the answer, not before asking (a synchronous clear in the effect rendered twice).
         setLoadError(null)
         setProfile(loaded)
@@ -77,7 +78,7 @@ export default function EditProfile() {
         setBirthday({
           month: loaded.birthday_month,
           day: loaded.birthday_day,
-          year: loaded.birthday_year,
+          year: own.birthday_year,
         })
         setGender(loaded.gender ?? null)
       })
@@ -98,7 +99,6 @@ export default function EditProfile() {
     interests?: string[]
     birthday?: BirthdayValue
     gender?: string | null
-    hideBirthYear?: boolean
   }): Promise<boolean> {
     const nextBirthday = next.birthday ?? birthday
     setBusy(true)
@@ -112,7 +112,6 @@ export default function EditProfile() {
           birthday_day: nextBirthday.day,
           birthday_year: nextBirthday.year,
           gender: next.gender !== undefined ? next.gender : gender,
-          hide_birth_year: next.hideBirthYear ?? hideBirthYear,
         }),
       })
       return true

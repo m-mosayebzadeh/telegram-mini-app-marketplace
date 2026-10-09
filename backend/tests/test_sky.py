@@ -237,3 +237,29 @@ def test_the_world_reads_one_page_and_keeps_a_hidden_online_out_of_the_front(cli
     assert len(sky) == 2
     assert sky[0]["user_id"] == shown.id and sky[0]["online"] is True
     assert sky[1]["user_id"] == hider.id and sky[1]["online"] is False
+
+
+def test_opening_the_world_listens_for_the_people_in_it(client, db_session, monkeypatch):
+    """From then on, whoever of them arrives lights up at once (section 43)."""
+    from app.live.hub import hub
+
+    watched = []
+    monkeypatch.setattr(hub, "watch", lambda viewer, ids: watched.append((viewer, sorted(ids))))
+    other = _someone(client, db_session, 8601, "Other", seen_minutes_ago=1)
+    me = client.get("/me", headers=_auth(8602, "Me")).json()["id"]
+    client.get("/sky", headers=_auth(8602, "Me"))
+    assert watched and watched[-1][0] == me and other.id in watched[-1][1]
+
+
+def test_somebody_hiding_their_presence_hears_nobody_arrive(client, db_session, monkeypatch):
+    """They do not see anybody's ring, so nothing is sent to them."""
+    from app.live.hub import hub
+
+    watched = []
+    monkeypatch.setattr(hub, "watch", lambda viewer, ids: watched.append(viewer))
+    _someone(client, db_session, 8603, "Other", seen_minutes_ago=1)
+    me = client.get("/me", headers=_auth(8604, "Me")).json()["id"]
+    db_session.add(Profile(user_id=me, hide_online=True))
+    db_session.commit()
+    client.get("/sky", headers=_auth(8604, "Me"))
+    assert watched == []

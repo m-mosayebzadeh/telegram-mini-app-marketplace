@@ -59,11 +59,13 @@ function EchoMark({ state }: { state: EchoDoor }) {
   )
 }
 
-export function WorldBar() {
+export function WorldBar({ current }: { current?: Door | null } = {}) {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const here = doorOf(pathname)
+  // A conversation open beside the list on a computer is still
+  // "conversations" (section 43); the shell says so.
+  const here = current ?? doorOf(pathname)
   const unread = useUnread()
   const echoDoor = echoDoorOf(useEcho())
   // Friend requests waiting: the only news "me" carries (section 32).

@@ -75,15 +75,16 @@ def test_the_team_never_appears_among_people(client, db_session):
     assert member.id in {p["user_id"] for p in people}
 
 
-def test_answering_the_team_reaches_report_a_problem(client, db_session, ways):
+def test_answering_the_team_stays_in_the_conversation(client, db_session, ways):
+    """Staff read it there now (section 43); it is no longer copied into
+    "report a problem", where it would be handled twice."""
     first = TestClient(app)
     _google_trip(first, "g-8")
     _google_trip(TestClient(app), "g-8")
     thread, _ = _team_thread(first)
     sent = first.post(f"/conversations/{thread['id']}/messages", data={"type": "text", "text": "the map froze"})
     assert sent.status_code == 201
-    row = db_session.query(Feedback).filter_by(where=team.FEEDBACK_WHERE).one()
-    assert row.text == "the map froze"
+    assert db_session.query(Feedback).count() == 0
     # Only words go to the team.
     assert thread["capabilities"] == ["text"]
 

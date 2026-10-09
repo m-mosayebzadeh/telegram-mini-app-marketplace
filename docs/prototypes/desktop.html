@@ -1,0 +1,433 @@
+<title>Cosmos on Every Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600&family=Vazirmatn:wght@400;500;600;700&display=swap">
+<style>
+/* Layout concept: one app, three widths. Phone = today's app, untouched.
+   Tablet = the world stays, a panel slides in at the side. Desktop = the
+   doors become a rail, and the list and the open conversation take their
+   own columns beside the world, so a person is never covered. */
+:root {
+  color-scheme: dark;
+  /* The app's own tokens (frontend/src/styles/cosmos.css), unchanged. */
+  --ink: #04080a;
+  --deep: #071215;
+  --rise: #0e2025;
+  --fg: #e9f2f0;
+  --fg-soft: rgb(233 242 240 / 60%);
+  --fg-faint: rgb(233 242 240 / 34%);
+  --line: rgb(233 242 240 / 10%);
+  --warm: #f2b06a;
+  --cool: #7ad7c8;
+  --live: #8ce0a4;
+  --talk: #b69cff;
+  --talk-line: #8fe8ff;
+  --echo: #6fa8ff;
+  --font-fa: 'Vazirmatn', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --font-en: 'Sora', 'Vazirmatn', system-ui, sans-serif;
+  --text-caption: 11px;
+  --text-label: 12px;
+  --text-body: 13px;
+  --text-read: 15px;
+  --text-title: 20px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --ease: cubic-bezier(0.2, 0.9, 0.25, 1.04);
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ink); color: var(--fg); }
+body { font-family: var(--font-fa); padding-inline: 16px; padding-block: 20px 48px; }
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--cool); outline-offset: 2px; }
+
+/* ---------------------------------------------------------- the page around it */
+.page { max-width: 1320px; margin-inline: auto; display: flex; flex-direction: column; gap: 20px; }
+.intro h1 { margin: 0; font-size: 24px; font-weight: 700; text-wrap: balance; }
+.intro p { margin: 6px 0 0; color: var(--fg-soft); max-width: 70ch; line-height: 1.9; font-size: 14px; }
+.switch { display: inline-flex; gap: 4px; padding: 4px; border-radius: var(--radius-lg); border: 1px solid var(--line); background: rgb(255 255 255 / 3%); align-self: flex-start; flex-wrap: wrap; }
+.switch button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 18px; background: none; color: var(--fg-soft); cursor: pointer; font-size: 14px; }
+.switch button[aria-pressed='true'] { background: rgb(182 156 255 / 16%); color: var(--fg); }
+.switch small { font-family: var(--font-en); color: var(--fg-faint); margin-inline-start: 6px; font-size: 11px; }
+.note { color: var(--fg-soft); font-size: 13px; line-height: 1.9; max-width: 80ch; margin: 0; min-height: 3.8em; }
+
+/* The device: drawn at its real width, then scaled to fit the page. */
+.stage { position: relative; width: 100%; overflow: hidden; border-radius: 18px; }
+.device { transform-origin: top right; border-radius: 28px; border: 1px solid var(--line); overflow: hidden; box-shadow: 0 30px 80px rgb(0 0 0 / 50%); }
+[dir='ltr'] .device { transform-origin: top left; }
+
+/* ---------------------------------------------------------- the app itself */
+/* The frame is what the layout measures: an element cannot answer a
+   question about its own width, so the app asks its frame. */
+.device { container-type: inline-size; container-name: app; }
+.app {
+  position: relative;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
+  grid-template-areas: 'main' 'bar';
+  background: var(--ink);
+  overflow: hidden;
+}
+.world {
+  grid-area: main;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 30%, #0b1c21 0%, var(--deep) 45%, var(--ink) 100%);
+}
+.world::before {
+  /* the far dust */
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgb(233 242 240 / 40%), transparent),
+    radial-gradient(1px 1px at 72% 12%, rgb(233 242 240 / 30%), transparent),
+    radial-gradient(1px 1px at 38% 68%, rgb(233 242 240 / 30%), transparent),
+    radial-gradient(1px 1px at 88% 54%, rgb(233 242 240 / 35%), transparent),
+    radial-gradient(1px 1px at 22% 88%, rgb(233 242 240 / 25%), transparent),
+    radial-gradient(1px 1px at 56% 40%, rgb(233 242 240 / 25%), transparent),
+    radial-gradient(1.5px 1.5px at 64% 82%, rgb(233 242 240 / 30%), transparent);
+}
+.region { position: absolute; inset-block-start: 18px; inset-inline: 0; text-align: center; font-size: var(--text-label); color: var(--fg-faint); letter-spacing: .02em; z-index: 2; }
+.body {
+  /* A person. Position = nearness, size = presence, inner glow = trust,
+     a ring = online now. Placed by percentage of the world, so when the
+     world narrows the people move with it instead of slipping under a
+     panel. */
+  position: absolute;
+  translate: -50% -50%;
+  width: var(--s); height: var(--s);
+  border-radius: 50%;
+  border: 0; padding: 0;
+  cursor: pointer;
+  background: radial-gradient(circle at 40% 35%, var(--a), var(--b) 70%);
+  display: grid; place-items: center;
+  font-size: calc(var(--s) * .34); font-weight: 600; color: rgb(4 8 10 / 75%);
+  transition: inset .55s var(--ease), translate .55s var(--ease), box-shadow .3s;
+  z-index: 1;
+}
+[dir='rtl'] .body { translate: 50% -50%; }
+.body.far { filter: blur(1.5px); opacity: .7; }
+.body.online { box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--live); }
+/* The person whose conversation or page is open: their name lights up.
+   Never a ring — a ring around a body means "online" and nothing else. */
+.body[aria-pressed='true'] .name { color: var(--fg); font-weight: 600; }
+.name { position: absolute; inset-block-start: calc(100% + 6px); inset-inline-start: 50%; translate: 50% 0; white-space: nowrap; font-size: var(--text-caption); color: var(--fg-soft); font-weight: 400; }
+[dir='ltr'] .name { translate: -50% 0; }
+
+/* The doors. Phone and tablet: along the bottom, as today. */
+.bar {
+  grid-area: bar;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 8px 10px 12px;
+  background: linear-gradient(to top, rgb(4 9 12 / 96%) 60%, rgb(4 9 12 / 0%));
+  z-index: 5;
+}
+.door { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 52px; padding: 6px 0 0; border: 0; background: none; color: var(--fg-faint); font-size: var(--text-caption); cursor: pointer; position: relative; }
+.door svg { width: 24px; height: 24px; }
+.door[aria-current='page'] { color: var(--tone, var(--fg)); }
+.door.is-talk { --tone: var(--talk); }
+.door.is-echo { --tone: var(--echo); }
+.door.is-me { --tone: var(--cool); }
+.count { position: absolute; inset-block-start: 0; inset-inline-start: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--talk-line); color: #140a2a; font-size: 10px; font-weight: 600; display: grid; place-items: center; }
+
+/* Panels: the conversation list, a conversation, a profile, settings. */
+.panel {
+  grid-area: main;
+  position: relative;
+  z-index: 4;
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+  background: var(--ink);
+}
+.panel[hidden] { display: none !important; }
+.head { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 12px; border-block-end: 1px solid var(--line); }
+.head h2 { margin: 0; font-size: var(--text-read); font-weight: 600; flex: 1; min-width: 0; }
+.head .sub { display: block; font-size: var(--text-caption); color: var(--fg-faint); font-weight: 400; }
+.round { width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgb(255 255 255 / 4%); color: var(--fg-soft); display: grid; place-items: center; cursor: pointer; flex: none; }
+.round svg { width: 20px; height: 20px; }
+[dir='rtl'] .back svg { transform: scaleX(-1); }
+.scroll { flex: 1; overflow-y: auto; min-height: 0; padding: 12px; }
+
+.row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px; border: 0; border-radius: var(--radius-md); background: none; cursor: pointer; text-align: start; }
+.row:hover { background: rgb(255 255 255 / 3%); }
+.row[aria-current='true'] { background: rgb(182 156 255 / 10%); }
+.face { width: 46px; height: 46px; border-radius: 50%; flex: none; display: grid; place-items: center; font-weight: 600; color: rgb(4 8 10 / 75%); background: radial-gradient(circle at 40% 35%, var(--a), var(--b) 70%); }
+.row b { display: block; font-size: var(--text-body); font-weight: 600; }
+.row span.last { display: block; font-size: var(--text-label); color: var(--fg-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .txt { flex: 1; min-width: 0; }
+.row .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: var(--text-caption); color: var(--fg-faint); }
+.row .unread { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--talk-line); color: #140a2a; font-size: var(--text-caption); font-weight: 600; display: grid; place-items: center; }
+
+.thread { display: flex; flex-direction: column; gap: 6px; }
+.bubble { max-width: 78%; padding: 8px 12px; border-radius: 16px; font-size: var(--text-read); line-height: 1.7; background: var(--rise); align-self: flex-end; }
+.bubble.mine { align-self: flex-start; background: rgb(122 215 200 / 16%); }
+.bubble time { display: block; font-size: var(--text-caption); color: var(--fg-faint); margin-block-start: 2px; }
+.composer { display: flex; gap: 8px; padding: 10px 12px 14px; border-block-start: 1px solid var(--line); }
+.composer input { flex: 1; min-width: 0; min-height: 44px; border-radius: var(--radius-lg); border: 1px solid var(--line); background: rgb(255 255 255 / 4%); color: var(--fg); padding: 0 16px; font: inherit; font-size: var(--text-read); }
+.send { background: var(--cool); color: var(--ink); }
+
+.prof { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 16px; text-align: center; }
+.prof .face { width: 120px; height: 120px; font-size: 40px; }
+.prof h3 { margin: 4px 0 0; font-size: var(--text-title); }
+.prof .handle { font-family: var(--font-en); font-size: var(--text-label); color: var(--fg-faint); direction: ltr; }
+.prof .bio { color: var(--fg-soft); font-size: var(--text-read); line-height: 1.8; max-width: 34ch; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.chip { padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line); font-size: var(--text-label); color: var(--fg-soft); }
+.primary { min-height: 48px; padding: 0 28px; border-radius: 24px; border: 0; background: var(--cool); color: var(--ink); font-weight: 600; cursor: pointer; margin-block-start: 8px; }
+
+.settings { display: flex; flex-direction: column; gap: 4px; }
+.settings .item { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 14px; border-radius: var(--radius-md); background: rgb(255 255 255 / 3%); font-size: var(--text-read); }
+.settings .item span { color: var(--fg-faint); font-size: var(--text-label); }
+.settings h4 { margin: 14px 4px 4px; font-size: var(--text-label); color: var(--fg-faint); font-weight: 500; }
+
+/* ---------------------------------------------- tablet: 600 to 1023 wide.
+   The world never leaves; the open thing slides in at the side, over
+   the world's edge, and the world's people move aside to stay visible. */
+@container app (min-width: 600px) {
+  .app { grid-template-columns: 1fr 400px; grid-template-areas: 'main side' 'bar bar'; }
+  .world { grid-column: 1 / -1; grid-row: 1; }
+  .app.has-side .world { grid-column: 1; }
+  .panel { grid-area: side; border-inline-start: 1px solid var(--line); box-shadow: 0 0 60px rgb(0 0 0 / 40%); animation: slide .35s var(--ease); }
+  .panel.list { grid-area: side; }
+  .bar { grid-column: 1 / -1; }
+}
+/* -------------------------------------------- desktop: 1024 and wider.
+   The doors become a rail on the starting side. The list of conversations
+   gets its own column, the open conversation or profile another, and the
+   world keeps the middle — at any width, nobody is behind a panel. */
+@container app (min-width: 1024px) {
+  .app {
+    grid-template-columns: 84px auto 1fr auto;
+    grid-template-rows: 1fr;
+    grid-template-areas: 'bar list main side';
+  }
+  .bar {
+    grid-area: bar;
+    grid-template-columns: 1fr;
+    grid-auto-rows: min-content;
+    align-content: center;
+    gap: 8px;
+    padding: 16px 8px;
+    background: rgb(4 9 12 / 96%);
+    border-inline-end: 1px solid var(--line);
+  }
+  .door { min-height: 64px; }
+  .world, .app.has-side .world { grid-area: main; grid-column: 3; grid-row: 1; }
+  .panel { grid-area: side; grid-column: 4; width: 420px; }
+  .panel.list { grid-area: list; grid-column: 2; width: 340px; border-inline-start: 0; border-inline-end: 1px solid var(--line); box-shadow: none; animation: none; }
+  .panel.center { grid-column: 2 / 5; width: auto; background: rgb(4 8 10 / 94%); }
+  .panel.center .scroll { width: min(560px, 100%); margin-inline: auto; }
+  .panel .close-on-desktop { display: none; }
+  /* In conversations, two columns like Telegram (the owner's call): the
+     list, and the open conversation in all the room that is left. The
+     world steps back; it is one door away on the rail. */
+  .app.is-talk .world { display: none; }
+  .app.is-talk .panel:not(.list):not(.center) { grid-column: 3 / 5; width: auto; border-inline-start: 0; box-shadow: none; animation: none; }
+  .app.is-talk .talk-empty { display: grid; }
+  /* A wide conversation keeps a readable column, as Telegram does. */
+  .app.is-talk .panel:not(.list) .thread,
+  .app.is-talk .panel:not(.list) .composer { width: min(760px, 100%); margin-inline: auto; }
+}
+/* Conversations open with nobody chosen yet: the conversations region's
+   own sky, and one quiet line. */
+.talk-empty {
+  display: none;
+  grid-column: 3 / 5; grid-row: 1;
+  place-items: center;
+  background: radial-gradient(90% 70% at 50% 40%, rgb(182 156 255 / 10%), var(--ink) 70%);
+  color: var(--fg-faint); font-size: var(--text-body);
+}
+.app.is-talk.has-side .talk-empty { display: none !important; }
+@keyframes slide { from { opacity: 0; translate: -24px 0; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .panel { animation: none !important; } .body { transition: none; } }
+</style>
+
+<div class="page" dir="rtl" lang="fa">
+  <header class="intro">
+    <h1>Cosmos روی هر صفحه</h1>
+    <p>همان اپ، در سه اندازه. روی گوشی هیچ چیز عوض نمی‌شود. روی تبلت جهان می‌ماند و چیزی که باز می‌کنی کنارش می‌آید. روی کامپیوتر درها به یک ستون کنارِ صفحه می‌روند و هر جا دو ستون است: در گفتگوها فهرست و گفتگو، در جهان جهان و آدمی که بازش کردی. روی آدم‌ها، گفتگوها و درها بزن.</p>
+  </header>
+
+  <div class="switch" role="group" aria-label="اندازه‌ی صفحه">
+    <button type="button" id="w-phone" data-w="390" data-h="780">گوشی<small>390</small></button>
+    <button type="button" id="w-tablet" data-w="834" data-h="640">تبلت<small>834</small></button>
+    <button type="button" id="w-desktop" data-w="1440" data-h="860" aria-pressed="true">کامپیوتر<small>1440</small></button>
+  </div>
+  <p class="note" id="note"></p>
+
+  <div class="stage" id="stage">
+    <div class="device" id="device">
+      <div class="app" id="app" dir="rtl">
+        <section class="world" aria-label="جهان">
+          <div class="region">آسمانِ نزدیک</div>
+          <div id="people"></div>
+        </section>
+
+        <section class="panel list" id="p-list" hidden aria-label="گفتگوها">
+          <div class="head">
+            <h2>گفتگوها</h2>
+            <button class="round close-on-desktop" type="button" data-close="list" aria-label="بستن"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg></button>
+          </div>
+          <div class="scroll" id="rows"></div>
+        </section>
+
+        <section class="panel" id="p-side" hidden></section>
+        <div class="talk-empty" aria-hidden="true">یک گفتگو را انتخاب کن</div>
+
+        <nav class="bar" aria-label="جاها">
+          <button class="door is-talk" type="button" data-door="talk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4.5 19.5l1.4-4A7.5 7.5 0 1 1 20 11.5z"/></svg><span>گفتگوها</span><i class="count">۳</i></button>
+          <button class="door is-echo" type="button" data-door="echo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="9" cy="12" r="4"/><circle cx="15" cy="12" r="4"/></svg><span>اکو</span></button>
+          <button class="door is-world" type="button" data-door="world" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg><span>جهان</span></button>
+          <button class="door is-events" type="button" data-door="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3.5l2.4 5.6 6.1.5-4.6 4 1.4 6-5.3-3.2-5.3 3.2 1.4-6-4.6-4 6.1-.5z"/></svg><span>رویدادها</span></button>
+          <button class="door is-me" type="button" data-door="me"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="9" r="3.6"/><path d="M5 19.5a7 7 0 0 1 14 0"/></svg><span>من</span></button>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Example people, drawn the way the world draws them. Positions are in
+// percent of the world, so they follow the world when it narrows.
+const PEOPLE = [
+  { id: 1, n: 'سارا', h: 'sara_m', x: 30, y: 34, s: 64, a: '#7ad7c8', b: '#1c3f52', on: true, bio: 'عکاسی شبانه، قهوه‌ی تلخ، و آدم‌هایی که حرفِ تازه دارند.', tags: ['عکاسی', 'کوه', 'موسیقیِ بی‌کلام'] },
+  { id: 2, n: 'آرش', h: 'arash', x: 62, y: 28, s: 52, a: '#f2b06a', b: '#3d2410', on: false, bio: 'برنامه‌نویس، شطرنج‌باز، دنبالِ هم‌صحبت برای فیلم‌های قدیمی.', tags: ['شطرنج', 'سینما'] },
+  { id: 3, n: 'نیکا', h: 'nika', x: 48, y: 58, s: 76, a: '#b69cff', b: '#2d1a3c', on: true, bio: 'تازه به این شهر آمده‌ام و دنبالِ دوست برای پیاده‌روی‌های عصر.', tags: ['پیاده‌روی', 'کتاب'] },
+  { id: 4, n: 'میلاد', h: 'milad', x: 78, y: 62, s: 44, a: '#6fa8ff', b: '#1a2540', on: false, far: true, bio: 'دوچرخه، نان‌پزی، گاهی شعر.', tags: ['دوچرخه'] },
+  { id: 5, n: 'یاس', h: 'yas', x: 20, y: 70, s: 48, a: '#8ce0a4', b: '#243312', on: true, bio: 'معلمِ زبان. دوست دارم زبانِ تازه یاد بگیرم.', tags: ['زبان', 'سفر'] },
+  { id: 6, n: 'دارا', h: 'dara', x: 70, y: 84, s: 40, a: '#ff8fa3', b: '#3c1a1a', on: false, far: true, bio: 'طراحِ بازی.', tags: ['بازی'] },
+]
+const THREADS = [
+  { who: 3, last: 'فردا عصر پارک؟', at: '۲ دقیقه', unread: 2 },
+  { who: 1, last: 'عکس‌ها رو دیدی؟ ✨', at: '۱ ساعت', unread: 1 },
+  { who: 2, last: 'اون فیلم رو پیدا کردم', at: 'دیروز', unread: 0 },
+  { who: 5, last: 'مرسی بابت کتاب', at: '۳ روز', unread: 0 },
+]
+const NOTES = {
+  phone: 'گوشی، همان اپِ امروز: هر چیزی که باز می‌کنی کلِ صفحه را می‌گیرد و درها پایینِ صفحه‌اند، جایی که شست می‌رسد.',
+  tablet: 'تبلت: جهان سرِ جایش می‌ماند و گفتگو یا پروفایل در یک ستون کنارش باز می‌شود. آدم‌ها با کوچک شدنِ جهان جابه‌جا می‌شوند، نه زیرِ ستون.',
+  desktop: 'کامپیوتر: درها یک ستونِ باریک کنارِ صفحه‌اند و هیچ‌وقت بیش از دو ستون نیست. در «گفتگوها»، مثلِ تلگرام، فهرست و گفتگوی باز کنارِ هم‌اند. در «جهان»، جهان و پروفایل یا گفتگویی که از آن باز کردی کنارِ هم‌اند و هیچ آدمی زیرِ ستون نمی‌رود. «من» و تنظیمات در یک ستونِ وسطِ صفحه با پهنای خوانا.',
+}
+
+const $ = (s, r = document) => r.querySelector(s)
+const app = $('#app'), people = $('#people'), side = $('#p-side'), list = $('#p-list')
+const byId = (id) => PEOPLE.find((p) => p.id === id)
+let size = 'desktop'
+let picked = null
+
+function drawPeople() {
+  people.innerHTML = PEOPLE.map((p) => `
+    <button class="body${p.on ? ' online' : ''}${p.far ? ' far' : ''}" type="button" data-person="${p.id}"
+      aria-pressed="${picked === p.id}" aria-label="${p.n}${p.on ? '، آنلاین' : ''}"
+      style="--s:${p.s}px;--a:${p.a};--b:${p.b};inset-inline-start:${p.x}%;inset-block-start:${p.y}%">
+      ${p.n[0]}<span class="name">${p.n}</span></button>`).join('')
+}
+function drawRows(current) {
+  $('#rows').innerHTML = THREADS.map((t) => { const p = byId(t.who); return `
+    <button class="row" type="button" data-chat="${p.id}" aria-current="${current === p.id}">
+      <span class="face" style="--a:${p.a};--b:${p.b}">${p.n[0]}</span>
+      <span class="txt"><b>${p.n}</b><span class="last">${t.last}</span></span>
+      <span class="meta">${t.at}${t.unread ? `<i class="unread">${'۰۱۲۳۴۵۶۷۸۹'[t.unread]}</i>` : ''}</span>
+    </button>` }).join('')
+}
+const BACK = '<button class="round back" type="button" data-close="side" aria-label="بازگشت"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></button>'
+
+function openSide(html, kind) {
+  side.innerHTML = html
+  side.hidden = false
+  side.classList.toggle('center', kind === 'center')
+  app.classList.toggle('has-side', kind !== 'center')
+}
+function closeSide() { side.hidden = true; app.classList.remove('has-side'); picked = null; drawPeople(); drawRows(null) }
+
+function openProfile(id) {
+  const p = byId(id); picked = id; drawPeople()
+  openSide(`
+    <div class="head">${BACK}<h2>${p.n}<span class="sub">${p.on ? 'آنلاین' : 'چند ساعت پیش'}</span></h2></div>
+    <div class="scroll"><div class="prof">
+      <span class="face" style="--a:${p.a};--b:${p.b}">${p.n[0]}</span>
+      <h3>${p.n}</h3><span class="handle">@${p.h}</span>
+      <p class="bio">${p.bio}</p>
+      <div class="chips">${p.tags.map((t) => `<span class="chip">${t}</span>`).join('')}</div>
+      <button class="primary" type="button" data-chat="${p.id}">گفتگو</button>
+    </div></div>`, 'side')
+}
+function openChat(id) {
+  const p = byId(id); picked = id; drawPeople(); drawRows(id)
+  openSide(`
+    <div class="head">${BACK}<span class="face" style="--a:${p.a};--b:${p.b};width:40px;height:40px">${p.n[0]}</span>
+      <h2>${p.n}<span class="sub">${p.on ? 'آنلاین' : 'چند ساعت پیش'}</span></h2></div>
+    <div class="scroll"><div class="thread">
+      <div class="bubble">سلام! عکس‌های دیشبت از آسمان خیلی قشنگ بود<time>۲۱:۰۴</time></div>
+      <div class="bubble mine">مرسی 🙂 از پشت‌بام گرفتم<time>۲۱:۰۶</time></div>
+      <div class="bubble">فردا عصر پارک؟ چند نفر دیگه هم میان<time>۲۱:۰۹</time></div>
+    </div></div>
+    <form class="composer" onsubmit="event.preventDefault()"><input id="draft" aria-label="پیام" placeholder="پیام…"><button class="round send" type="submit" aria-label="فرستادن"><svg viewBox="0 0 24 24"><path d="M5 12h13M12 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="scale(-1 1) translate(-24 0)"/></svg></button></form>`, 'side')
+}
+function openMe() {
+  picked = null; drawPeople()
+  openSide(`
+    <div class="head">${BACK}<h2>من</h2></div>
+    <div class="scroll"><div class="settings">
+      <h4>تو، از چشمِ دیگران</h4>
+      <div class="item">ویرایشِ پروفایل<span>نام، درباره، علاقه‌ها</span></div>
+      <div class="item">یادداشتِ امروز<span>تا فردا همین ساعت</span></div>
+      <h4>حساب</h4>
+      <div class="item">دستگاه‌ها<span>۲ دستگاه</span></div>
+      <div class="item">راه‌های ورود<span>گوگل</span></div>
+      <div class="item">ورود با دستگاهِ دیگر<span></span></div>
+      <h4>کمک</h4>
+      <div class="item">گزارشِ مشکل<span></span></div>
+    </div></div>`, 'center')
+}
+
+function setDoor(door) {
+  app.classList.toggle('is-talk', door === 'talk')
+  app.querySelectorAll('.door').forEach((d) => d.toggleAttribute('aria-current', false))
+  app.querySelector(`[data-door="${door}"]`).setAttribute('aria-current', 'page')
+}
+
+app.addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t) return
+  if (t.dataset.person) { openProfile(+t.dataset.person); return }
+  if (t.dataset.chat) { openChat(+t.dataset.chat); return }
+  if (t.dataset.close === 'side') {
+    // On a phone, back from a chat opened from the list returns to the list.
+    closeSide(); return
+  }
+  if (t.dataset.close === 'list') { list.hidden = true; setDoor('world'); return }
+  const door = t.dataset.door
+  if (door === 'talk') { list.hidden = false; drawRows(picked); setDoor('talk'); if (size !== 'desktop') closeSide() }
+  if (door === 'world') { list.hidden = true; closeSide(); setDoor('world') }
+  if (door === 'me') { list.hidden = true; openMe(); setDoor('me') }
+  if (door === 'echo' || door === 'events') { setDoor(door) }
+})
+
+// --------------------------------------------------- the size switch
+const stage = $('#stage'), device = $('#device')
+function fit() {
+  const btn = document.querySelector('.switch [aria-pressed="true"]')
+  const w = +btn.dataset.w, h = +btn.dataset.h
+  device.style.width = w + 'px'; device.style.height = h + 'px'
+  const scale = Math.min(1, stage.clientWidth / w)
+  device.style.transform = `scale(${scale})`
+  stage.style.height = h * scale + 'px'
+  // centred in the stage when smaller than it
+  device.style.marginInline = scale === 1 ? `${(stage.clientWidth - w) / 2}px 0` : '0'
+}
+document.querySelectorAll('.switch button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.switch button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)))
+  size = b.id.slice(2)
+  $('#note').textContent = NOTES[size]
+  fit()
+}))
+window.addEventListener('resize', fit)
+
+drawPeople(); drawRows(null)
+$('#note').textContent = NOTES.desktop
+// Opens in a working state: the conversations column and one conversation.
+list.hidden = false; setDoor('talk'); openChat(3)
+fit()
+</script>

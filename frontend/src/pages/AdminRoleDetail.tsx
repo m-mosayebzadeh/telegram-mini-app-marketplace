@@ -26,6 +26,13 @@ const AVAILABLE_SCOPES = [
     hintKey: 'admin.topupsHint',
   },
   { scope: 'finance.rates', labelKey: 'admin.scopeFinanceRates', hintKey: 'admin.ratesHint' },
+  // Answering people who write to Cosmos Team (section 43).
+  { scope: 'support.conversations', labelKey: 'admin.scopeSupport', hintKey: 'admin.supportHint' },
+  // These two existed on the server but could not be given to anybody:
+  // only the owner could open Echo's and the reports' pages.
+  { scope: 'moderation.random_chat', labelKey: 'admin.scopeEcho', hintKey: 'admin.echoHint' },
+  { scope: 'moderation.reports', labelKey: 'admin.scopeReports', hintKey: 'admin.reportsHint' },
+  { scope: 'analytics.view', labelKey: 'admin.scopeAnalytics', hintKey: 'admin.analyticsHint' },
 ] as const
 
 /**

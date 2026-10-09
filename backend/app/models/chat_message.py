@@ -116,6 +116,11 @@ class ChatMessage(Base):
     #: person sends.
     action: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
+    # Which staff member wrote a Cosmos Team answer (app/models/support.py).
+    # The sender is still the team: this is for the owner's eyes only and
+    # never leaves the server in anything the person sees.
+    staff_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("users.id"), nullable=True)
+
     #: When the text was last changed. What it said before is kept in
     #: message_edits; the people talking only see that it was edited.
     edited_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)

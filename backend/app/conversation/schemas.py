@@ -20,6 +20,26 @@ class ConversationParticipantOut(BaseModel):
     team: bool = False
 
 
+class SupportInfoOut(BaseModel):
+    """What staff see about a team conversation they answer (section 43):
+    who holds it, and a little about the person, so the first answer does
+    not have to be "what is the problem?". Never sent to the person."""
+
+    #: Who is answering it now, or null when it is free.
+    holder_name: str | None = None
+    held_by_me: bool = False
+    #: Handed over by the owner (holds until that person answers).
+    handed: bool = False
+    #: The owner may hand it to somebody.
+    can_hand: bool = False
+    #: The person's app language ("fa", "en"...), or null.
+    language: str | None = None
+    joined_at: datetime | None = None
+    #: What the team last told them before they wrote: "new_sign_in",
+    #: "door_changed", or null.
+    last_notice: str | None = None
+
+
 class ConversationOut(BaseModel):
     id: int
     kind: str
@@ -65,6 +85,11 @@ class ConversationOut(BaseModel):
     #: has read it" is the useful fact, and waiting for everyone would leave
     #: a large room's messages unseen forever.
     others_read_at: datetime | None = None
+
+    #: Set only for staff answering as Cosmos Team (section 43): the team's
+    #: id, which the screen treats as "me" so the team's messages are theirs.
+    acting_as: int | None = None
+    support: SupportInfoOut | None = None
 
 
 class OpenConversationIn(BaseModel):

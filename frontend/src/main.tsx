@@ -20,10 +20,14 @@ import { ThemeProvider } from './lib/ThemeContext.tsx'
 import { KitRoot } from './components/KitRoot'
 import { ToastProvider } from './components/ui'
 import { applyLightGraphics } from './lib/lightGraphics'
+import { startCounting } from './lib/analytics'
 
 // Before the first paint, so a cheap phone never draws the heavy version
 // first (lib/lightGraphics.ts).
 applyLightGraphics()
+// How long the app takes to show itself, its errors, a tapped notification
+// (lib/analytics.ts, section 43).
+startCounting()
 
 // ThemeProvider stays OUTSIDE KitRoot: it stamps data-theme onto <html>,
 // and this app's light/dark identity is its own, not AppRoot's.

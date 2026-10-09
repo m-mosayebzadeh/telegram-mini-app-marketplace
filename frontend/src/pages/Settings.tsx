@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '../components/ui'
 import { QuietChoiceRow, QuietConfirm, QuietPage, QuietRow, QuietSection, QuietSwitchRow } from '../components/cosmos/Quiet'
-import { QBell, QFlag, QKey, QDevice, QLeaf, QOut, QPerson, QTwoDevices } from '../components/cosmos/quietIcons'
+import { QBell, QKey, QDevice, QLeaf, QOut, QPerson, QTalk, QTwoDevices } from '../components/cosmos/quietIcons'
+import { openTeamConversation } from '../lib/conversationApi'
 import { useMe } from '../lib/MeContext'
 import { formatApiError } from '../lib/api'
 import { deleteAccount, fetchBlocked, fetchPrivacy, savePrivacy, type ChatDoor, type FriendsSeenBy, type Privacy } from '../lib/accountApi'
@@ -23,7 +24,7 @@ import { pushState, setPushPreview, turnPushOff, turnPushOn, type PushState } fr
  *   Everything starts at the freest setting, and whoever wants it narrower
  *   narrows it (the owner's rule).
  * - The app: the language, notifications, light graphics.
- * - Help: report a problem.
+ * - Help: contact support (the conversation with Cosmos Team).
  * - The account: ways in, devices, signing in another device, signing out,
  *   and deleting it, asked twice.
  *
@@ -33,7 +34,10 @@ export default function Settings() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const toast = useToast()
-  const { markDeleted } = useMe()
+  const { markDeleted, adminAccess } = useMe()
+  // The admin panel's door lived on the old bottom bar, which the world's
+  // pages no longer show; here it is, for whoever holds any part of it.
+  const isAdmin = !!adminAccess && (adminAccess.is_owner || adminAccess.scopes.length > 0)
 
   const [privacy, setPrivacy] = useState<Privacy | null>(null)
   const [lite, setLite] = useState(readLightGraphics)
@@ -172,9 +176,24 @@ export default function Settings() {
 
       <QuietSection name={t('settings.helpGroup')}>
         <div className="cos-q-rows">
-          <QuietRow icon={<QFlag />} title={t('settings.report')} onClick={() => navigate('/settings/report')} />
+          {/* Straight into the conversation with Cosmos Team, where staff
+              answer under "support" (section 43). Reporting a person or a
+              message stays where that person or message is. */}
+          <QuietRow
+            icon={<QTalk />}
+            title={t('settings.support')}
+            onClick={() => void openTeamConversation().then((thread) => navigate(`/conversations/${thread.id}`)).catch(() => {})}
+          />
         </div>
       </QuietSection>
+
+      {isAdmin && (
+        <QuietSection name={t('settings.adminGroup')}>
+          <div className="cos-q-rows">
+            <QuietRow icon={<QKey />} title={t('settings.admin')} onClick={() => navigate('/admin')} />
+          </div>
+        </QuietSection>
+      )}
 
       <QuietSection name={t('settings.accountGroup')}>
         <div className="cos-q-rows">

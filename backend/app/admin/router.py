@@ -76,6 +76,21 @@ def get_my_admin_access(
 # --- roles ("نقش و دسترسی") -------------------------------------------------
 
 
+def _tell_access_changed(user_ids) -> None:
+    """Whoever's access just changed hears it at once, and their app reads
+    its admin access again (section 43: a role taken away left the support
+    tab on the screen until the app was closed). The server itself never
+    trusted that tab — every request is checked — but the screen should not
+    promise what it would refuse."""
+    from app.live.hub import hub
+
+    hub.publish(list(user_ids), {"type": "access"})
+
+
+def _holders(db: Session, role_id: int) -> list[int]:
+    return [user_id for (user_id,) in db.query(AdminGrant.user_id).filter(AdminGrant.role_id == role_id)]
+
+
 def _role_out(db: Session, role: Role) -> RoleOut:
     member_count = db.query(AdminGrant).filter(AdminGrant.role_id == role.id).count()
     return RoleOut(
@@ -137,6 +152,7 @@ def update_role(
         role.scopes = payload.scopes
     db.commit()
     db.refresh(role)
+    _tell_access_changed(_holders(db, role.id))
     return _role_out(db, role)
 
 
@@ -148,6 +164,7 @@ def activate_role(
     role.is_active = True
     db.commit()
     db.refresh(role)
+    _tell_access_changed(_holders(db, role.id))
     return _role_out(db, role)
 
 
@@ -166,6 +183,7 @@ def deactivate_role(
     role.is_active = False
     db.commit()
     db.refresh(role)
+    _tell_access_changed(_holders(db, role.id))
     return _role_out(db, role)
 
 
@@ -176,9 +194,11 @@ def delete_role(
     """Permanent, unlike deactivating: the role AND every assignment to
     it are gone for good."""
     role = _get_role(db, role_id)
+    holders = _holders(db, role_id)
     db.query(AdminGrant).filter(AdminGrant.role_id == role_id).delete()
     db.delete(role)
     db.commit()
+    _tell_access_changed(holders)
 
 
 def _user_summary(user: User, avatar_url: str | None, is_assistant: bool) -> AdminUserSummaryOut:
@@ -286,6 +306,7 @@ def assign_role(
     if existing is None:
         db.add(AdminGrant(user_id=user_id, role_id=role.id, granted_by_user_id=current_user.id))
         db.commit()
+        _tell_access_changed([user_id])
 
     return UserRoleOut(role_id=role.id, role_name=role.name, is_active=role.is_active)
 
@@ -306,6 +327,7 @@ def revoke_role(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "This user doesn't hold that role.")
     db.delete(grant)
     db.commit()
+    _tell_access_changed([user_id])
 
 
 # --- users ("کاربران" — browse/moderate anyone's account) -------------------

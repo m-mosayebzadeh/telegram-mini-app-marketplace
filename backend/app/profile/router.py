@@ -51,7 +51,6 @@ def _to_profile_out(db: Session, profile: Profile) -> ProfileOut:
         birthday_day=profile.birthday_day,
         birthday_year=profile.birthday_year,
         gender=profile.gender,
-        hide_birth_year=profile.hide_birth_year,
         note=fresh_note(profile),
         note_at=fresh_note_at(profile),
     )
@@ -128,7 +127,6 @@ def upsert_my_profile(
     profile.birthday_day = payload.birthday_day
     profile.birthday_year = payload.birthday_year
     profile.gender = payload.gender
-    profile.hide_birth_year = payload.hide_birth_year
     # is_trusted is intentionally untouched here — see ProfileUpdate's
     # docstring; this endpoint can never grant it.
 
@@ -282,12 +280,9 @@ def read_public_profile(
         is_trusted=profile.is_trusted if profile else False,
         birthday_month=profile.birthday_month if profile else None,
         birthday_day=profile.birthday_day if profile else None,
-        # The year is withheld here and nowhere else: the owner's own
-        # GET /profile/me still returns it, and the matcher still reads
-        # the column directly. Hiding is about other people's eyes.
-        birthday_year=(
-            profile.birthday_year if profile and not profile.hide_birth_year else None
-        ),
+        # No year, ever (owner's decision, section 43): nothing shows
+        # another person's birth year, so it is not sent. Only the owner's
+        # own GET /profile/me returns it, and Echo reads the column for age.
         gender=profile.gender if profile else None,
         note=fresh_note(profile),
         note_at=fresh_note_at(profile),

@@ -10,6 +10,7 @@ guarantee every model module gets imported at least once.
 """
 
 from app.models.admin_grant import AdminGrant  # noqa: F401
+from app.models.analytics import ActiveDay, AppEvent  # noqa: F401
 from app.models.auth_session import AuthIdentity, AuthSession, DeviceSignInRequest  # noqa: F401
 from app.models.audience_group import AudienceGroup, AudienceGroupMember  # noqa: F401
 from app.models.block import Block  # noqa: F401
@@ -33,6 +34,7 @@ from app.models.request import Request  # noqa: F401
 from app.models.random_chat import EchoProposal, RandomChatSession, RandomChatTicket  # noqa: F401
 from app.models.report import Report, Suspension  # noqa: F401
 from app.models.role import Role  # noqa: F401
+from app.models.support import SupportLock, SupportOpening  # noqa: F401
 from app.models.topup_request import TopUpRequest  # noqa: F401
 from app.models.transaction import Transaction  # noqa: F401
 from app.models.user import User  # noqa: F401

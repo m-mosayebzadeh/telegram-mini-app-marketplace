@@ -43,6 +43,7 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+import time
 import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -105,6 +106,17 @@ class LiveHub:
         #: Waiting sign-in requests on this process, by their code: each
         #: waiter is the loop it waits on and the event that wakes it.
         self._device_waiters: dict[str, set[tuple[asyncio.AbstractEventLoop, asyncio.Event]]] = {}
+        #: Whose ring each person connected HERE can see right now: the
+        #: people their world last showed them, and the reverse, so that
+        #: somebody coming online is told to their watchers only — at most
+        #: a world's worth of people each, never everybody (section 43).
+        self._watches: dict[int, set[int]] = {}
+        self._watched_by: dict[int, set[int]] = {}
+        #: Worlds asked for before their socket arrived here — the app asks
+        #: for the world and opens its socket at the same moment, and the
+        #: world usually answers first. Kept briefly, by when they came,
+        #: and taken up when the socket registers (see `sweep_pending`).
+        self._pending_watches: dict[int, tuple[float, list[int]]] = {}
 
     def attach(self, broker) -> None:
         """Called once at startup when REDIS_URL is set."""
@@ -114,6 +126,9 @@ class LiveHub:
         connection = Connection(user_id=user_id, loop=asyncio.get_running_loop(), session_id=session_id)
         with self._lock:
             self._by_user.setdefault(user_id, set()).add(connection)
+            pending = self._pending_watches.pop(user_id, None)
+        if pending is not None:
+            self._watch_local(user_id, pending[1])
         return connection
 
     def unregister(self, connection: Connection) -> None:
@@ -124,6 +139,8 @@ class LiveHub:
             mine.discard(connection)
             if not mine:
                 del self._by_user[connection.user_id]
+                # Gone from this process: their world is not open here.
+                self._drop_watch(connection.user_id)
 
     def is_connected(self, user_id: int) -> bool:
         with self._lock:
@@ -169,6 +186,63 @@ class LiveHub:
             except RuntimeError:
                 # The loop has shut down under us: the socket is already gone.
                 pass
+
+    # --- presence: a ring that appears the moment somebody arrives ----------
+
+    def watch(self, viewer_id: int, user_ids: Iterable[int]) -> None:
+        """The world just showed `viewer_id` these people: from now on they
+        hear when any of them comes or goes. Kept by whichever process holds
+        the viewer's socket — the world was asked over an ordinary request,
+        which may have landed on another one."""
+        ids = sorted(set(user_ids))
+        self._watch_local(viewer_id, ids)
+        if self._broker is not None:
+            self._broker.send(json.dumps({"from": self.node_id, "watch": viewer_id, "ids": ids}, separators=(",", ":")))
+
+    def _watch_local(self, viewer_id: int, ids: list[int]) -> None:
+        with self._lock:
+            if viewer_id not in self._by_user:
+                # Not connected here yet, or connected to another process:
+                # kept for a moment in case the socket is on its way here.
+                self._pending_watches[viewer_id] = (time.monotonic(), ids)
+                return
+            self._drop_watch(viewer_id)
+            self._watches[viewer_id] = set(ids)
+            for watched in ids:
+                self._watched_by.setdefault(watched, set()).add(viewer_id)
+
+    def sweep_pending(self, older_than: float = 60.0) -> int:
+        """Forgets worlds whose socket never came here (it went to another
+        process, or the app closed): from the heartbeat, once a minute, so
+        memory never grows with people who are not connected here."""
+        cutoff = time.monotonic() - older_than
+        with self._lock:
+            stale = [viewer for viewer, (at, _) in self._pending_watches.items() if at < cutoff]
+            for viewer in stale:
+                del self._pending_watches[viewer]
+        return len(stale)
+
+    def _drop_watch(self, viewer_id: int) -> None:
+        """Caller holds the lock."""
+        for watched in self._watches.pop(viewer_id, ()):
+            viewers = self._watched_by.get(watched)
+            if viewers is not None:
+                viewers.discard(viewer_id)
+                if not viewers:
+                    del self._watched_by[watched]
+
+    def presence(self, user_id: int, online: bool) -> None:
+        """`user_id` arrived or left: everyone whose world shows them, on
+        every process, hears it and lights or dims the ring."""
+        self._presence_local(user_id, online)
+        if self._broker is not None:
+            self._broker.send(json.dumps({"from": self.node_id, "presence": user_id, "online": online}, separators=(",", ":")))
+
+    def _presence_local(self, user_id: int, online: bool) -> None:
+        with self._lock:
+            viewers = list(self._watched_by.get(user_id, ()))
+        if viewers:
+            self.publish_local(viewers, {"type": "presence", "user_id": user_id, "online": online})
 
     def close_session(self, session_id: int) -> None:
         """A sign-in session was closed: its sockets hear "signed_out" and
@@ -241,6 +315,12 @@ class LiveHub:
                 return
             if "device_request" in message:
                 self._wake_device_local(str(message["device_request"]))
+                return
+            if "watch" in message:
+                self._watch_local(int(message["watch"]), [int(i) for i in message["ids"]])
+                return
+            if "presence" in message:
+                self._presence_local(int(message["presence"]), bool(message["online"]))
                 return
             event = message["event"]
             users = message["users"]

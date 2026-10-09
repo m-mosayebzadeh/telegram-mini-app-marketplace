@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, object_session
 
 from app.chat_message.actions import messages_out, reactions_of
 from app.live.hub import hub
@@ -19,7 +19,17 @@ from app.models.conversation import Conversation
 
 
 def _everyone_in(conversation: Conversation) -> list[int]:
-    return [p.user_id for p in conversation.participants]
+    """The people in the thread — and, for a conversation with Cosmos Team,
+    the staff who answer for the team (section 43), so a new word reaches
+    their open screens the moment it is written."""
+    ids = [p.user_id for p in conversation.participants]
+    db = object_session(conversation)
+    if db is not None:
+        from app.support import service as support  # imports the auth layer; not at load time
+
+        if support.is_team_conversation(db, conversation):
+            ids = sorted(set(ids) | set(support.staff_ids(db)))
+    return ids
 
 
 def _shaped(db: Session, message: ChatMessage) -> dict:

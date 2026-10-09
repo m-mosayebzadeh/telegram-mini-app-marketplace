@@ -143,8 +143,29 @@ def _touch_last_seen(db: Session, user: User) -> None:
     now = utcnow()
     if user.last_seen_at is not None and now - user.last_seen_at < LAST_SEEN_WRITE_EVERY:
         return
+    first_today = user.last_seen_at is None or user.last_seen_at.date() != now.date()
     user.last_seen_at = now
+    if first_today:
+        # One row per person per day, for "who came back" (section 43). The
+        # day somebody joined is known from joined_at and needs no row.
+        _mark_active_day(db, user.id, now.date())
     db.commit()
+
+
+def _mark_active_day(db: Session, user_id: int, day) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    from app.models.analytics import ActiveDay
+
+    if db.get(ActiveDay, (user_id, day)) is not None:
+        return
+    try:
+        # Two requests at the same moment may both get here; the second
+        # one's row is simply not needed.
+        with db.begin_nested():
+            db.add(ActiveDay(user_id=user_id, day=day))
+    except IntegrityError:
+        pass
 
 
 def seen_roughly(user: User, *, now=None) -> str:

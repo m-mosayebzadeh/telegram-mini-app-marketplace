@@ -1,3 +1,5 @@
+import { track } from '../lib/analytics'
+import { CosmosMark } from '../components/cosmos/CosmosMark'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { apiReason } from '../lib/api'
@@ -62,6 +64,8 @@ export default function SignIn() {
   const { t, i18n } = useTranslation()
   const [ways, setWays] = useState<WaysIn | null>(null)
   const [step, setStep] = useState<Step>('ways')
+  // Each step shown, to see where people give up on the way in (section 43).
+  useEffect(() => track('signin_step', undefined, step), [step])
   // A message key rather than text, so it follows a change of language.
   const [error, setError] = useState<string | null>(cameBackFromGoogle)
   const [leaving, setLeaving] = useState(false)
@@ -96,7 +100,10 @@ export default function SignIn() {
       {/* Orientation only: where you are, the way back, the language. */}
       <header className="cos-signin-top">
         {step === 'ways' ? (
-          <span className="cos-signin-brand" dir="ltr">Cosmos</span>
+          <span className="cos-signin-brand" dir="ltr">
+            <CosmosMark size={28} arrive />
+            Cosmos
+          </span>
         ) : (
           <BackButton onClick={() => back()} />
         )}
@@ -126,7 +133,10 @@ export default function SignIn() {
                 onClick={(e) => {
                   // One tap is enough; a second would start a second sign-in.
                   if (leaving) e.preventDefault()
-                  else setLeaving(true)
+                  else {
+                    setLeaving(true)
+                    track('signin_step', undefined, 'google')
+                  }
                 }}
               >
                 <GoogleMark />

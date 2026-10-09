@@ -102,6 +102,7 @@ def tell(db: Session, user_ids: list[int], build) -> None:
         db.commit()
     by_user = {u.id: u for u in away}
     jobs = []
+    told: set[int] = set()
     for subscription, session in subscriptions:
         if subscription.id in dead:
             continue
@@ -109,6 +110,14 @@ def tell(db: Session, user_ids: list[int], build) -> None:
         if note is None:
             continue
         jobs.append((subscription.id, subscription.endpoint, subscription.p256dh, subscription.auth, json.dumps(note)))
+        told.add(subscription.user_id)
+    if told:
+        # Counted once per person told, not per device (analytics, section
+        # 43): set against how many open one, it says whether they help.
+        from app.models.analytics import AppEvent
+
+        db.add_all([AppEvent(name="push_sent", user_id=user_id) for user_id in told])
+        db.commit()
     for job in jobs:
         _pool.submit(_send, *job)
 

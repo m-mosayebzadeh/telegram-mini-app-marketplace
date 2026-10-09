@@ -176,7 +176,10 @@
     "seenAll": "Anyone can message you.",
     "seenFriends": "Only your friends can start a new conversation.",
     "people": "{{count, number}} people",
-    "chooseViewersCount": "Choose people · {{count, number}}"
+    "chooseViewersCount": "Choose people · {{count, number}}",
+    "support": "Contact support",
+    "adminGroup": "Management",
+    "admin": "Admin panel"
   },
   "providerSummary": {
     "title": "Provider summary",
@@ -366,7 +369,15 @@
     "ratesMinutesUnit": "minutes",
     "ratesNewPeopleLabel": "New people a day",
     "ratesNewPeopleHint": "One shared limit per person per day for \"say hello\" in the world and Echo. Saying hello to someone you already talk to does not count.",
-    "ratesPeopleUnit": "people"
+    "ratesPeopleUnit": "people",
+    "scopeSupport": "Answer people's messages",
+    "supportHint": "Sees what people write to Cosmos Team under “Support”, and answers as the team.",
+    "scopeEcho": "Manage Echo",
+    "echoHint": "Opens and closes Echo, sets its hours, and suspends people from it.",
+    "scopeReports": "Read reports",
+    "reportsHint": "Sees and handles what people report about each other or a problem.",
+    "scopeAnalytics": "See analytics",
+    "analyticsHint": "Sees the analytics page: counts only, never anybody's words."
   },
   "offers": {
     "browseTitle": "Active offers",
@@ -1157,7 +1168,8 @@
       "title": "Clear history of {{n}} conversations",
       "sure": "The messages are cleared for you, but the conversations stay in your list. Nothing changes for the other people.",
       "confirm": "Clear"
-    }
+    },
+    "chooseOne": "Choose a conversation"
   },
   "seek": {
     "sub": "Meeting new people",
@@ -1430,5 +1442,85 @@
       "linkLead": "Open the Telegram you want to connect, tap Start, and answer the bot with “Yes, it’s me”.",
       "again": "Again"
     }
+  },
+  "support": {
+    "tabMine": "Conversations",
+    "tab": "Support",
+    "empty": "Nobody has written to the team yet.",
+    "language": "Language: {{language}}",
+    "joined": "Joined {{date}}",
+    "notice": {
+      "new_sign_in": "The team last told them: a new sign-in",
+      "notice": "The team last told them: a notice"
+    },
+    "heldBy": "{{name}} is answering",
+    "someone": "Someone else",
+    "yours": "You are answering this one",
+    "handedToYou": "This one was handed to you",
+    "handTo": "Hand to",
+    "handChoose": "Choose",
+    "handFree": "Free it"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "hubHint": "How Cosmos is doing: acquaintances, coming and returning, safety, the app's speed",
+    "lastDays": "Last {{n}} days",
+    "oneNumber": "The one number",
+    "answered": "Conversations where both people spoke",
+    "answeredHint": "The same days before: {{before}}",
+    "joining": "Coming in",
+    "newPeople": "New people",
+    "way": {
+      "google": "Google",
+      "telegram": "Telegram",
+      "device": "Another phone",
+      "dev": "Test sign-in",
+      "other": "Another way"
+    },
+    "sawSignIn": "Saw the sign-in page",
+    "sawSignInHint": "Every time the sign-in page opened; the gap to new people is who gave up",
+    "chose": "Chose {{way}}",
+    "firstDay": "A newcomer's first day",
+    "firstDayPeople": "Newcomers who have had a whole day",
+    "completedProfile": "Filled in their profile",
+    "approached": "Went towards somebody",
+    "wrote": "Sent a first message",
+    "gotAnswer": "Got a first answer",
+    "comingBack": "Coming back",
+    "today": "Active today",
+    "week": "Active in the last 7 days",
+    "month": "Active in the last 30 days",
+    "backDay1": "Came back the day after joining",
+    "backDay7": "Came back a week later",
+    "backDay30": "Came back a month later",
+    "friendship": "Friendship",
+    "friendAsked": "Friend requests",
+    "friendAccepted": "Friendships accepted",
+    "talkedAfter": "Kept talking after becoming friends",
+    "echo": "Echo",
+    "echoProposals": "Match proposals",
+    "echoMet": "Echo conversations",
+    "echoEarly": "Ended within two minutes",
+    "echoKept": "Both kept it",
+    "safety": "Safety",
+    "reports": "Reports",
+    "blocks": "Blocks",
+    "per1000": "{{n}} per thousand conversations",
+    "teamAnswer": "Team answer time (median)",
+    "minutes": "{{n}} min",
+    "notifications": "Notifications",
+    "pushPeople": "Have notifications on",
+    "pushShare": "{{share}} of the month's active people",
+    "pushSent": "Notifications sent",
+    "pushOpened": "Notifications opened",
+    "app": "The app itself",
+    "load": "Time to open (median)",
+    "loadSlow": "Slowest tenth: {{time}}",
+    "seconds": "{{n}} s",
+    "errors": "Errors",
+    "fps": "World smoothness (frames per second)",
+    "fpsLight": "With light graphics",
+    "fpsSlow": "Slow phones",
+    "fpsSlowHint": "The slowest tenth of phones"
   }
 }

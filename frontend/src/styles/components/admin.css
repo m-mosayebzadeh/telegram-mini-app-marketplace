@@ -68,3 +68,11 @@
   padding-top: var(--space-6);
   border-top: 1px solid var(--color-border);
 }
+
+/* The analytics page (section 43): labelled numbers. A row that is a part
+   of the one above it sits in from the start, so "Google" reads as one of
+   the new people rather than another total. */
+.an-sub { padding-inline-start: var(--space-6); }
+.an-sub .ui-row-title { color: var(--color-text-2); }
+.an-value { font-variant-numeric: tabular-nums; color: var(--color-text); }
+.an-value.is-strong { font: var(--text-title); }

@@ -24,6 +24,8 @@ export function doorOf(pathname: string): Door | null {
   // old bar, a second app inside this one.
   if (pathname === '/profile' || pathname === '/friends') return 'me'
   if (pathname === '/settings' || pathname.startsWith('/settings/')) return 'me'
+  // The admin panel opens from Settings (section 43), so it sits behind "me".
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) return 'me'
   if (pathname === '/profile/edit' || pathname === '/link') return 'me'
   if (pathname.startsWith('/profiles/')) return 'world'
   return null

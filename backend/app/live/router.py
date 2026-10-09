@@ -26,6 +26,9 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
 from app.auth import sessions
+from app.auth.dependencies import ONLINE_WITHIN
+from app.core.presence import hiding_online
+from app.core.time import utcnow
 from app.core.database import open_db
 from app.models.user import User, UserStatus
 from app.live.hub import hub
@@ -64,6 +67,14 @@ async def live(websocket: WebSocket, db: Session = Depends(open_db)) -> None:
     user = db.get(User, session.user_id) if session is not None else None
     user_id = user.id if user is not None and user.status == UserStatus.ACTIVE else None
     session_id = session.id if session is not None else None
+    # Coming online, rather than opening a second tab: their ring lights up
+    # in the worlds that show them, at once (section 43). Never for
+    # somebody who hides it.
+    arriving = (
+        user_id is not None
+        and (user.last_seen_at is None or utcnow() - user.last_seen_at > ONLINE_WITHIN or not hub.is_connected(user_id))
+        and user_id not in hiding_online(db, [user_id])
+    )
     # The database is needed for exactly one lookup. Holding a connection
     # from the pool for as long as a socket stays open — hours, for
     # somebody who leaves the app open — would run the pool dry with a few
@@ -81,7 +92,10 @@ async def live(websocket: WebSocket, db: Session = Depends(open_db)) -> None:
         await _close(websocket, status.WS_1008_POLICY_VIOLATION)
         return
 
+    first_here = not hub.is_connected(user_id)
     connection = hub.register(user_id, session_id)
+    if arriving and first_here:
+        hub.presence(user_id, True)
     try:
         await websocket.send_json({"type": "ready"})
         await _pump(websocket, connection, db)
