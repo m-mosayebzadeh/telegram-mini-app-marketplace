@@ -1,0 +1,133 @@
+/*
+ * Halfway design tokens. See docs/DESIGN.md.
+ *
+ * Primitives feed semantic tokens; components read semantic tokens only.
+ * Dark mode swaps the values of semantic tokens and nothing else.
+ */
+
+:root {
+  /* ── Primitives ─────────────────────────────────────────── */
+  --paper-50: #fbf8f1;
+  --paper-100: #f4efe5;
+  --ink-900: #1b1d24;
+  --ink-700: #4a4c55;
+  --ink-500: #6b6a68;
+  --vermilion-600: #b3361f;
+  --vermilion-400: #e2583c;
+  --night-950: #15161b;
+  --night-900: #1e2026;
+  --cream-100: #ece5d6;
+  --cream-300: #b7b0a2;
+  --cream-500: #8e897f;
+  --white: #ffffff;
+
+  /* ── Semantic: colour ───────────────────────────────────── */
+  --color-page: var(--paper-100);
+  --color-surface: var(--paper-50);
+  --color-text: var(--ink-900);
+  --color-text-secondary: var(--ink-700);
+  --color-text-tertiary: var(--ink-500);
+  --color-rule: color-mix(in srgb, var(--ink-900) 16%, transparent);
+  --color-rule-strong: color-mix(in srgb, var(--ink-900) 32%, transparent);
+  --color-redaction: color-mix(in srgb, var(--ink-900) 14%, transparent);
+  --color-press: color-mix(in srgb, var(--ink-900) 7%, transparent);
+  --color-hover: color-mix(in srgb, var(--ink-900) 4%, transparent);
+  --color-scrim: color-mix(in srgb, var(--ink-900) 40%, transparent);
+  /* Vermilion means "sealed" and nothing else. */
+  --color-seal: var(--vermilion-600);
+  --color-on-seal: var(--white);
+  --color-primary: var(--ink-900);
+  --color-on-primary: var(--paper-50);
+  --color-focus: var(--ink-900);
+
+  /* ── Type ───────────────────────────────────────────────── */
+  --font-voice: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-ui: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --type-display-size: 32px;
+  --type-display-line: 38px;
+  --type-title-size: 24px;
+  --type-title-line: 30px;
+  --type-voice-size: 18px;
+  --type-voice-line: 28px;
+  --type-body-size: 16px;
+  --type-body-line: 24px;
+  --type-label-size: 14px;
+  --type-label-line: 20px;
+  --type-stamp-size: 12px;
+  --type-stamp-line: 16px;
+  --type-stamp-tracking: 0.08em;
+
+  /* ── Space (4pt) ────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius: small for controls, larger for containers, full only for the seal ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* ── Elevation ──────────────────────────────────────────── */
+  --elevation-1: 0 1px 0 var(--color-rule), 0 8px 24px -16px color-mix(in srgb, var(--ink-900) 30%, transparent);
+  --elevation-2: 0 16px 48px -12px color-mix(in srgb, var(--ink-900) 35%, transparent);
+
+  /* ── Motion ─────────────────────────────────────────────── */
+  --dur-quick: 160ms;
+  --dur-move: 240ms;
+  --dur-open: 520ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ── Component knobs ────────────────────────────────────── */
+  --target-min: 44px;
+  --nav-height: 64px;
+  --rail-width: 96px;
+  --column-max: 680px;
+
+  color-scheme: light dark;
+}
+
+@media (min-width: 720px) {
+  :root {
+    --type-display-size: 44px;
+    --type-display-line: 52px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-page: var(--night-950);
+    --color-surface: var(--night-900);
+    --color-text: var(--cream-100);
+    --color-text-secondary: var(--cream-300);
+    --color-text-tertiary: var(--cream-500);
+    --color-rule: color-mix(in srgb, var(--cream-100) 16%, transparent);
+    --color-rule-strong: color-mix(in srgb, var(--cream-100) 32%, transparent);
+    --color-redaction: color-mix(in srgb, var(--cream-100) 14%, transparent);
+    --color-press: color-mix(in srgb, var(--cream-100) 9%, transparent);
+    --color-hover: color-mix(in srgb, var(--cream-100) 5%, transparent);
+    --color-scrim: color-mix(in srgb, #000 60%, transparent);
+    --color-seal: var(--vermilion-400);
+    --color-on-seal: var(--night-950);
+    --color-primary: var(--cream-100);
+    --color-on-primary: var(--night-950);
+    --color-focus: var(--cream-100);
+    --elevation-1: 0 1px 0 var(--color-rule), 0 8px 24px -16px #000;
+    --elevation-2: 0 16px 48px -12px #000;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-move: 1ms;
+    --dur-open: 1ms;
+  }
+}
